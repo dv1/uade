@@ -32,12 +32,11 @@
 #include "../config.h"
 
 #include "uade.h"
-
 #include "amigamsg.h"
-
 #include "strlrep.h"
-
 #include "players.h"
+#include "uadecontrol.h"
+
 
 #define OPTION_HELP (1)
 #define OPTION_ILLEGAL_PARAMETERS (2)
@@ -405,6 +404,10 @@ void uade_reset(void) {
   FILE *file;
   int bytesread;
 
+  const int maxcommand = 4096;
+  uint8_t command[maxcommand];
+  struct uade_control *uc = (struct uade_control *) command;
+
   /* IMPORTANT:
      It seems that certain players don't work totally reliably if memory
      contains trash from previous songs. To be certain that each song is
@@ -417,20 +420,49 @@ void uade_reset(void) {
     uade_highmem += 0x10000;
   }
   if (uade_highmem < 0x80000) {
-    fprintf(stderr, "uade: fatal error: highmem == 0x%x (< 0x80000)!\n", uade_highmem);
+    fprintf(stderr, "fatal error: there must be at least 512 KiB of amiga memory (%d bytes found)\n", uade_highmem);
     exit(-1);
   }
   if (uade_highmem < 0x200000) {
-    fprintf(stderr, "uade: warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
+    fprintf(stderr, ": warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
   }
   memset(get_real_address(0), 0, uade_highmem);
   
  takenextsong:
-  
-  /* if no more songs in the play queue, quit cmdline tool */
-  if (!slave.get_next(&uade_song)) {
+
+  uade_song.cur_subsong = uade_song.min_subsong = uade_song.max_subsong = 0;
+
+  if ((uade_get_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"uade: no more songs to play\n");
     exit(0);
+  }
+  if (uc->command != UADE_COMMAND_SCORE)
+    assert(0);
+  assert(uc->size > 0);
+  assert(uc->size == (strlen(uc->data) + 1));
+  strlcpy(uade_song.scorename, uc->data, sizeof(uade_song.scorename));
+
+  if ((uade_get_command(uc, maxcommand) == 0)) {
+    fprintf(stderr,"expected player name. got nothing.\n");
+    exit(-1);
+  }
+  if (uc->command != UADE_COMMAND_PLAYER)
+    assert(0);
+  assert(uc->size > 0);
+  assert(uc->size == (strlen(uc->data) + 1));
+  strlcpy(uade_song.playername, uc->data, sizeof(uade_song.playername));
+
+  if ((uade_get_command(uc, maxcommand) == 0)) {
+    fprintf(stderr,"expected module name. got nothing.\n");
+    exit(-1);
+  }
+  if (uc->command != UADE_COMMAND_MODULE)
+    assert(0);
+  if (uc->size == 0) {
+    uade_song.modulename[0] = 0;
+  } else {
+    assert(uc->size == (strlen(uc->data) + 1));
+    strlcpy(uade_song.modulename, uc->data, sizeof(uade_song.modulename));
   }
 
   uade_set_automatic_song_end(uade_song.song_end_possible);

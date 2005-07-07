@@ -15,6 +15,7 @@ enum uade_command_t {
 
 enum uade_reply_t {
   UADE_REPLY_MSG = 1,
+  UADE_REPLY_CANT_PLAY,
   UADE_REPLY_SONG_END,
   UADE_REPLY_CRASH,
   UADE_REPLY_SUBSONG_INFO,

@@ -64,6 +64,8 @@ static void uade_copy_from_inputbuffer(void *dst, int bytes)
 
 int uade_get_command(struct uade_control *uc, size_t maxbytes)
 {
+  size_t fullsize;
+
   assert(sizeof(*uc) == 8);
 
   if (uade_inputbytes < sizeof(*uc)) {
@@ -72,8 +74,13 @@ int uade_get_command(struct uade_control *uc, size_t maxbytes)
   }
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
 
-  if ((sizeof(*uc) + uc->size) > maxbytes) {
-    fprintf(stderr, "too big a command: %u\n", sizeof(*uc) + uc->size);
+  fullsize = uc->size + sizeof(*uc);
+  if (fullsize > INPUT_BUF_SIZE) {
+    fprintf(stderr, "too big a command size: %u\n", fullsize);
+    return 0;
+  }
+  if (fullsize > maxbytes) {
+    fprintf(stderr, "too big a command: %u\n", fullsize);
     return 0;
   }
   if (uade_inputbytes < uc->size) {
