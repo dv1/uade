@@ -1,0 +1,513 @@
+#!/bin/sh
+
+VERSION=2.00
+
+if test -n "$CC"; then
+    CC=$CC
+    echo "Forcing compiler to be $CC"
+else
+    CC="gcc"
+fi
+
+ARCHFLAGS=""
+if test -n "$CFLAGS"; then
+    ARCHFLAGS="$ARCHFLAGS $CFLAGS"
+    echo "Adding $ARCHFLAGS to ARCHFLAGS"
+fi
+
+ARCHLIBS=""
+if test -n "$LDFLAGS"; then
+    ARCHLIBS="$ARCHLIBS $LDFLAGS"
+    echo "Adding $ARCHLIBS to ARCHLIBS"
+fi
+
+user="no"
+packageprefix=""
+mymods="\$ENV{HOME}"
+usexmms="auto"
+usebmp="auto"
+xmmsplugindir="auto"
+bmpplugindir="auto"
+FORCEDAUDIOTARGET="AO"
+disablealsa="no"
+disableoss="no"
+disablesdl="no"
+disableao="no"
+interaction="no"
+debug_flags=""
+
+for opt in "$@" ; do
+	case $opt in
+	--prefix=*)
+		prefix=`echo $opt | sed -n 's/--prefix=\(.*\)/\1/p'`
+		;;
+	--package-prefix=*)
+		packageprefix=`echo $opt | sed -n 's/--package-prefix=\(.*\)/\1/p'`
+		;;
+
+        --bindir=*)
+                bindir=`echo $opt | sed -n 's/--bindir=\(.*\)/\1/p'`
+                ;;
+	--docdir=*)
+		docdir=`echo $opt | sed -n 's/--docdir=\(.*\)/\1/p'`
+		;;
+	--includedir=*)
+		includedir=`echo $opt | sed -n 's/--includedir=\(.*\)/\1/p'`
+		;;
+	--libdir=*)
+		libdir=`echo $opt | sed -n 's/--libdir=\(.*\)/\1/p'`
+		;;
+	--make=*)
+	        MAKE=`echo $opt | sed -n 's/--make=\(.*\)/\1/p'`
+		;;
+	--mandir=*)
+		mandir=`echo $opt | sed -n 's/--mandir=\(.*\)/\1/p'`
+		;;
+	--sharedir=*)
+		sharedir=`echo $opt | sed -n 's/--sharedir=\(.*\)/\1/p'`
+		;;
+
+	--glib-config=*)
+	        GLIB_CONFIG=`echo $opt | sed -n 's/--glib-config=\(.*\)/\1/p'`
+		;;
+	--gtk-config=*)
+	        GTK_CONFIG=`echo $opt | sed -n 's/--gtk-config=\(.*\)/\1/p'`
+		;;
+	--pkg-config=*)
+	        PKG_CONFIG=`echo $opt | sed -n 's/--pkg-config=\(.*\)/\1/p'`
+		;;
+	--xmms-config=*)
+	        XMMS_CONFIG=`echo $opt | sed -n 's/--xmms-config=\(.*\)/\1/p'`
+		;;
+	--xmms-plugin-dir=*)
+		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
+		;;
+	--bmp-plugin-dir=*)
+		bmpplugindir=`echo $opt | sed -n 's/--bmp-plugin-dir=\(.*\)/\1/p'`
+		;;
+	--mymods=*)
+		mymods=`echo $opt | sed -n 's/--mymods=\(.*\)/\1/p'`
+		mod=1
+		;;
+
+	--with-xmms)
+		usexmms="yes"
+		;;
+	--without-xmms)
+		usexmms="no"
+		;;
+	--with-bmp)
+		usebmp="yes"
+		;;
+	--without-bmp)
+		usebmp="no"
+		;;
+
+	--with-alsa)
+		FORCEDAUDIOTARGET="ALSA"
+		disablealsa="no"
+		;;
+	--without-alsa)
+		disablealsa="yes"
+		;;
+
+	--with-null)
+		FORCEDAUDIOTARGET="NULL"
+		;;
+
+	--with-oss)
+		FORCEDAUDIOTARGET="OSS"
+		disableoss="no"
+		;;
+	--without-oss)
+		disableoss="yes"
+		;;
+
+	--with-ao)
+		FORCEDAUDIOTARGET="AO"
+		disableao="no"
+		;;
+	--without-ao)
+		disableao="yes"
+		;;
+
+	--with-sdl)
+		FORCEDAUDIOTARGET="SDL"
+		disablesdl="no"
+		;;
+	--without-sdl)
+		disablesdl="yes"
+		;;
+
+	--interaction)
+		interaction="yes"
+		;;
+	--no-interaction)
+		interaction="nooo"
+		;;
+        --user)
+		user="yes"
+		;;
+	--debug)
+		debug_flags="-g"
+		;;
+	--help)
+		echo
+		echo "Usage:"
+		echo
+		echo "Installation control:"
+                echo " --user           Install the program completely to the home directory"
+		echo "                  for _this_ user (no root privileges needed for installation)"
+                echo " --prefix=path    Install program under 'path'"
+	        echo " --package-prefix=path  File installation prefix (for package maintainers)"
+		echo " --make=exe             Use 'exe' as the make command"
+		echo " --bindir=dir           Install executables into this directory"
+		echo " --docdir=dir           Install documentation into this directory"
+		echo " --includedir=dir       Add this directory to compilation include path"
+		echo " --mandir=dir           Install man page to this directory"
+		echo " --libdir=dir           Add this dircetory to linking path"
+		echo " --sharedir=dir         Install UADE data files into this directory"
+		echo
+		echo "Plugin control:"
+		echo " --with-xmms            Compile XMMS plugin"
+		echo " --without-xmms         Don't compile XMMS plugin"
+		echo " --xmms-plugin-dir=dir  The XMMS input plugin is installed into this directory"
+		echo " --with-bmp             Compile BeepMP plugin"
+		echo " --without-bmp          Don't compile BeepMP plugin"
+		echo " --bmp-plugin-dir=dir   The BeepMP input plugin is installed into this directory"
+		echo
+		echo "Pwrap control:"
+		echo " --mymods=path        The default module directory for pwrap tk interface"
+		echo "                      users. Default directory is the homedir."
+		echo "Sound target control:"
+		echo " --with-alsa          Use ALSA sound output"
+		echo " --without-alsa       Do not use ALSA sound output"
+		echo " --with-null          No sound output (just for testing)"
+		echo " --with-oss           Use OSS sound output"
+		echo " --without-oss        Do not use OSS sound output"
+		echo " --with-ao            Use libao sound output"
+		echo " --without-ao         Do not use libao sound output"
+		echo " --with-sdl           Use SDL sound output"
+		echo " --without-sdl        Do not use SDL sound output"
+		echo
+		echo "Library control:"
+		echo " --glib-config=exe    Use 'exe' as glib-config executable"
+		echo " --gtk-config=exe     Use 'exe' as gtk-config executable"
+		echo " --pkg-config=exe     Use 'exe' as pkg-config executable"
+		echo
+		exit
+		;;
+	--x-libraries=*)
+		;;
+	--x-includes=*)
+		;;
+	*)
+		echo "illegal option $opt"
+		exit
+		;;
+	esac
+done
+
+if test -z "$PKG_CONFIG" ; then
+    PKG_CONFIG="pkg-config"
+fi
+"$PKG_CONFIG" --version 2> /dev/null > /dev/null || PKG_CONFIG=""
+
+if test -z "$XMMS_CONFIG" ; then
+    XMMS_CONFIG="xmms-config"
+fi
+
+if test "$usexmms" = "auto" ; then
+    if test -x "`which $XMMS_CONFIG`" ; then
+	usexmms="yes"
+    else
+	usexmms="no"
+	echo "Couldn't find xmms-config => not compiling xmms-plugin!"
+    fi
+fi
+
+if test "$usebmp" = "auto" ; then
+    usebmp="no"
+    if test -n "$PKG_CONFIG" ; then
+	if test -n "`$PKG_CONFIG bmp --libs 2>/dev/null`"; then
+	    usebmp="yes"
+	fi
+    fi
+fi
+
+cp configure.h config.h
+chmod u+w config.h
+
+# set kernel type (such as AmigaOS) with environment variable $UADEKERNEL
+OS="$UADEKERNEL"
+if test -z "$OS" ; then
+    OS="`uname`"
+fi
+
+UNIXSHELL="yes"
+AUDIOTARGET="NULL"
+OSSOURCE="uade-os-unix.c"
+OSHEADER="uade-os-unix.h"
+LIBTOOL="libtool"
+
+if test -n "$OS" && test "$OS" = "SunOS"; then
+    echo
+    echo "Configuring for Solaris." 
+    AUDIOTARGET="SOLARIS"
+elif test -n "$OS" && test "$OS" = "IRIX"; then
+    echo
+    echo "Configuring for IRIX."
+    AUDIOTARGET="SGI"
+elif test -n "$OS" && test "$OS" = "MorphOS"; then
+    echo
+    echo "Configuring for MorphOS / AmigaOS."
+    AUDIOTARGET="AHI"
+    OSSOURCE="uade-os-amiga.c"
+    OSHEADER="uade-os-amiga.h"
+    ARCHFLAGS="$ARCHFLAGS -noixemul"
+    UNIXSHELL="no"
+    usexmms="no"
+elif test -n "$OS" && test "$OS" = "AmigaOS"; then
+    echo
+    echo "Configuring for AmigaOS 4."
+    AUDIOTARGET="AHI"
+    OSSOURCE="uade-os-amiga.c"
+    OSHEADER="uade-os-amiga.h"
+    ARCHFLAGS="$ARCHFLAGS"
+    UNIXSHELL="no"
+    usexmms="no"
+elif test -n "$OS" && test "$OS" = "Darwin"; then
+    echo
+    echo "Configuring for MacOSX"
+    AUDIOTARGET="COREAUDIO"
+    ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
+    echo "#define HAVE_MACOSX" >> config.h
+    LIBTOOL="glibtool"
+    if test "$interaction" != "nooo"; then
+        interaction="yes"
+    fi
+elif test -n "$OS" && test "$OS" = "Linux"; then
+    if test "$interaction" != "nooo"; then
+        interaction="yes"
+    fi
+    AUDIOTARGET="ALSA"
+elif test -n "$OS" && test "$OS" = "OpenBSD"; then
+    if test "$interaction" != "nooo"; then
+        interaction=yes
+    fi
+    AUDIOTARGET="SOLARIS"
+fi
+
+if test "$disablealsa" = "yes" && test "$AUDIOTARGET" = "ALSA"; then
+    AUDIOTARGET="NULL"
+fi
+if test "$disableoss" = "yes" && test "$AUDIOTARGET" = "OSS"; then
+    AUDIOTARGET="NULL"
+fi
+if test "$disablesdl" = "yes" && test "$AUDIOTARGET" = "SDL"; then
+    AUDIOTARGET="NULL"
+fi
+if test "$disableao" = "yes" && test "$AUDIOTARGET" = "AO"; then
+    AUDIOTARGET="NULL"
+fi
+
+
+# Automatic checking for ALSA version 1.0.x. Fall back to OSS sound on
+# failure.
+if test "$AUDIOTARGET" = "ALSA"; then
+ cat > test.c <<EOF
+#include <alsa/asoundlib.h>
+int main(void) { return (!(SND_LIB_MAJOR==1 && SND_LIB_MINOR==0)); }
+EOF
+$CC -Wall -O2 -o testexe test.c 2>/dev/null || AUDIOTARGET="OSS"
+fi
+
+if test -n "$FORCEDAUDIOTARGET"; then
+    AUDIOTARGET="$FORCEDAUDIOTARGET"
+    echo "Forcing sound output to be $AUDIOTARGET"
+fi
+
+AUDIOFLAGS=""
+AUDIOLIBS=""
+
+if test "$AUDIOTARGET" = "SOLARIS"; then
+    SOUNDSOURCE="sd-sound-solaris.c"
+    SOUNDHEADER="sd-sound-generic.h"
+elif test "$AUDIOTARGET" = "SGI"; then
+    AUDIOLIBS="$UADEEXTRALIBS -lgen -laudio"
+    SOUNDSOURCE="sd-sound-sgi.c"
+    SOUNDHEADER="sd-sound-sgi.h"
+elif test "$AUDIOTARGET" = "AHI"; then
+    SOUNDSOURCE="sd-sound-ahi.c"
+    SOUNDHEADER="sd-sound-ahi.h"
+elif test "$AUDIOTARGET" = "ALSA"; then
+    AUDIOFLAGS=""
+    AUDIOLIBS="-lasound"
+    if test -n "$PKG_CONFIG" ; then
+	AUDIOFLAGS="`"$PKG_CONFIG" alsa --cflags`" || AUDIOFLAGS=""
+	AUDIOLIBS="`"$PKG_CONFIG" alsa --libs`" || AUDIOLIBS="-lasound"
+    fi
+    SOUNDSOURCE="sd-sound-alsa.c"
+    SOUNDHEADER="sd-sound-alsa.h"
+elif test "$AUDIOTARGET" = "OSS"; then
+    SOUNDHEADER="sd-sound-generic.h"
+    SOUNDSOURCE="sd-sound-oss.c"
+elif test "$AUDIOTARGET" = "SDL"; then
+    AUDIOFLAGS=`sdl-config --cflags`
+    AUDIOLIBS=`sdl-config --libs`
+    SOUNDSOURCE="sd-sound-sdl.c"
+    SOUNDHEADER="sd-sound-sdl.h"
+elif test "$AUDIOTARGET" = "AO"; then
+    AUDIOFLAGS=""
+    AUDIOLIBS="-lao"
+    if test -n "$PKG_CONFIG" ; then
+	AUDIOFLAGS="`"$PKG_CONFIG" ao --cflags`" || AUDIOFLAGS=""
+	AUDIOLIBS="`"$PKG_CONFIG" ao --libs`" || AUDIOLIBS="-lao"
+    fi
+    SOUNDSOURCE="sd-sound-ao.c"
+    SOUNDHEADER="sd-sound-ao.h"
+elif test "$AUDIOTARGET" = "COREAUDIO"; then
+    AUDIOLIBS="-framework coreaudio"
+    SOUNDSOURCE="sd-sound-coreaudio.c"
+    SOUNDHEADER="sd-sound-coreaudio.h"
+else
+    SOUNDSOURCE="sd-sound-null.c"
+    SOUNDHEADER="sd-sound-null.h"
+fi
+
+echo "#include \"$SOUNDSOURCE\"" > src/sd-sound.c;
+echo "#include \"$SOUNDHEADER\"" > src/sd-sound.h;
+echo "#include \"$OSSOURCE\"" > osdep/uade-os.c;
+echo "#include \"$OSHEADER\"" > osdep/uade-os.h;
+
+MACHINE="`uname -m`"
+if test "$MACHINE" = "parisc"; then
+    ARCHFLAGS="$ARCHFLAGS -ffunction-sections"
+fi
+
+PERLDIR="`which perl`"
+INSTALLTEST="`which ginstall`"
+
+if test ! -x "$INSTALLTEST"; then
+ if test -n "$OS" && test "$OS" = "SunOS"; then
+  echo
+  echo "Warning: ginstall not found, install might not work."
+  echo "If you do have ginstall make sure it is in your path."
+  echo
+  INSTALLTEST="`which install`"
+ else
+  INSTALLTEST="`which install`"
+ fi
+fi
+
+if test -z "$MAKE" ; then
+    if test -n "$OS" && test "$OS" = "MorphOS"; then
+	MAKE="make"
+    else
+	MAKE="`which gmake`"
+	if test ! -x "$MAKE"; then
+	    MAKE="`which make`"
+	fi
+	if test ! -x "$MAKE"; then
+	    echo FATAL: cannot find make
+	    exit 1
+	fi
+    fi
+fi
+
+if test "$user" = "no"; then
+    # global installation
+    if test -z "$prefix"; then
+	prefix="/usr/local"
+    fi
+    uadedatadir="$prefix/share/uade"
+    if test -z "$bindir"; then
+	bindir="$prefix/bin"
+    fi
+    if test "$usexmms" = "yes"; then
+	xmmsplugin=`$XMMS_CONFIG --input-plugin-dir`
+    fi
+    if test "$usebmp" = "yes"; then
+	bmpplugin=`$PKG_CONFIG bmp --variable=input_plugin_dir`
+    fi
+    if test -z "$docdir"; then
+	docdir="$prefix/share/doc/uade-$VERSION"
+    fi
+    if test -z "$mandir"; then
+	mandir="$prefix/share/man/man1"
+    fi
+else
+    # user installation
+    if test -z "$prefix"; then
+	prefix="$HOME/.uade"
+    fi
+    uadedatadir="$prefix"
+    if test -z "$bindir"; then
+	bindir="$prefix"
+    fi
+    xmmsplugin="$HOME/.xmms/Plugins/Input"
+    bmpplugin="$HOME/.bmp/Plugins/Input"
+    if test -z "$docdir"; then
+	docdir="$prefix/uade-$VERSION"
+    fi
+    if test -z "$mandir"; then
+	mandir="$prefix/man/man1"
+    fi
+fi
+
+# --xmms-plugin-dir overrides automatically detected xmms plugin directory
+if test "$xmmsplugindir" != "auto"; then
+    xmmsplugin=$xmmsplugindir
+fi
+
+# --bmp-plugin-dir overrides automatically detected bmp plugin directory
+if test "$bmpplugindir" != "auto"; then
+    bmpplugin=$bmpplugindir
+fi
+
+if test -z "$libdir" ; then
+    libdir="$prefix/lib"
+fi
+if test -z "$includedir" ; then
+    includedir="$prefix/include"
+fi
+if test -n "$sharedir"; then
+    uadedatadir="$sharedir"
+fi
+
+LHA="`which lha`"
+if test -x "$LHA"; then
+    LHAREPLY="yes"
+else
+    echo
+    echo "LHA archiver not found: UADE won't take advantage of lha archives"
+    echo "until 'lha' executable is placed into command execution path."
+    echo "You do not need to reinstall and/or recompile UADE if you later add"
+    echo "lha to command execution path.."
+    echo
+    LHAREPLY="no"
+fi
+
+cd compat
+echo "#include <string.h>" > strl.c
+if test -n "$OS" && test "$OS" != "MorphOS"; then
+    $CC -o strltest strltest.c 2>/dev/null || cp strlrep.c strl.c
+fi
+cd ..
+mv compat/strl.c src/
+
+echo "UADE and frontends will be installed to : $bindir"
+echo "Data directory will be                  : $uadedatadir"
+echo "Documentation directory will be         : $docdir"
+echo "Man directory will be                   : $mandir"
+echo "Installer that will be used             : $INSTALLTEST"
+echo "Make that will be used during the build : $MAKE"
+echo "Sound output with                       : $AUDIOTARGET"
+echo
+
+sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|" -e "s|{ARCHLIBS}|$ARCHLIBS|" \
+    -e "s|{AUDIOFLAGS}|$AUDIOFLAGS|" -e "s|{AUDIOLIBS}|$AUDIOLIBS|" \
+    -e "s|{CC}|$CC|" \
+    -e "s|{SOUNDSOURCE}|$SOUNDSOURCE|" -e "s|{SOUNDHEADER}|$SOUNDHEADER|" \
+    -e "s|{DEBUGFLAGS}|$debug_flags|" \
+  src/Makefile.in > src/Makefile
