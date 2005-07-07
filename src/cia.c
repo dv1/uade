@@ -379,11 +379,7 @@ static void WriteCIAA(uae_u16 addr,uae_u8 val)
 	} else {
 	  gui_ledstate |= gui_ledstate_forced & 1 ? 1 : 0;
 	}
-	if (uade_filter_debug) {
-	  if (((int) (gui_ledstate & 1)) == (oldled >> 1)) {
-	    fprintf(stderr, "uade: led filter %s\n", (gui_ledstate & 1) ? "on" : "off");
-	  }
-	}
+
 	/* we don't want to have ersatzkickfile or kickstart roms in uade */
 	/*
 	if ((ciaapra & 1) != oldovl) {

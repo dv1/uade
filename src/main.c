@@ -26,7 +26,7 @@
 #include "compiler.h"
 
 #include "uade.h"
-#include "strl.h"
+#include "strlrep.h"
 
 long int version = 256*65536L*UAEMAJOR + 65536L*UAEMINOR + UAESUBREV;
 
@@ -327,13 +327,13 @@ int main (int argc, char **argv)
     if (! setup_sound ()) {
 	fprintf (stderr, "Sound driver unavailable: Sound output disabled\n");
 	currprefs.produce_sound = 0;
-	uade_exit(-1);
+	exit(-1);
     }
 
     if (sound_available && currprefs.produce_sound > 1 && ! init_sound ()) {
 	fprintf (stderr, "Sound driver unavailable: Sound output disabled\n");
 	currprefs.produce_sound = 0;
-	uade_exit(-1);
+	exit(-1);
     }
 
     fix_options ();

@@ -16,6 +16,7 @@ int uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_samp
 
 void uade_print_help(int problemcode);
 
+extern int uade_local_sound;
 extern int uade_swap_output_bytes;
 extern int uade_reboot;
 extern int uade_time_critical;

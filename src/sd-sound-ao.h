@@ -6,12 +6,13 @@
  * Copyright 2004 Heikki Orsila <heikki.orsila@iki.fi>
  */
 
+#include <assert.h>
+
 #include <ao/ao.h>
 #include <errno.h>
 #include <string.h>
 
 #include "uade.h"
-#include "uade-os.h"
 
 extern uae_u16 sndbuffer[];
 extern uae_u16 *sndbufpt;
@@ -23,19 +24,14 @@ extern void finish_sound_buffer (void);
 
 
 static void check_sound_buffers (void) {
-  if ((char *) sndbufpt - (char *) sndbuffer >= sndbufsize) {
-    
-    if ((char *) sndbufpt - (char *) sndbuffer > sndbufsize) {
-      fprintf(stderr, "uade: A bug in sound buffer writing. Report this!\n");
-    }
-    
+  assert((char *) sndbufpt - (char *) sndbuffer <= sndbufsize);
+  if ((char *) sndbufpt - (char *) sndbuffer == sndbufsize) {
     if (uade_check_sound_buffers(sndbuffer, sndbufsize, sound_bytes_per_sample)) {
       if (!ao_play(libao_device, (char *) sndbuffer, sndbufsize)) {
 	fprintf(stderr, "uade: libao error detected. exit.\n");
-	uade_exit(-1);
+	exit(-1);
       }
     }
-    
     sndbufpt = sndbuffer;
   }
 }

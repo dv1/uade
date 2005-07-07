@@ -6,8 +6,6 @@
   * Copyright 1995, 1996, 1997 Bernd Schmidt
   * Copyright 1996 Marcus Sundberg
   * Copyright 1996 Manfred Thole
-  *
-  * LED filter emulation added by Heikki Orsila in 2003 (no copyright claim)
   */
 
 #include "sysconfig.h"
@@ -52,91 +50,6 @@ static unsigned long last_cycles, next_sample_evtime;
 
 unsigned long sample_evtime;
 
-int sound_use_filter = 0;
-int sound_left_input[6];
-int sound_left_output[6];
-int sound_right_input[6];
-int sound_right_output[6];
-
-/* apply filter emulation. this is an integer algorithm which does the same
-   as the filter code in effects/effect.c, but scales the output to original
-   amplitude. this may cause overflow. overflow is handled by clamping
-   the amplitude value to range [down, up]. it is possible only when the
-   filter is enabled. if this happens, it is easy to modify this filter so
-   that clamping never happens, but volume levels are rather low (17dB lower)!
-   The patch to do this is as follows:
-     ...
-     output[0] = s;
-     o = s;
-     if (o > up) {
-     ...
-
-   You may see filter overrun rates from command line if you use the parameter
-   -fd. Remember that no clamping should happen when filter is off! Otherwise
-   it's a bug.
-
-   A possible trade-off to have the most of the best of both worlds is to
-   divide the volume by some small constant, say 2. Clamping is still
-   possible, but less probable.
-*/
-/*static int filter(int data, int *input, int *output, int down, int up) {
-  int o, s;
-  input[2] = input[1];
-  input[1] = input[0];
-  input[0] = data;
-  if (!gui_ledstate) {
-    o = data;
-    s = (data * 140) >> 10;
-  } else {
-    s = 1496*input[0] + 1013*input[1] + 686*input[2];
-    s += -10046*output[0] + 2994*output[1];
-    o = s / (140 * 16);
-    s >>= 14;
-  }
-  output[1] = output[0];
-  output[0] = s;
-  if (o > up) {
-    o = up;
-    uade_filter_overruns++;
-  } else if (o < down) {
-    o = down;
-    uade_filter_overruns++;
-  }
-  uade_filter_counter++;
-  return o;
-}
-*/
-
-static int filter(int data, int *input, int *output, int down, int up) {
-  int o, s;
-  input[4] = input[3];
-  input[3] = input[2];
-  input[2] = input[1];
-  input[1] = input[0];
-  input[0] = data;
-  if (!gui_ledstate) {
-    o = data;
-    s = data / 2.08;
-  } else {
-    s = 0.11718*input[0] + 0.03943*input[1] - 0.00242*input[2] + 0.02800*input[3] + 0.00178*input[4];
-    s += -1.31569*output[0] + 0.52905*output[1] + 0.00340*output[2] - 0.02829*output[3];
-    o = s * 9.0;
-    s = s / 2.08;
-  }
-  output[3] = output[2];
-  output[2] = output[1];
-  output[1] = output[0];
-  output[0] = s;
-  if (o > up) {
-    o = up;
-    uade_filter_overruns++;
-  } else if (o < down) {
-    o = down;
-    uade_filter_overruns++;
-  }
-  uade_filter_counter++;
-  return o;
-}
 
 void init_sound_table16 (void)
 {
@@ -174,8 +87,6 @@ typedef uae_u8 sample8_t;
 
 #define DO_CHANNEL(v, c) do { (v) &= audio_channel[c].adk_mask; data += v; } while (0);
 
-#define FILTER_LEFT(data, n) filter(data, sound_left_input, sound_left_output, -128*64*n, 127*64*n)
-#define FILTER_RIGHT(data, n) filter(data, sound_right_input, sound_right_output, -128*64*n, 127*64*n)
 
 void sample16_handler (void)
 {
@@ -197,9 +108,6 @@ void sample16_handler (void)
     data0 += data2;
     data0 += data3;
 
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 4);
-    }
     {
 	uae_u32 data = SBASEVAL16(2) + data0;
 	FINISH_DATA(16, 2);
@@ -256,9 +164,6 @@ void sample16i_rh_handler (void)
     ratio = ((audio_channel[3].evtime % delta) << 8) / delta;
     data0 += (data3 * (256 - ratio) + data3p * ratio) >> 8;
 
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 4);
-    }
     {
 	uae_u32 data = SBASEVAL16(2) + data0;
 	FINISH_DATA(16, 2);
@@ -336,9 +241,6 @@ void sample16i_crux_handler (void)
     data1 += data2;
     data0 += data3;
     data0 += data1;
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 4);
-    }
     {
 	uae_u32 data = SBASEVAL16(2) + data0;
 	FINISH_DATA(16, 2);
@@ -368,9 +270,6 @@ void sample8_handler (void)
     data0 += data1;
     data0 += data2;
     data0 += data3;
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 4);
-    }
     {
 	uae_u32 data = SBASEVAL8(2) + data0;
 	FINISH_DATA(8, 2);
@@ -403,10 +302,6 @@ void sample16s_handler (void)
     
     data0 += data3;
     data1 += data2;
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 2);
-      data1 = FILTER_RIGHT(data1, 2);
-    }
     {
 	uae_u32 data = SBASEVAL16(1) + data0;
 	FINISH_DATA (16, 1);
@@ -491,10 +386,6 @@ void sample16si_crux_handler (void)
     }
     data1 += data2;
     data0 += data3;
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 2);
-      data1 = FILTER_RIGHT(data1, 2);
-    }
     {
 	uae_u32 data = SBASEVAL16 (1) + data0;
 	FINISH_DATA (16, 1);
@@ -558,10 +449,6 @@ void sample16si_rh_handler (void)
     ratio = ((audio_channel[3].evtime % delta) << 8) / delta;
     data0 += (data3 * (256 - ratio) + data3p * ratio) >> 8;
 
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 2);
-      data1 = FILTER_RIGHT(data1, 2);
-    }
     {
 	uae_u32 data = SBASEVAL16 (1) + data0;
 	FINISH_DATA (16, 1);
@@ -599,10 +486,6 @@ void sample8s_handler (void)
 
     data0 += data3;
     data1 += data2;
-    if (sound_use_filter) {
-      data0 = FILTER_LEFT(data0, 2);
-      data1 = FILTER_RIGHT(data1, 2);
-    }
     {
 	uae_u32 data = SBASEVAL8(1) + data0;
 	FINISH_DATA (8, 1);
@@ -683,9 +566,6 @@ void sample_ulaw_handler (void)
 	    data += d;
 	}
     }
-    if (sound_use_filter) {
-      data = FILTER_LEFT(data, 4);
-    }
     PUT_SOUND_BYTE (int2ulaw (data));
     check_sound_buffers ();
 }
@@ -705,7 +585,6 @@ static void audio_handler (int nr)
 
 	cdp->state = 5;
 	INTREQ(0x8000 | (0x80 << nr));
-	uade_aud_strike(nr, cdp->pt);
 	if (cdp->wlen != 1)
 	    cdp->wlen--;
 	cdp->nextdat = chipmem_bank.wget(cdp->pt);
@@ -748,7 +627,6 @@ static void audio_handler (int nr)
 	if (adkcon & (0x10 << nr)) {
 	    if (cdp->intreq2 && cdp->dmaen) {
 		INTREQ(0x8000 | (0x80 << nr));
-		uade_aud_strike(nr, cdp->pt);
 	    }
 	    cdp->intreq2 = 0;
 
@@ -788,7 +666,6 @@ static void audio_handler (int nr)
 	    if ((cdp->intreq2 && cdp->dmaen && napnav)
 		|| (napnav && !cdp->dmaen)) {
 	      INTREQ(0x8000 | (0x80 << nr));
-	      uade_aud_strike(nr, cdp->pt);
 	    }
 	    cdp->intreq2 = 0;
 
@@ -845,11 +722,6 @@ void audio_reset (void)
     audio_channel[1].voltbl = sound_table[0];
     audio_channel[2].voltbl = sound_table[0];
     audio_channel[3].voltbl = sound_table[0];
-
-    memset (sound_left_input, 0, sizeof(sound_left_input));
-    memset (sound_right_input, 0, sizeof(sound_right_input));
-    memset (sound_left_output, 0, sizeof(sound_left_output));
-    memset (sound_right_output, 0, sizeof(sound_right_output));
 
     last_cycles = 0;
     next_sample_evtime = sample_evtime;
@@ -971,8 +843,6 @@ void AUDxDAT (int nr, uae_u16 v)
       printf("AUD%dDAT: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
     }
 #endif
-
-    uade_audxdat(nr, v);
 }
 
 void AUDxLCH (int nr, uae_u16 v)
@@ -988,8 +858,6 @@ void AUDxLCH (int nr, uae_u16 v)
       printf("AUD%dLCH: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
     }
 #endif
-
-    uade_audxlch(nr, v);
 }
 
 void AUDxLCL (int nr, uae_u16 v)
@@ -1005,8 +873,6 @@ void AUDxLCL (int nr, uae_u16 v)
       printf("AUD%dLCL: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
     }
 #endif
-
-    uade_audxlcl(nr, v);
 }
 
 void AUDxPER (int nr, uae_u16 v)
@@ -1030,8 +896,6 @@ void AUDxPER (int nr, uae_u16 v)
   if (v < maxhpos/2 && currprefs.produce_sound < 3)
     v = maxhpos/2;
   audio_channel[nr].per = v;
-
-  uade_audxper(nr, v);
 }
 
 void AUDxLEN (int nr, uae_u16 v)
@@ -1039,8 +903,6 @@ void AUDxLEN (int nr, uae_u16 v)
     update_audio ();
 
     audio_channel[nr].len = v;
-
-    uade_audxlen(nr, v);
 }
 
 void AUDxVOL (int nr, uae_u16 v)
@@ -1061,8 +923,6 @@ void AUDxVOL (int nr, uae_u16 v)
       printf("AUD%dVOL: %d @ %d %.6d\n", nr, v, tv.tv_sec, tv.tv_usec);
     }
 #endif
-
-    uade_audxvol(nr, v);
 }
 
 void dump_audio_bench (void)

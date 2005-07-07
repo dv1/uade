@@ -412,8 +412,6 @@ static void DMACON (uae_u16 v)
     int i, need_resched = 0;
     uae_u16 oldcon = dmacon;
 
-    uade_aud_dma(v & 0x820f);
-
     setclr(&dmacon,v); dmacon &= 0x1FFF;
     /* ??? post_decide_line (); */
 
