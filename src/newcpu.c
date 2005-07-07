@@ -1334,11 +1334,10 @@ void m68k_go (void)
     customreset ();
 
     while (uade_reboot == 0 && quit_program == 0) {
-      if (debugging) {
+      if (debugging)
 	debug ();
-	if (quit_program != 0)
-	  break;
-      }
+      if (quit_program != 0)
+	break;
       m68k_run_1 ();
     }
   }
