@@ -3,16 +3,31 @@
 
 #include <stdint.h>
 
-#define UADE_COMMAND_SCORE (1)
-#define UADE_COMMAND_PLAYER (2)
-#define UADE_COMMAND_MODULE (3)
-#define UADE_COMMAND_PLAY (4)
+enum uade_command_t {
+  UADE_COMMAND_SCORE = 1,
+  UADE_COMMAND_PLAYER,
+  UADE_COMMAND_MODULE,
+  UADE_COMMAND_SUBSONG,
+  UADE_COMMAND_PLAY,
+  UADE_COMMAND_READ,
+  UADE_COMMAND_REBOOT,
+};
+
+enum uade_reply_t {
+  UADE_REPLY_MSG = 1,
+  UADE_REPLY_SONG_END,
+  UADE_REPLY_CRASH,
+  UADE_REPLY_SUBSONG_INFO,
+  UADE_REPLY_PLAYERNAME,
+  UADE_REPLY_MODULENAME,
+  UADE_REPLY_FORMATNAME,
+  UADE_REPLY_DATA,
+};
 
 struct uade_control {
   uint32_t command;
   uint32_t size;
-  uint8_t data;
+  uint8_t data[];
 } __attribute__((packed));
-
 
 #endif
