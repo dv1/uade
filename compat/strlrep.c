@@ -1,10 +1,8 @@
 #include <string.h>
 
+#include "strlrep.h"
+
 /* see OpenBSD man pages for strlcat and strlcpy */
-
-static size_t strlcpy(char *dst, const char *src, size_t size);
-static size_t strlcat(char *dst, const char *src, size_t size);
-
 
 static size_t
 strlcpy(char *dst, const char *src, size_t size)

@@ -477,12 +477,13 @@ else
 fi
 
 cd compat
-echo "#include <string.h>" > strl.c
-if test -n "$OS" && test "$OS" != "MorphOS"; then
-    $CC -o strltest strltest.c 2>/dev/null || cp strlrep.c strl.c
+echo "#include <string.h>" > ../src/strlrep.h
+echo "" > ../src/strlrep.c
+$CC -o strltest strltest.c 2>/dev/null
+if test "$?" != "0" ; then
+    cp strlrep.[ch] ../src/s
 fi
 cd ..
-mv compat/strl.c src/
 
 echo "UADE and frontends will be installed to : $bindir"
 echo "Data directory will be                  : $uadedatadir"
