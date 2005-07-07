@@ -28,30 +28,9 @@
 #include "cia.h"
 
 #include "uade.h"
-#include "uade-os.h"
 #include "../config.h"
 
-#ifdef HAVE_AMIGA_SHELL
-#include "amiga-shell.h"
-#endif
-#ifdef HAVE_UNIX_SHELL
-#include "unix-shell.h"
-#endif
-#ifdef HAVE_UNIX_SHELL_INT
-#include "unix-shell-int.h"
-#endif
-#ifdef HAVE_XMMS_SLAVE
-#include "xmms-slave.h"
-#endif
-
-#include "../decrunch/decrunch.h"
-#include "../plugindir/amifilemagic.h"
-
-#include "effects.h"
-
-#include "../osdep/strl.c"
-
-#include "aisf.h"
+#include "strlrep.h"
 
 #include "players.h"
 
@@ -119,29 +98,19 @@ static float uade_pan_value = 1.0f;
 
 int uade_swap_output_bytes = 0;
 
-int uade_filter_debug = 0; /* if non-zero, info about filter is reported */
-int uade_filter_counter = 0;
-int uade_filter_overruns = 0;
-
 /* contains uade's command line name */
 static char *uadecmdlinename = 0;
 
 static int uade_vsync_counter;
-static int uade_audxdat_counter;
-static int uade_audxvol_counter;
-static int uade_audxlch_counter;
 
 static int uade_zero_sample_count;
 
 static int uade_speed_hack = 0;
 int uade_time_critical = 0;
 
-static int aisf_dump = 0;
-static struct aisf_aud_state aisf_state;
-static FILE *aisf_file = 0;
 
-
-void uade_option(int argc, char **argv) {
+void uade_option(int argc, char **argv)
+{
   int i, j, no_more_opts;
   int xmms_slave = 0;
   int shell_interaction = 0;
@@ -162,7 +131,7 @@ void uade_option(int argc, char **argv) {
   s_argv = malloc(sizeof(char *) * (argc + 1));
   if (!s_argv) {
     fprintf (stderr, "uade: out of memory for command line parsing\n");
-    uade_exit(-1);
+    exit(-1);
   }
   s_argc = 0;
   s_argv[s_argc++] = argv[0];
@@ -189,18 +158,9 @@ void uade_option(int argc, char **argv) {
 	  cfg_loaded = 1;
 	} else {
 	  fprintf(stderr, "uade: couldn't load uaerc (%s)!\n", optionsfile);
-	  uade_exit(-1);
+	  exit(-1);
 	}
 	i++;
-
-      } else if (!strcmp(argv[i], "-B")) {
-	if ((i + 1) >= argc) {
-	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(1);
-	  uade_exit(-1);
-	}
-	uade_base_dir = strdup(argv[i + 1]);
-	i += 2;
 
       } else if (!strcmp(argv[i], "-force") || !strcmp(argv[i], "-f")) {
 	uade_song.force_by_default = 1;
@@ -220,7 +180,7 @@ void uade_option(int argc, char **argv) {
 	if ((i+1) >= argc) {
 	  fprintf(stderr, "parameter missing for -dmawait\n");
 	  uade_print_help(1);
-	  uade_exit(-1);
+	  exit(-1);
 	}
 	uade_dmawait = atoi(argv[i + 1]);
 	fprintf(stderr, "setting dmawait = %d rasterlines\n", uade_dmawait);
@@ -235,40 +195,24 @@ void uade_option(int argc, char **argv) {
 	uade_song.song_end_possible = 0;
 	i++;
 
-      } else if (!strcmp(argv[i], "--version") || !strcmp(argv[i], "-version") || !strcmp(argv[i], "-v")) {
-	fprintf(stdout,"UADE %s\n", uade_version());
-	uade_exit(0);
-
       } else if (!strcmp(argv[i], "-pan") || !strcmp(argv[i], "-p")) {
 	if ((i+1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
 	  uade_print_help(1);
-	  uade_exit(-1);
+	  exit(-1);
 	}
 	uade_do_panning = 1;
 	uade_pan_value = atof(argv[i+1]);
 	if (uade_pan_value < 0.0f || uade_pan_value > 2.0f) {
 	  fprintf(stderr, "%s parameter is illegal. Use proper range [0, 1]. See help.\n", argv[i]);
 	  uade_print_help(1);
-	  uade_exit(-1);
+	  exit(-1);
 	}
 	i += 2;
 
       } else if (strcmp(argv[i], "-swap-bytes") == 0) {
 	uade_swap_output_bytes = 1;
 	i++;
-
-      } else if (strcmp(argv[i], "-outpipe") == 0) {
-	if ((i+1) < argc) {
-	  uade_local_sound = 0;
-	  uade_using_outpipe = 1;
-	  uade_init_outpipe(argv[i + 1]);
-	} else {
-	  fprintf(stderr, "parameter missing for -outpipe\n");
-	  uade_print_help(1);
-	  uade_exit(-1);
-	}
-	i += 2;
 
       } else if (strcmp(argv[i], "-no-mc") == 0) {
 	disable_modulechange = 1;
@@ -295,45 +239,16 @@ void uade_option(int argc, char **argv) {
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
 	  uade_print_help(1);
-	  uade_exit(-1);
+	  exit(-1);
 	}
 	uade_song.use_filter = 1;
 	gui_ledstate_forced = atoi(argv[i + 1]) ? 1 : 2;
 	gui_ledstate = gui_ledstate_forced & 1 ? 1 : 0;
 	i += 2;
 
-      } else if (!strcmp(argv[i], "-fd")) {
-	uade_filter_debug = 1;
-	i++;
-	
-	/*
-	  } else if (!strcmp(argv[i], "-r")) {
-	  aisf_dump = 1;
-	  aisf_file = fopen("/test/aisf.dump", "w");
-	  if (!aisf_file) {
-	  fprintf(stderr, "uade: can't open aisf dump file for writing!\n");
-	  uade_exit(-1);
-	  }
-	  memset(&aisf_state, 0, sizeof(aisf_state));
-	  aisf_state.mem = calloc(1, 0x200000);
-	  if (!aisf_state.mem) {
-	  fprintf(stderr, "uade: not enough mem for aisf dumping!\n");
-	  uade_exit(-1);
-	  }
-	  i++;
-	*/
-
-      } else if (!strcmp(argv[i], "-i")) {
-#ifndef HAVE_UNIX_SHELL_INT
-	fprintf(stderr, "shell interaction is not supported.\n");
-	uade_exit(-1);
-#endif
-	shell_interaction = 1;
-	i++;
-
       } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
 	uade_print_help(0);
-	uade_exit(0);
+	exit(0);
 
       } else if (!strcmp(argv[i], "--")) {
 	for (i = i + 1; i < argc ; i++)
@@ -350,11 +265,10 @@ void uade_option(int argc, char **argv) {
   s_argv[s_argc] = NULL;
 
   if (!cfg_loaded) {
-    optionsfile[0] = 0;
-    uade_get_path(optionsfile, UADE_PATH_UAERC, sizeof(optionsfile));
+    strlcpy(optionsfile, "../uaerc", sizeof(optionsfile));
     if (!cfgfile_load(&currprefs, optionsfile)) {
       fprintf(stderr, "uade: couldn't load uaerc (%s)!\n", optionsfile);
-      uade_exit(-1);
+      exit(-1);
     }
   }
 
@@ -500,7 +414,7 @@ void uade_prerun(void) {
   }
   if (uade_highmem < 0x80000) {
     fprintf(stderr, "uade: fatal error: highmem == 0x%x (< 0x80000)!\n", uade_highmem);
-    uade_exit(-1);
+    exit(-1);
   }
   if (uade_highmem < 0x200000) {
     fprintf(stderr, "uade: warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
@@ -512,7 +426,7 @@ void uade_prerun(void) {
   /* if no more songs in the play queue, quit cmdline tool */
   if (!slave.get_next(&uade_song)) {
     fprintf(stderr,"uade: no more songs to play\n");
-    uade_exit(0);
+    exit(0);
   }
 
   uade_set_automatic_song_end(uade_song.song_end_possible);
@@ -1072,61 +986,8 @@ void uade_test_sound_block(void *buf, int size) {
   }
 }
 
-static void uade_interaction(int wait_for) {
-  uae_u32 u;
-  struct uade_command cmd;
-  char tmp[64];
-
-  if (slave.interaction) {
-    memset(&cmd, 0, sizeof(cmd));
-    if (slave.interaction(&cmd, wait_for)) {
-
-      switch (cmd.type) {
-      case UADE_NO_INTERACTION:
-	slave.interaction = 0;
-	fprintf(stderr, "uade: no interaction anymore\n");
-	break;
-	
-      case UADE_SONG_END:
-	snprintf(tmp, sizeof(tmp), "%d, user request", uade_song.cur_subsong);
-	uade_song_end(tmp, 0);
-	break;
-	
-      case UADE_REBOOT:
-	snprintf(tmp, sizeof(tmp), "%d, user request", uade_song.cur_subsong);
-	uade_song_end(tmp, 1);
-	break;
-	
-      case UADE_SETSUBSONG:
-	uade_change_subsong(*((int *) cmd.ret));
-	break;
-	
-      case UADE_TOGGLE_LED:
-	if (!sound_use_filter) {
-	  fprintf(stderr, "uade: setting led filter emulation. volume levels may decrease.\n");
-	}
-	sound_use_filter = 1;
-	ciaapra = (ciaapra & ~2) | (~ciaapra & 2);
-	gui_ledstate = (~ciaapra & 2) >> 1;
-	fprintf(stderr, "uade: led toggled: filter is now %s\n", gui_ledstate ? "on" : "off");
-	break;
-
-      default:
-	fprintf(stderr, "uade: unknown command (%d)\n", cmd.type);
-	break;
-      }
-    }
-    if (cmd.par) {
-      free(cmd.par);
-    }
-    if (cmd.ret) {
-      free(cmd.ret);
-    }
-  }
-}
-
-void uade_vsync_handler(void) {
-
+void uade_vsync_handler(void)
+{
   uade_vsync_counter++;
 
   if (slave.timeout >= 0) {
@@ -1148,111 +1009,8 @@ void uade_vsync_handler(void) {
       return;
     }
   }
-
-  uade_interaction(0);
-
-  if (uade_filter_debug) {
-    if (uade_filter_counter > 0x10000) {
-      fprintf(stderr, "uade: sample clamp rate %f\n", ((float) uade_filter_overruns) / ((float) uade_filter_counter));
-      uade_filter_overruns = 0;
-      uade_filter_counter = 0;
-    }
-  }
 }
 
-static void aisf_write_b(unsigned char cmd, int nr, unsigned char data) {
-  struct aisf_cmd_b s;
-  memset(&s, 0, sizeof(s));
-  s.cycles = htonl(cycles);
-  s.cmd = cmd;
-  s.nr = nr;
-  s.data = data;
-  fwrite(&s, 1, sizeof(s), aisf_file);
-}
-
-static void aisf_write_w(unsigned char cmd, int nr, unsigned short data) {
-  struct aisf_cmd_w s;
-  memset(&s, 0, sizeof(s));
-  s.cycles = htonl(cycles);
-  s.cmd = cmd;
-  s.nr = nr;
-  s.data = htons(data);
-  fwrite(&s, 1, sizeof(s), aisf_file);
-}
-
-static void aisf_write_l(unsigned char cmd, int nr, unsigned int data) {
-  struct aisf_cmd_l s;
-  memset(&s, 0, sizeof(s));
-  s.cycles = htonl(cycles);
-  s.cmd = cmd;
-  s.nr = nr;
-  s.data = htonl(data);
-  fwrite(&s, 1, sizeof(s), aisf_file);
-}
-
-void uade_audxdat(int nr, unsigned int v) {
-  if (aisf_dump) {
-    aisf_write_w(AISF_DAT, nr, v);
-  }
-}
-
-void uade_audxlch(int nr, unsigned int v) {
-  uade_audxlch_counter = uade_vsync_counter;
-  /* fprintf(stderr, "aud%dlch 0x%.4x @ %d\n", nr, v, uade_audxlch_counter); */
-  if (aisf_dump) {
-    aisf_write_w(AISF_PTH, nr, v);
-  }
-}
-
-void uade_audxlcl(int nr, unsigned int v) {
-  uade_audxlch_counter = uade_vsync_counter;
-  /* fprintf(stderr, "aud%dlch 0x%.4x @ %d\n", nr, v, uade_audxlch_counter); */
-  if (aisf_dump) {
-    aisf_write_w(AISF_PTL, nr, v);
-  }
-}
-
-void uade_audxlen(int nr, unsigned int v) {
-  /* fprintf(stderr, "uade: %ld %d %d\n", cycles, nr, v); */
-  if (aisf_dump) {
-    aisf_write_w(AISF_LEN, nr, v);
-  }
-}
-
-void uade_audxper(int nr, unsigned int v) {
-  if (aisf_dump) {
-    aisf_write_w(AISF_PER, nr, v);
-  }
-}
-
-void uade_audxvol(int nr, unsigned int v) {
-  /* if zero is hit into a volume register, it is not noticed */
-  if (v) {
-    uade_audxvol_counter = uade_vsync_counter;
-  }
-  /* fprintf(stderr, "aud%dvol %d @ %d\n", nr, v, uade_audxvol_counter); */
-  if (aisf_dump) {
-    aisf_write_b(AISF_VOL, nr, v);
-  }
-}
-
-void uade_aud_dma(unsigned int v) {
-  if (aisf_dump) {
-    /* fprintf(stderr, "%ld dma 0x%x\n", cycles, v); */
-    if (v & 0x8000) {
-      aisf_state.dma |= v & 0x7fff;
-    } else {
-      aisf_state.dma &= v ^ 0xffff;
-    }
-    aisf_write_w(AISF_DMA, 0, v);
-  }
-}
-
-void uade_aud_strike(int nr, unsigned int v) {
-  if (aisf_dump) {
-    /* fprintf(stderr, "%.4d strike %ld c %d lc 0x%x\n", uade_vsync_counter, cycles, nr, v); */
-  }
-}
 
 /* last part of the audio system pipeline. returns non-zero if sndbuffer
    should be written to os audio drivers (such as oss or alsa), otherwise

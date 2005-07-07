@@ -1,6 +1,66 @@
 #ifndef _UADE_MAIN_H_
 #define _UADE_MAIN_H_
 
+#define UADE_PATH_MAX (1024)
+
+struct uade_song {
+  char playername[UADE_PATH_MAX];       /* filename of eagleplayer */
+  char modulename[UADE_PATH_MAX];       /* filename of song */
+  char scorename[UADE_PATH_MAX];        /* filename of score file */
+
+  int set_subsong;
+  int subsong;
+  int force_by_default;
+  int use_ntsc;
+  int song_end_possible;
+  int use_filter;
+
+  int min_subsong;
+  int max_subsong;
+  int cur_subsong;
+};
+
+struct uade_slave {
+  /* called first. slave may parse options from argc/argv, and set
+     specific variables in uade_song */
+  int (*setup)(struct uade_song *uade_song, int argc, char **argv);
+
+  int (*list_empty)(void);
+
+  /* get_next waits for new song titles to be played, and returns the
+     relevant information in 'uade_song'. in case of xmms plugin it
+     must also signal the xmms to proceed with playing */
+  int (*get_next)(struct uade_song *uade_song);
+
+  /* this is called if an error happened after get_next() in uade_prerun()
+   */
+  void (*skip_to_next_song)(void);
+
+  /* called after new song (and player) have been loaded into memory, and
+     just before the song starts to play. */
+  void (*post_init)(void);
+
+  /* emulator sends sound data to the slave */
+  void (*write)(void *sndbuffer, int bytes);
+
+  /* uade calls this when song ends for any reason */
+  void (*song_end)(struct uade_song *song, char *reason, int kill_it);
+
+  /* flush sound buffers */
+  void (*flush_sound)(void);
+
+  /* slave reactions to messges sent by amiga software */
+  void (*subsinfo)(struct uade_song *song, int mins, int maxs, int curs);
+  void (*got_playername)(char *playername);
+  void (*got_modulename)(char *modulename);
+  void (*got_formatname)(char *formatname);
+
+  int timeout;          /* default timeout infinite */
+  int subsong_timeout;  /* default per subsong timeout infinite */
+  int silence_timeout;  /* default silence timeout */
+};
+
+
 void uade_change_subsong(int subs);
 void uade_get_amiga_message(void);
 void uade_option(int, char**); /* handles command line parameters */
