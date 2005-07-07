@@ -19,7 +19,7 @@ CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7
 
 OBJS = main.o newcpu.o memory.o custom.o cia.o readcpu.o cpudefs.o audio.o \
        compiler.o cpustbl.o missing.o sd-sound.o md-support.o cfgfile.o fpp.o \
-       debug.o $(CPUEMUOBJS) uade.o players.o strlrep.o
+       debug.o $(CPUEMUOBJS) uade.o players.o strlrep.o uadecontrol.o
 
 all:	uade
 
@@ -111,19 +111,7 @@ fpp.o: config.h
 
 uade.o: config.h sd-sound.h
 
-amifilemagic.o: ../plugindir/amifilemagic.c ../plugindir/amifilemagic.h
-	$(CC) $(CFLAGS) -I. -c ../plugindir/amifilemagic.c
-
-uade-os.o:	uade-os.c ../osdep/uade-os.c ../osdep/uade-os.h ../osdep/uade-os-unix.c ../osdep/uade-os-unix.h ../osdep/uadeconfig.h
-
-effect.o:	effects.c ../effects/effects.c ../effects/effects.h
-
-chrarray.o:	chrarray.c chrarray.h
-	$(CC) $(CFLAGS) -c chrarray.c
-
-playlist.o:	playlist.c playlist.h chrarray.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c playlist.c
+uadecontrol.o:	config.h uadecontrol.h
 
 players.o:	players.c players.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c players.c
-
