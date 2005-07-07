@@ -1056,11 +1056,6 @@ static char* ccnames[] =
 
 void m68k_reset (void)
 {
-  m68k_areg(regs,7) = 0x1000;
-  m68k_setpc(0x1000);
-
-  uade_prerun();
-
 #if EXCEPTION_COUNT
   {
     int i;
@@ -1330,6 +1325,7 @@ void m68k_go (void)
 
   for (;quit_program == 0;) {
     quit_program = 0;
+    uade_reset ();
     m68k_reset ();
     customreset ();
 

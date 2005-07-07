@@ -392,7 +392,7 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
 }
 
 /* this is called for each played song from newcpu.c/m68k_reset() */
-void uade_prerun(void) {
+void uade_reset(void) {
   /* don't load anything under 0x1000 (execbase top at $1000) */
   int modnameaddr = 0x00400;
   int scoreaddr   = 0x01000;
@@ -519,7 +519,9 @@ void uade_prerun(void) {
     goto skiptonextsong;
   }
 
+  m68k_areg(regs,7) = scoreaddr;
   m68k_setpc(scoreaddr);
+
   /* override bit for sound format checking */
   uade_put_long(SCORE_FORCE, uade_song.force_by_default);
   /* setsubsong */
