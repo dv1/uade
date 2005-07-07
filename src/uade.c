@@ -39,6 +39,9 @@
 
 #include "players.h"
 
+#define OPTION_HELP (1)
+#define OPTION_ILLEGAL_PARAMETERS (2)
+#define OPTION_NO_SONGS (3)
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static void uade_flush_sound(void);
@@ -47,6 +50,7 @@ static void uade_interaction(int wait_for);
 static void uade_put_long(int addr,int val);
 static void uade_reset_counters(void);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
+
 
 static const int SCORE_MODULE_ADDR   = 0x100;
 static const int SCORE_MODULE_LEN    = 0x104;
@@ -211,7 +215,7 @@ void uade_option(int argc, char **argv)
       } else if (!strcmp(argv[i], "-dmawait")) {
 	if ((i+1) >= argc) {
 	  fprintf(stderr, "parameter missing for -dmawait\n");
-	  uade_print_help(1);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
 	uade_dmawait = atoi(argv[i + 1]);
@@ -230,14 +234,14 @@ void uade_option(int argc, char **argv)
       } else if (!strcmp(argv[i], "-pan") || !strcmp(argv[i], "-p")) {
 	if ((i+1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(1);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
 	uade_do_panning = 1;
 	uade_pan_value = atof(argv[i+1]);
 	if (uade_pan_value < 0.0f || uade_pan_value > 2.0f) {
 	  fprintf(stderr, "%s parameter is illegal. Use proper range [0, 1]. See help.\n", argv[i]);
-	  uade_print_help(1);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
 	i += 2;
@@ -265,7 +269,7 @@ void uade_option(int argc, char **argv)
       } else if (!strcmp(argv[i], "-fs")) {
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(1);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
 	uade_song.use_filter = 1;
@@ -274,7 +278,7 @@ void uade_option(int argc, char **argv)
 	i += 2;
 
       } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
-	uade_print_help(0);
+	uade_print_help(OPTION_HELP);
 	exit(0);
 
       } else if (!strcmp(argv[i], "--")) {
@@ -307,8 +311,6 @@ void uade_option(int argc, char **argv)
   slave.subsong_timeout = -1;	/* default per subsong timeout infinite */
   slave.silence_timeout = -1;	/* default silence timeout infinite */
 
-  slave.setup(&uade_song, s_argc, s_argv);
-
   free(s_argv);
 
   if (uade_debug)
@@ -320,14 +322,14 @@ void uade_option(int argc, char **argv)
 
 void uade_print_help(int problemcode) {
   switch (problemcode) {
-  case 0:
+  case OPTION_HELP:
     /* just for printing help */
     break;
-  case 1:
-    fprintf(stderr, "Illegal parameters for UADE\n\n");
+  case OPTION_ILLEGAL_PARAMETERS:
+    fprintf(stderr, "Illegal parameters\n\n");
     break;
-  case 2:
-    fprintf(stderr, "No songs given as parameters for UADE\n\n");
+  case OPTION_NO_SONGS:
+    fprintf(stderr, "No songs given as parameters\n\n");
     break;
   default:
     fprintf(stderr, "Unknown error\n");

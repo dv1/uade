@@ -6,7 +6,7 @@ DEBUGFLAGS = {DEBUGFLAGS}
 AUDIOFLAGS= {AUDIOFLAGS}
 AUDIOLIBS= {AUDIOLIBS}
 
-CFLAGS	= -fomit-frame-pointer -W -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS)
+CFLAGS	= -fomit-frame-pointer -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS) -g
 LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
 
 .SUFFIXES: .a .o .c .h .S
