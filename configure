@@ -235,9 +235,6 @@ if test "$usebmp" = "auto" ; then
     fi
 fi
 
-cp configure.h config.h
-chmod u+w config.h
-
 # set kernel type (such as AmigaOS) with environment variable $UADEKERNEL
 OS="$UADEKERNEL"
 if test -z "$OS" ; then
@@ -246,8 +243,6 @@ fi
 
 UNIXSHELL="yes"
 AUDIOTARGET="NULL"
-OSSOURCE="uade-os-unix.c"
-OSHEADER="uade-os-unix.h"
 LIBTOOL="libtool"
 
 if test -n "$OS" && test "$OS" = "SunOS"; then
@@ -262,8 +257,6 @@ elif test -n "$OS" && test "$OS" = "MorphOS"; then
     echo
     echo "Configuring for MorphOS / AmigaOS."
     AUDIOTARGET="AHI"
-    OSSOURCE="uade-os-amiga.c"
-    OSHEADER="uade-os-amiga.h"
     ARCHFLAGS="$ARCHFLAGS -noixemul"
     UNIXSHELL="no"
     usexmms="no"
@@ -271,8 +264,6 @@ elif test -n "$OS" && test "$OS" = "AmigaOS"; then
     echo
     echo "Configuring for AmigaOS 4."
     AUDIOTARGET="AHI"
-    OSSOURCE="uade-os-amiga.c"
-    OSHEADER="uade-os-amiga.h"
     ARCHFLAGS="$ARCHFLAGS"
     UNIXSHELL="no"
     usexmms="no"
@@ -281,7 +272,6 @@ elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo "Configuring for MacOSX"
     AUDIOTARGET="COREAUDIO"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
-    echo "#define HAVE_MACOSX" >> config.h
     LIBTOOL="glibtool"
     if test "$interaction" != "nooo"; then
         interaction="yes"
@@ -377,8 +367,6 @@ fi
 
 echo "#include \"$SOUNDSOURCE\"" > src/sd-sound.c;
 echo "#include \"$SOUNDHEADER\"" > src/sd-sound.h;
-echo "#include \"$OSSOURCE\"" > osdep/uade-os.c;
-echo "#include \"$OSHEADER\"" > osdep/uade-os.h;
 
 MACHINE="`uname -m`"
 if test "$MACHINE" = "parisc"; then
