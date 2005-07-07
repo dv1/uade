@@ -1323,8 +1323,7 @@ void m68k_go (void)
   reset_frame_rate_hack ();
   update_68k_cycles ();
 
-  for (;quit_program == 0;) {
-    quit_program = 0;
+  while (quit_program == 0) {
     uade_reset ();
     m68k_reset ();
     customreset ();

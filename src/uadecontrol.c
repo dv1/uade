@@ -74,6 +74,11 @@ int uade_get_command(struct uade_control *uc, size_t maxbytes)
   }
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
 
+  if (uc->command < UADE_COMMAND_SCORE || uc->command >= UADE_COMMAND_LAST) {
+    fprintf(stderr, "illegal command number: %d\n", uc->command);
+    return 0;
+  }
+
   fullsize = uc->size + sizeof(*uc);
   if (fullsize > INPUT_BUF_SIZE) {
     fprintf(stderr, "too big a command size: %u\n", fullsize);

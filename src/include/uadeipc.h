@@ -11,6 +11,7 @@ enum uade_command_t {
   UADE_COMMAND_PLAY,
   UADE_COMMAND_READ,
   UADE_COMMAND_REBOOT,
+  UADE_COMMAND_LAST
 };
 
 enum uade_reply_t {
