@@ -26,9 +26,7 @@
 #include "compiler.h"
 
 #include "uade.h"
-#include "uadeconfig.h"
-#include "uade-os.h"
-#include "../osdep/strl.c"
+#include "strl.h"
 
 long int version = 256*65536L*UAEMAJOR + 65536L*UAEMINOR + UAESUBREV;
 
