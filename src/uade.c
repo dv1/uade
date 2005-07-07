@@ -170,7 +170,7 @@ void uade_option(int argc, char **argv)
 
   no_more_opts = 0;
 
-  s_argv = malloc(sizeof(char *) * (argc + 1));
+  s_argv = malloc(sizeof(argv[0]) * (argc + 1));
   if (!s_argv) {
     fprintf (stderr, "uade: out of memory for command line parsing\n");
     exit(-1);

@@ -228,7 +228,7 @@ extern void m68k_movec2 (int, uae_u32 *);
 extern void m68k_divl (uae_u32, uae_u32, uae_u16, uaecptr);
 extern void m68k_mull (uae_u32, uae_u32, uae_u16);
 extern void init_m68k (void);
-extern void m68k_go (int);
+extern void m68k_go (void);
 extern void m68k_dumpstate (uaecptr *);
 extern void m68k_disasm (uaecptr, uaecptr *, int);
 extern void m68k_reset (void);

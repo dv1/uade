@@ -295,7 +295,7 @@ void do_start_program (void)
 {
     /* Do a reset on startup. Whether this is elegant is debatable. */
     quit_program = 2;
-    m68k_go (1);
+    m68k_go ();
 }
 
 void do_leave_program (void)

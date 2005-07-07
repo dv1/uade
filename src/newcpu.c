@@ -1323,33 +1323,25 @@ void m68k_run_1 (void)
 
 int in_m68k_go = 0;
 
-void m68k_go (int may_quit)
+void m68k_go (void)
 {
-  if (in_m68k_go || !may_quit) {
-    write_log ("Bug! m68k_go is not reentrant.\n");
-    abort ();
-  }
-
   reset_frame_rate_hack ();
   update_68k_cycles ();
-  
-  in_m68k_go++;
 
-  for (;quit_program != 1;) {
+  for (;quit_program == 0;) {
     quit_program = 0;
     m68k_reset ();
     customreset ();
 
-    while(uade_reboot == 0 && quit_program != 1) {
+    while (uade_reboot == 0 && quit_program == 0) {
       if (debugging) {
 	debug ();
-	if (quit_program == 1)
+	if (quit_program != 0)
 	  break;
       }
       m68k_run_1 ();
     }
   }
-  in_m68k_go--;
 }
 
 static void m68k_verify (uaecptr addr, uaecptr *nextpc)
