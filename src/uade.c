@@ -120,7 +120,7 @@ int uade_time_critical = 0;
    drivers could be that the user has issued -outpipe or is using some
    slave audio target.
 */
-int uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
+void uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
 {
   /* effects */
   if (uade_do_panning) {
@@ -138,19 +138,9 @@ int uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_samp
   if (uade_swap_output_bytes)
     uade_swap_buffer_bytes(sndbuffer, sndbufsize);
 
-  if (slave.write) {
-    slave.write(sndbuffer, sndbufsize);
+  assert(slave.write != NULL);
 
-  } else if (uade_using_outpipe) {
-    uade_write_to_outpipe(sndbuffer, sndbufsize);
-
-  } else {
-    /* write sndbuffer to os audio driver */
-    return 1;
-  }
-
-  /* do not write sndbuffer to os audio driver */
-  return 0;
+  slave.write(sndbuffer, sndbufsize);
 }
 
 
@@ -279,11 +269,6 @@ void uade_option(int argc, char **argv)
 	
       } else if (!strcmp(argv[i], "-no-sh")) {
 	uade_speed_hack = -1;
-	i++;
-	
-	/* -fi, -fil, ..., -filter turn on filter emulation */
-      } else if (!strncmp(argv[i], "-filter", 3)) {
-	uade_song.use_filter = 1;
 	i++;
 
       } else if (!strcmp(argv[i], "-fs")) {
@@ -551,8 +536,7 @@ void uade_prerun(void) {
   uade_put_long(SCORE_SUBSONG, uade_song.subsong);
   /* set ntscbit correctly */
   uade_set_ntsc(uade_song.use_ntsc);
-  /* set filter emulation */
-  sound_use_filter = uade_song.use_filter;
+
   /* pause bits (don't care!), for debugging purposes only */
   uade_put_long(SCORE_PREPAUSE, 0);
   uade_put_long(SCORE_POSTPAUSE, 0);
