@@ -16,8 +16,6 @@
 #include "gensound.h"
 #include "sd-sound.h"
 
-#include <ao/ao.h>
-
 #include "uade.h"
 
 uae_u16 sndbuffer[44100];
@@ -26,14 +24,8 @@ int sndbufsize;
 
 int sound_bytes_per_sample;
 
-ao_device *libao_device = NULL;
-
 void close_sound (void)
 {
-  if (libao_device) {
-    ao_close(libao_device);
-    ao_shutdown();
-  }
 }
 
 /* Try to determine whether sound is available.  */
@@ -60,25 +52,6 @@ int init_sound (void)
   sound_bytes_per_sample = dspbits / 8;
   channels = currprefs.stereo ? 2 : 1;
   
-  if (uade_local_sound) {
-    int default_driver;
-    ao_sample_format format;
-
-    ao_initialize();
-    default_driver = ao_default_driver_id();
-
-    format.bits = dspbits;
-    format.channels = channels;
-    format.rate = rate;
-    format.byte_format = AO_FMT_NATIVE;
-
-    libao_device = ao_open_live(default_driver, &format, NULL);
-    if (libao_device == NULL) {
-      fprintf(stderr, "error opening device\n");
-      goto nosound;
-    }
-   }
-
   sample_evtime = (long) maxhpos * maxvpos * 50 / rate;
   if (dspbits == 16) {
     init_sound_table16 ();
@@ -94,9 +67,6 @@ int init_sound (void)
   vsynctime = vsynctime * 9 / 10;
 #endif	
   return 1;
-  
- nosound:
-  return 0;
 }
 
 /* this should be called between subsongs when remote slave changes subsong */

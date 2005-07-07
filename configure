@@ -365,6 +365,11 @@ else
     SOUNDHEADER="sd-sound-null.h"
 fi
 
+AUDIOFLAGS=""
+AUDIOLIBS=""
+SOUNDSOURCE="sd-sound-generic.c"
+SOUNDHEADER="sd-sound-generic.h"
+
 echo "#include \"$SOUNDSOURCE\"" > src/sd-sound.c;
 echo "#include \"$SOUNDHEADER\"" > src/sd-sound.h;
 

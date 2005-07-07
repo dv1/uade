@@ -153,9 +153,6 @@ static FILE *uade_open_amiga_file(const char *filename)
 void uade_option(int argc, char **argv)
 {
   int i, j, no_more_opts;
-  int xmms_slave = 0;
-  int shell_interaction = 0;
-  void (*slave_functions)(struct uade_slave *) = 0;
   char **s_argv;
   int s_argc;
   int cfg_loaded = 0;
@@ -186,13 +183,7 @@ void uade_option(int argc, char **argv)
     
     if (argv[i][0] == '-') {
 
-      if (!strcmp(argv[i], "--xmms-slave")) {
-	xmms_slave = 1;
-	/* '--xmms-slave' and its argument, the map file name, should be
-	   passed on to the xmms slave code so we don't increment 'i'
-	   here */
-
-      } else if (!strncmp (argv[i], "-config=", 8)) {
+      if (!strncmp (argv[i], "-config=", 8)) {
 	strlcpy(optionsfile, argv[i] + 8, sizeof(optionsfile));
 	fprintf(stderr,"uade: config '%s'\n", optionsfile);
 	if (cfgfile_load (&currprefs, optionsfile)) {
@@ -311,8 +302,6 @@ void uade_option(int argc, char **argv)
   strlcpy(uade_song.scorename, "../score", sizeof(uade_song.scorename));
 
   memset(&slave, 0, sizeof(slave));
-
-  slave_functions(&slave);
 
   slave.timeout = -1;		/* default timeout infinite */
   slave.subsong_timeout = -1;	/* default per subsong timeout infinite */

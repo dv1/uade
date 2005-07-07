@@ -4,7 +4,7 @@
 
 #include "players.h"
 
-#include "../osdep/strl.c"
+#include "strlrep.h"
 
 /* attribute variables */
 
