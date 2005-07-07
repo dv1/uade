@@ -3,6 +3,8 @@
  * See http://uade.ton.tut.fi
  */
 
+#include <assert.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -27,8 +29,11 @@
 #include "gensound.h"
 #include "cia.h"
 
-#include "uade.h"
 #include "../config.h"
+
+#include "uade.h"
+
+#include "amigamsg.h"
 
 #include "strlrep.h"
 
@@ -107,6 +112,52 @@ static int uade_zero_sample_count;
 
 static int uade_speed_hack = 0;
 int uade_time_critical = 0;
+
+
+/* last part of the audio system pipeline. returns non-zero if sndbuffer
+   should be written to os audio drivers (such as oss or alsa), otherwise
+   returns zero. the reason why sndbuffer should not be written to os audio
+   drivers could be that the user has issued -outpipe or is using some
+   slave audio target.
+*/
+int uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
+{
+  /* effects */
+  if (uade_do_panning) {
+    if (currprefs.stereo) {
+      int to_frames_divisor = bytes_per_sample * 2;
+      assert(0);
+      /* uade_effect_pan((short *) sndbuffer, sndbufsize / to_frames_divisor, bytes_per_sample, uade_pan_value); */
+    }
+  }
+
+  /* silence testing */
+  uade_test_sound_block((void *) sndbuffer, sndbufsize);
+
+  /* endianess tricks */
+  if (uade_swap_output_bytes)
+    uade_swap_buffer_bytes(sndbuffer, sndbufsize);
+
+  if (slave.write) {
+    slave.write(sndbuffer, sndbufsize);
+
+  } else if (uade_using_outpipe) {
+    uade_write_to_outpipe(sndbuffer, sndbufsize);
+
+  } else {
+    /* write sndbuffer to os audio driver */
+    return 1;
+  }
+
+  /* do not write sndbuffer to os audio driver */
+  return 0;
+}
+
+
+static FILE *uade_open_amiga_file(const char *filename)
+{
+  return fopen(filename, "r");
+}
 
 
 void uade_option(int argc, char **argv)
@@ -272,27 +323,9 @@ void uade_option(int argc, char **argv)
     }
   }
 
-  uade_get_path(uade_song.scorename, UADE_PATH_SCORE, sizeof(uade_song.scorename));
+  strlcpy(uade_song.scorename, "../score", sizeof(uade_song.scorename));
 
   memset(&slave, 0, sizeof(slave));
-
-#ifdef HAVE_UNIX_SHELL
-  slave_functions = us_functions;
-#endif
-
-#ifdef HAVE_XMMS_SLAVE
-  if (xmms_slave)
-    slave_functions = xmms_slave_functions;
-#endif
-
-#ifdef HAVE_UNIX_SHELL_INT
-  if (shell_interaction)
-    slave_functions = usi_functions;
-#endif
-
-#ifdef HAVE_AMIGA_SHELL
-  slave_functions = as_functions;
-#endif
 
   slave_functions(&slave);
 
@@ -372,14 +405,9 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
 {
   int bytesread, status;
   FILE *file;
-  file = fopen(name, "rb");
+  file = fopen(name, "r");
   if (!file) {
     fprintf(stderr,"uade: couldn't load %s %s\n", expl, name);
-    return 0;
-  }
-  if ((status = decrunch (&file, name)) < 0) {
-    fprintf (stderr, "uade: decrunching error on %s %s", expl, name);
-    fclose(file);
     return 0;
   }
   bytesread = uade_safe_load(vaddr, file, maxlen);
@@ -507,7 +535,7 @@ void uade_prerun(void) {
   uade_player_attribute_check(uade_song.modulename, uade_song.playername, (unsigned char *) get_real_address(modaddr), bytesread);
 
   /* load sound core (score) */
-  if ((file = fopen(uade_song.scorename, "rb"))) {
+  if ((file = fopen(uade_song.scorename, "r"))) {
     bytesread = uade_safe_load(scoreaddr, file, uade_highmem - scoreaddr);
     fclose(file);
   } else {
@@ -685,10 +713,11 @@ void uade_get_amiga_message(void)
   x = uade_get_long(SCORE_INPUT_MSG);
 
   switch (x) {
-  case UADE_SONG_END:
+  case AMIGAMSG_SONG_END:
     uade_song_end("player", 0);
     break;
-  case UADE_SUBSINFO:
+
+  case AMIGAMSG_SUBSINFO:
     mins = uade_get_long(SCORE_MIN_SUBSONG);
     maxs = uade_get_long(SCORE_MAX_SUBSONG);
     curs = uade_get_long(SCORE_CUR_SUBSONG);
@@ -698,7 +727,8 @@ void uade_get_amiga_message(void)
       fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
     }
     break;
-  case UADE_PLAYERNAME:
+
+  case AMIGAMSG_PLAYERNAME:
     strlcpy(score_playername, get_real_address(0x204), sizeof(score_playername));
     if (slave.got_playername) {
       slave.got_playername(score_playername);
@@ -706,7 +736,8 @@ void uade_get_amiga_message(void)
       fprintf(stderr,"uade: playername: %s\n", score_playername);
     }
     break;
-  case UADE_MODULENAME:
+
+  case AMIGAMSG_MODULENAME:
     strlcpy(score_modulename, get_real_address(0x204), sizeof(score_modulename));
     if (slave.got_modulename) {
       slave.got_modulename(score_modulename);
@@ -714,7 +745,8 @@ void uade_get_amiga_message(void)
       fprintf(stderr,"uade: modulename: %s\n", score_modulename);
     }
     break;
-  case UADE_FORMATNAME:
+
+  case AMIGAMSG_FORMATNAME:
     strlcpy(score_formatname, get_real_address(0x204), sizeof(score_formatname));
     if (slave.got_formatname) {
       slave.got_formatname(score_formatname);
@@ -722,13 +754,16 @@ void uade_get_amiga_message(void)
       fprintf(stderr,"uade: formatname: %s\n", score_formatname);
     }
     break;
-  case UADE_GENERALMSG:
+
+  case AMIGAMSG_GENERALMSG:
     fprintf(stderr,"uade: general message: %s\n", get_real_address(0x204));
     break;
-  case UADE_CHECKERROR:
+
+  case AMIGAMSG_CHECKERROR:
     uade_song_end("module check failed", 1);
     break;
-  case UADE_SCORECRASH:
+
+  case AMIGAMSG_SCORECRASH:
     if (uade_debug) {
       fprintf(stderr,"uade: failure: score crashed\n");
       activate_debugger();
@@ -736,7 +771,8 @@ void uade_get_amiga_message(void)
     }
     uade_song_end("score crashed", 1);
     break;
-  case UADE_SCOREDEAD:
+
+  case AMIGAMSG_SCOREDEAD:
      if (uade_debug) {
       fprintf(stderr,"uade: score is dead\n"); 
       activate_debugger();
@@ -744,7 +780,8 @@ void uade_get_amiga_message(void)
     }
      uade_song_end("score is dead", 1);
     break;
-  case UADE_LOADFILE:
+
+  case AMIGAMSG_LOADFILE:
     /* load a file named at 0x204 (name pointer) to address pointed by
        0x208 and insert the length to 0x20C */
     src = uade_get_long(0x204);
@@ -754,20 +791,15 @@ void uade_get_amiga_message(void)
     }
     nameptr = get_real_address(src);
     if ((file = uade_open_amiga_file(nameptr))) {
-      if ((status = decrunch (&file, nameptr)) < 0) {
-	fprintf (stderr, "uade: load: decrunching error\n");
-	fclose(file);
-	break;
-      } else {
-	dst = uade_get_long(0x208);
-	len = uade_safe_load(dst, file, uade_highmem - dst);
-	fclose(file); file = 0;
-	uade_put_long(0x20C, len);
-	/* fprintf(stderr, "uade: load: %s: ptr = 0x%x size = 0x%x\n", nameptr, dst, len); */
-      }
+      dst = uade_get_long(0x208);
+      len = uade_safe_load(dst, file, uade_highmem - dst);
+      fclose(file); file = 0;
+      uade_put_long(0x20C, len);
+      /* fprintf(stderr, "uade: load: %s: ptr = 0x%x size = 0x%x\n", nameptr, dst, len); */
     }
     break;
-  case UADE_READ:
+
+  case AMIGAMSG_READ:
     src = uade_get_long(0x204);
     if (!uade_valid_string(src)) {
       fprintf(stderr, "uade: read: name in invalid address range\n");
@@ -794,7 +826,8 @@ void uade_get_amiga_message(void)
       uade_put_long(0x214, 0);
     }
     break;
-  case UADE_FILESIZE:
+
+  case AMIGAMSG_FILESIZE:
     src = uade_get_long(0x204);
     if (!uade_valid_string(src)) {
       fprintf(stderr, "uade: filesize: name in invalid address range\n");
@@ -815,7 +848,7 @@ void uade_get_amiga_message(void)
     }
     break;
 
-  case UADE_TIME_CRITICAL:
+  case AMIGAMSG_TIME_CRITICAL:
     uade_time_critical = uade_get_long(0x204) ? 1 : 0;
     if (uade_speed_hack < 0) {
       /* a negative value forbids use of speed hack */
@@ -823,7 +856,7 @@ void uade_get_amiga_message(void)
     }
     break;
 
-  case UADE_GET_INFO:
+  case AMIGAMSG_GET_INFO:
     src = uade_get_long(0x204);
     dst = uade_get_long(0x208);
     len = uade_get_long(0x20C);
@@ -846,7 +879,7 @@ void uade_change_subsong(int subsong) {
   uade_song.cur_subsong = subsong;
   fprintf(stderr, "uade: current subsong %d\n", subsong);
   uade_put_long(SCORE_SUBSONG, subsong);
-  uade_send_amiga_message(UADE_SETSUBSONG);
+  uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
   uade_flush_sound();
 
 }
@@ -920,15 +953,14 @@ void uade_swap_buffer_bytes(void *data, int bytes) {
   }
 }
 
+
 void uade_reset_counters(void) {
 
   uade_zero_sample_count = 0;    /* only useful in non-slavemode */
 
   uade_vsync_counter = 0;
-  uade_audxdat_counter = 0;
-  uade_audxvol_counter = 0;
-  uade_audxlch_counter = 0;
 }
+
 
 void uade_test_sound_block(void *buf, int size) {
   int i, s, exceptioncounter, bytes;
@@ -1009,43 +1041,4 @@ void uade_vsync_handler(void)
       return;
     }
   }
-}
-
-
-/* last part of the audio system pipeline. returns non-zero if sndbuffer
-   should be written to os audio drivers (such as oss or alsa), otherwise
-   returns zero. the reason why sndbuffer should not be written to os audio
-   drivers could be that the user has issued -outpipe or is using some
-   slave audio target.
-*/
-int uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
-{
-  /* effects */
-  if (uade_do_panning) {
-    if (currprefs.stereo) {
-      int to_frames_divisor = bytes_per_sample * 2;
-      uade_effect_pan((short *) sndbuffer, sndbufsize / to_frames_divisor, bytes_per_sample, uade_pan_value);
-    }
-  }
-
-  /* silence testing */
-  uade_test_sound_block((void *) sndbuffer, sndbufsize);
-
-  /* endianess tricks */
-  if (uade_swap_output_bytes)
-    uade_swap_buffer_bytes(sndbuffer, sndbufsize);
-
-  if (slave.write) {
-    slave.write(sndbuffer, sndbufsize);
-
-  } else if (uade_using_outpipe) {
-    uade_write_to_outpipe(sndbuffer, sndbufsize);
-
-  } else {
-    /* write sndbuffer to os audio driver */
-    return 1;
-  }
-
-  /* do not write sndbuffer to os audio driver */
-  return 0;
 }
