@@ -411,7 +411,7 @@ void uade_reset(void) {
      It seems that certain players don't work totally reliably if memory
      contains trash from previous songs. To be certain that each song is
      played from the same initial state of emulator we clear the memory
-     from 0x400 to 0x100000 each time a new song is played */
+     from 0x400 to 'uade_highmem' each time a new song is played */
   uade_highmem = 0;
   while (uade_highmem < 0x200000) {
     if (!valid_address(0, uade_highmem + 0x10000))
