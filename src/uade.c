@@ -81,8 +81,7 @@ static const int SCORE_OUTPUT_MSG    = 0x300;
 static int uade_highmem = 0x200000;
 
 struct uade_slave slave;
-
-struct uade_song uade_song;
+struct uade_song song;
 
 static int uade_dmawait = 0;
 
@@ -163,9 +162,9 @@ void uade_option(int argc, char **argv)
 
   uadecmdlinename = strdup(argv[0]);
 
-  uade_song.playername[0] = 0;
-  uade_song.modulename[0] = 0;
-  uade_song.song_end_possible = 1;
+  song.playername[0] = 0;
+  song.modulename[0] = 0;
+  song.song_end_possible = 1;
 
   no_more_opts = 0;
 
@@ -198,7 +197,7 @@ void uade_option(int argc, char **argv)
 	i++;
 
       } else if (!strcmp(argv[i], "-force") || !strcmp(argv[i], "-f")) {
-	uade_song.force_by_default = 1;
+	song.force_by_default = 1;
 	i++;
 
       } else if (!strcmp(argv[i], "-execdebug")) {
@@ -223,11 +222,11 @@ void uade_option(int argc, char **argv)
 	i += 2;
 
       } else if (!strcmp(argv[i], "-ntsc")) {
-	uade_song.use_ntsc = 1;
+	song.use_ntsc = 1;
 	i++;
 	
       } else if (!strcmp(argv[i], "-no-end") || !strcmp(argv[i], "-ne")) {
-	uade_song.song_end_possible = 0;
+	song.song_end_possible = 0;
 	i++;
 
       } else if (!strcmp(argv[i], "-pan") || !strcmp(argv[i], "-p")) {
@@ -271,7 +270,7 @@ void uade_option(int argc, char **argv)
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
-	uade_song.use_filter = 1;
+	song.use_filter = 1;
 	gui_ledstate_forced = atoi(argv[i + 1]) ? 1 : 2;
 	gui_ledstate = gui_ledstate_forced & 1 ? 1 : 0;
 	i += 2;
@@ -302,7 +301,7 @@ void uade_option(int argc, char **argv)
     }
   }
 
-  strlcpy(uade_song.scorename, "../score", sizeof(uade_song.scorename));
+  strlcpy(song.scorename, "../score", sizeof(song.scorename));
 
   memset(&slave, 0, sizeof(slave));
 
@@ -430,7 +429,7 @@ void uade_reset(void) {
   
  takenextsong:
 
-  uade_song.cur_subsong = uade_song.min_subsong = uade_song.max_subsong = 0;
+  song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
   if ((uade_get_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"uade: no more songs to play\n");
@@ -440,7 +439,7 @@ void uade_reset(void) {
     assert(0);
   assert(uc->size > 0);
   assert(uc->size == (strlen(uc->data) + 1));
-  strlcpy(uade_song.scorename, uc->data, sizeof(uade_song.scorename));
+  strlcpy(song.scorename, uc->data, sizeof(song.scorename));
 
   if ((uade_get_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"expected player name. got nothing.\n");
@@ -450,7 +449,7 @@ void uade_reset(void) {
     assert(0);
   assert(uc->size > 0);
   assert(uc->size == (strlen(uc->data) + 1));
-  strlcpy(uade_song.playername, uc->data, sizeof(uade_song.playername));
+  strlcpy(song.playername, uc->data, sizeof(song.playername));
 
   if ((uade_get_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"expected module name. got nothing.\n");
@@ -459,30 +458,30 @@ void uade_reset(void) {
   if (uc->command != UADE_COMMAND_MODULE)
     assert(0);
   if (uc->size == 0) {
-    uade_song.modulename[0] = 0;
+    song.modulename[0] = 0;
   } else {
     assert(uc->size == (strlen(uc->data) + 1));
-    strlcpy(uade_song.modulename, uc->data, sizeof(uade_song.modulename));
+    strlcpy(song.modulename, uc->data, sizeof(song.modulename));
   }
 
-  uade_set_automatic_song_end(uade_song.song_end_possible);
+  uade_set_automatic_song_end(song.song_end_possible);
 
   uade_put_long(SCORE_EXEC_DEBUG, uade_execdebugboolean ? 0x12345678 : 0);
   uade_put_long(SCORE_VOLUME_TEST, voltestboolean);
   uade_put_long(SCORE_DMA_WAIT, uade_dmawait);
   uade_put_long(SCORE_MODULECHANGE, disable_modulechange);
 
-  bytesread = uade_safe_load_name(playeraddr, uade_song.playername, "player", uade_highmem - playeraddr);
+  bytesread = uade_safe_load_name(playeraddr, song.playername, "player", uade_highmem - playeraddr);
 
   if (bytesread > (uade_highmem - playeraddr)) {
-    fprintf (stderr, "uade: player %s too big a file (%d bytes)\n", uade_song.playername, bytesread);
+    fprintf (stderr, "uade: player %s too big a file (%d bytes)\n", song.playername, bytesread);
     goto skiptonextsong;
   }
   if (bytesread == 0) {
     goto skiptonextsong;
   }
 
-  fprintf(stderr, "uade: player '%s' (%d bytes)\n", uade_song.playername, bytesread);
+  fprintf(stderr, "uade: player '%s' (%d bytes)\n", song.playername, bytesread);
   /* set player executable address for relocator */
   uade_put_long(SCORE_PLAYER_ADDR, playeraddr);
   len = uade_calc_reloc_size((uae_u32 *) get_real_address(playeraddr),
@@ -507,47 +506,47 @@ void uade_reset(void) {
   uade_put_long(SCORE_MODULE_NAME_ADDR, 0);    /* mod name address pointer */
 
   /* load the module if available */
-  if (uade_song.modulename[0]) {
-    bytesread = uade_safe_load_name(modaddr, uade_song.modulename, "module", uade_highmem - modaddr);
+  if (song.modulename[0]) {
+    bytesread = uade_safe_load_name(modaddr, song.modulename, "module", uade_highmem - modaddr);
     if (bytesread > (uade_highmem - playeraddr)) {
-      fprintf (stderr, "uade: module %s too big a file (%d bytes)\n", uade_song.modulename, bytesread);
+      fprintf (stderr, "uade: module %s too big a file (%d bytes)\n", song.modulename, bytesread);
       goto skiptonextsong;
     }
     if (bytesread == 0) {
       goto skiptonextsong;
     }
-    fprintf(stderr, "uade: module '%s' (%d bytes)\n", uade_song.modulename, bytesread);
+    fprintf(stderr, "uade: module '%s' (%d bytes)\n", song.modulename, bytesread);
     uade_put_long(SCORE_MODULE_LEN, bytesread);
 
-    if (!valid_address(modnameaddr, strlen(uade_song.modulename) + 1)) {
+    if (!valid_address(modnameaddr, strlen(song.modulename) + 1)) {
       fprintf(stderr, "uade: invalid address for modulename\n");
       goto skiptonextsong;
     }
 
-    strlcpy(get_real_address(modnameaddr), uade_song.modulename, 1024);
+    strlcpy(get_real_address(modnameaddr), song.modulename, 1024);
     uade_put_long(SCORE_MODULE_NAME_ADDR, modnameaddr);
 
   } else {
 
-    if (!valid_address(modnameaddr, strlen(uade_song.playername) + 1)) {
+    if (!valid_address(modnameaddr, strlen(song.playername) + 1)) {
       fprintf(stderr, "uade: invalid address for playername\n");
       goto skiptonextsong;
     }
 
-    strlcpy(get_real_address(modnameaddr), uade_song.playername, 1024);
+    strlcpy(get_real_address(modnameaddr), song.playername, 1024);
     uade_put_long(SCORE_MODULE_NAME_ADDR, modnameaddr);
 
     bytesread = 0;
   }
 
-  uade_player_attribute_check(uade_song.modulename, uade_song.playername, (unsigned char *) get_real_address(modaddr), bytesread);
+  uade_player_attribute_check(song.modulename, song.playername, (unsigned char *) get_real_address(modaddr), bytesread);
 
   /* load sound core (score) */
-  if ((file = fopen(uade_song.scorename, "r"))) {
+  if ((file = fopen(song.scorename, "r"))) {
     bytesread = uade_safe_load(scoreaddr, file, uade_highmem - scoreaddr);
     fclose(file);
   } else {
-    fprintf (stderr, "uade: can't load score (%s)\n", uade_song.scorename);
+    fprintf (stderr, "uade: can't load score (%s)\n", song.scorename);
     goto skiptonextsong;
   }
 
@@ -555,12 +554,12 @@ void uade_reset(void) {
   m68k_setpc(scoreaddr);
 
   /* override bit for sound format checking */
-  uade_put_long(SCORE_FORCE, uade_song.force_by_default);
+  uade_put_long(SCORE_FORCE, song.force_by_default);
   /* setsubsong */
-  uade_put_long(SCORE_SET_SUBSONG, uade_song.set_subsong);
-  uade_put_long(SCORE_SUBSONG, uade_song.subsong);
+  uade_put_long(SCORE_SET_SUBSONG, song.set_subsong);
+  uade_put_long(SCORE_SUBSONG, song.subsong);
   /* set ntscbit correctly */
-  uade_set_ntsc(uade_song.use_ntsc);
+  uade_set_ntsc(song.use_ntsc);
 
   /* pause bits (don't care!), for debugging purposes only */
   uade_put_long(SCORE_PREPAUSE, 0);
@@ -574,9 +573,9 @@ void uade_reset(void) {
     fprintf(stderr, "uade: stack over run warning!\n");
   }
 
-  uade_song.set_subsong = 0;
+  song.set_subsong = 0;
 
-  uade_song.modulename[0] = 0;
+  song.modulename[0] = 0;
 
   if (slave.post_init)
     slave.post_init();
@@ -688,7 +687,7 @@ void uade_song_end(char *reason, int kill_it)
 {
   fprintf(stderr, "uade: song end (%s)\n", reason);
   uade_reset_counters();
-  slave.song_end(&uade_song, reason, kill_it);
+  slave.song_end(&song, reason, kill_it);
 }
 
 
@@ -731,7 +730,7 @@ void uade_get_amiga_message(void)
     maxs = uade_get_long(SCORE_MAX_SUBSONG);
     curs = uade_get_long(SCORE_CUR_SUBSONG);
     if (slave.subsinfo) {
-      slave.subsinfo(&uade_song, mins, maxs, curs);
+      slave.subsinfo(&song, mins, maxs, curs);
     } else {
       fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
     }
@@ -885,7 +884,7 @@ void uade_get_amiga_message(void)
 
 
 void uade_change_subsong(int subsong) {
-  uade_song.cur_subsong = subsong;
+  song.cur_subsong = subsong;
   fprintf(stderr, "uade: current subsong %d\n", subsong);
   uade_put_long(SCORE_SUBSONG, subsong);
   uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
