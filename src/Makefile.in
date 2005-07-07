@@ -1,0 +1,156 @@
+CC = {CC}
+
+ARCHFLAGS = {ARCHFLAGS}
+ARCHLIBS = {ARCHLIBS}
+DEBUGFLAGS = {DEBUGFLAGS}
+AUDIOFLAGS= {AUDIOFLAGS}
+AUDIOLIBS= {AUDIOLIBS}
+
+CFLAGS	= -fomit-frame-pointer -W -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS)
+LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
+
+.SUFFIXES: .a .o .c .h .S
+
+.SECONDARY: cpuemu.c cpustbl.c cputbl.h
+
+INCLUDES=-I. -I./include/ -I../osdep -I../effects $(AUDIOFLAGS)
+
+CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7.o cpuemu8.o
+
+DECOBJS = crc32.o depack.o mmcmp.o unsqsh.o decrunch.o easo.o sc68.o
+DECDIR = ../decrunch
+DECFLAGS = -O2 -W -Wall -Wno-implicit-int -finline-functions $(DEBUGFLAGS) $(ARCHFLAGS)
+
+OBJS = main.o newcpu.o memory.o custom.o cia.o readcpu.o cpudefs.o audio.o \
+       compiler.o cpustbl.o missing.o sd-sound.o md-support.o cfgfile.o fpp.o \
+       debug.o $(CPUEMUOBJS) uade.o amifilemagic.o uade-os.o effects.o \
+       local-slave.o remote-slave.o interaction.o chrarray.o playlist.o \
+       players.o
+
+all:	uade
+
+uade:	$(OBJS) $(DECOBJS)
+	$(CC) $(ARCHFLAGS) $(OBJS) $(DECOBJS) -o uade $(DEBUGFLAGS) $(LIBRARIES) $(MATHLIB)
+
+decrunch.o:	$(DECDIR)/decrunch.c
+	$(CC) $(DECFLAGS) -c $<
+
+depack.o:	$(DECDIR)/depack.c
+	$(CC) $(DECFLAGS) -c $<
+
+unsqsh.o:	$(DECDIR)/unsqsh.c
+	$(CC) $(DECFLAGS) -c $<
+
+crc32.o:	$(DECDIR)/crc32.c
+	$(CC) $(DECFLAGS) -c $<
+
+mmcmp.o:	$(DECDIR)/mmcmp.c
+	$(CC) $(DECFLAGS) -c $<
+
+sc68.o:	$(DECDIR)/sc68.c
+	$(CC) $(DECFLAGS) -c $<
+
+easo.o:	$(DECDIR)/easo.c
+	$(CC) $(DECFLAGS) -c $<
+
+clean:
+	-rm -f $(OBJS) *.o uade
+	-rm -f gencpu cpudefs.c cpuopti
+	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
+
+build68k: build68k.o
+	$(CC) $(ARCHFLAGS) -o build68k build68k.o
+
+cpuopti: cpuopti.o
+	$(CC) $(ARCHFLAGS) -o cpuopti cpuopti.o
+
+gencpu: gencpu.o readcpu.o cpudefs.o missing.o
+	$(CC) $(ARCHFLAGS) -o gencpu gencpu.o readcpu.o missing.o cpudefs.o
+
+cpuemu.c cputbl.h cpustbl.c: gencpu
+	./gencpu
+
+cpustbl.o: cpuemu.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ cpustbl.c
+
+cpuemu1.o: cpuemu.c
+	$(CC) -DPART_1 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu2.o: cpuemu.c
+	$(CC) -DPART_2 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu3.o: cpuemu.c
+	$(CC) -DPART_3 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu4.o: cpuemu.c
+	$(CC) -DPART_4 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu5.o: cpuemu.c
+	$(CC) -DPART_5 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu6.o: cpuemu.c
+	$(CC) -DPART_6 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu7.o: cpuemu.c
+	$(CC) -DPART_7 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ $<
+
+cpuemu8.o: cpuemu.c
+	$(CC) -DPART_8 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -Wno-sign-compare $(DEBUGFLAGS) -o $@ $<
+
+custom.o:
+
+cpudefs.c:	build68k table68k
+	./build68k <./table68k >cpudefs.c
+
+.rc.res:
+	$(WRC) $(INCLUDES) $<
+.m.o:
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $<
+.c.o:
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< -o $@
+.c.s:
+	$(CC) $(INCLUDES) -S $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< -o $@
+.c.i:
+	$(CC) $(INCLUDES) -E $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< > $@
+.S.o:
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< -o $@
+.s.o:
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< -o $@
+
+# Saves recompiling...
+touch:
+	touch *.o; touch build68k; touch cpudefs.c; touch cpudefs.o; touch gencpu; touch cpuemu.c; touch cpuopti.o cpuopti cpuemu*.o cpufast.o
+
+build68k.o: include/readcpu.h
+readcpu.o: include/readcpu.h
+
+main.o: config.h
+cia.o: config.h include/events.h
+custom.o: config.h include/events.h
+newcpu.o: newcpu.c config.h include/events.h
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
+
+sd-sound.o:	config.h sd-sound.c sd-sound.h {SOUNDHEADER} {SOUNDSOURCE}
+audio.o: config.h include/events.h sd-sound.h {SOUNDHEADER}
+memory.o: config.h
+debug.o: config.h
+fpp.o: config.h
+
+uade.o: config.h ../decrunch/decrunch.h sd-sound.h playlist.h
+
+amifilemagic.o: ../plugindir/amifilemagic.c ../plugindir/amifilemagic.h
+	$(CC) $(CFLAGS) -I. -c ../plugindir/amifilemagic.c
+
+uade-os.o:	uade-os.c ../osdep/uade-os.c ../osdep/uade-os.h ../osdep/uade-os-unix.c ../osdep/uade-os-unix.h ../osdep/uadeconfig.h
+
+effect.o:	effects.c ../effects/effects.c ../effects/effects.h
+
+chrarray.o:	chrarray.c chrarray.h
+	$(CC) $(CFLAGS) -c chrarray.c
+
+playlist.o:	playlist.c playlist.h chrarray.h
+	$(CC) $(CFLAGS) $(INCLUDES) -c playlist.c
+
+players.o:	players.c players.h
+	$(CC) $(CFLAGS) $(INCLUDE) -c players.c
+
