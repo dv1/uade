@@ -36,7 +36,7 @@ void uade_song_end(char *reason, int kill_it);
 void uade_swap_buffer_bytes(void *data, int bytes);
 void uade_test_sound_block(void *buf, int size); /* for silence detection */
 void uade_vsync_handler(void);
-void uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample);
+void uade_check_sound_buffers(void);
 
 void uade_print_help(int problemcode);
 

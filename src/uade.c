@@ -43,7 +43,6 @@
 #define OPTION_NO_SONGS (3)
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
-static void uade_flush_sound(void);
 static int uade_get_long(int addr);
 static void uade_interaction(int wait_for);
 static void uade_put_long(int addr,int val);
@@ -80,7 +79,6 @@ static const int SCORE_OUTPUT_MSG    = 0x300;
 
 static int uade_highmem = 0x200000;
 
-struct uade_slave slave;
 struct uade_song song;
 
 static int uade_dmawait = 0;
@@ -88,13 +86,6 @@ static int uade_dmawait = 0;
 static int uade_execdebugboolean = 0;
 static int voltestboolean = 0;
 static int disable_modulechange = 0;
-
-/* This should be non-zero if native sound output shouldn't be used.
-   This is set to non-zero in slavemode and outpipemode              */
-int uade_local_sound = 1;
-char *uade_unix_sound_device = 0;
-
-int uade_using_outpipe = 0;
 
 int uade_reboot;
 
@@ -116,12 +107,7 @@ static int uade_speed_hack = 0;
 int uade_time_critical = 0;
 
 
-/* last part of the audio system pipeline. returns non-zero if sndbuffer
-   should be written to os audio drivers (such as oss or alsa), otherwise
-   returns zero. the reason why sndbuffer should not be written to os audio
-   drivers could be that the user has issued -outpipe or is using some
-   slave audio target.
-*/
+/* last part of the audio system pipeline */
 void uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
 {
   /* effects */
@@ -139,10 +125,6 @@ void uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sam
   /* endianess tricks */
   if (uade_swap_output_bytes)
     uade_swap_buffer_bytes(sndbuffer, sndbufsize);
-
-  assert(slave.write != NULL);
-
-  slave.write(sndbuffer, sndbufsize);
 }
 
 
@@ -242,11 +224,9 @@ void uade_option(int argc, char **argv)
     }
   }
 
-  memset(&slave, 0, sizeof(slave));
-
-  slave.timeout = -1;		/* default timeout infinite */
-  slave.subsong_timeout = -1;	/* default per subsong timeout infinite */
-  slave.silence_timeout = -1;	/* default silence timeout infinite */
+  song.timeout = -1;		/* default timeout infinite */
+  song.subsong_timeout = -1;	/* default per subsong timeout infinite */
+  song.silence_timeout = -1;	/* default silence timeout infinite */
 
   free(s_argv);
 
@@ -492,12 +472,9 @@ void uade_reset(void) {
 
   song.modulename[0] = 0;
 
-  if (slave.post_init)
-    slave.post_init();
-
   uade_reset_counters();
 
-  uade_flush_sound();
+  flush_sound();
 
   /* note that uade_speed_hack can be negative (meaning that uade never uses
      speed hack, even if it's requested by the amiga player)! */
@@ -511,7 +488,6 @@ void uade_reset(void) {
 
  skiptonextsong:
   fprintf(stderr, "uade: skipping to next song\n");
-  slave.skip_to_next_song();
   goto takenextsong;
 }
 
@@ -602,7 +578,8 @@ void uade_song_end(char *reason, int kill_it)
 {
   fprintf(stderr, "uade: song end (%s)\n", reason);
   uade_reset_counters();
-  slave.song_end(&song, reason, kill_it);
+  assert(0);
+  /* slave.song_end(&song, reason, kill_it); */
 }
 
 
@@ -644,38 +621,22 @@ void uade_get_amiga_message(void)
     mins = uade_get_long(SCORE_MIN_SUBSONG);
     maxs = uade_get_long(SCORE_MAX_SUBSONG);
     curs = uade_get_long(SCORE_CUR_SUBSONG);
-    if (slave.subsinfo) {
-      slave.subsinfo(&song, mins, maxs, curs);
-    } else {
-      fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
-    }
+    fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
     break;
 
   case AMIGAMSG_PLAYERNAME:
     strlcpy(score_playername, get_real_address(0x204), sizeof(score_playername));
-    if (slave.got_playername) {
-      slave.got_playername(score_playername);
-    } else {
-      fprintf(stderr,"uade: playername: %s\n", score_playername);
-    }
+    fprintf(stderr,"uade: playername: %s\n", score_playername);
     break;
 
   case AMIGAMSG_MODULENAME:
     strlcpy(score_modulename, get_real_address(0x204), sizeof(score_modulename));
-    if (slave.got_modulename) {
-      slave.got_modulename(score_modulename);
-    } else {
-      fprintf(stderr,"uade: modulename: %s\n", score_modulename);
-    }
+    fprintf(stderr,"uade: modulename: %s\n", score_modulename);
     break;
 
   case AMIGAMSG_FORMATNAME:
     strlcpy(score_formatname, get_real_address(0x204), sizeof(score_formatname));
-    if (slave.got_formatname) {
-      slave.got_formatname(score_formatname);
-    } else {
-      fprintf(stderr,"uade: formatname: %s\n", score_formatname);
-    }
+    fprintf(stderr,"uade: formatname: %s\n", score_formatname);
     break;
 
   case AMIGAMSG_GENERALMSG:
@@ -803,7 +764,7 @@ void uade_change_subsong(int subsong) {
   fprintf(stderr, "uade: current subsong %d\n", subsong);
   uade_put_long(SCORE_SUBSONG, subsong);
   uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
-  uade_flush_sound();
+  flush_sound();
 
 }
 
@@ -817,12 +778,6 @@ void uade_set_automatic_song_end(int song_end_possible) {
 
 void uade_send_amiga_message(int msgtype) {
   uade_put_long(SCORE_OUTPUT_MSG, msgtype);
-}
-
-static void uade_flush_sound(void) {
-  if (slave.flush_sound)
-    slave.flush_sound();
-  flush_sound();
 }
 
 
@@ -888,7 +843,7 @@ void uade_reset_counters(void) {
 void uade_test_sound_block(void *buf, int size) {
   int i, s, exceptioncounter, bytes;
 
-  if (slave.silence_timeout <= 0)
+  if (song.silence_timeout <= 0)
     return;
 
   if (currprefs.sound_bits == 16) {
@@ -930,13 +885,13 @@ void uade_test_sound_block(void *buf, int size) {
     }
   }
 
-  bytes = slave.silence_timeout * currprefs.sound_bits/8 * currprefs.sound_freq;
+  bytes = song.silence_timeout * currprefs.sound_bits/8 * currprefs.sound_freq;
   if (currprefs.stereo) {
     bytes *= 2;
   }
   if (uade_zero_sample_count >= bytes) {
     char reason[256];
-    sprintf(reason, "silence detected (%d seconds)", slave.silence_timeout);
+    sprintf(reason, "silence detected (%d seconds)", song.silence_timeout);
     uade_song_end(reason, 0);
   }
 }
@@ -945,20 +900,20 @@ void uade_vsync_handler(void)
 {
   uade_vsync_counter++;
 
-  if (slave.timeout >= 0) {
-    if ((uade_vsync_counter/50) >= slave.timeout) {
+  if (song.timeout >= 0) {
+    if ((uade_vsync_counter/50) >= song.timeout) {
       char reason[256];
-      sprintf(reason, "timeout %d seconds", slave.timeout);
+      sprintf(reason, "timeout %d seconds", song.timeout);
       /* don't skip to next subsong even if available (kill == 1) */
       uade_song_end(reason, 1);
       return;
     }
   }
 
-  if (slave.subsong_timeout >= 0) {
-    if ((uade_vsync_counter/50) >= slave.subsong_timeout) {
+  if (song.subsong_timeout >= 0) {
+    if ((uade_vsync_counter/50) >= song.subsong_timeout) {
       char reason[256];
-      sprintf(reason, "per subsong timeout %d seconds", slave.subsong_timeout);
+      sprintf(reason, "per subsong timeout %d seconds", song.subsong_timeout);
       /* skip to next subsong if available (kill == 0) */
       uade_song_end(reason, 0);
       return;
