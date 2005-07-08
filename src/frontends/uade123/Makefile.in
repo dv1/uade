@@ -12,3 +12,6 @@ uade-trivial.o:	uade-trivial.c
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
 	$(CC) $(CFLAGS) -o strlrep.o -c ../../strlrep.c
+
+test:	
+	./uade-trivial -c ../../../uaerc -u ../../uade -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
