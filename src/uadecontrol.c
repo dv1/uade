@@ -10,8 +10,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "uadecontrol.h"
-#include "strlrep.h"
+#include <uadecontrol.h>
+#include <strlrep.h>
+#include <unixatomic.h>
 
 #define INPUT_BUF_SIZE (4096)
 
@@ -26,28 +27,9 @@ int uade_output_fd = 1; /* stdout */
 static int get_more(unsigned int bytes)
 {
   ssize_t s;
-  int ret;
-  struct pollfd pollfd;
-  pollfd.fd = 0;
-  pollfd.events = POLLIN;
-
-  while (uade_inputbytes < bytes) {
-    ret = poll(&pollfd, 1, -1);
-    if (ret == 0)
-      continue;
-    if (ret < 0) {
-      if (errno == EINTR)
-	continue;
-      assert(0);
-    }
-    s = read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], sizeof(uade_inputbuffer) - uade_inputbytes);
-    if (s < 0) {
-      if (errno == EAGAIN || errno == EINTR)
-	continue;
-      assert(0);
-    } else if (s == 0) {
-      fprintf(stderr, "uade: no more input. exiting.\n");
-      quit_program = 1;
+  if (uade_inputbytes < bytes) {
+    if ((s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes)) < 0) {
+      fprintf(stderr, "no more input\n");
       return 0;
     }
     uade_inputbytes += s;
