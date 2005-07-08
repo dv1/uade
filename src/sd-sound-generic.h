@@ -26,7 +26,7 @@ extern void finish_sound_buffer (void);
 static void check_sound_buffers (void) {
   assert((char *) sndbufpt - (char *) sndbuffer <= sndbufsize);
   if ((char *) sndbufpt - (char *) sndbuffer == sndbufsize) {
-    uade_check_sound_buffers(sndbuffer, sndbufsize, sound_bytes_per_sample);
+    uade_check_sound_buffers();
     sndbufpt = sndbuffer;
   }
 }

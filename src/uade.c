@@ -28,6 +28,7 @@
 #include "debug.h"
 #include "gensound.h"
 #include "cia.h"
+#include "sd-sound.h"
 
 #include "../config.h"
 
@@ -108,12 +109,12 @@ int uade_time_critical = 0;
 
 
 /* last part of the audio system pipeline */
-void uade_check_sound_buffers(void *sndbuffer, int sndbufsize, int bytes_per_sample)
+void uade_check_sound_buffers(void)
 {
   /* effects */
   if (uade_do_panning) {
     if (currprefs.stereo) {
-      int to_frames_divisor = bytes_per_sample * 2;
+      int to_frames_divisor = sound_bytes_per_sample * 2;
       assert(0);
       /* uade_effect_pan((short *) sndbuffer, sndbufsize / to_frames_divisor, bytes_per_sample, uade_pan_value); */
     }
@@ -237,7 +238,8 @@ void uade_option(int argc, char **argv)
 }
 
 
-void uade_print_help(int problemcode) {
+void uade_print_help(int problemcode)
+{
   switch (problemcode) {
   case OPTION_HELP:
     /* just for printing help */
@@ -279,8 +281,10 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
   return bytesread;
 }
 
+
 /* this is called for each played song from newcpu.c/m68k_reset() */
-void uade_reset(void) {
+void uade_reset(void)
+{
   /* don't load anything under 0x1000 (execbase top at $1000) */
   int modnameaddr = 0x00400;
   int scoreaddr   = 0x01000;
