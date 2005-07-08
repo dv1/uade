@@ -1,4 +1,5 @@
 #include <sys/poll.h>
+#include <errno.h>
 
 #include <unixatomic.h>
 
@@ -17,7 +18,7 @@ int atomic_close(int fd)
 }
 
 
-size_t atomic_write(int fd, const void *buf, size_t count)
+ssize_t atomic_write(int fd, const void *buf, size_t count)
 {
   char *b = (char *) buf;
   size_t bytes_written = 0;

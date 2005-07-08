@@ -24,23 +24,6 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static void atomic_close(int fd)
-{
-  while (1) {
-    if (close(fd) < 0) {
-      if (errno == EINTR)
-	continue;
-      fprintf(stderr, "can not close fd: %s\n", strerror(errno));
-      trivial_cleanup();
-      exit(-1);
-    }
-    break;
-  }
-}
-
-
-
-
 static void trivial_cleanup(void)
 {
   if (uadepid != -1) {
@@ -157,8 +140,18 @@ int main(int argc, char *argv[])
   if (uadepid == -1)
     return -1;
 
-  atomic_close(forwardfiledes[0]); /* close fd that uade reads from */
-  atomic_close(backwardfiledes[1]); /* close fd that uade writes to */
+  /* close fd that uade reads from */
+  if (atomic_close(forwardfiledes[0]) < 0) {
+    fprintf(stderr, "could not close forwardfiledes[0]\n");
+    trivial_cleanup();
+    exit(-1);
+  }
+  /* close fd that uade writes to */
+  if (atomic_close(backwardfiledes[1]) < 0) {
+    fprintf(stderr, "could not close backwardfiledes[1]\n");
+    trivial_cleanup();
+    exit(-1);
+  }
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
