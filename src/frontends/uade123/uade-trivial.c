@@ -17,8 +17,35 @@ static char uadename[PATH_MAX];
 
 static pid_t uadepid = -1;
 
+static int input_fd = -1;
+static int output_fd = -1;
 
 static void trivial_sigint(int sig);
+static void trivial_cleanup(void);
+
+
+static void atomic_close(int fd)
+{
+  while (1) {
+    if (close(fd) < 0) {
+      if (errno == EINTR)
+	continue;
+      fprintf(stderr, "can not close fd: %s\n", strerror(errno));
+      trivial_cleanup();
+      exit(-1);
+    }
+    break;
+  }
+}
+
+
+static void trivial_cleanup(void)
+{
+  if (uadepid != -1) {
+    kill(uadepid, SIGTERM);
+    uadepid = -1;
+  }
+}
 
 
 static void fork_exec(int uade_stdin, int uade_stdout)
@@ -76,6 +103,8 @@ static int get_string_arg(char *dst, size_t maxlen, const char *arg, int *i,
 int main(int argc, char *argv[])
 {
   int i;
+  int forwardfiledes[2];
+  int backwardfiledes[2];
 
   for (i = 1; i < argc;) {
     fprintf(stderr, "processing %s\n", argv[i]);
@@ -111,19 +140,32 @@ int main(int argc, char *argv[])
     break;
   }
 
-  fork_exec(0, 1);
+  if (pipe(forwardfiledes)) {
+    fprintf(stderr, "can not create a pipe: %s\n", strerror(errno));
+    exit(-1);
+  }
+  output_fd = forwardfiledes[1];
+  if (pipe(backwardfiledes)) {
+    fprintf(stderr, "can not create a pipe: %s\n", strerror(errno));
+    exit(-1);
+  }
+  input_fd = forwardfiledes[0];
+
+  fork_exec(forwardfiledes[0], backwardfiledes[1]);
   if (uadepid == -1)
     return -1;
 
+  atomic_close(forwardfiledes[0]); /* close fd that uade reads from */
+  atomic_close(backwardfiledes[1]); /* close fd that uade writes to */
+
+  fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
   return 0;
 }
 
 
-
 static void trivial_sigint(int sig)
 {
-  if (uadepid != -1)
-    kill(uadepid, SIGTERM);
+  trivial_cleanup();
   exit(-1);
 }
