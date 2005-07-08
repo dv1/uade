@@ -5,8 +5,9 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <string.h>
 
-#include <uadeipc.h>
+#include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
 
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
   int i;
   int forwardfiledes[2];
   int backwardfiledes[2];
+  char url[64];
 
   for (i = 1; i < argc;) {
     fprintf(stderr, "processing %s\n", argv[i]);
@@ -131,6 +133,10 @@ int main(int argc, char *argv[])
     trivial_cleanup();
     exit(-1);
   }
+  snprintf(url, sizeof(url), "fd://%d", backwardfiledes[0]);
+  uade_set_input_source(url);
+  snprintf(url, sizeof(url), "fd://%d", forwardfiledes[1]);
+  uade_set_output_destination(url);
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);

@@ -104,9 +104,32 @@ int uade_get_string_command(char *s, enum uade_command_t com, size_t maxlen)
 }
 
 
+int uade_url_to_fd(const char *url, int flags, mode_t mode)
+{
+  int fd;
+  if (strncmp(url, "fd://", 5) == 0) {
+    char *endptr;
+    if (url[5] == 0)
+      return -1;
+    fd = strtol(&url[5], &endptr, 10);
+    if (*endptr != 0)
+      return -1;
+  } else {
+    if (flags & O_WRONLY) {
+      fd = open(url, flags, mode);
+    } else {
+      fd = open(url, flags);
+    }
+  }
+  if (fd < 0)
+    fd = -1;
+  return fd;
+}
+
+
 void uade_set_input_source(const char *input_source)
 {
-  if ((uade_input_fd = open(input_source, O_RDONLY)) < 0) {
+  if ((uade_input_fd = uade_url_to_fd(input_source, O_RDONLY, 0)) < 0) {
     fprintf(stderr, "can not open input file %s: %s\n", input_source, strerror(errno));
     exit(-1);
   }
@@ -115,7 +138,7 @@ void uade_set_input_source(const char *input_source)
 
 void uade_set_output_destination(const char *output_destination)
 {
-  if ((uade_output_fd = open(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+  if ((uade_output_fd = uade_url_to_fd(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
     fprintf(stderr, "can not open output file %s: %s\n", output_destination, strerror(errno));
     exit(-1);
   }
