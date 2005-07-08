@@ -224,7 +224,7 @@ void uade_option(int argc, char **argv)
   }
   s_argv[s_argc] = NULL;
 
-  ret = uade_get_string_command(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
+  ret = uade_receive_string_command(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
   if (ret == 0) {
     fprintf(stderr, "no config file passed as a message\n");
     exit(-1);
@@ -344,7 +344,7 @@ void uade_reset(void) {
   song.song_end_possible = 1;
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
-  ret = uade_get_string_command(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
+  ret = uade_receive_string_command(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
   if (ret == 0) {
     fprintf(stderr,"uade: no more songs to play\n");
     exit(0);
@@ -353,7 +353,7 @@ void uade_reset(void) {
     exit(-1);
   }
 
-  ret = uade_get_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  ret = uade_receive_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
   if (ret == 0) {
     fprintf(stderr,"expected player name. got nothing.\n");
     exit(-1);
@@ -362,7 +362,7 @@ void uade_reset(void) {
     exit(-1);
   }
 
-  ret = uade_get_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  ret = uade_receive_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
   if (ret == 0) {
     fprintf(stderr,"expected player name. got nothing.\n");
     exit(-1);
@@ -371,7 +371,7 @@ void uade_reset(void) {
     exit(-1);
   }
 
-  if ((uade_get_command(uc, maxcommand) == 0)) {
+  if ((uade_receive_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"expected module name. got nothing.\n");
     exit(-1);
   }

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-enum uade_command_t {
+enum uade_command {
   UADE_COMMAND_FIRST = 0,
   UADE_COMMAND_CONFIG,
   UADE_COMMAND_SCORE,
@@ -16,7 +16,7 @@ enum uade_command_t {
   UADE_COMMAND_LAST
 };
 
-enum uade_reply_t {
+enum uade_reply {
   UADE_REPLY_MSG = 1,
   UADE_REPLY_CANT_PLAY,
   UADE_REPLY_SONG_END,

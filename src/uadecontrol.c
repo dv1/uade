@@ -24,6 +24,7 @@ int uade_output_fd = 1; /* stdout */
 
 
 static int uade_url_to_fd(const char *url, int flags, mode_t mode);
+static int uade_valid_message(struct uade_control *uc);
 
 
 static int get_more(unsigned int bytes)
@@ -52,7 +53,7 @@ static void uade_copy_from_inputbuffer(void *dst, int bytes)
 }
 
 
-int uade_get_command(struct uade_control *uc, size_t maxbytes)
+int uade_receive_command(struct uade_control *uc, size_t maxbytes)
 {
   size_t fullsize;
 
@@ -64,16 +65,10 @@ int uade_get_command(struct uade_control *uc, size_t maxbytes)
   }
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
 
-  if (uc->command <= UADE_COMMAND_FIRST || uc->command >= UADE_COMMAND_LAST) {
-    fprintf(stderr, "illegal command number: %d\n", uc->command);
+  if (!uade_valid_message(uc))
     return 0;
-  }
 
   fullsize = uc->size + sizeof(*uc);
-  if (fullsize > INPUT_BUF_SIZE) {
-    fprintf(stderr, "too big a command size: %u\n", fullsize);
-    return 0;
-  }
   if (fullsize > maxbytes) {
     fprintf(stderr, "too big a command: %u\n", fullsize);
     return 0;
@@ -87,13 +82,14 @@ int uade_get_command(struct uade_control *uc, size_t maxbytes)
 }
 
 
-int uade_get_string_command(char *s, enum uade_command_t com, size_t maxlen)
+int uade_receive_string_command(char *s, enum uade_command com,
+				size_t maxlen)
 {
   const size_t COMLEN = 4096;
   uint8_t commandbuf[COMLEN];
   struct uade_control *uc = (struct uade_control *) commandbuf;
 
-  if ((uade_get_command(uc, COMLEN) == 0))
+  if ((uade_receive_command(uc, COMLEN) == 0))
     return 0;
   if (uc->command != com)
     return -1;
@@ -102,6 +98,29 @@ int uade_get_string_command(char *s, enum uade_command_t com, size_t maxlen)
   if (uc->size != (strlen(uc->data) + 1))
     return -1;
   strlcpy(s, uc->data, maxlen);
+  return 1;
+}
+
+
+int uade_send_command(struct uade_control *uc)
+{
+  if (!uade_valid_message(uc))
+    return 0;
+  if (atomic_write(uade_output_fd, uc, sizeof(*uc) + uc->size) < 0)
+    return 0;
+  return 1;
+}
+
+
+int uade_send_string(enum uade_command com, const char *str)
+{
+  struct uade_control uc = {.command = com, .size = strlen(str) + 1};
+  if ((sizeof(uc) + uc.size) > INPUT_BUF_SIZE)
+    return 0;
+  if (atomic_write(uade_output_fd, &uc, sizeof(uc)) < 0)
+    return 0;
+  if (atomic_write(uade_output_fd, str, uc.size) < 0)
+    return 0;
   return 1;
 }
 
@@ -144,4 +163,18 @@ static int uade_url_to_fd(const char *url, int flags, mode_t mode)
   if (fd < 0)
     fd = -1;
   return fd;
+}
+
+
+static int uade_valid_message(struct uade_control *uc)
+{
+  if (uc->command <= UADE_COMMAND_FIRST || uc->command >= UADE_COMMAND_LAST) {
+    fprintf(stderr, "unknown command: %d\n", uc->command);
+    return 0;
+  }
+  if ((sizeof(*uc) + uc->size) > INPUT_BUF_SIZE) {
+    fprintf(stderr, "too long a message\n");
+    return 0;
+  }
+  return 1;
 }

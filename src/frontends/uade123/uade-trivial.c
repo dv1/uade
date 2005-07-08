@@ -24,7 +24,7 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static void fork_exec(void)
+static void fork_exec_uade(void)
 {
   int forwardfiledes[2];
   int backwardfiledes[2];
@@ -126,7 +126,13 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  fork_exec();
+  fork_exec_uade();
+
+  if (uade_send_string(UADE_COMMAND_CONFIG, configname) == 0) {
+    fprintf(stderr, "can not send config name\n");
+    trivial_cleanup();
+    exit(-1);
+  }
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
