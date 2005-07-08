@@ -26,8 +26,8 @@ int uade_output_fd = 1; /* stdout */
 
 static int get_more(unsigned int bytes)
 {
-  ssize_t s;
   if (uade_inputbytes < bytes) {
+    ssize_t s;
     if ((s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes)) < 0) {
       fprintf(stderr, "no more input\n");
       return 0;
