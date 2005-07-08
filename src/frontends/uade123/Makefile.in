@@ -1,10 +1,10 @@
 
 CC = {CC}
-CFLAGS = {ARCHFLAGS} {DEBUGFLAGS}
+CFLAGS = -I../../include {ARCHFLAGS} {DEBUGFLAGS}
 CLIBS = {ARCHLIBS}
 
 uade-trivial:	uade-trivial.o
-	$(CC) $(CFLAGS) $(CLIBS) -o $< $@
+	$(CC) $(CFLAGS) $(CLIBS) -o $@ $<
 
 uade-trivial.o:	uade-trivial.c
 	$(CC) $(CFLAGS) -c $<
