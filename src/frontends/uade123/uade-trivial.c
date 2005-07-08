@@ -131,26 +131,27 @@ int main(int argc, char *argv[])
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname) == 0) {
     fprintf(stderr, "can not send config name\n");
-    trivial_cleanup();
-    exit(-1);
+    goto cleanup;
   }
 
   if (uade_send_string(UADE_COMMAND_SCORE, scorename) == 0) {
     fprintf(stderr, "can not send score name\n");
-    trivial_cleanup();
-    exit(-1);
+    goto cleanup;
   }
 
   if (uade_send_string(UADE_COMMAND_PLAYER, playername) == 0) {
     fprintf(stderr, "can not send player name\n");
-    trivial_cleanup();
-    exit(-1);
+    goto cleanup;
   }
 
   if (uade_send_string(UADE_COMMAND_MODULE, modulename) == 0) {
     fprintf(stderr, "can not send module name\n");
-    trivial_cleanup();
-    exit(-1);
+    goto cleanup;
+  }
+
+  if (uade_send_command(& (struct uade_control) {.command = UADE_COMMAND_PLAY, .size = 0}) < 0) {
+    fprintf(stderr, "can not send play command\n");
+    goto cleanup;
   }
 
   while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
@@ -158,6 +159,10 @@ int main(int argc, char *argv[])
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
   return 0;
+
+ cleanup:
+  trivial_cleanup();
+  return -1;
 }
 
 
