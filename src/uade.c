@@ -1,5 +1,5 @@
 /* UADE - Unix Amiga Delitracker Emulator
- * Copyright 2000-2004, Heikki Orsila <heikki.orsila@iki.fi>
+ * Copyright 2000-2005, Heikki Orsila <heikki.orsila@iki.fi>
  * See http://uade.ton.tut.fi
  */
 
@@ -159,12 +159,11 @@ void uade_option(int argc, char **argv)
   int s_argc;
   int cfg_loaded = 0;
   char optionsfile[UADE_PATH_MAX];
+  int ret;
 
   uadecmdlinename = strdup(argv[0]);
 
-  song.playername[0] = 0;
-  song.modulename[0] = 0;
-  song.song_end_possible = 1;
+  memset(&song, 0, sizeof(song));
 
   no_more_opts = 0;
 
@@ -185,99 +184,31 @@ void uade_option(int argc, char **argv)
     
     if (argv[i][0] == '-') {
 
-      if (!strncmp (argv[i], "-config=", 8)) {
-	strlcpy(optionsfile, argv[i] + 8, sizeof(optionsfile));
-	fprintf(stderr,"uade: config '%s'\n", optionsfile);
-	if (cfgfile_load (&currprefs, optionsfile)) {
-	  cfg_loaded = 1;
-	} else {
-	  fprintf(stderr, "uade: couldn't load uaerc (%s)!\n", optionsfile);
-	  exit(-1);
-	}
-	i++;
-
-      } else if (!strcmp(argv[i], "-force") || !strcmp(argv[i], "-f")) {
-	song.force_by_default = 1;
-	i++;
-
-      } else if (!strcmp(argv[i], "-execdebug")) {
-	fprintf(stderr, "-execdebug parameter\n");
-	uade_execdebugboolean = 1;
-	i++;
-
-      } else if (!strcmp(argv[i], "-voltest")) {
-	fprintf(stderr, "-voltest parameter\n");
-	voltestboolean = 0x12345678;
-	i++;
-
-      } else if (!strcmp(argv[i], "-dmawait")) {
-	if ((i+1) >= argc) {
-	  fprintf(stderr, "parameter missing for -dmawait\n");
-	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
-	  exit(-1);
-	}
-	uade_dmawait = atoi(argv[i + 1]);
-	fprintf(stderr, "setting dmawait = %d rasterlines\n", uade_dmawait);
-	uade_dmawait += 0x12340000;
-	i += 2;
-
-      } else if (!strcmp(argv[i], "-ntsc")) {
-	song.use_ntsc = 1;
-	i++;
-	
-      } else if (!strcmp(argv[i], "-no-end") || !strcmp(argv[i], "-ne")) {
-	song.song_end_possible = 0;
-	i++;
-
-      } else if (!strcmp(argv[i], "-pan") || !strcmp(argv[i], "-p")) {
-	if ((i+1) >= argc) {
-	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
-	  exit(-1);
-	}
-	uade_do_panning = 1;
-	uade_pan_value = atof(argv[i+1]);
-	if (uade_pan_value < 0.0f || uade_pan_value > 2.0f) {
-	  fprintf(stderr, "%s parameter is illegal. Use proper range [0, 1]. See help.\n", argv[i]);
-	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
-	  exit(-1);
-	}
-	i += 2;
-
-      } else if (strcmp(argv[i], "-swap-bytes") == 0) {
-	uade_swap_output_bytes = 1;
-	i++;
-
-      } else if (strcmp(argv[i], "-no-mc") == 0) {
-	disable_modulechange = 1;
-	i++;
-	
-      } else if (!strcmp(argv[i], "-debug") || !strcmp(argv[i], "-d")) {
+      if (!strcmp(argv[i], "-debug") || !strcmp(argv[i], "-d")) {
 	uade_debug = 1;
 	i++;
-	
-      } else if (!strcmp(argv[i], "-sh")) {
-	uade_speed_hack = 1;
-	i++;
-	
-      } else if (!strcmp(argv[i], "-no-sh")) {
-	uade_speed_hack = -1;
-	i++;
 
-      } else if (!strcmp(argv[i], "-fs")) {
+      } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
+	uade_print_help(OPTION_HELP);
+	exit(0);
+
+      } else if (!strcmp(argv[i], "-i")) {
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
 	  exit(-1);
 	}
-	song.use_filter = 1;
-	gui_ledstate_forced = atoi(argv[i + 1]) ? 1 : 2;
-	gui_ledstate = gui_ledstate_forced & 1 ? 1 : 0;
+	uade_set_input_source(argv[i + 1]);
 	i += 2;
 
-      } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
-	uade_print_help(OPTION_HELP);
-	exit(0);
+      } else if (!strcmp(argv[i], "-o")) {
+	if ((i + 1) >= argc) {
+	  fprintf(stderr, "%s parameter missing\n", argv[i]);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
+	  exit(-1);
+	}
+	uade_set_output_destination(argv[i + 1]);
+	i += 2;
 
       } else if (!strcmp(argv[i], "--")) {
 	for (i = i + 1; i < argc ; i++)
@@ -293,15 +224,23 @@ void uade_option(int argc, char **argv)
   }
   s_argv[s_argc] = NULL;
 
+  ret = uade_get_string_command(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
+  if (ret == 0) {
+    fprintf(stderr, "no config file passed as a message\n");
+    exit(-1);
+  } else if (ret < 0) {
+    fprintf(stderr, "illegal input (expected a config file)\n");
+    exit(-1);
+  }
+
+  /* use the config file provided with a message, if '-config' option
+     was not given */
   if (!cfg_loaded) {
-    strlcpy(optionsfile, "../uaerc", sizeof(optionsfile));
-    if (!cfgfile_load(&currprefs, optionsfile)) {
-      fprintf(stderr, "uade: couldn't load uaerc (%s)!\n", optionsfile);
+    if (cfgfile_load (&currprefs, optionsfile) == 0) {
+      fprintf(stderr, "couldn't load uaerc (%s)!\n", optionsfile);
       exit(-1);
     }
   }
-
-  strlcpy(song.scorename, "../score", sizeof(song.scorename));
 
   memset(&slave, 0, sizeof(slave));
 
@@ -334,43 +273,14 @@ void uade_print_help(int problemcode) {
     break;
   }
   fprintf(stderr, "UADE usage:\n");
-  fprintf(stderr, " %s [OPTIONS] [FILE1] [FILE2] ...\n\n", uadecmdlinename);
+  fprintf(stderr, " %s [OPTIONS]\n\n", uadecmdlinename);
 
-  fprintf(stderr, " mode options:\n");
-  fprintf(stderr, " -i\t\tSet command line interactive mode\n");
+  fprintf(stderr, " options:\n");
+  fprintf(stderr, " -d\t\tSet debug mode\n");
+  fprintf(stderr, " -h\t\tPrint help\n");
+  fprintf(stderr, " -i file\t\tSet input source\n");
+  fprintf(stderr, " -o file\t\tSet output destination\n");
   fprintf(stderr, "\n");
-
-  fprintf(stderr, " general options:\n");
-  fprintf(stderr, " -force/-f\tForces eagleplayer to play a given song if it's not recognized\n");
-  fprintf(stderr, " -pan/-p value\tSets panning value in the range of [0.00, 1.00] (mix channels)\n");
-  fprintf(stderr, " -filter/-fi\tEnable filter emulation\n");
-  fprintf(stderr, " -fs x\t\tForce filter state to be x. 0 is off. 1 is on.\n");
-  fprintf(stderr, " -no-end/-ne\tThe first song will be played indefinetely (probably)\n");
-  fprintf(stderr, " -ntsc\t\tForce Amiga into NTSC mode (may affect playback speed)\n");
-  fprintf(stderr, "\n");
-
-  fprintf(stderr, " unix shell back-end options:\n");
-  fprintf(stderr, " -sub/-s numb\tSets first subsong number to be played\n");
-  fprintf(stderr, " -repeat/-rp\tLoop song list to be played from beginning after the end\n");
-  fprintf(stderr, " -one\t\tPlay at most one subsong / file\n");
-
-  fprintf(stderr, " -outpipe x\tDump all sound output to file descriptor x (x=1 => stdout)\n");
-  fprintf(stderr, " -score/-S file\tUse 'file' as the sound core (experts only)\n");
-  fprintf(stderr, " -swap-bytes\tSwaps output sample bytes (use only with 16-bit samples)\n");
-  fprintf(stderr, " -t timeout\tSets the maximum number of seconds to play a (sub)song\n");
-  fprintf(stderr, " -st timeout\tSwitch to next subsong after 'timeout' seconds\n");
-  fprintf(stderr, " -sit timeout\tSwitch to next subsong after 'timeout' seconds silent\n");
-  fprintf(stderr, " -device\tSelect sound device filename (UNIX)\n");
-  fprintf(stderr, " -rand/-r\tPlay songs in random order\n");
-  fprintf(stderr, " -recursive/-R\tAdd directories recursively to playlist\n");
-  fprintf(stderr, " -mod/-M file\tSets songname to be played\n");
-  fprintf(stderr, " -pl/-P file\tSets eagleplayer to be used (this can be used for custom songs)\n");
-  fprintf(stderr, "\n");
-
-  fprintf(stderr, "examples:\n");
-  fprintf(stderr, "\tplay some files with panning:\n\t\tuade -p 0.7 cust.*\n");
-  fprintf(stderr, "\tplay a directory hierarchy in random order:\n\t\tuade -r -R /chip/directory\n");
-  fprintf(stderr, "\tplay each (sub)song at most 256 seconds:\n\t\tuade -t 256 fc13.Defjam-CCS-ACC1\n");
 }
 
 
@@ -407,6 +317,8 @@ void uade_reset(void) {
   uint8_t command[maxcommand];
   struct uade_control *uc = (struct uade_control *) command;
 
+  int ret;
+
   /* IMPORTANT:
      It seems that certain players don't work totally reliably if memory
      contains trash from previous songs. To be certain that each song is
@@ -429,27 +341,35 @@ void uade_reset(void) {
   
  takenextsong:
 
+  song.song_end_possible = 1;
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
-  if ((uade_get_command(uc, maxcommand) == 0)) {
+  ret = uade_get_string_command(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
+  if (ret == 0) {
     fprintf(stderr,"uade: no more songs to play\n");
     exit(0);
-  }
-  if (uc->command != UADE_COMMAND_SCORE)
-    assert(0);
-  assert(uc->size > 0);
-  assert(uc->size == (strlen(uc->data) + 1));
-  strlcpy(song.scorename, uc->data, sizeof(song.scorename));
-
-  if ((uade_get_command(uc, maxcommand) == 0)) {
-    fprintf(stderr,"expected player name. got nothing.\n");
+  } else if (ret < 0) {
+    fprintf(stderr, "illegal input\n");
     exit(-1);
   }
-  if (uc->command != UADE_COMMAND_PLAYER)
-    assert(0);
-  assert(uc->size > 0);
-  assert(uc->size == (strlen(uc->data) + 1));
-  strlcpy(song.playername, uc->data, sizeof(song.playername));
+
+  ret = uade_get_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  if (ret == 0) {
+    fprintf(stderr,"expected player name. got nothing.\n");
+    exit(-1);
+  } else if (ret < 0) {
+    fprintf(stderr, "illegal input\n");
+    exit(-1);
+  }
+
+  ret = uade_get_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  if (ret == 0) {
+    fprintf(stderr,"expected player name. got nothing.\n");
+    exit(-1);
+  } else if (ret < 0) {
+    fprintf(stderr, "illegal input\n");
+    exit(-1);
+  }
 
   if ((uade_get_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"expected module name. got nothing.\n");
