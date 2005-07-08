@@ -8,6 +8,7 @@
 
 #include <uadeipc.h>
 #include <strlrep.h>
+#include <unixatomic.h>
 
 static char configname[PATH_MAX];
 static char modulename[PATH_MAX];
@@ -42,26 +43,14 @@ static void fork_exec(int uade_stdin, int uade_stdout)
   }
   if (uadepid == 0) {
 
-    while (1) {
-      if (dup2(uade_stdin, 0) < 0) {
-	if (errno == EINTR)
-	  continue;
-	fprintf(stderr, "can not dup stdin: %s\n", strerror(errno));
-	abort();
-      }
-      break;
+    if (atomic_dup2(uade_stdin, 0) < 0) {
+      fprintf(stderr, "can not dup stdin: %s\n", strerror(errno));
+      abort();
     }
-
-    while (1) {
-      if (dup2(uade_stdout, 0) < 0) {
-	if (errno == EINTR)
-	  continue;
-	fprintf(stderr, "can not dup stdout: %s\n", strerror(errno));
-	abort();
-      }
-      break;
+    if (atomic_dup2(uade_stdout, 1) < 0) {
+      fprintf(stderr, "can not dup stdout: %s\n", strerror(errno));
+      abort();
     }
-
     execlp(uadename, uadename, NULL);
     fprintf(stderr, "execlp failed: %s\n", strerror(errno));
     abort();
