@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include <uadeipc.h>
+#include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
 
@@ -23,15 +23,6 @@ static int output_fd = -1;
 
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
-
-
-static void trivial_cleanup(void)
-{
-  if (uadepid != -1) {
-    kill(uadepid, SIGTERM);
-    uadepid = -1;
-  }
-}
 
 
 static void fork_exec(int uade_stdin, int uade_stdout)
@@ -144,6 +135,15 @@ int main(int argc, char *argv[])
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
   return 0;
+}
+
+
+static void trivial_cleanup(void)
+{
+  if (uadepid != -1) {
+    kill(uadepid, SIGTERM);
+    uadepid = -1;
+  }
 }
 
 

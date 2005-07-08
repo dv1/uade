@@ -2,7 +2,7 @@
 CC = {CC}
 CFLAGS = -I../../include {ARCHFLAGS} {DEBUGFLAGS}
 CLIBS = {ARCHLIBS}
-MODULES = uade-trivial.o strlrep.o unixatomic.o
+MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o
 
 uade-trivial:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -15,6 +15,9 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -o unixatomic.o -c ../../unixatomic.c
+
+uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h
+	$(CC) $(CFLAGS) -o uadecontrol.o -c ../../uadecontrol.c
 
 test:	
 	./uade-trivial -c ../../../uaerc -u ../../uade -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7

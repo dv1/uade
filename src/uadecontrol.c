@@ -10,10 +10,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <uae.h>
-
-#include "uadecontrol.h"
-#include "strlrep.h"
+#include <uadecontrol.h>
+#include <strlrep.h>
 
 #define INPUT_BUF_SIZE (4096)
 
@@ -49,7 +47,6 @@ static int get_more(unsigned int bytes)
       assert(0);
     } else if (s == 0) {
       fprintf(stderr, "uade: no more input. exiting.\n");
-      quit_program = 1;
       return 0;
     }
     uade_inputbytes += s;

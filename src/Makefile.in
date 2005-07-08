@@ -111,7 +111,6 @@ fpp.o: config.h
 
 uade.o: config.h sd-sound.h
 
-uadecontrol.o:	config.h uadecontrol.h
+uadecontrol.o:	config.h include/uadecontrol.h
 
 players.o:	players.c players.h
-	$(CC) $(CFLAGS) $(INCLUDE) -c players.c

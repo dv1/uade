@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "players.h"
+#include <strlrep.h>
 
-#include "strlrep.h"
+#include "players.h"
 
 /* attribute variables */
 
