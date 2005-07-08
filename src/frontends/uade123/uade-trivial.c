@@ -39,6 +39,8 @@ static void atomic_close(int fd)
 }
 
 
+
+
 static void trivial_cleanup(void)
 {
   if (uadepid != -1) {
