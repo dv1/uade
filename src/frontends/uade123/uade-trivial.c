@@ -24,7 +24,7 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static void fork_exec_uade(void)
+static void fork_exec(void)
 {
   int forwardfiledes[2];
   int backwardfiledes[2];
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  fork_exec_uade();
+  fork_exec();
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
