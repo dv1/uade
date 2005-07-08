@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <signal.h>
 
-#include <uadecontrol.h>
+#include <uadeipc.h>
 #include <strlrep.h>
 #include <unixatomic.h>
 
