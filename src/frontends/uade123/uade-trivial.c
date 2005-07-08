@@ -19,11 +19,12 @@ static char uadename[PATH_MAX];
 
 static pid_t uadepid = -1;
 
+static void setup_sighandlers(void);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static void fork_exec(void)
+static void fork_exec_uade(void)
 {
   int forwardfiledes[2];
   int backwardfiledes[2];
@@ -123,6 +124,18 @@ int main(int argc, char *argv[])
   CHECK_EXISTENCE(scorename, "score name");
   CHECK_EXISTENCE(uadename, "uade executable name");
 
+  setup_sighandlers();
+
+  fork_exec_uade();
+
+  fprintf(stderr, "killing child (%d)\n", uadepid);
+  kill(uadepid, SIGTERM);
+  return 0;
+}
+
+
+static void setup_sighandlers(void)
+{
   while (1) {
     if ((sigaction(SIGINT, & (struct sigaction) {.sa_handler = trivial_sigint}, NULL)) < 0) {
       if (errno == EINTR)
@@ -132,12 +145,6 @@ int main(int argc, char *argv[])
     }
     break;
   }
-
-  fork_exec();
-
-  fprintf(stderr, "killing child (%d)\n", uadepid);
-  kill(uadepid, SIGTERM);
-  return 0;
 }
 
 
