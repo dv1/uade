@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
 
 #include <uadecontrol.h>
 #include <strlrep.h>
@@ -133,6 +134,26 @@ int main(int argc, char *argv[])
     trivial_cleanup();
     exit(-1);
   }
+
+  if (uade_send_string(UADE_COMMAND_SCORE, scorename) == 0) {
+    fprintf(stderr, "can not send score name\n");
+    trivial_cleanup();
+    exit(-1);
+  }
+
+  if (uade_send_string(UADE_COMMAND_PLAYER, playername) == 0) {
+    fprintf(stderr, "can not send player name\n");
+    trivial_cleanup();
+    exit(-1);
+  }
+
+  if (uade_send_string(UADE_COMMAND_MODULE, modulename) == 0) {
+    fprintf(stderr, "can not send module name\n");
+    trivial_cleanup();
+    exit(-1);
+  }
+
+  while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);

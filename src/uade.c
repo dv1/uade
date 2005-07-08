@@ -349,7 +349,7 @@ void uade_reset(void) {
     fprintf(stderr,"uade: no more songs to play\n");
     exit(0);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input\n");
+    fprintf(stderr, "illegal input (expected score name)\n");
     exit(-1);
   }
 
@@ -358,21 +358,16 @@ void uade_reset(void) {
     fprintf(stderr,"expected player name. got nothing.\n");
     exit(-1);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input\n");
+    fprintf(stderr, "illegal input (expected player name)\n");
     exit(-1);
   }
 
-  ret = uade_receive_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  ret = uade_receive_command(uc, maxcommand);
   if (ret == 0) {
-    fprintf(stderr,"expected player name. got nothing.\n");
-    exit(-1);
-  } else if (ret < 0) {
-    fprintf(stderr, "illegal input\n");
-    exit(-1);
-  }
-
-  if ((uade_receive_command(uc, maxcommand) == 0)) {
     fprintf(stderr,"expected module name. got nothing.\n");
+    exit(-1);
+  } else if (ret < 0) {
+    fprintf(stderr, "illegal input (expected module name)\n");
     exit(-1);
   }
   if (uc->command != UADE_COMMAND_MODULE)

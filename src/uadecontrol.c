@@ -66,12 +66,12 @@ int uade_receive_command(struct uade_control *uc, size_t maxbytes)
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
 
   if (!uade_valid_message(uc))
-    return 0;
+    return -1;
 
   fullsize = uc->size + sizeof(*uc);
   if (fullsize > maxbytes) {
     fprintf(stderr, "too big a command: %u\n", fullsize);
-    return 0;
+    return -1;
   }
   if (uade_inputbytes < uc->size) {
     if ((get_more(uc->size) == 0))
@@ -88,9 +88,10 @@ int uade_receive_string_command(char *s, enum uade_command com,
   const size_t COMLEN = 4096;
   uint8_t commandbuf[COMLEN];
   struct uade_control *uc = (struct uade_control *) commandbuf;
-
-  if ((uade_receive_command(uc, COMLEN) == 0))
-    return 0;
+  int ret;
+  ret = uade_receive_command(uc, COMLEN);
+  if (ret <= 0)
+    return ret;
   if (uc->command != com)
     return -1;
   if (uc->size == 0)
@@ -105,9 +106,9 @@ int uade_receive_string_command(char *s, enum uade_command com,
 int uade_send_command(struct uade_control *uc)
 {
   if (!uade_valid_message(uc))
-    return 0;
+    return -1;
   if (atomic_write(uade_output_fd, uc, sizeof(*uc) + uc->size) < 0)
-    return 0;
+    return -1;
   return 1;
 }
 
@@ -116,11 +117,11 @@ int uade_send_string(enum uade_command com, const char *str)
 {
   struct uade_control uc = {.command = com, .size = strlen(str) + 1};
   if ((sizeof(uc) + uc.size) > INPUT_BUF_SIZE)
-    return 0;
+    return -1;
   if (atomic_write(uade_output_fd, &uc, sizeof(uc)) < 0)
-    return 0;
+    return -1;
   if (atomic_write(uade_output_fd, str, uc.size) < 0)
-    return 0;
+    return -1;
   return 1;
 }
 
