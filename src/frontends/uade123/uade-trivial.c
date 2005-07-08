@@ -42,7 +42,6 @@ static void fork_exec(int uade_stdin, int uade_stdout)
     return;
   }
   if (uadepid == 0) {
-
     if (atomic_dup2(uade_stdin, 0) < 0) {
       fprintf(stderr, "can not dup stdin: %s\n", strerror(errno));
       abort();

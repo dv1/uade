@@ -18,6 +18,20 @@ int atomic_close(int fd)
 }
 
 
+int atomic_dup2(int oldfd, int newfd)
+{
+  while (1) {
+    if (dup2(oldfd, newfd) < 0) {
+      if (errno == EINTR)
+	continue;
+      return -1;
+    }
+    break;
+  }
+  return newfd;
+}
+
+
 ssize_t atomic_write(int fd, const void *buf, size_t count)
 {
   char *b = (char *) buf;
