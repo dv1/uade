@@ -45,6 +45,7 @@
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_long(int addr);
+static void uade_print_help(int problemcode, char *progname);
 static void uade_put_long(int addr,int val);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
 
@@ -88,8 +89,6 @@ int uade_read_size = 0;
 int uade_reboot;
 static int uade_speed_hack = 0;
 int uade_time_critical = 0;
-/* contains uades command line name */
-static char *uadecmdlinename = 0;
 static int voltestboolean = 0;
 
 
@@ -183,8 +182,6 @@ void uade_option(int argc, char **argv)
   /* network byte order is the big endian order */
   uade_big_endian = (htonl(0x1234) == 0x1234);
 
-  uadecmdlinename = strdup(argv[0]);
-
   memset(&song, 0, sizeof(song));
 
   no_more_opts = 0;
@@ -211,13 +208,13 @@ void uade_option(int argc, char **argv)
 	i++;
 
       } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
-	uade_print_help(OPTION_HELP);
+	uade_print_help(OPTION_HELP, argv[0]);
 	exit(0);
 
       } else if (!strcmp(argv[i], "-i")) {
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
 	uade_set_input_source(argv[i + 1]);
@@ -226,7 +223,7 @@ void uade_option(int argc, char **argv)
       } else if (!strcmp(argv[i], "-o")) {
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "%s parameter missing\n", argv[i]);
-	  uade_print_help(OPTION_ILLEGAL_PARAMETERS);
+	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
 	uade_set_output_destination(argv[i + 1]);
@@ -273,7 +270,7 @@ void uade_option(int argc, char **argv)
 }
 
 
-void uade_print_help(int problemcode)
+static void uade_print_help(int problemcode, char *progname)
 {
   switch (problemcode) {
   case OPTION_HELP:
@@ -290,7 +287,7 @@ void uade_print_help(int problemcode)
     break;
   }
   fprintf(stderr, "UADE usage:\n");
-  fprintf(stderr, " %s [OPTIONS]\n\n", uadecmdlinename);
+  fprintf(stderr, " %s [OPTIONS]\n\n", progname);
 
   fprintf(stderr, " options:\n");
   fprintf(stderr, " -d\t\tSet debug mode\n");

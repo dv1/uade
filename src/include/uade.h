@@ -18,7 +18,6 @@ void uade_change_subsong(int subs);
 void uade_check_sound_buffers(int bytes);
 void uade_get_amiga_message(void);
 void uade_option(int, char**); /* handles command line parameters */
-void uade_print_help(int problemcode);
 void uade_receive_control(int block);
 void uade_reset(void);
 void uade_send_amiga_message(int msgtype);
