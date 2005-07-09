@@ -314,20 +314,22 @@ void uade_receive_control(int block)
 
   assert(block != 0);
 
-  ret = uade_receive_message(um, sizeof(space));
-  if (ret == 0) {
-    fprintf(stderr, "no more input. exiting succesfully.\n");
-    exit(0);
-  } else if (ret < 0) {
-    fprintf(stderr, "error on input. exiting with error\n");
-    exit(-1);
-  }
-
   no_more_commands = 0;
   while (no_more_commands == 0) {
+
+    ret = uade_receive_message(um, sizeof(space));
+    if (ret == 0) {
+      fprintf(stderr, "no more input. exiting succesfully.\n");
+      exit(0);
+    } else if (ret < 0) {
+      fprintf(stderr, "error on input. exiting with error\n");
+      exit(-1);
+    }
+
     switch (um->msgtype) {
 
     case UADE_COMMAND_ACTIVATE_DEBUGGER:
+      fprintf(stderr, "received activate debugger message\n");
       activate_debugger();
       break;
 
