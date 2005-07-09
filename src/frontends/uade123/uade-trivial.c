@@ -31,12 +31,8 @@ static void fork_exec_uade(void)
   int backwardfiledes[2];
   char url[64];
 
-  if (pipe(forwardfiledes)) {
-    fprintf(stderr, "can not create a pipe: %s\n", strerror(errno));
-    exit(-1);
-  }
-   if (pipe(backwardfiledes)) {
-    fprintf(stderr, "can not create a pipe: %s\n", strerror(errno));
+  if (pipe(forwardfiledes) != 0 || pipe(backwardfiledes) != 0) {
+    fprintf(stderr, "can not create pipes: %s\n", strerror(errno));
     exit(-1);
   }
  
@@ -46,6 +42,14 @@ static void fork_exec_uade(void)
     exit(-1);
   }
   if (uadepid == 0) {
+    if (atomic_close(forwardfiledes[1]) < 0) {
+      fprintf(stderr, "can not close forwardfiledes[1]: %s\n", strerror(errno));
+      abort();
+    }
+    if (atomic_close(backwardfiledes[0]) < 0) {
+      fprintf(stderr, "can not close backwardfiledes[0]: %s\n", strerror(errno));
+      abort();
+    }
     if (atomic_dup2(forwardfiledes[0], 0) < 0) {
       fprintf(stderr, "can not dup stdin: %s\n", strerror(errno));
       abort();
@@ -65,16 +69,16 @@ static void fork_exec_uade(void)
     trivial_cleanup();
     exit(-1);
   }
-  /* write destination */
-  snprintf(url, sizeof(url), "fd://%d", forwardfiledes[1]);
-  uade_set_output_destination(url);
-
   /* close fd that uade writes to */
   if (atomic_close(backwardfiledes[1]) < 0) {
     fprintf(stderr, "could not close backwardfiledes[1]\n");
     trivial_cleanup();
     exit(-1);
   }
+
+  /* write destination */
+  snprintf(url, sizeof(url), "fd://%d", forwardfiledes[1]);
+  uade_set_output_destination(url);
   /* read source */
   snprintf(url, sizeof(url), "fd://%d", backwardfiledes[0]);
   uade_set_input_source(url);
