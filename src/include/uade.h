@@ -8,17 +8,6 @@ struct uade_song {
   char modulename[UADE_PATH_MAX];       /* filename of song */
   char scorename[UADE_PATH_MAX];        /* filename of score file */
 
-  int set_subsong;
-  int subsong;
-  int force_by_default;
-  int use_ntsc;
-  int song_end_possible;
-  int use_filter;
-
-  int timeout;          /* default timeout infinite */
-  int subsong_timeout;  /* default per subsong timeout infinite */
-  int silence_timeout;  /* default silence timeout */
-
   int min_subsong;
   int max_subsong;
   int cur_subsong;

@@ -263,10 +263,6 @@ void uade_option(int argc, char **argv)
     }
   }
 
-  song.timeout = -1;		/* default timeout infinite */
-  song.subsong_timeout = -1;	/* default per subsong timeout infinite */
-  song.silence_timeout = -1;	/* default silence timeout infinite */
-
   free(s_argv);
 
   if (uade_debug)
@@ -308,12 +304,12 @@ void uade_receive_control(int block)
 {
   int no_more_commands;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *uc = (struct uade_msg *) space;
+  struct uade_msg *um = (struct uade_msg *) space;
   int ret;
 
   assert(block != 0);
 
-  ret = uade_receive_message(uc, sizeof(space));
+  ret = uade_receive_message(um, sizeof(space));
   if (ret == 0) {
     fprintf(stderr, "no more input. exiting succesfully.\n");
     exit(0);
@@ -324,29 +320,55 @@ void uade_receive_control(int block)
 
   no_more_commands = 0;
   while (no_more_commands == 0) {
-    switch (uc->msgtype) {
+    switch (um->msgtype) {
+
+    case UADE_COMMAND_IGNORE_CHECK:
+      /* override bit for sound format checking */
+      uade_put_long(SCORE_FORCE, 0);
+      break;
+
     case UADE_COMMAND_READ:
       if (uade_read_size != 0) {
 	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
 	exit(-1);
       }
-      if (uc->size != 4) {
+      if (um->size != 4) {
 	fprintf(stderr, "illegal size on read command\n");
 	exit(-1);
       }
-      uade_read_size = ntohl(* (uint32_t *) uc->data);
+      uade_read_size = ntohl(* (uint32_t *) um->data);
       if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
 	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
 	exit(-1);
       }
       no_more_commands = 1;
       break;
+
     case UADE_COMMAND_REBOOT:
       uade_reboot = 1;
       no_more_commands = 1;
       break;
+
+    case UADE_COMMAND_SET_NTSC:
+      /* set ntscbit correctly */
+      uade_set_ntsc(1);
+      break;
+
+    case UADE_COMMAND_SONG_END_NOT_POSSIBLE:
+      uade_set_automatic_song_end(0);
+      break;
+
+    case UADE_COMMAND_SET_SUBSONG:
+      if (um->size != 4) {
+	fprintf(stderr, "illegal size on set subsong command\n");
+	exit(-1);
+      }
+      uade_put_long(SCORE_SET_SUBSONG, 1);
+      uade_put_long(SCORE_SUBSONG, ntohl(* (uint32_t *) um->data));
+      break;
+
     default:
-      fprintf(stderr, "error: received command %d\n", uc->msgtype);
+      fprintf(stderr, "error: received command %d\n", um->msgtype);
       exit(-1);
     }
   }
@@ -386,7 +408,7 @@ void uade_reset(void)
 
   const int maxcommand = 4096;
   uint8_t command[maxcommand];
-  struct uade_msg *uc = (struct uade_msg *) command;
+  struct uade_msg *um = (struct uade_msg *) command;
 
   int ret;
 
@@ -412,7 +434,6 @@ void uade_reset(void)
   
  takenextsong:
 
-  song.song_end_possible = 1;
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
   ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
@@ -433,7 +454,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_message(uc, maxcommand);
+  ret = uade_receive_message(um, maxcommand);
   if (ret == 0) {
     fprintf(stderr,"expected module name. got nothing.\n");
     exit(-1);
@@ -441,16 +462,16 @@ void uade_reset(void)
     fprintf(stderr, "illegal input (expected module name)\n");
     exit(-1);
   }
-  if (uc->msgtype != UADE_COMMAND_MODULE)
+  if (um->msgtype != UADE_COMMAND_MODULE)
     assert(0);
-  if (uc->size == 0) {
+  if (um->size == 0) {
     song.modulename[0] = 0;
   } else {
-    assert(uc->size == (strlen(uc->data) + 1));
-    strlcpy(song.modulename, uc->data, sizeof(song.modulename));
+    assert(um->size == (strlen(um->data) + 1));
+    strlcpy(song.modulename, um->data, sizeof(song.modulename));
   }
 
-  uade_set_automatic_song_end(song.song_end_possible);
+  uade_set_automatic_song_end(1);
 
   uade_put_long(SCORE_EXEC_DEBUG, uade_execdebugboolean ? 0x12345678 : 0);
   uade_put_long(SCORE_VOLUME_TEST, voltestboolean);
@@ -540,12 +561,12 @@ void uade_reset(void)
   m68k_setpc(scoreaddr);
 
   /* override bit for sound format checking */
-  uade_put_long(SCORE_FORCE, song.force_by_default);
+  uade_put_long(SCORE_FORCE, 0);
   /* setsubsong */
-  uade_put_long(SCORE_SET_SUBSONG, song.set_subsong);
-  uade_put_long(SCORE_SUBSONG, song.subsong);
+  uade_put_long(SCORE_SET_SUBSONG, 0);
+  uade_put_long(SCORE_SUBSONG, 0);
   /* set ntscbit correctly */
-  uade_set_ntsc(song.use_ntsc);
+  uade_set_ntsc(0);
 
   /* pause bits (don't care!), for debugging purposes only */
   uade_put_long(SCORE_PREPAUSE, 0);
@@ -558,10 +579,6 @@ void uade_reset(void)
   if ((userstack - (scoreaddr + bytesread)) < 0x1000) {
     fprintf(stderr, "uade: stack over run warning!\n");
   }
-
-  song.set_subsong = 0;
-
-  song.modulename[0] = 0;
 
   flush_sound();
 
