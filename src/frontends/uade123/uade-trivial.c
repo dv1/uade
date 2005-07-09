@@ -44,10 +44,12 @@ static void fork_exec_uade(void)
   if (uadepid == 0) {
     int fd;
     char instr[32], outstr[32];
+    /* close everything else but stdin, stdout, stderr, and in/out fds */
     for (fd = 3; fd < 64; fd++) {
       if (fd != forwardfds[0] && fd != backwardfds[1])
 	atomic_close(fd);
     }
+    /* give in/out fds as command line parameters to the uade process */
     snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
     snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
     execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
