@@ -23,6 +23,7 @@ static char scorename[PATH_MAX];
 static char uadename[PATH_MAX];
 
 static int debug_mode = 0;
+static int debug_trigger = 0;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
 
@@ -217,7 +218,16 @@ static int play_loop(void)
 
   while (1) {
 
+    if (uadeterminated == 1)
+      break;
+
     if (left == 0) {
+
+      if (debug_trigger == 1) {
+	uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0});
+	debug_trigger = 0;
+      }
+
       left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
       um->msgtype = UADE_COMMAND_READ;
       um->size = 4;
@@ -333,7 +343,7 @@ static void trivial_sigchld(int sig)
 static void trivial_sigint(int sig)
 {
   if (debug_mode == 1) {
-    uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0});
+    debug_trigger = 1;
     return;
   } else {
     trivial_cleanup();
