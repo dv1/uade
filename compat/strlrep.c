@@ -1,8 +1,11 @@
+/* This module was written by Heikki Orsila <heikki.orsila@iki.fi> 2000-2005.
+ * No copyrights claimed, so this module is in Public Domain (only this
+ * code module). See OpenBSD man pages for strlcat and strlcpy
+ */
+
 #include <string.h>
 
 #include "strlrep.h"
-
-/* see OpenBSD man pages for strlcat and strlcpy */
 
 size_t strlcpy(char *dst, const char *src, size_t size)
 {
