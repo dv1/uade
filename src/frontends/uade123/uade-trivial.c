@@ -332,6 +332,11 @@ static void trivial_sigchld(int sig)
 
 static void trivial_sigint(int sig)
 {
-  trivial_cleanup();
-  exit(-1);
+  if (debug_mode == 1) {
+    uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0});
+    return;
+  } else {
+    trivial_cleanup();
+    exit(-1);
+  }
 }

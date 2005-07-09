@@ -513,3 +513,11 @@ for file in src/Makefile.in src/frontends/*/Makefile.in ; do
 	-e "s|{DEBUGFLAGS}|$debug_flags|" \
 	"$file" > "$dst"
 done
+
+
+cat > src/ossupport.c <<EOF
+#include "unixsupport.c"
+EOF
+cat > src/include/ossupport.h <<EOF
+#include <unixsupport.h>
+EOF

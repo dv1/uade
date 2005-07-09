@@ -37,6 +37,7 @@
 #include "strlrep.h"
 #include "players.h"
 #include "uadecontrol.h"
+#include "ossupport.h"
 
 
 enum print_help {
@@ -265,6 +266,8 @@ void uade_option(int argc, char **argv)
   }
 
   free(s_argv);
+
+  uade_portable_initializations();
 
   if (uade_debug)
     activate_debugger();
