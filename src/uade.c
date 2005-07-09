@@ -166,6 +166,7 @@ void uade_check_sound_buffers(int bytes)
 
 static FILE *uade_open_amiga_file(const char *filename)
 {
+  assert(0);
   return fopen(filename, "r");
 }
 
