@@ -22,7 +22,9 @@ static char playername[PATH_MAX];
 static char scorename[PATH_MAX];
 static char uadename[PATH_MAX];
 
+static int debug_mode = 0;
 static pid_t uadepid = -1;
+static int uadeterminated = 0;
 
 static int play_loop(void);
 static void setup_sighandlers(void);
@@ -58,7 +60,11 @@ static void fork_exec_uade(void)
     /* give in/out fds as command line parameters to the uade process */
     snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
     snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
-    execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
+    if (debug_mode) {
+      execlp(uadename, uadename, "-d", "-i", instr, "-o", outstr, NULL);
+    } else {
+      execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
+    }
     fprintf(stderr, "execlp failed: %s\n", strerror(errno));
     abort();
   }
@@ -104,6 +110,11 @@ int main(int argc, char *argv[])
   for (i = 1; i < argc;) {
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
       continue;
+    if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
+      debug_mode = 1;
+      i ++;
+      continue;
+    }
     if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc))
       continue;
     if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc))
@@ -315,6 +326,7 @@ static void trivial_sigchld(int sig)
   if (uadepid != -1 && process != uadepid)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
+  uadeterminated = 1;
 }
 
 

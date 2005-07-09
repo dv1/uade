@@ -324,6 +324,10 @@ void uade_receive_control(int block)
   while (no_more_commands == 0) {
     switch (um->msgtype) {
 
+    case UADE_COMMAND_ACTIVATE_DEBUGGER:
+      activate_debugger();
+      break;
+
     case UADE_COMMAND_CHANGE_SUBSONG:
       if (um->size != 4) {
 	fprintf(stderr, "illegal size with change subsong\n");
