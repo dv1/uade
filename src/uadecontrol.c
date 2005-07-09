@@ -128,6 +128,7 @@ int uade_send_string(enum uade_command com, const char *str)
 
 void uade_set_input_source(const char *input_source)
 {
+  fprintf(stderr, "using source: %s\n", input_source);
   if ((uade_input_fd = uade_url_to_fd(input_source, O_RDONLY, 0)) < 0) {
     fprintf(stderr, "can not open input file %s: %s\n", input_source, strerror(errno));
     exit(-1);
@@ -137,6 +138,7 @@ void uade_set_input_source(const char *input_source)
 
 void uade_set_output_destination(const char *output_destination)
 {
+  fprintf(stderr, "using destination: %s\n", output_destination);
   if ((uade_output_fd = uade_url_to_fd(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
     fprintf(stderr, "can not open output file %s: %s\n", output_destination, strerror(errno));
     exit(-1);

@@ -55,15 +55,9 @@ static void fork_exec_uade(void)
     abort();
   }
 
-  /* close fd that uade reads from */
-  if (atomic_close(forwardfiledes[0]) < 0) {
-    fprintf(stderr, "could not close forwardfiledes[0]\n");
-    trivial_cleanup();
-    exit(-1);
-  }
-  /* close fd that uade writes to */
-  if (atomic_close(backwardfiledes[1]) < 0) {
-    fprintf(stderr, "could not close backwardfiledes[1]\n");
+  /* close fd that uade reads from and writes to */
+  if (atomic_close(forwardfiledes[0]) < 0 || atomic_close(backwardfiledes[1]) < 0) {
+    fprintf(stderr, "could not uade fds: %s\n", strerror(errno));
     trivial_cleanup();
     exit(-1);
   }
