@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     goto cleanup;
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
-  kill(uadepid, SIGTERM);
+  trivial_cleanup();
   return 0;
 
  cleanup:
