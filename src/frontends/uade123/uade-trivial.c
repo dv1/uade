@@ -186,8 +186,6 @@ static int play_loop(void)
 
   int left;
 
-  fprintf(stderr, "play loop\n");
-
   ao_initialize();
   default_driver = ao_default_driver_id();
 
@@ -221,7 +219,11 @@ static int play_loop(void)
       fprintf(stderr, "can not receive events from uade\n");
       return 0;
     }
-    if (um->msgtype != UADE_REPLY_DATA) {
+
+    switch (um->msgtype) {
+    case UADE_REPLY_DATA:
+      break;
+    default:
       fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
       return 0;
     }

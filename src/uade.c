@@ -100,7 +100,8 @@ static char *uadecmdlinename = 0;
 static int voltestboolean = 0;
 
 
-static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end) {
+static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
+{
   uae_u32 offset;
   int i, nhunks;
 

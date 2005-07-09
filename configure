@@ -500,10 +500,14 @@ echo "Make that will be used during the build : $MAKE"
 echo "Sound output with                       : $AUDIOTARGET"
 echo
 
+AOFLAGS="`pkg-config --cflags ao`"
+AOLIBS="`pkg-config --libs ao`"
+
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|" -e "s|{ARCHLIBS}|$ARCHLIBS|" \
 	-e "s|{AUDIOFLAGS}|$AUDIOFLAGS|" -e "s|{AUDIOLIBS}|$AUDIOLIBS|" \
+	-e "s|{AOFLAGS}|$AOFLAGS|" -e "s|{AOLIBS}|$AOLIBS|" \
 	-e "s|{CC}|$CC|" \
 	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|" -e "s|{SOUNDHEADER}|$SOUNDHEADER|" \
 	-e "s|{DEBUGFLAGS}|$debug_flags|" \
