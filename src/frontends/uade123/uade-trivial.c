@@ -223,25 +223,37 @@ static int play_loop(void)
 
     switch (um->msgtype) {
     case UADE_REPLY_DATA:
+      sm = (uint16_t *) um->data;
+      for (i = 0; i < um->size; i += 2) {
+	*sm = ntohs(*sm);
+	sm++;
+      }
+
+      if (!ao_play(libao_device, um->data, um->size)) {
+	fprintf(stderr, "libao error detected.\n");
+	return 0;
+      }
+
+      left -= um->size;
       break;
+
+    case UADE_REPLY_FORMATNAME:
+      fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
+      break;
+
+    case UADE_REPLY_MODULENAME:
+      fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
+      break;
+
+    case UADE_REPLY_PLAYERNAME:
+      fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
+      break;
+
     default:
       fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
       return 0;
     }
 
-    sm = (uint16_t *) um->data;
-    for (i = 0; i < um->size; i += 2) {
-      *sm = ntohs(*sm);
-      sm++;
-    }
-
-#if 0
-    if (!ao_play(libao_device, um->data, um->size)) {
-      fprintf(stderr, "libao error detected.\n");
-      return 0;
-    }
-#endif
-    left -= um->size;
   }
 
   return 1;

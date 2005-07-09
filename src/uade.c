@@ -730,9 +730,7 @@ void uade_get_amiga_message(void)
   int mins, maxs, curs;
   int status;
   int src, dst, off, len;
-  char score_playername[256];   /* playername that eagleplayer reports */
-  char score_modulename[256];   /* modulename that eagleplayer reports */
-  char score_formatname[256];   /* formatname that eagleplayer reports */
+  char tmpstr[256];
 
   /* get input message type */
   x = uade_get_long(SCORE_INPUT_MSG);
@@ -750,18 +748,21 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_PLAYERNAME:
-    strlcpy(score_playername, get_real_address(0x204), sizeof(score_playername));
-    fprintf(stderr,"uade: playername: %s\n", score_playername);
+    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    fprintf(stderr,"uade: playername: %s\n", tmpstr);
+    uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr);
     break;
 
   case AMIGAMSG_MODULENAME:
-    strlcpy(score_modulename, get_real_address(0x204), sizeof(score_modulename));
-    fprintf(stderr,"uade: modulename: %s\n", score_modulename);
+    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    fprintf(stderr,"uade: modulename: %s\n", tmpstr);
+    uade_send_string(UADE_REPLY_MODULENAME, tmpstr);
     break;
 
   case AMIGAMSG_FORMATNAME:
-    strlcpy(score_formatname, get_real_address(0x204), sizeof(score_formatname));
-    fprintf(stderr,"uade: formatname: %s\n", score_formatname);
+    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    fprintf(stderr,"uade: formatname: %s\n", tmpstr);
+    uade_send_string(UADE_REPLY_FORMATNAME, tmpstr);
     break;
 
   case AMIGAMSG_GENERALMSG:
