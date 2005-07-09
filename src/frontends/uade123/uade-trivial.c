@@ -8,6 +8,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <ao/ao.h>
+
 #include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
@@ -20,6 +22,7 @@ static char uadename[PATH_MAX];
 
 static pid_t uadepid = -1;
 
+static int play_loop(void);
 static void setup_sighandlers(void);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
@@ -92,7 +95,7 @@ static int get_string_arg(char *dst, size_t maxlen, const char *arg, int *i,
 int main(int argc, char *argv[])
 {
   int i;
-  uint8_t space[UADE_MAX_MESSAG_SIZE];
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
 
   for (i = 1; i < argc;) {
@@ -155,7 +158,8 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  play_loop();
+  if (!play_loop())
+    goto cleanup;
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
@@ -167,9 +171,45 @@ int main(int argc, char *argv[])
 }
 
 
-static void play_loop(void)
+static int play_loop(void)
 {
-  while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
+  int default_driver;
+  ao_sample_format format;
+  ao_device *libao_device;
+
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+
+  ao_initialize();
+  default_driver = ao_default_driver_id();
+
+  format.bits = 16;
+  format.channels = 2;
+  format.rate = 44100;
+  format.byte_format = AO_FMT_NATIVE;
+
+  libao_device = ao_open_live(default_driver, &format, NULL);
+  if (libao_device == NULL) {
+    fprintf(stderr, "error opening device\n");
+    return 0;
+  }
+
+  while (1) {
+    if (uade_receive_message(um, sizeof(space)) <= 0) {
+      fprintf(stderr, "can not receive events from uade\n");
+      return 0;
+    }
+    if (um->msgtype != UADE_REPLY_DATA) {
+      fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
+      return 0;
+    }
+    if (!ao_play(libao_device, um->data, um->size)) {
+      fprintf(stderr, "libao error detected.\n");
+      return 0;
+    }
+  }
+
+  return 1;
 }
 
 static void setup_sighandlers(void)
