@@ -129,6 +129,8 @@ void uade_check_sound_buffers(int bytes)
   uade_read_size -= bytes;
   assert(uade_read_size >= 0);
 
+  if (uade_read_size == 0)
+    uade_receive_control(1);
   /* uade_receive_control(0); */
 }
 

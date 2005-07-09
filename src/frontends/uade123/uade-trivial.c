@@ -180,6 +180,10 @@ static int play_loop(void)
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
 
+  int left;
+
+  fprintf(stderr, "play loop\n");
+
   ao_initialize();
   default_driver = ao_default_driver_id();
 
@@ -194,7 +198,21 @@ static int play_loop(void)
     return 0;
   }
 
+  left = 0;
+
   while (1) {
+
+    if (left == 0) {
+      left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
+      um->msgtype = UADE_COMMAND_READ;
+      um->size = 4;
+      * (uint32_t *) um->data = htonl(left);
+      if (uade_send_message(um) <= 0) {
+	fprintf(stderr, "can not send read command\n");
+	return 0;
+      }
+    }
+
     if (uade_receive_message(um, sizeof(space)) <= 0) {
       fprintf(stderr, "can not receive events from uade\n");
       return 0;
@@ -207,6 +225,7 @@ static int play_loop(void)
       fprintf(stderr, "libao error detected.\n");
       return 0;
     }
+    left -= um->size;
   }
 
   return 1;
