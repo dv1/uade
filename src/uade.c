@@ -128,15 +128,19 @@ void uade_check_sound_buffers(int bytes)
 
   uade_read_size -= bytes;
   assert(uade_read_size >= 0);
+
+  /* uade_receive_control(0); */
 }
 
 
-void uade_receive_control(void)
+void uade_receive_control(int block)
 {
   int no_more_commands;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *uc = (struct uade_msg *) space;
   int ret;
+
+  assert(block != 0);
 
   ret = uade_receive_message(uc, sizeof(space));
   if (ret == 0) {
@@ -151,14 +155,17 @@ void uade_receive_control(void)
   while (no_more_commands == 0) {
     switch (uc->msgtype) {
     case UADE_COMMAND_READ:
+      if (uade_read_size != 0) {
+	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
+	exit(-1);
+      }
       if (uc->size != 4) {
 	fprintf(stderr, "illegal size on read command\n");
 	exit(-1);
       }
-      assert(uade_read_size == 0);
       uade_read_size = ntohl(* (uint32_t *) uc->data);
-      if (uade_read_size > MAX_SOUND_BUF_SIZE) {
-	fprintf(stderr, "too big a read size\n");
+      if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
+	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
 	exit(-1);
       }
       fprintf(stderr, "uade read size: %d\n", uade_read_size);
@@ -525,7 +532,6 @@ void uade_reset(void)
 
   uade_reset_counters();
 
-  uade_read_size = 0;
   flush_sound();
 
   /* note that uade_speed_hack can be negative (meaning that uade never uses

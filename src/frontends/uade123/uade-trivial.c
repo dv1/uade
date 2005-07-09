@@ -92,6 +92,8 @@ static int get_string_arg(char *dst, size_t maxlen, const char *arg, int *i,
 int main(int argc, char *argv[])
 {
   int i;
+  uint8_t space[UADE_MAX_MESSAG_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
 
   for (i = 1; i < argc;) {
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
@@ -140,7 +142,20 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
+  if (uade_receive_message(um, sizeof(space)) <= 0) {
+    fprintf(stderr, "can not receive acknowledgement from uade\n");
+    goto cleanup;
+  }
+  if (um->msgtype == UADE_REPLY_CANT_PLAY) {
+    fprintf(stderr, "uade refuses to play the song\n");
+    goto cleanup;
+  }
+  if (um->msgtype != UADE_REPLY_CAN_PLAY) {
+    fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
+    goto cleanup;
+  }
+
+  play_loop();
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   kill(uadepid, SIGTERM);
@@ -151,6 +166,11 @@ int main(int argc, char *argv[])
   return -1;
 }
 
+
+static void play_loop(void)
+{
+  while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
+}
 
 static void setup_sighandlers(void)
 {

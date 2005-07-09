@@ -1,7 +1,7 @@
 
 CC = {CC}
-CFLAGS = -I../../include {ARCHFLAGS} {DEBUGFLAGS}
-CLIBS = {ARCHLIBS}
+CFLAGS = -I../../include {ARCHFLAGS} {AUDIOFLAGS} {DEBUGFLAGS}
+CLIBS = {ARCHLIBS} {AUDIOLIBS}
 MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o
 
 uade-trivial:	$(MODULES)

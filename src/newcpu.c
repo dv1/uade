@@ -1197,6 +1197,8 @@ static void do_trace (void)
 static int do_specialties (void)
 {
     while (regs.spcflags & SPCFLAG_STOP) {
+        if (uade_reboot)
+	    return 1;
 	do_cycles (4);
 	if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)){
 	    int intr = intlev ();
@@ -1239,7 +1241,7 @@ void m68k_run_1 (void)
   int uade_insts = 0;
 #endif
 
-  for (;;) {
+  while (1) {
 
     opcode = GET_OPCODE;
 
@@ -1262,8 +1264,11 @@ void m68k_run_1 (void)
 
     if (regs.spcflags) {
       if (do_specialties ())
-	return;
+	break;
     }
+
+    if (uade_reboot)
+      break;
 
 #if EXCEPTION_COUNT
     uade_insts++;
@@ -1285,9 +1290,6 @@ void m68k_run_1 (void)
       }
     }
 #endif
-
-    if (uade_reboot)
-      return;
   }
 }
 
@@ -1303,7 +1305,7 @@ void m68k_go (void)
     m68k_reset ();
     customreset ();
 
-    uade_receive_control();
+    uade_receive_control(1);
 
     while (uade_reboot == 0 && quit_program == 0) {
       if (debugging)

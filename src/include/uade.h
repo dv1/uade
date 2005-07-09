@@ -28,7 +28,7 @@ struct uade_song {
 void uade_change_subsong(int subs);
 void uade_get_amiga_message(void);
 void uade_option(int, char**); /* handles command line parameters */
-void uade_receive_control(void);
+void uade_receive_control(int block);
 void uade_reset(void);
 void uade_send_amiga_message(int msgtype);
 void uade_set_automatic_song_end(int song_end_possible);
