@@ -1,0 +1,5 @@
+2005-07-09  Heikki Orsila <heikki.orsila@iki.fi>
+	- started hacking uade. src/frontends/trivial/ can now play
+	  individual single file songs (shd)
+	- debugging is broken because libao can't handle signals well
+	- tons of things missing from the system

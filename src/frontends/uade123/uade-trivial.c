@@ -336,6 +336,7 @@ static void trivial_sigchld(int sig)
   if (uadepid != -1 && process != uadepid)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
+  uadepid = -1;
   uadeterminated = 1;
 }
 
