@@ -1245,8 +1245,6 @@ static void vsync_handler (void)
     if (timehack_alive > 0)
 	timehack_alive--;
     CIA_vsync_handler();
-
-    uade_vsync_handler();
 }
 
 static void hsync_handler (void)

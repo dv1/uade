@@ -611,7 +611,9 @@ static int uade_get_long(int addr)
   return ntohl(*ptr);
 }
 
-static int uade_safe_load(int dst, FILE *file, int maxlen) {
+
+static int uade_safe_load(int dst, FILE *file, int maxlen)
+{
   const int bufsize = 4096;
   char buf[bufsize];
   int nbytes, len, off;
@@ -640,7 +642,8 @@ static int uade_safe_load(int dst, FILE *file, int maxlen) {
   return off;
 }
 
-static void uade_safe_get_string(char *dst, int src, int maxlen) {
+static void uade_safe_get_string(char *dst, int src, int maxlen)
+{
   int i = 0;
   while(1) {
     if (i >= maxlen) {
