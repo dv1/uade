@@ -1,18 +1,20 @@
 /* 
- * UADE
+ * UADE sound output
  * 
- * Support for ALSA sound
- * 
- * Copyright 2004 Heikki Orsila <heikki.orsila@iki.fi>
+ * Copyright 1997 Bernd Schmidt
+ * Copyright 2000-2005 Heikki Orsila <heikki.orsila@iki.fi>
  */
 
 #include <assert.h>
+#include <stdint.h>
 
 #include <ao/ao.h>
 #include <errno.h>
 #include <string.h>
 
 #include "uade.h"
+
+#define MAX_SOUND_BUF_SIZE (65536)
 
 extern uae_u16 sndbuffer[];
 extern uae_u16 *sndbufpt;
@@ -24,9 +26,10 @@ extern void finish_sound_buffer (void);
 
 
 static void check_sound_buffers (void) {
-  assert((char *) sndbufpt - (char *) sndbuffer <= sndbufsize);
-  if ((char *) sndbufpt - (char *) sndbuffer == sndbufsize) {
-    uade_check_sound_buffers();
+  assert(uade_read_size > 0);
+  intptr_t bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
+  if (bytes == 2048 || bytes == uade_read_size) {
+    uade_check_sound_buffers(uade_read_size > 2048 ? 2048 : uade_read_size);
     sndbufpt = sndbuffer;
   }
 }

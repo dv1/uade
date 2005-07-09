@@ -9,22 +9,21 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 
 #include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
 
-#define INPUT_BUF_SIZE (4096)
-
 unsigned int uade_inputbytes = 0;
-static char uade_inputbuffer[INPUT_BUF_SIZE];
+static char uade_inputbuffer[UADE_MAX_MESSAGE_SIZE];
 
 int uade_input_fd = 0; /* stdin */
 int uade_output_fd = 1; /* stdout */
 
 
 static int uade_url_to_fd(const char *url, int flags, mode_t mode);
-static int uade_valid_message(struct uade_control *uc);
+static int uade_valid_message(struct uade_msg *uc);
 
 
 static int get_more(unsigned int bytes)
@@ -53,7 +52,7 @@ static void uade_copy_from_inputbuffer(void *dst, int bytes)
 }
 
 
-int uade_receive_command(struct uade_control *uc, size_t maxbytes)
+int uade_receive_message(struct uade_msg *uc, size_t maxbytes)
 {
   size_t fullsize;
 
@@ -64,6 +63,9 @@ int uade_receive_command(struct uade_control *uc, size_t maxbytes)
       return 0;
   }
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
+
+  uc->msgtype = ntohl(uc->msgtype);
+  uc->size = ntohl(uc->size);
 
   if (!uade_valid_message(uc))
     return -1;
@@ -82,17 +84,17 @@ int uade_receive_command(struct uade_control *uc, size_t maxbytes)
 }
 
 
-int uade_receive_string_command(char *s, enum uade_command com,
+int uade_receive_string(char *s, enum uade_msgtype com,
 				size_t maxlen)
 {
   const size_t COMLEN = 4096;
   uint8_t commandbuf[COMLEN];
-  struct uade_control *uc = (struct uade_control *) commandbuf;
+  struct uade_msg *uc = (struct uade_msg *) commandbuf;
   int ret;
-  ret = uade_receive_command(uc, COMLEN);
+  ret = uade_receive_message(uc, COMLEN);
   if (ret <= 0)
     return ret;
-  if (uc->command != com)
+  if (uc->msgtype != com)
     return -1;
   if (uc->size == 0)
     return -1;
@@ -103,24 +105,28 @@ int uade_receive_string_command(char *s, enum uade_command com,
 }
 
 
-int uade_send_command(struct uade_control *uc)
+int uade_send_message(struct uade_msg *uc)
 {
+  uint32_t size = uc->size;
   if (!uade_valid_message(uc))
     return -1;
-  if (atomic_write(uade_output_fd, uc, sizeof(*uc) + uc->size) < 0)
+  uc->msgtype = htonl(uc->msgtype);
+  uc->size = htonl(uc->size);
+  if (atomic_write(uade_output_fd, uc, sizeof(*uc) + size) < 0)
     return -1;
   return 1;
 }
 
 
-int uade_send_string(enum uade_command com, const char *str)
+int uade_send_string(enum uade_msgtype com, const char *str)
 {
-  struct uade_control uc = {.command = com, .size = strlen(str) + 1};
-  if ((sizeof(uc) + uc.size) > INPUT_BUF_SIZE)
+  uint32_t size = strlen(str) + 1;
+  struct uade_msg uc = {.msgtype = ntohl(com), .size = ntohl(size)};
+  if ((sizeof(uc) + size) > UADE_MAX_MESSAGE_SIZE)
     return -1;
   if (atomic_write(uade_output_fd, &uc, sizeof(uc)) < 0)
     return -1;
-  if (atomic_write(uade_output_fd, str, uc.size) < 0)
+  if (atomic_write(uade_output_fd, str, size) < 0)
     return -1;
   return 1;
 }
@@ -169,13 +175,13 @@ static int uade_url_to_fd(const char *url, int flags, mode_t mode)
 }
 
 
-static int uade_valid_message(struct uade_control *uc)
+static int uade_valid_message(struct uade_msg *uc)
 {
-  if (uc->command <= UADE_COMMAND_FIRST || uc->command >= UADE_COMMAND_LAST) {
-    fprintf(stderr, "unknown command: %d\n", uc->command);
+  if (uc->msgtype <= UADE_MSG_FIRST || uc->msgtype >= UADE_MSG_LAST) {
+    fprintf(stderr, "unknown command: %d\n", uc->msgtype);
     return 0;
   }
-  if ((sizeof(*uc) + uc->size) > INPUT_BUF_SIZE) {
+  if ((sizeof(*uc) + uc->size) > UADE_MAX_MESSAGE_SIZE) {
     fprintf(stderr, "too long a message\n");
     return 0;
   }

@@ -140,11 +140,6 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  if (uade_send_command(& (struct uade_control) {.command = UADE_COMMAND_PLAY, .size = 0}) < 0) {
-    fprintf(stderr, "can not send play command\n");
-    goto cleanup;
-  }
-
   while (nanosleep(& (struct timespec) {.tv_sec = 1}, NULL) >= 0);
 
   fprintf(stderr, "killing child (%d)\n", uadepid);

@@ -18,7 +18,7 @@
 
 #include "uade.h"
 
-uae_u16 sndbuffer[44100];
+uae_u16 sndbuffer[MAX_SOUND_BUF_SIZE / 2];
 uae_u16 *sndbufpt;
 int sndbufsize;
 

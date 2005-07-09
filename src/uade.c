@@ -78,39 +78,33 @@ static const int SCORE_CUR_SUBSONG   = 0x20C;
 
 static const int SCORE_OUTPUT_MSG    = 0x300;
 
-static int uade_highmem = 0x200000;
 
-struct uade_song song;
-
-static int uade_dmawait = 0;
-
-static int uade_execdebugboolean = 0;
-static int voltestboolean = 0;
 static int disable_modulechange = 0;
-
-int uade_reboot;
-
+struct uade_song song;
+static int uade_execdebugboolean = 0;
 int uade_debug = 0;
-
+static int uade_dmawait = 0;
 static int uade_do_panning = 0;
+static int uade_highmem = 0x200000;
 static float uade_pan_value = 1.0f;
-
+int uade_read_size = 0;
+int uade_reboot;
+static int uade_speed_hack = 0;
 int uade_swap_output_bytes = 0;
-
+int uade_time_critical = 0;
+static int uade_vsync_counter;
+static int uade_zero_sample_count;
 /* contains uade's command line name */
 static char *uadecmdlinename = 0;
-
-static int uade_vsync_counter;
-
-static int uade_zero_sample_count;
-
-static int uade_speed_hack = 0;
-int uade_time_critical = 0;
+static int voltestboolean = 0;
 
 
 /* last part of the audio system pipeline */
-void uade_check_sound_buffers(void)
+void uade_check_sound_buffers(int bytes)
 {
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *uc = (struct uade_msg *) space;
+
   /* effects */
   if (uade_do_panning) {
     if (currprefs.stereo) {
@@ -121,11 +115,64 @@ void uade_check_sound_buffers(void)
   }
 
   /* silence testing */
-  uade_test_sound_block((void *) sndbuffer, sndbufsize);
+  uade_test_sound_block((void *) sndbuffer, bytes);
 
   /* endianess tricks */
   if (uade_swap_output_bytes)
-    uade_swap_buffer_bytes(sndbuffer, sndbufsize);
+    uade_swap_buffer_bytes(sndbuffer, bytes);
+
+  uc->msgtype = UADE_REPLY_DATA;
+  uc->size = bytes;
+  memcpy(uc->data, sndbuffer, bytes);
+  uade_send_message(uc);
+
+  uade_read_size -= bytes;
+  assert(uade_read_size >= 0);
+}
+
+
+void uade_receive_control(void)
+{
+  int no_more_commands;
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *uc = (struct uade_msg *) space;
+  int ret;
+
+  ret = uade_receive_message(uc, sizeof(space));
+  if (ret == 0) {
+    fprintf(stderr, "no more input. exiting succesfully.\n");
+    exit(0);
+  } else if (ret < 0) {
+    fprintf(stderr, "error on input. exiting with error\n");
+    exit(-1);
+  }
+
+  no_more_commands = 0;
+  while (no_more_commands == 0) {
+    switch (uc->msgtype) {
+    case UADE_COMMAND_READ:
+      if (uc->size != 4) {
+	fprintf(stderr, "illegal size on read command\n");
+	exit(-1);
+      }
+      assert(uade_read_size == 0);
+      uade_read_size = ntohl(* (uint32_t *) uc->data);
+      if (uade_read_size > MAX_SOUND_BUF_SIZE) {
+	fprintf(stderr, "too big a read size\n");
+	exit(-1);
+      }
+      fprintf(stderr, "uade read size: %d\n", uade_read_size);
+      no_more_commands = 1;
+      break;
+    case UADE_COMMAND_REBOOT:
+      uade_reboot = 1;
+      no_more_commands = 1;
+      break;
+    default:
+      fprintf(stderr, "error: received command %d\n", uc->msgtype);
+      exit(-1);
+    }
+  }
 }
 
 
@@ -207,7 +254,7 @@ void uade_option(int argc, char **argv)
   }
   s_argv[s_argc] = NULL;
 
-  ret = uade_receive_string_command(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
+  ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
   if (ret == 0) {
     fprintf(stderr, "no config file passed as a message\n");
     exit(-1);
@@ -299,7 +346,7 @@ void uade_reset(void)
 
   const int maxcommand = 4096;
   uint8_t command[maxcommand];
-  struct uade_control *uc = (struct uade_control *) command;
+  struct uade_msg *uc = (struct uade_msg *) command;
 
   int ret;
 
@@ -328,7 +375,7 @@ void uade_reset(void)
   song.song_end_possible = 1;
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
-  ret = uade_receive_string_command(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
+  ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
   if (ret == 0) {
     fprintf(stderr,"uade: no more songs to play\n");
     exit(0);
@@ -337,7 +384,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_string_command(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  ret = uade_receive_string(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
   if (ret == 0) {
     fprintf(stderr,"expected player name. got nothing.\n");
     exit(-1);
@@ -346,7 +393,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_command(uc, maxcommand);
+  ret = uade_receive_message(uc, maxcommand);
   if (ret == 0) {
     fprintf(stderr,"expected module name. got nothing.\n");
     exit(-1);
@@ -354,7 +401,7 @@ void uade_reset(void)
     fprintf(stderr, "illegal input (expected module name)\n");
     exit(-1);
   }
-  if (uc->command != UADE_COMMAND_MODULE)
+  if (uc->msgtype != UADE_COMMAND_MODULE)
     assert(0);
   if (uc->size == 0) {
     song.modulename[0] = 0;
@@ -478,6 +525,7 @@ void uade_reset(void)
 
   uade_reset_counters();
 
+  uade_read_size = 0;
   flush_sound();
 
   /* note that uade_speed_hack can be negative (meaning that uade never uses
@@ -488,10 +536,16 @@ void uade_reset(void)
   }
 
   uade_reboot = 0;
+
+  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_REPLY_CAN_PLAY, .size = 0}) < 0) {
+    fprintf(stderr, "can not send 'CAN_PLAY' reply\n");
+    exit(-1);
+  }
   return;
 
  skiptonextsong:
   fprintf(stderr, "uade: skipping to next song\n");
+  assert(0);
   goto takenextsong;
 }
 
