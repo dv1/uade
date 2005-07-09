@@ -732,6 +732,10 @@ void uade_get_amiga_message(void)
   int src, dst, off, len;
   char tmpstr[256];
 
+  uint32_t *u32ptr;
+  uint8_t space[256];
+  struct uade_msg *um = (struct uade_msg *) space;
+
   /* get input message type */
   x = uade_get_long(SCORE_INPUT_MSG);
 
@@ -745,6 +749,13 @@ void uade_get_amiga_message(void)
     maxs = uade_get_long(SCORE_MAX_SUBSONG);
     curs = uade_get_long(SCORE_CUR_SUBSONG);
     fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
+    um->msgtype = UADE_REPLY_SUBSONG_INFO;
+    um->size = 12;
+    u32ptr = (uint32_t *) um->data;
+    u32ptr[0] = mins;
+    u32ptr[1] = maxs;
+    u32ptr[2] = curs;
+    uade_send_message(um);
     break;
 
   case AMIGAMSG_PLAYERNAME:
@@ -788,7 +799,7 @@ void uade_get_amiga_message(void)
       activate_debugger();
       break;
     }
-     uade_song_end("score is dead", 1);
+     uade_song_end("score died", 1);
     break;
 
   case AMIGAMSG_LOADFILE:

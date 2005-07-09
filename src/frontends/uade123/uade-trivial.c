@@ -181,6 +181,7 @@ static int play_loop(void)
   ao_device *libao_device;
   uint16_t *sm;
   int i;
+  uint32_t *u32ptr;
 
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
@@ -238,15 +239,27 @@ static int play_loop(void)
       break;
 
     case UADE_REPLY_FORMATNAME:
+      /* broken. check bounds */
       fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_MODULENAME:
+      /* broken. check bounds */
       fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_PLAYERNAME:
+      /* broken. check bounds */
       fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
+      break;
+
+    case UADE_REPLY_SUBSONG_INFO:
+      if (um->size != 12) {
+	fprintf(stderr, "subsong info: too short a message\n");
+	exit(-1);
+      }
+      u32ptr = (uint32_t *) um->data;
+      fprintf(stderr, "got subsong info: min: %d max: %d cur: %d\n", u32ptr[0], u32ptr[1], u32ptr[2]);
       break;
 
     default:
