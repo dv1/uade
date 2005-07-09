@@ -91,7 +91,6 @@ static float uade_pan_value = 1.0f;
 int uade_read_size = 0;
 int uade_reboot;
 static int uade_speed_hack = 0;
-int uade_swap_output_bytes = 0;
 int uade_time_critical = 0;
 static int uade_vsync_counter;
 static int uade_zero_sample_count;

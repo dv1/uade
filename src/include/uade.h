@@ -45,7 +45,6 @@ extern int uade_debug;
 extern int uade_local_sound;
 extern int uade_read_size;
 extern int uade_reboot;
-extern int uade_swap_output_bytes;
 extern int uade_time_critical;
 
 #endif
