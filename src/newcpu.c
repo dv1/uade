@@ -1196,25 +1196,6 @@ static void do_trace (void)
 
 static int do_specialties (void)
 {
-  // THIS WAS ALREADY COMMENTED (T:SHd)
-    /*n_spcinsns++;*/
-
-  /*
-    while (regs.spcflags & SPCFLAG_BLTNASTY) {
-    do_cycles (4);
-    if (regs.spcflags & SPCFLAG_DISK)
-    do_disk ();
-    }
-  */
-
-    //    run_compiled_code();
-
-    /*
-      if (regs.spcflags & SPCFLAG_DOTRACE) {
-      Exception (9,last_trace_ad);
-      }
-    */
-
     while (regs.spcflags & SPCFLAG_STOP) {
 	do_cycles (4);
 	if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)){
@@ -1227,12 +1208,6 @@ static int do_specialties (void)
 	    }
 	}
     }
-    /* if (regs.spcflags & SPCFLAG_TRACE)
-	 do_trace ();
-
-       if (regs.spcflags & SPCFLAG_DISK)
-	 do_disk ();
-    */
 
     if (regs.spcflags & SPCFLAG_DOINT) {
 	int intr = intlev ();
