@@ -1,5 +1,8 @@
 2005-07-09  Heikki Orsila <heikki.orsila@iki.fi>
-	- started hacking uade. src/frontends/trivial/ can now play
-	  individual single file songs (shd)
+	- started hacking uade. the goal is to release uade 2.00 someday
+	  http://board.kohina.com/viewtopic.php?p=3499#3499
+	- these changes start a series. version 1.50 will be the first public
+	  release in this series.
+	- src/frontends/trivial/ can now play single file songs
 	- debugging is broken because libao can't handle signals well
 	- tons of things missing from the system
