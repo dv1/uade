@@ -1268,17 +1268,17 @@ void m68k_run_1 (void)
 #if EXCEPTION_COUNT
     uade_insts++;
     uade_revs++;
-    if(uade_revs >= 1000) {
+    if (uade_revs >= 1000) {
       int i;
       uade_revs -= 1000;
       i = time(0);
-      if((i - uade_otime) > 0) {
+      if ((i - uade_otime) > 0) {
 	uade_otime = i;
 	/* fprintf(stderr, "insts: %d\n", uade_insts); */
 	uade_insts = 0;
 	fprintf(stderr, "exceptions: ");
-	for(i=1; i<64; i++) {
-	  if(exception_freq[i])
+	for (i=1; i<64; i++) {
+	  if (exception_freq[i])
 	    fprintf(stderr, "%.3x: %.8d ", i*4, exception_freq[i]);
 	}
 	fprintf(stderr, "\n");
@@ -1286,7 +1286,7 @@ void m68k_run_1 (void)
     }
 #endif
 
-    if(uade_reboot)
+    if (uade_reboot)
       return;
   }
 }
