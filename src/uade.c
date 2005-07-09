@@ -81,6 +81,7 @@ static const int SCORE_OUTPUT_MSG    = 0x300;
 
 static int disable_modulechange = 0;
 struct uade_song song;
+static int uade_big_endian;
 static int uade_execdebugboolean = 0;
 int uade_debug = 0;
 static int uade_dmawait = 0;
@@ -97,6 +98,42 @@ static int uade_zero_sample_count;
 /* contains uade's command line name */
 static char *uadecmdlinename = 0;
 static int voltestboolean = 0;
+
+
+static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end) {
+  uae_u32 offset;
+  int i, nhunks;
+
+  if (ntohl(*src) != 0x000003f3)
+    return 0;
+  src++;
+
+  if (src >= end)
+    return 0;
+  if (ntohl(*src))
+    return 0;
+  src++;
+
+  if (src >= end)
+    return 0;
+  nhunks = ntohl(*src); /* take number of hunks */
+  if (nhunks <= 0)
+    return 0;
+  src += 3;          /* skip number of hunks, and first & last hunk indexes */
+
+  offset = 0;
+
+  for (i = 0; i < nhunks; i++) {
+
+    if (src >= end)
+      return 0;
+    offset += 4 * (ntohl(*src) & 0x3FFFFFFF);
+    src++;
+  }
+  if (((int) offset) <= 0 || ((int) offset) >= uade_highmem)
+    return 0;
+  return ((int) offset);
+}
 
 
 /* last part of the audio system pipeline */
@@ -117,8 +154,8 @@ void uade_check_sound_buffers(int bytes)
   /* silence testing */
   uade_test_sound_block((void *) sndbuffer, bytes);
 
-  /* endianess tricks */
-  if (uade_swap_output_bytes)
+  /* transmit in big endian format, so swap if little endian */
+  if (uade_big_endian == 0)
     uade_swap_buffer_bytes(sndbuffer, bytes);
 
   uc->msgtype = UADE_REPLY_DATA;
@@ -170,7 +207,6 @@ void uade_receive_control(int block)
 	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
 	exit(-1);
       }
-      fprintf(stderr, "uade read size: %d\n", uade_read_size);
       no_more_commands = 1;
       break;
     case UADE_COMMAND_REBOOT:
@@ -199,6 +235,9 @@ void uade_option(int argc, char **argv)
   int cfg_loaded = 0;
   char optionsfile[UADE_PATH_MAX];
   int ret;
+
+  /* network byte order is the big endian order */
+  uade_big_endian = htonl(0x1234) == 0x1234;
 
   uadecmdlinename = strdup(argv[0]);
 
@@ -847,62 +886,25 @@ void uade_send_amiga_message(int msgtype) {
 }
 
 
-static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end) {
-  uae_u32 offset;
-  int i, nhunks;
-
-  if (ntohl(*src) != 0x000003f3)
-    return 0;
-  src++;
-
-  if (src >= end)
-    return 0;
-  if (ntohl(*src))
-    return 0;
-  src++;
-
-  if (src >= end)
-    return 0;
-  nhunks = ntohl(*src); /* take number of hunks */
-  if (nhunks <= 0)
-    return 0;
-  src += 3;          /* skip number of hunks, and first & last hunk indexes */
-
-  offset = 0;
-
-  for (i = 0; i < nhunks; i++) {
-
-    if (src >= end)
-      return 0;
-    offset += 4 * (ntohl(*src) & 0x3FFFFFFF);
-    src++;
-  }
-  if (((int) offset) <= 0 || ((int) offset) >= uade_highmem)
-    return 0;
-  return ((int) offset);
-}
-
-
-void uade_swap_buffer_bytes(void *data, int bytes) {
-  uae_u8 *buf = (uae_u8 *) data;
-  uae_u8 sample;
-  int i;
-  /* even number bytes */
-  if ((bytes % 2) == 1)
-    bytes--;
-  for(i = 0; i < bytes; i += 2) {
-    sample = buf[i + 0];
-    buf[i + 0] = buf[i + 1];
-    buf[i + 1] = sample;
-  }
-}
-
-
 void uade_reset_counters(void) {
 
   uade_zero_sample_count = 0;    /* only useful in non-slavemode */
 
   uade_vsync_counter = 0;
+}
+
+
+void uade_swap_buffer_bytes(void *data, int bytes)
+{
+  uae_u8 *buf = (uae_u8 *) data;
+  uae_u8 sample;
+  int i;
+  assert((bytes % 2) == 0);
+  for (i = 0; i < bytes; i += 2) {
+    sample = buf[i + 0];
+    buf[i + 0] = buf[i + 1];
+    buf[i + 1] = sample;
+  }
 }
 
 

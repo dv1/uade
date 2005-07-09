@@ -8,6 +8,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <netinet/in.h>
+
 #include <ao/ao.h>
 
 #include <uadecontrol.h>
@@ -176,6 +178,8 @@ static int play_loop(void)
   int default_driver;
   ao_sample_format format;
   ao_device *libao_device;
+  uint16_t *sm;
+  int i;
 
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
@@ -221,6 +225,13 @@ static int play_loop(void)
       fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
       return 0;
     }
+
+    sm = (uint16_t *) um->data;
+    for (i = 0; i < um->size; i += 2) {
+      *sm = ntohs(*sm);
+      sm++;
+    }
+
     if (!ao_play(libao_device, um->data, um->size)) {
       fprintf(stderr, "libao error detected.\n");
       return 0;
