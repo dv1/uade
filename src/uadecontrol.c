@@ -26,6 +26,30 @@ static int uade_url_to_fd(const char *url, int flags, mode_t mode);
 static int uade_valid_message(struct uade_msg *uc);
 
 
+void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
+{
+  uint8_t *s = (uint8_t *) um->data;
+  size_t safelen;
+  if (um->size == 0) {
+    s[0] = 0;
+    fprintf(stderr, "zero string detected\n");
+  }
+  safelen = 0;
+  while (s[safelen] != 0 && safelen < maxlen)
+    safelen++;
+  if (safelen == maxlen) {
+    safelen--;
+    fprintf(stderr, "too long a string\n");
+    s[safelen] = 0;
+  }
+  if (um->size != (safelen + 1)) {
+    fprintf(stderr, "string size does not match\n");
+    um->size = safelen + 1;
+    s[safelen] = 0;
+  }
+}
+
+
 static int get_more(unsigned int bytes)
 {
   if (uade_inputbytes < bytes) {

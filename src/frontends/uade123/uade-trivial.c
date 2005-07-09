@@ -240,16 +240,19 @@ static int play_loop(void)
 
     case UADE_REPLY_FORMATNAME:
       /* broken. check bounds */
+      uade_check_fix_string(um, 128);
       fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_MODULENAME:
       /* broken. check bounds */
+      uade_check_fix_string(um, 128);
       fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_PLAYERNAME:
       /* broken. check bounds */
+      uade_check_fix_string(um, 128);
       fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
       break;
 
