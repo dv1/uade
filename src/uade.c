@@ -39,13 +39,16 @@
 #include "uadecontrol.h"
 
 
-#define OPTION_HELP (1)
-#define OPTION_ILLEGAL_PARAMETERS (2)
-#define OPTION_NO_SONGS (3)
+enum print_help {
+  OPTION_HELP = 1,
+  OPTION_ILLEGAL_PARAMETERS = 2,
+  OPTION_NO_SONGS = 3
+};
+
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_long(int addr);
-static void uade_print_help(int problemcode, char *progname);
+static void uade_print_help(enum print_help problemcode, char *progname);
 static void uade_put_long(int addr,int val);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
 
@@ -270,7 +273,7 @@ void uade_option(int argc, char **argv)
 }
 
 
-static void uade_print_help(int problemcode, char *progname)
+static void uade_print_help(enum print_help problemcode, char *progname)
 {
   switch (problemcode) {
   case OPTION_HELP:
