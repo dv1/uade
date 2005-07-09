@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#include <uadeipc.h>
+#include <uademsg.h>
 
 extern int uade_input_fd; /* stdin */
 extern int uade_output_fd; /* stdout */

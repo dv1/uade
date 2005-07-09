@@ -45,9 +45,7 @@
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_long(int addr);
-static void uade_interaction(int wait_for);
 static void uade_put_long(int addr,int val);
-static void uade_reset_counters(void);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
 
 
@@ -85,16 +83,12 @@ static int uade_big_endian;
 static int uade_execdebugboolean = 0;
 int uade_debug = 0;
 static int uade_dmawait = 0;
-static int uade_do_panning = 0;
 static int uade_highmem = 0x200000;
-static float uade_pan_value = 1.0f;
 int uade_read_size = 0;
 int uade_reboot;
 static int uade_speed_hack = 0;
 int uade_time_critical = 0;
-static int uade_vsync_counter;
-static int uade_zero_sample_count;
-/* contains uade's command line name */
+/* contains uades command line name */
 static char *uadecmdlinename = 0;
 static int voltestboolean = 0;
 
@@ -136,23 +130,21 @@ static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
 }
 
 
+void uade_change_subsong(int subsong)
+{
+  song.cur_subsong = subsong;
+  fprintf(stderr, "uade: current subsong %d\n", subsong);
+  uade_put_long(SCORE_SUBSONG, subsong);
+  uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
+  flush_sound();
+}
+
+
 /* last part of the audio system pipeline */
 void uade_check_sound_buffers(int bytes)
 {
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *uc = (struct uade_msg *) space;
-
-  /* effects */
-  if (uade_do_panning) {
-    if (currprefs.stereo) {
-      int to_frames_divisor = sound_bytes_per_sample * 2;
-      assert(0);
-      /* uade_effect_pan((short *) sndbuffer, sndbufsize / to_frames_divisor, bytes_per_sample, uade_pan_value); */
-    }
-  }
-
-  /* silence testing */
-  uade_test_sound_block((void *) sndbuffer, bytes);
 
   /* transmit in big endian format, so swap if little endian */
   if (uade_big_endian == 0)
@@ -169,55 +161,6 @@ void uade_check_sound_buffers(int bytes)
   if (uade_read_size == 0)
     uade_receive_control(1);
   /* uade_receive_control(0); */
-}
-
-
-void uade_receive_control(int block)
-{
-  int no_more_commands;
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *uc = (struct uade_msg *) space;
-  int ret;
-
-  assert(block != 0);
-
-  ret = uade_receive_message(uc, sizeof(space));
-  if (ret == 0) {
-    fprintf(stderr, "no more input. exiting succesfully.\n");
-    exit(0);
-  } else if (ret < 0) {
-    fprintf(stderr, "error on input. exiting with error\n");
-    exit(-1);
-  }
-
-  no_more_commands = 0;
-  while (no_more_commands == 0) {
-    switch (uc->msgtype) {
-    case UADE_COMMAND_READ:
-      if (uade_read_size != 0) {
-	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
-	exit(-1);
-      }
-      if (uc->size != 4) {
-	fprintf(stderr, "illegal size on read command\n");
-	exit(-1);
-      }
-      uade_read_size = ntohl(* (uint32_t *) uc->data);
-      if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
-	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
-	exit(-1);
-      }
-      no_more_commands = 1;
-      break;
-    case UADE_COMMAND_REBOOT:
-      uade_reboot = 1;
-      no_more_commands = 1;
-      break;
-    default:
-      fprintf(stderr, "error: received command %d\n", uc->msgtype);
-      exit(-1);
-    }
-  }
 }
 
 
@@ -358,6 +301,55 @@ void uade_print_help(int problemcode)
   fprintf(stderr, " -i file\t\tSet input source\n");
   fprintf(stderr, " -o file\t\tSet output destination\n");
   fprintf(stderr, "\n");
+}
+
+
+void uade_receive_control(int block)
+{
+  int no_more_commands;
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *uc = (struct uade_msg *) space;
+  int ret;
+
+  assert(block != 0);
+
+  ret = uade_receive_message(uc, sizeof(space));
+  if (ret == 0) {
+    fprintf(stderr, "no more input. exiting succesfully.\n");
+    exit(0);
+  } else if (ret < 0) {
+    fprintf(stderr, "error on input. exiting with error\n");
+    exit(-1);
+  }
+
+  no_more_commands = 0;
+  while (no_more_commands == 0) {
+    switch (uc->msgtype) {
+    case UADE_COMMAND_READ:
+      if (uade_read_size != 0) {
+	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
+	exit(-1);
+      }
+      if (uc->size != 4) {
+	fprintf(stderr, "illegal size on read command\n");
+	exit(-1);
+      }
+      uade_read_size = ntohl(* (uint32_t *) uc->data);
+      if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
+	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
+	exit(-1);
+      }
+      no_more_commands = 1;
+      break;
+    case UADE_COMMAND_REBOOT:
+      uade_reboot = 1;
+      no_more_commands = 1;
+      break;
+    default:
+      fprintf(stderr, "error: received command %d\n", uc->msgtype);
+      exit(-1);
+    }
+  }
 }
 
 
@@ -571,8 +563,6 @@ void uade_reset(void)
 
   song.modulename[0] = 0;
 
-  uade_reset_counters();
-
   flush_sound();
 
   /* note that uade_speed_hack can be negative (meaning that uade never uses
@@ -596,32 +586,29 @@ void uade_reset(void)
   goto takenextsong;
 }
 
-static void uade_put_long(int addr, int val) {
-  uae_u8 *p;
+
+static void uade_put_long(int addr, int val)
+{
+  uae_u32 *p;
   if (!valid_address(addr, 4)) {
-    fprintf(stderr, "uade: invalid uade_put_long (%d)\n", addr);
+    fprintf(stderr, "uade: invalid uade_put_long (0x%x)\n", addr);
     return;
   }
-  p = get_real_address(addr);
-  p[0] = (uae_u8) (val >> 24 & 0xff);
-  p[1] = (uae_u8) (val >> 16 & 0xff);
-  p[2] = (uae_u8) (val >> 8 & 0xff);
-  p[3] = (uae_u8) (val & 0xff);
+  p = (uae_u32 *) get_real_address(addr);
+  *p = htonl(val);
 }
 
-static int uade_get_long(int addr) {
-  uae_u8 *ptr;
+
+static int uade_get_long(int addr)
+{
+  uae_u32 *ptr;
   int x;
   if (!valid_address(addr, 4)) {
-    fprintf(stderr, "uade: invalid uade_get_long (%d)\n", addr);
+    fprintf(stderr, "uade: invalid uade_get_long (0x%x)\n", addr);
     return 0;
   }
-  ptr = get_real_address(addr);
-  x = (ptr[0]) << 24;
-  x += (ptr[1]) << 16;
-  x += (ptr[2]) << 8;
-  x += (int) ptr[3];
-  return x;
+  ptr = (uae_u32 *) get_real_address(addr);
+  return ntohl(*ptr);
 }
 
 static int uade_safe_load(int dst, FILE *file, int maxlen) {
@@ -682,7 +669,6 @@ static void uade_safe_get_string(char *dst, int src, int maxlen) {
 void uade_song_end(char *reason, int kill_it)
 {
   fprintf(stderr, "uade: song end (%s)\n", reason);
-  uade_reset_counters();
   assert(0);
   /* slave.song_end(&song, reason, kill_it); */
 }
@@ -864,33 +850,21 @@ void uade_get_amiga_message(void)
 }
 
 
-void uade_change_subsong(int subsong) {
-  song.cur_subsong = subsong;
-  fprintf(stderr, "uade: current subsong %d\n", subsong);
-  uade_put_long(SCORE_SUBSONG, subsong);
-  uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
-  flush_sound();
-
-}
-
-void uade_set_ntsc(int usentsc) {
+void uade_set_ntsc(int usentsc)
+{
   uade_put_long(SCORE_NTSC, usentsc);
 }
 
-void uade_set_automatic_song_end(int song_end_possible) {
+
+void uade_set_automatic_song_end(int song_end_possible)
+{
   uade_put_long(SCORE_HAVE_SONGEND, song_end_possible);
 }
 
-void uade_send_amiga_message(int msgtype) {
+
+void uade_send_amiga_message(int msgtype)
+{
   uade_put_long(SCORE_OUTPUT_MSG, msgtype);
-}
-
-
-void uade_reset_counters(void) {
-
-  uade_zero_sample_count = 0;    /* only useful in non-slavemode */
-
-  uade_vsync_counter = 0;
 }
 
 
@@ -904,87 +878,5 @@ void uade_swap_buffer_bytes(void *data, int bytes)
     sample = buf[i + 0];
     buf[i + 0] = buf[i + 1];
     buf[i + 1] = sample;
-  }
-}
-
-
-void uade_test_sound_block(void *buf, int size) {
-  int i, s, exceptioncounter, bytes;
-
-  if (song.silence_timeout <= 0)
-    return;
-
-  if (currprefs.sound_bits == 16) {
-
-    uae_s16 *sm = (uae_s16 *) buf;
-    exceptioncounter = 0;
-
-    for (i=0; i < (size/2); i++) {
-      s = sm[i] >= 0 ? sm[i] : -sm[i];
-      if (s >= (32767*1/100)) {
-	exceptioncounter++;
-	if (exceptioncounter > (size/2/100)) {
-	  uade_zero_sample_count = 0;
-	  break;
-	}
-      }
-    }
-    if (i == (size/2)) {
-      uade_zero_sample_count += size;
-    }
-
-  } else {
-
-    uae_s8 *sm = (uae_s8 *) buf;
-    exceptioncounter = 0;
-
-    for (i=0; i < size; i++) {
-      s = sm[i] >= 0 ? sm[i] : -sm[i];
-      if (s >= (127*2/100)) {
-	exceptioncounter++;
-	if (exceptioncounter > (size/100)) {
-	  uade_zero_sample_count = 0;
-	  break;
-	}
-      }
-    }
-    if (i == size) {
-      uade_zero_sample_count += size;
-    }
-  }
-
-  bytes = song.silence_timeout * currprefs.sound_bits/8 * currprefs.sound_freq;
-  if (currprefs.stereo) {
-    bytes *= 2;
-  }
-  if (uade_zero_sample_count >= bytes) {
-    char reason[256];
-    sprintf(reason, "silence detected (%d seconds)", song.silence_timeout);
-    uade_song_end(reason, 0);
-  }
-}
-
-void uade_vsync_handler(void)
-{
-  uade_vsync_counter++;
-
-  if (song.timeout >= 0) {
-    if ((uade_vsync_counter/50) >= song.timeout) {
-      char reason[256];
-      sprintf(reason, "timeout %d seconds", song.timeout);
-      /* don't skip to next subsong even if available (kill == 1) */
-      uade_song_end(reason, 1);
-      return;
-    }
-  }
-
-  if (song.subsong_timeout >= 0) {
-    if ((uade_vsync_counter/50) >= song.subsong_timeout) {
-      char reason[256];
-      sprintf(reason, "per subsong timeout %d seconds", song.subsong_timeout);
-      /* skip to next subsong if available (kill == 0) */
-      uade_song_end(reason, 0);
-      return;
-    }
   }
 }

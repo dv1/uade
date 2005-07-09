@@ -26,6 +26,7 @@ static pid_t uadepid = -1;
 
 static int play_loop(void);
 static void setup_sighandlers(void);
+static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
@@ -255,6 +256,15 @@ static void setup_sighandlers(void)
     }
     break;
   }
+  while (1) {
+    if ((sigaction(SIGCHLD, & (struct sigaction) {.sa_handler = trivial_sigchld}, NULL)) < 0) {
+      if (errno == EINTR)
+	continue;
+      fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));
+      exit(-1);
+    }
+    break;
+  }
 }
 
 
@@ -264,6 +274,17 @@ static void trivial_cleanup(void)
     kill(uadepid, SIGTERM);
     uadepid = -1;
   }
+}
+
+
+static void trivial_sigchld(int sig)
+{
+  pid_t process;
+  fprintf(stderr, "child exited\n");
+  process = wait(NULL);
+  if (uadepid != -1 && process != uadepid)
+    fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
+	    uadepid, process);
 }
 
 
