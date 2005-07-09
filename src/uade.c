@@ -181,7 +181,7 @@ void uade_option(int argc, char **argv)
   int ret;
 
   /* network byte order is the big endian order */
-  uade_big_endian = htonl(0x1234) == 0x1234;
+  uade_big_endian = (htonl(0x1234) == 0x1234);
 
   uadecmdlinename = strdup(argv[0]);
 
