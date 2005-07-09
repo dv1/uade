@@ -42,23 +42,15 @@ static void fork_exec_uade(void)
     exit(-1);
   }
   if (uadepid == 0) {
-    if (atomic_close(forwardfiledes[1]) < 0) {
-      fprintf(stderr, "can not close forwardfiledes[1]: %s\n", strerror(errno));
-      abort();
+    int fd;
+    char instr[32], outstr[32];
+    for (fd = 3; fd < 64; fd++) {
+      if (fd != forwardfiledes[0] && fd != backwardfiledes[1])
+	atomic_close(fd);
     }
-    if (atomic_close(backwardfiledes[0]) < 0) {
-      fprintf(stderr, "can not close backwardfiledes[0]: %s\n", strerror(errno));
-      abort();
-    }
-    if (atomic_dup2(forwardfiledes[0], 0) < 0) {
-      fprintf(stderr, "can not dup stdin: %s\n", strerror(errno));
-      abort();
-    }
-    if (atomic_dup2(backwardfiledes[1], 1) < 0) {
-      fprintf(stderr, "can not dup stdout: %s\n", strerror(errno));
-      abort();
-    }
-    execlp(uadename, uadename, NULL);
+    snprintf(instr, sizeof(instr), "fd://%d", forwardfiledes[0]);
+    snprintf(outstr, sizeof(outstr), "fd://%d", backwardfiledes[1]);
+    execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
     fprintf(stderr, "execlp failed: %s\n", strerror(errno));
     abort();
   }
@@ -106,7 +98,6 @@ int main(int argc, char *argv[])
   int i;
 
   for (i = 1; i < argc;) {
-    fprintf(stderr, "processing %s\n", argv[i]);
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
       continue;
     if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc))
