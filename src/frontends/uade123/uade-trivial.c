@@ -235,10 +235,12 @@ static int play_loop(void)
       sm++;
     }
 
+#if 0
     if (!ao_play(libao_device, um->data, um->size)) {
       fprintf(stderr, "libao error detected.\n");
       return 0;
     }
+#endif
     left -= um->size;
   }
 

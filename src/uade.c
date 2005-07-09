@@ -306,6 +306,7 @@ void uade_receive_control(int block)
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int ret;
+  uint32_t x;
 
   assert(block != 0);
 
@@ -321,6 +322,14 @@ void uade_receive_control(int block)
   no_more_commands = 0;
   while (no_more_commands == 0) {
     switch (um->msgtype) {
+
+    case UADE_COMMAND_CHANGE_SUBSONG:
+      if (um->size != 4) {
+	fprintf(stderr, "illegal size with change subsong\n");
+	exit(-1);
+      }
+      uade_change_subsong(* (uint32_t *) um->data);
+      break;
 
     case UADE_COMMAND_IGNORE_CHECK:
       /* override bit for sound format checking */
@@ -350,7 +359,7 @@ void uade_receive_control(int block)
       break;
 
     case UADE_COMMAND_SET_NTSC:
-      /* set ntscbit correctly */
+      fprintf(stderr, "changing to NTSC mode\n");
       uade_set_ntsc(1);
       break;
 
@@ -671,7 +680,7 @@ static void uade_safe_get_string(char *dst, int src, int maxlen)
       fprintf(stderr, "uade: safe_get_string: invalid memory range\n");
       break;
     }
-    dst[i] = *((char *) get_real_address(src + i));
+    dst[i] = * (char *) get_real_address(src + i);
     i++;
   }
   if (maxlen > 0) {
@@ -679,7 +688,7 @@ static void uade_safe_get_string(char *dst, int src, int maxlen)
       dst[i] = 0;
     } else { 
       fprintf(stderr, "uade: safe_get_string: null termination warning!\n");
-      dst[maxlen-1] = 0;
+      dst[maxlen - 1] = 0;
     }
   }
 }
@@ -688,9 +697,14 @@ static void uade_safe_get_string(char *dst, int src, int maxlen)
    uade will always switch to next song (if any) */
 void uade_song_end(char *reason, int kill_it)
 {
+  uint8_t space[sizeof(struct uade_msg) + 4 + 256];
+  struct uade_msg *um = (struct uade_msg *) space;
   fprintf(stderr, "uade: song end (%s)\n", reason);
-  assert(0);
-  /* slave.song_end(&song, reason, kill_it); */
+  um->msgtype = UADE_REPLY_SONG_END;
+  * (uint32_t *) um->data = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
+  strlcpy(((uint8_t *) um->data) + 4, reason, 256);
+  um->size = 4 + strlen(reason + 1);
+  uade_send_message(um);
 }
 
 
