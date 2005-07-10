@@ -16,6 +16,9 @@ struct uadeformat {
 };
 
 
+static int ufcompare(const void *a, const void *b);
+
+
 static void attribute_match(int *attribute, char *str)
 {
   if (strcmp(str, "certain_end") == 0) {
@@ -46,7 +49,21 @@ static int skip_nws(const char *s, int pos)
 }
 
 
-void *uade_read_uadeformats(char *filename)
+
+char *uade_get_playername(const char *extension, void *formats, int nformats)
+{
+  struct uadeformat *uf = formats;
+  int i;
+  struct uadeformat *f;
+
+  f = bsearch(extension, uf, nformats, sizeof(uf[0]), ufcompare);
+  if (f == NULL)
+    return NULL;
+  return f->extension;
+}
+
+
+void *uade_read_uadeformats(int *nformats, char *filename)
 {
   FILE *f = fopen(filename, "r");
   char line[256];
@@ -58,6 +75,8 @@ void *uade_read_uadeformats(char *filename)
   int attributes;
   struct uadeformat *formats;
   size_t n;
+
+  *nformats = -1;
 
   if (f == NULL)
     return NULL;
@@ -146,13 +165,24 @@ void *uade_read_uadeformats(char *filename)
       fclose(f);
       return NULL;
     }
+    n++;
   }
   fclose(f);
+
+  *nformats = n;
+
+  if (n == 0)
+    return NULL;
+
+  qsort(formats, n, sizeof(formats[0]), ufcompare);
+
   return formats;
 }
 
 
-int uade_get_playername(const char *pre, void *formats)
+int ufcompare(const void *a, const void *b)
 {
-  assert(0);
+  struct uadeformat *ua = a;
+  struct uadeformat *ub = b;
+  return strcmp(ua->extension, ub->extension);
 }
