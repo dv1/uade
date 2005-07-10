@@ -208,7 +208,7 @@ void *uade_read_uadeformats(int *nformats, char *filename)
 
 
 /* compare function for qsort() */
-int ufcompare(const void *a, const void *b)
+static int ufcompare(const void *a, const void *b)
 {
   struct uadeformat *ua = a;
   struct uadeformat *ub = b;
