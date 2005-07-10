@@ -340,7 +340,7 @@ static void trivial_sigchld(int sig)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
   uadepid = -1;
-  uadeterminated = 2 - successful; /* 1 if successful, 2 if unsuccessful */
+  uadeterminated = 1;
 }
 
 
