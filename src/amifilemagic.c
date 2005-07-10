@@ -7,14 +7,14 @@
  About security:
 
  This module tries to avoid any buffer overruns by not copying anything but
- hard coded strings (such as "FC13") into pre or post strings. This doesn't
+ hard coded strings (such as "FC13") into pre string. This doesn't
  copy any data from modules to program memory. Any memory writing with
  non-hard-coded data is an error by assumption. This module will only
  determine the format of a given module.
 
  Occasional memory reads over buffer ranges can occur, but they will of course
  be fixed when spotted :P The worst that can happen with reading over the
- buffer range is core dump :)
+ buffer range is a core dump :)
 */
 
 #include <stdlib.h>
@@ -36,7 +36,7 @@ const char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
 /* IMPORTANT: '\0' characters can be important in following strings on ID
    fields (ID's are compared with memcmp() not strcmp() */
 const char *offset_0000_patterns[] = {
-  /*                     ID:             Prefix:         Desc:           */
+  /* ID: Prefix: Desc: */
   "DIGI Booster", "DIGI",	/* Digibooster */
   "OKTASONG", "OKT",		/* Oktalyzer */
   "SYNTRACKER", "SYNMOD",	/* Syntracker */
@@ -78,7 +78,7 @@ const char *offset_0000_patterns[] = {
 };
 
 const char *offset_0024_patterns[] = {
-  /*                     ID:             Prefix:         Desc:           */
+  /* ID: Prefix: Desc: */
   "UNCLEART", "DL",		/* Dave Lowe WT */
   "DAVELOWE", "DL_deli",	/* Dave Lowe Deli */
   "J.FLOGEL", "JMF",		/* Janko Mrsic-Flogel */
@@ -607,7 +607,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
 
     /* all TFMX format tests here */
   } else if (tfmxtest(buf, bufsize, pre)) {
-    /* is TFMX, nothing to do here (pre and post set in tfmxtest() */
+    /* is TFMX, nothing to do here ('pre' set in tfmxtest() */
 
   } else if (buf[0] == 'A' && buf[1] == 'O' && buf[2] == 'N') {
     if (buf[3] == '4') {
@@ -668,7 +668,6 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
     //          realfilesize > 332 ){
     //         }
     //         strcpy (pre, "SMUS");              /* Tiny Sonix*/
-    //         strcpy (post, "");
 
   } else if (tronictest(buf, bufsize)) {
     strcpy(pre, "TRONIC");	/* Tronic */
@@ -751,7 +750,6 @@ static int chk_id_offset(unsigned char *buf, int bufsize,
 			 const char *patterns[], int offset, char *pre)
 {
   int i;
-
   for (i = 0; patterns[i]; i = i + 2) {
     if (patterntest(buf, patterns[i], offset, sizeof(patterns[i]), bufsize)) {
       /* match found */
