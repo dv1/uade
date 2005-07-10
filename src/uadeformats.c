@@ -40,6 +40,8 @@ static void attribute_match(int *attribute, char *str)
 }
 
 
+/* skips whitespace characters from string 's'. returns -1 if end of string is
+   reached before a non-whitespace character */
 static int skip_ws(const char *s, int pos)
 {
   while (isspace(s[pos]) && s[pos] != 0)
@@ -50,6 +52,8 @@ static int skip_ws(const char *s, int pos)
 }
 
 
+/* skips non-whitespace characters from string 's'. returns -1 if end of string
+   is reached before a whitespace character */
 static int skip_nws(const char *s, int pos)
 {
   while (!isspace(s[pos]) && s[pos] != 0)
@@ -74,6 +78,18 @@ char *uade_get_playername(const char *extension, void *formats, int nformats)
 }
 
 
+/* Reads uadeformats file line by line. collect following data from each line:
+
+   - extension string
+   - playername string (matches the filename in players/ dir)
+   - possible attribute words (properties of players)
+
+   All the data is put into an 'struct uadeformat' array, and the array
+   is sorted. Don't bitch me about worst case complexity of O(n^2). Where
+   is that guaranteed O(n*log(n)) sort in C library???
+
+   Later the sorted array is used to search extension strings rapidly with
+   binary search (C libs bsearch). */
 void *uade_read_uadeformats(int *nformats, char *filename)
 {
   FILE *f = fopen(filename, "r");
@@ -191,6 +207,7 @@ void *uade_read_uadeformats(int *nformats, char *filename)
 }
 
 
+/* compare function for qsort() */
 int ufcompare(const void *a, const void *b)
 {
   struct uadeformat *ua = a;
