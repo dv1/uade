@@ -1,3 +1,14 @@
+/* UADE
+ *
+ * Copyright 2005 Heikki Orsila <heikki.orsila@iki.fi>
+ *
+ * Loads contents of uade formats file into a sorted list, and does binary
+ * searches into it.
+ *
+ * This source code module is dual licensed under GPL and Public Domain.
+ * Hence you may use _this_ module (not another code module) however you
+ * want in your projects.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>

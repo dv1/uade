@@ -4,6 +4,8 @@
                           http://uade.ton.tut.fi
  Copyright (C) 2000-2005  Michael Doering
 
+ This module is licensed under the GNU GPL.
+
  About security:
 
  This module tries to avoid any buffer overruns by not copying anything but
