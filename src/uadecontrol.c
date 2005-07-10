@@ -58,14 +58,12 @@ void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
 }
 
 
-static int get_more(unsigned int bytes)
+static ssize_t get_more(size_t bytes)
 {
   if (uade_inputbytes < bytes) {
-    ssize_t s;
-    if ((s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes)) < 0) {
-      fprintf(stderr, "no more input\n");
+    ssize_t s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes);
+    if (s <= 0)
       return 0;
-    }
     uade_inputbytes += s;
   }
   return 1;
@@ -94,6 +92,7 @@ int uade_receive_message(struct uade_msg *uc, size_t maxbytes)
     if ((get_more(sizeof(*uc)) == 0))
       return 0;
   }
+
   uade_copy_from_inputbuffer(uc, sizeof(*uc));
 
   uc->msgtype = ntohl(uc->msgtype);
@@ -109,7 +108,7 @@ int uade_receive_message(struct uade_msg *uc, size_t maxbytes)
   }
   if (uade_inputbytes < uc->size) {
     if ((get_more(uc->size) == 0))
-      return 0;
+      return -1;
   }
   uade_copy_from_inputbuffer(&uc->data, uc->size);
   return 1;

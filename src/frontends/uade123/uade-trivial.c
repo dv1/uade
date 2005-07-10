@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+#include <sys/wait.h>
 
 #include <netinet/in.h>
 
@@ -218,7 +219,7 @@ static int play_loop(void)
 
   while (1) {
 
-    if (uadeterminated == 1)
+    if (uadeterminated != 0)
       break;
 
     if (left == 0) {
@@ -260,19 +261,16 @@ static int play_loop(void)
       break;
 
     case UADE_REPLY_FORMATNAME:
-      /* broken. check bounds */
       uade_check_fix_string(um, 128);
       fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_MODULENAME:
-      /* broken. check bounds */
       uade_check_fix_string(um, 128);
       fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
       break;
 
     case UADE_REPLY_PLAYERNAME:
-      /* broken. check bounds */
       uade_check_fix_string(um, 128);
       fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
       break;
@@ -308,7 +306,7 @@ static void setup_sighandlers(void)
     break;
   }
   while (1) {
-    if ((sigaction(SIGCHLD, & (struct sigaction) {.sa_handler = trivial_sigchld}, NULL)) < 0) {
+    if ((sigaction(SIGCHLD, & (struct sigaction) {.sa_handler = trivial_sigchld, .sa_flags = SA_NOCLDSTOP}, NULL)) < 0) {
       if (errno == EINTR)
 	continue;
       fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));
@@ -331,13 +329,18 @@ static void trivial_cleanup(void)
 static void trivial_sigchld(int sig)
 {
   pid_t process;
-  fprintf(stderr, "child exited\n");
-  process = wait(NULL);
+  int status;
+  int successful;
+  process = waitpid(-1, &status, WNOHANG);
+  if (process == 0)
+    return;
+  successful = (WEXITSTATUS(status) == 0);
+  fprintf(stderr, "uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
   if (uadepid != -1 && process != uadepid)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
   uadepid = -1;
-  uadeterminated = 1;
+  uadeterminated = 2 - successful; /* 1 if successful, 2 if unsuccessful */
 }
 
 

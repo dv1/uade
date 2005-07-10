@@ -48,6 +48,8 @@ ssize_t atomic_read(int fd, const void *buf, size_t count)
 	continue;
       }
       return -1;
+    } else if (ret == 0) {
+      return 0;
     }
     bytes_read += ret;
   }
@@ -66,8 +68,10 @@ ssize_t atomic_write(int fd, const void *buf, size_t count)
       if (errno == EINTR)
         continue;
       if (errno == EAGAIN) {
+	fprintf(stderr, "polling\n");
 	if (poll(& (struct pollfd) {.fd = fd, .events = POLLOUT}, 1, -1) == 0)
 	  fprintf(stderr, "atomic_write: very strange. infinite poll() returned 0. report this!\n");
+	fprintf(stderr, "pollexit\n");
 	continue;
       }
       return -1;
