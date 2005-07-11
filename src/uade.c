@@ -359,7 +359,6 @@ void uade_get_amiga_message(void)
 
 void uade_handle_r_state(void)
 {
-  int no_more_commands;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int ret;
@@ -414,12 +413,10 @@ void uade_handle_r_state(void)
 	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
 	exit(-1);
       }
-      no_more_commands = 1;
       break;
 
     case UADE_COMMAND_REBOOT:
       uade_reboot = 1;
-      no_more_commands = 1;
       break;
 
     case UADE_COMMAND_SET_NTSC:

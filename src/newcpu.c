@@ -25,6 +25,8 @@
 #include "cia.h"
 
 #include "uade.h"
+#include "uadecontrol.h"
+
 
 #define EXCEPTION_COUNT 0
 #if EXCEPTION_COUNT
@@ -1313,6 +1315,13 @@ void m68k_go (void)
       if (quit_program != 0)
 	break;
       m68k_run_1 ();
+    }
+
+    if (uade_reboot) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN) < 0) {
+	fprintf(stderr, "can not send reboot ack token\n");
+	exit(-1);
+      }
     }
   }
 }

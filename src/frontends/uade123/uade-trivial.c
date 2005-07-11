@@ -424,7 +424,6 @@ int main(int argc, char *argv[])
 	free(playernames[i]);
       free(playernames);
     }
-    break;
   }
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
@@ -450,6 +449,7 @@ static int play_loop(void)
   struct uade_msg *um = (struct uade_msg *) space;
 
   int left;
+  int songend;
 
   ao_initialize();
   default_driver = ao_default_driver_id();
@@ -468,15 +468,15 @@ static int play_loop(void)
   left = 0;
   enum uade_control_state state = UADE_S_STATE;
 
-  while (1) {
+  while (songend == 0) {
 
-    if (uadeterminated != 0)
-      break;
+    if (uadeterminated)
+      return 0;
 
     if (state == UADE_S_STATE) {
 
       if (left == 0) {
-	
+
 	if (debug_trigger == 1) {
 	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
 	    fprintf(stderr, "can not active debugger\n");
@@ -484,7 +484,17 @@ static int play_loop(void)
 	  }
 	  debug_trigger = 0;
 	}
-	
+
+	if (song_end_trigger) {
+	  test_song_end_trigger();
+	  songend = 1;
+	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
+	    fprintf(stderr, "can not send reboot\n");
+	    return 0;
+	  }
+	  goto sendtoken;
+	}
+
 	left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
 	um->msgtype = UADE_COMMAND_READ;
 	um->size = 4;
@@ -493,7 +503,8 @@ static int play_loop(void)
 	  fprintf(stderr, "can not send read command\n");
 	  return 0;
 	}
-	
+
+      sendtoken:
 	if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
 	  fprintf(stderr, "can not send token\n");
 	  return 0;
@@ -558,6 +569,13 @@ static int play_loop(void)
 	fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
 	return 0;
       }
+    }
+  }
+
+  if (songend) {
+    if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
+      fprintf(stderr, "can not receive token back after reboot\n");
+      return 0;
     }
   }
 
