@@ -35,8 +35,7 @@ const char *mod_patterns[] = { "M.K.", "N.T.", "M!K!", "M&K!", ".M.K", 0 };
 /* startrekker patterns at file offset 0x438 */
 const char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
 
-/* IMPORTANT: '\0' characters can be important in following strings on ID
-   fields (ID's are compared with memcmp() not strcmp() */
+/* Do not use '\0'. They won't work in patterns */
 const char *offset_0000_patterns[] = {
   /* ID: Prefix: Desc: */
   "DIGI Booster", "DIGI",	/* Digibooster */
@@ -95,8 +94,6 @@ const char *offset_0024_patterns[] = {
   0, 0
 };
 
-
-void filemagic(unsigned char *buf, char *pre, int realfilesize);
 
 /* check for 'pattern' in 'buf'.
    the 'pattern' must lie inside range [0, maxlen) in the buffer.
@@ -738,12 +735,12 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   }
 }
 
+
 /* We are currently stupid and check only for a few magic IDs at the offsets
  * chk_id_offset returns 1 on success and sets the right prefix/extension
  * in pre
  * TODO: more and less easy check for the rest of the 52 trackerclones
  */
-
 static int chk_id_offset(unsigned char *buf, int bufsize,
 			 const char *patterns[], int offset, char *pre)
 {
