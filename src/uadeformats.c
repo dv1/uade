@@ -102,22 +102,22 @@ void *uade_read_uadeformats(int *nformats, char *filename)
   int len;
   int attributes;
   struct uadeformat *formats;
-  size_t n;
+  size_t n, orgn;
 
   *nformats = -1;
 
   if (f == NULL)
     return NULL;
 
-  n = 1;
+  orgn = 1;
   while (fgets(line, sizeof(line), f) != NULL)
-    n++;
-  if (n == 0) {
+    orgn++;
+  if (orgn == 0) {
     fprintf(stderr, "teh incredible thing happened with uadeformats file\n");
     exit(-1);
   }
 
-  formats = malloc(n * sizeof(formats[0]));
+  formats = malloc(orgn * sizeof(formats[0]));
   if (formats == NULL) {
     fprintf(stderr, "no memory for uadeformats file\n");
     fclose(f);
@@ -149,7 +149,10 @@ void *uade_read_uadeformats(int *nformats, char *filename)
       continue;
     }
     line[next] = 0;
-    strlcpy(extension, &line[pos], sizeof(extension));
+    if (strlcpy(extension, &line[pos], sizeof(extension)) >= sizeof(extension)) {
+      fprintf(stderr, "too long an extension: %s\n", &line[pos]);
+      exit(-1);
+    }
     pos = next + 1;
 
     pos = skip_ws(line, pos);
@@ -194,6 +197,10 @@ void *uade_read_uadeformats(int *nformats, char *filename)
       return NULL;
     }
     n++;
+    /* if formats file grows suddenly, n can grow beyond orgn, but we don't
+       want to run over unallocated memory, so we do a comparison here */
+    if (n == orgn)
+      break;
   }
   fclose(f);
 
@@ -211,7 +218,7 @@ void *uade_read_uadeformats(int *nformats, char *filename)
 /* compare function for qsort() */
 static int ufcompare(const void *a, const void *b)
 {
-  struct uadeformat *ua = a;
-  struct uadeformat *ub = b;
+  const struct uadeformat *ua = a;
+  const struct uadeformat *ub = b;
   return strcmp(ua->extension, ub->extension);
 }

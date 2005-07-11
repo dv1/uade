@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include <ao/ao.h>
 
@@ -17,20 +18,23 @@
 #include <strlrep.h>
 #include <unixatomic.h>
 #include <uadeconfig.h>
+#include <amifilemagic.h>
+#include <uadeformats.h>
 
 #include "playlist.h"
 
 static char basedir[PATH_MAX];
 
 static char configname[PATH_MAX];
-static char modulename[PATH_MAX];
 static char playername[PATH_MAX];
 static char scorename[PATH_MAX];
 static char uadename[PATH_MAX];
 
 static int debug_mode = 0;
 static int debug_trigger = 0;
-static struct playlist playlist;
+static uint8_t fileformat_buf[5122];
+static void *format_ds = NULL;
+static int format_ds_size;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
 
@@ -39,6 +43,51 @@ static void setup_sighandlers(void);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
+
+
+static int fileformat_detection(char *playername, const char *modulename)
+{
+  struct stat st;
+  char extension[16];
+  FILE *f;
+  size_t readed;
+  char *candidates;
+
+  if ((f = fopen(modulename, "r")) == NULL) {
+    fprintf(stderr, "can not open module: %s\n", modulename);
+    return 0;
+  }
+  if (fstat(fileno(f), &st)) {
+    fprintf(stderr, "very weird stat error: %s (%s)\n", modulename, strerror(errno));
+    exit(-1);
+  }
+  readed = fread(fileformat_buf, 1, sizeof(fileformat_buf), f);
+  fclose(f);
+  if (readed == 0)
+    return 0;
+  memset(&fileformat_buf[readed], 0, sizeof(fileformat_buf) - readed);
+  extension[0] = 0;
+  filemagic(fileformat_buf, extension, st.st_size);
+  fprintf(stderr, "deduced extension: %s\n", extension);
+
+  if (format_ds == NULL) {
+    char formatsfile[PATH_MAX];
+    snprintf(formatsfile, sizeof(formatsfile), "%s/uadeformats", basedir);
+    if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL)
+      return 0;
+    fprintf(stderr, "read %d format lines\n", format_ds_size);
+  }
+
+  candidates = uade_get_playername(extension, format_ds, format_ds_size);
+  if (candidates == NULL) {
+    fprintf(stderr, "file extension doesn't match anything in database. skipping %s\n");
+
+    return 0;
+  }
+  fprintf(stderr, "got candidates: %s\n", candidates);
+
+  return 0;
+}
 
 
 static void fork_exec_uade(void)
@@ -114,9 +163,11 @@ int main(int argc, char *argv[])
   int i;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
-  int randommode = 0;
   int recursivemode = 0;
   int handleswitches = 1;
+  char modulename[PATH_MAX];
+  int playernamegiven = 0;
+  struct playlist playlist;
 
   if (!playlist_init(&playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
@@ -134,10 +185,14 @@ int main(int argc, char *argv[])
       i++;
       continue;
     }
-    if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc))
+    if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc)) {
+      playlist_add(&playlist, modulename, 0);
       continue;
-    if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc))
+    }
+    if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc)) {
+      playernamegiven = 1;
       continue;
+    }
     if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--recursive") == 0) {
       recursivemode = 1;
       i++;
@@ -149,7 +204,7 @@ int main(int argc, char *argv[])
     if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
       continue;
     if (strcmp(argv[i], "-z") == 0 || strcmp(argv[i], "--shuffle") == 0) {
-      randommode = 1;
+      playlist_random(&playlist, 1);
       i++;
       continue;
     }
@@ -207,19 +262,26 @@ int main(int argc, char *argv[])
   setup_sighandlers();
 
   fork_exec_uade();
-
+  
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
     goto cleanup;
   }
 
-  while (1) {
-    if (modulename[0]) {
-      if (access(modulename, R_OK)) {
-	fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
-	exit(-1);
+  while (playlist_get_next(modulename, sizeof(modulename), &playlist)) {
+
+    if (access(modulename, R_OK)) {
+      fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
+      exit(-1);
+    }
+
+    if (playernamegiven == 0) {
+      if (!fileformat_detection(playername, modulename)) {
+	fprintf(stderr, "skipping file with unknown format: %s\n", modulename);
+	continue;
       }
     }
+
     if (playername[0]) {
       if (access(playername, R_OK)) {
 	fprintf(stderr, "could not read %s: %s\n", playername, strerror(errno));

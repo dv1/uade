@@ -111,7 +111,7 @@ int playlist_add(struct playlist *pl, char *name, int recursive)
 }
 
 
-int playlist_get_next(char *name, int maxlen, struct playlist *pl)
+int playlist_get_next(char *name, size_t maxlen, struct playlist *pl)
 {
   int ret;
   int len;
@@ -121,7 +121,7 @@ int playlist_get_next(char *name, int maxlen, struct playlist *pl)
   if (!pl->list.n_entries)
     return 0;
   if (!maxlen) {
-    fprintf(stderr, "uade: playlist_get_next(): given maxlen = 0\n");
+    fprintf(stderr, "uade123: playlist_get_next(): given maxlen = 0\n");
     return 0;
   }
 
