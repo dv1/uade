@@ -80,7 +80,7 @@ static int fileformat_detection(char *playername, const char *modulename)
 
   candidates = uade_get_playername(extension, format_ds, format_ds_size);
   if (candidates == NULL) {
-    fprintf(stderr, "file extension doesn't match anything in database. skipping %s\n");
+    fprintf(stderr, "file extension '%s' doesn't match anything in database. skipping %s\n", extension, modulename);
 
     return 0;
   }

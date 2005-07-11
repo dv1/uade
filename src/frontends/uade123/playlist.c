@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <string.h>
 
 #include "playlist.h"
 
@@ -65,12 +66,14 @@ int playlist_empty(struct playlist *pl)
 }
 
 
+#if 0
 static int recursive_func(const char *file, void *arg)
 {
   if (!playlist_add(arg, (char *) file, 0))
     fprintf(stderr, "error enqueuing %s\n", file);
   return 0;
 }
+#endif
 
 
 int playlist_add(struct playlist *pl, char *name, int recursive)
@@ -113,7 +116,6 @@ int playlist_add(struct playlist *pl, char *name, int recursive)
 
 int playlist_get_next(char *name, size_t maxlen, struct playlist *pl)
 {
-  int ret;
   int len;
   char *s;
   if (!pl->valid)

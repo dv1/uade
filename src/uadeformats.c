@@ -16,6 +16,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <strlrep.h>
+
 #include <uadeformats.h>
 
 #define UADE_PLAYER_CERTAIN_END (1)
@@ -69,10 +71,10 @@ static int skip_nws(const char *s, int pos)
 char *uade_get_playername(const char *extension, void *formats, int nformats)
 {
   struct uadeformat *uf = formats;
-  int i;
   struct uadeformat *f;
+  struct uadeformat key = {.extension = (char *) extension};
 
-  f = bsearch(extension, uf, nformats, sizeof(uf[0]), ufcompare);
+  f = bsearch(&key, uf, nformats, sizeof(uf[0]), ufcompare);
   if (f == NULL)
     return NULL;
   return f->extension;
@@ -127,6 +129,7 @@ void *uade_read_uadeformats(int *nformats, char *filename)
   if (fseek(f, 0, SEEK_SET)) {
     fprintf(stderr, "fseek failed\n");
     fclose(f);
+    free(formats);
     return NULL;
   }
 
@@ -192,13 +195,13 @@ void *uade_read_uadeformats(int *nformats, char *filename)
     formats[n].playername = strdup(playername);
     formats[n].attributes = attributes;
     if (formats[n].extension == NULL || formats[n].playername == NULL) {
-      fprintf(stderr, "uadeformats: no memory\n");
+      fprintf(stderr, "uadeformats: no memory. not freeing what was allocated. haha!\n");
       fclose(f);
       return NULL;
     }
     n++;
     /* if formats file grows suddenly, n can grow beyond orgn, but we don't
-       want to run over unallocated memory, so we do a comparison here */
+       want to run over unallocated memory so we do a comparison here */
     if (n == orgn)
       break;
   }
@@ -206,8 +209,10 @@ void *uade_read_uadeformats(int *nformats, char *filename)
 
   *nformats = n;
 
-  if (n == 0)
+  if (n == 0) {
+    free(formats);
     return NULL;
+  }
 
   qsort(formats, n, sizeof(formats[0]), ufcompare);
 
@@ -220,5 +225,5 @@ static int ufcompare(const void *a, const void *b)
 {
   const struct uadeformat *ua = a;
   const struct uadeformat *ub = b;
-  return strcmp(ua->extension, ub->extension);
+  return strcasecmp(ua->extension, ub->extension);
 }

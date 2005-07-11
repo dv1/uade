@@ -111,7 +111,7 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 
   fullsize = um->size + sizeof(*um);
   if (fullsize > maxbytes) {
-    fprintf(stderr, "too big a command: %u\n", fullsize);
+    fprintf(stderr, "too big a command: %zu\n", fullsize);
     return -1;
   }
   if (uade_inputbytes < um->size) {
