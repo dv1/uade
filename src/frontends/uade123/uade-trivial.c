@@ -270,6 +270,7 @@ static int play_loop(void)
       }
       
       switch (um->msgtype) {
+
       case UADE_COMMAND_TOKEN:
 	state = UADE_S_STATE;
 	break;

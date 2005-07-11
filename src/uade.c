@@ -49,7 +49,6 @@ enum print_help {
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_long(int addr);
-static FILE *uade_open_amiga_file(const char *filename);
 static void uade_print_help(enum print_help problemcode, char *progname);
 static void uade_put_long(int addr,int val);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
@@ -91,11 +90,12 @@ int uade_time_critical = 0;
 
 
 static int disable_modulechange = 0;
-static struct uade_song song;
 static int uade_big_endian;
 static int uade_dmawait = 0;
 static int uade_execdebugboolean = 0;
 static int uade_highmem = 0x200000;
+static char uade_player_dir[UADE_PATH_MAX];
+static struct uade_song song;
 static int uade_speed_hack = 0;
 static int voltestboolean = 0;
 
@@ -272,7 +272,7 @@ void uade_get_amiga_message(void)
       break;
     }
     nameptr = get_real_address(src);
-    if ((file = uade_open_amiga_file(nameptr))) {
+    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       dst = uade_get_long(0x208);
       len = uade_safe_load(dst, file, uade_highmem - dst);
       fclose(file); file = 0;
@@ -292,7 +292,7 @@ void uade_get_amiga_message(void)
     off = uade_get_long(0x20C);
     len = uade_get_long(0x210);
     /* fprintf(stderr,"uade: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
-    if ((file = uade_open_amiga_file(nameptr))) {
+    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       if (fseek(file, off, SEEK_SET)) {
 	perror("can not fseek to position");
 	x = 0;
@@ -316,7 +316,7 @@ void uade_get_amiga_message(void)
       break;
     }
     nameptr = get_real_address(src);
-    if ((file = uade_open_amiga_file(nameptr))) {
+    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       fseek(file, 0, SEEK_END);
       len = ftell(file);
       fclose(file); file = 0;
@@ -445,13 +445,6 @@ void uade_handle_r_state(void)
       exit(-1);
     }
   }
-}
-
-
-static FILE *uade_open_amiga_file(const char *filename)
-{
-  assert(0);
-  return fopen(filename, "r");
 }
 
 
@@ -658,6 +651,11 @@ void uade_reset(void)
     exit(-1);
   }
 
+  if (uade_dirname(uade_player_dir, song.playername, sizeof(uade_player_dir)) == NULL) {
+    fprintf(stderr, "illegal dirname with player: %s\n", song.playername);
+    exit(-1);
+  }
+
   ret = uade_receive_message(um, maxcommand);
   if (ret == 0) {
     fprintf(stderr,"expected module name. got nothing.\n");
@@ -799,7 +797,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_REPLY_CAN_PLAY})) {
+  if (uade_send_short_message(UADE_REPLY_CAN_PLAY)) {
     fprintf(stderr, "uade: can not send 'CAN_PLAY' reply\n");
     exit(-1);
   }

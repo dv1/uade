@@ -20,7 +20,7 @@ uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uad
 	$(CC) $(CFLAGS) -o uadecontrol.o -c ../../uadecontrol.c
 
 test:	
-	./uade-trivial -c ../../../uaerc -u ../../uade -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
+	./uade-trivial -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
 
 clean:	
 	rm -f uade-trivial *.o
