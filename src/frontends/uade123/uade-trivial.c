@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
@@ -35,6 +36,7 @@ static int debug_trigger = 0;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
+static ao_device *libao_device;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
 
@@ -46,6 +48,28 @@ static int test_song_end_trigger(void);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
+
+
+static int audio_init(void)
+{
+  int default_driver;
+  ao_sample_format format;
+
+  ao_initialize();
+  default_driver = ao_default_driver_id();
+
+  format.bits = 16;
+  format.channels = 2;
+  format.rate = 44100;
+  format.byte_format = AO_FMT_NATIVE;
+
+  libao_device = ao_open_live(default_driver, &format, NULL);
+  if (libao_device == NULL) {
+    fprintf(stderr, "error opening device\n");
+    return 0;
+  }
+  return 1;
+}
 
 
 static char *fileformat_detection(const char *modulename)
@@ -308,6 +332,9 @@ int main(int argc, char *argv[])
   setup_sighandlers();
 
   fork_exec_uade();
+
+  if (!audio_init())
+    goto cleanup;
   
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
@@ -412,7 +439,7 @@ int main(int argc, char *argv[])
     }
 
     if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
-      fprintf(stderr, "can not receive token after play ack\n");
+      fprintf(stderr, "uade123: can not receive token after play ack\n");
       goto cleanup;
     }
 
@@ -438,9 +465,6 @@ int main(int argc, char *argv[])
 
 static int play_loop(void)
 {
-  int default_driver;
-  ao_sample_format format;
-  ao_device *libao_device;
   uint16_t *sm;
   int i;
   uint32_t *u32ptr;
@@ -449,21 +473,8 @@ static int play_loop(void)
   struct uade_msg *um = (struct uade_msg *) space;
 
   int left;
-  int songend;
-
-  ao_initialize();
-  default_driver = ao_default_driver_id();
-
-  format.bits = 16;
-  format.channels = 2;
-  format.rate = 44100;
-  format.byte_format = AO_FMT_NATIVE;
-
-  libao_device = ao_open_live(default_driver, &format, NULL);
-  if (libao_device == NULL) {
-    fprintf(stderr, "error opening device\n");
-    return 0;
-  }
+  int songend = 0;
+  int ret;
 
   left = 0;
   enum uade_control_state state = UADE_S_STATE;
@@ -509,7 +520,6 @@ static int play_loop(void)
 	  fprintf(stderr, "can not send token\n");
 	  return 0;
 	}
-
 	state = UADE_R_STATE;
       }
 
@@ -566,7 +576,7 @@ static int play_loop(void)
 	break;
 	
       default:
-	fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
+	fprintf(stderr, "uade123: expected sound data. got %d.\n", um->msgtype);
 	return 0;
       }
     }
@@ -574,8 +584,13 @@ static int play_loop(void)
 
   if (songend) {
     do {
-      if (uade_receive_message(um, sizeof(space)) <= 0) {
-	fprintf(stderr, "can not receive events from uade\n");
+      ret = uade_receive_message(um, sizeof(space));
+      if (ret < 0) {
+	fprintf(stderr, "uade123: can not receive events (TOKEN) from uade\n");
+	return 0;
+      }
+      if (ret == 0) {
+	fprintf(stderr, "uade123: end of input after reboot\n");
 	return 0;
       }
     } while (um->msgtype != UADE_COMMAND_TOKEN);

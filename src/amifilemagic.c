@@ -441,41 +441,39 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
 				    && buf[0x43a] == '8'
 				    && buf[0x43b] == '1')) {
     strcpy(pre, "MOD_PC");	/*Multichannel Tracker */
-
+    
   } else if (buf[0x2c] == 'S' && buf[0x2d] == 'C' && buf[0x2e] == 'R'
 	     && buf[0x2f] == 'M') {
     strcpy(pre, "S3M");		/*Scream Tracker */
-
-  } else
-      if ((buf[0] == 0x60 && buf[2] == 0x60 && buf[4] == 0x48
-	   && buf[5] == 0xe7) || (buf[0] == 0x60 && buf[2] == 0x60
-				  && buf[4] == 0x41 && buf[5] == 0xfa)
-	  || (buf[0] == 0x60 && buf[1] == 0x00 && buf[4] == 0x60
-	      && buf[5] == 0x00 && buf[8] == 0x48 && buf[9] == 0xe7)
-	  || (buf[0] == 0x60 && buf[1] == 0x00 && buf[4] == 0x60
-	      && buf[5] == 0x00 && buf[8] == 0x60 && buf[9] == 0x00
-	      && buf[12] == 0x60 && buf[13] == 0x00 && buf[16] == 0x48
-	      && buf[17] == 0xe7)) {
+    
+  } else if ((buf[0] == 0x60 && buf[2] == 0x60 && buf[4] == 0x48
+	      && buf[5] == 0xe7) || (buf[0] == 0x60 && buf[2] == 0x60
+				     && buf[4] == 0x41 && buf[5] == 0xfa)
+	     || (buf[0] == 0x60 && buf[1] == 0x00 && buf[4] == 0x60
+		 && buf[5] == 0x00 && buf[8] == 0x48 && buf[9] == 0xe7)
+	     || (buf[0] == 0x60 && buf[1] == 0x00 && buf[4] == 0x60
+		 && buf[5] == 0x00 && buf[8] == 0x60 && buf[9] == 0x00
+		 && buf[12] == 0x60 && buf[13] == 0x00 && buf[16] == 0x48
+		 && buf[17] == 0xe7)) {
     strcpy(pre, "HIP");		/* Hippel */
-
+    
   } else if (buf[0x348] == '.' && buf[0x349] == 'Z' && buf[0x34A] == 'A'
 	     && buf[0x34B] == 'D' && buf[0x34c] == 'S' && buf[0x34d] == '8'
 	     && buf[0x34e] == '9' && buf[0x34f] == '.') {
     strcpy(pre, "MKII");	/* Mark II */
-
-  } else
-      if (((buf[0] == 0x08 && buf[1] == 0xf9 && buf[2] == 0x00
-	    && buf[3] == 0x01) && (buf[4] == 0x00 && buf[5] == 0xbb
-				   && buf[6] == 0x41 && buf[7] == 0xfa)
-	   && ((buf[0x25c] == 0x4e && buf[0x25d] == 0x75)
-	       || (buf[0x25c] == 0x4e && buf[0x25d] == 0xf9)))
-	  || ((buf[0] == 0x41 && buf[1] == 0xfa)
-	      && (buf[4] == 0xd1 && buf[5] == 0xe8)
-	      && (((buf[0x230] == 0x4e && buf[0x231] == 0x75)
-		   || (buf[0x230] == 0x4e && buf[0x231] == 0xf9))
-		  || ((buf[0x29c] == 0x4e && buf[0x29d] == 0x75)
-		      || (buf[0x29c] == 0x4e && buf[0x29d] == 0xf9))
-	      ))) {
+    
+  } else if (((buf[0] == 0x08 && buf[1] == 0xf9 && buf[2] == 0x00
+	       && buf[3] == 0x01) && (buf[4] == 0x00 && buf[5] == 0xbb
+				      && buf[6] == 0x41 && buf[7] == 0xfa)
+	      && ((buf[0x25c] == 0x4e && buf[0x25d] == 0x75)
+		  || (buf[0x25c] == 0x4e && buf[0x25d] == 0xf9)))
+	     || ((buf[0] == 0x41 && buf[1] == 0xfa)
+		 && (buf[4] == 0xd1 && buf[5] == 0xe8)
+		 && (((buf[0x230] == 0x4e && buf[0x231] == 0x75)
+		      || (buf[0x230] == 0x4e && buf[0x231] == 0xf9))
+		     || ((buf[0x29c] == 0x4e && buf[0x29d] == 0x75)
+			 || (buf[0x29c] == 0x4e && buf[0x29d] == 0xf9))
+		     ))) {
     strcpy(pre, "SID1");	/* SidMon1 */
 
   } else if (buf[0] == 0x4e && buf[1] == 0xfa &&
@@ -584,16 +582,16 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
 	     && buf[14] == 'I' && buf[15] == 'C') {
     strcpy(pre, "EMOD");	/* EMOD */
 
-/* generic ID Check at offset 0x24 */
+    /* generic ID Check at offset 0x24 */
 
   } else if (chk_id_offset(buf, bufsize, offset_0024_patterns, 0x24, pre)) {
 
-/* HIP7 ID Check at offset 0x04 */
+    /* HIP7 ID Check at offset 0x04 */
   } else if (patterntest(buf, " **** Player by Jochen Hippel 1990 **** ",
 			 0x04, 40, bufsize)) {
     strcpy(pre, "HIP7");	/* HIP7 */
 
-/* Magic ID at Offset 0x00 */
+    /* Magic ID at Offset 0x00 */
   } else if (buf[0] == 'M' && buf[1] == 'M' && buf[2] == 'D') {
     if (buf[0x3] >= '0' && buf[0x3] < '3') {
       /*move.l mmd_songinfo(a0),a1 */
@@ -641,10 +639,9 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   } else if (buf[0] == 'P' && buf[1] == 'S' && buf[2] == 'A' && buf[3] == 0x00) {
     strcpy(pre, "PSA");		/* PSA */
 
-  } else
-      if ((buf[0] == 'S' && buf[1] == 'y' && buf[2] == 'n' && buf[3] == 't'
-	   && buf[4] == 'h' && buf[6] == '.' && buf[8] == 0x00)
-	  && (buf[5] > '1' && buf[5] < '4')) {
+  } else if ((buf[0] == 'S' && buf[1] == 'y' && buf[2] == 'n' && buf[3] == 't'
+	      && buf[4] == 'h' && buf[6] == '.' && buf[8] == 0x00)
+	     && (buf[5] > '1' && buf[5] < '4')) {
     strcpy(pre, "SYN");		/* Synthesis */
 
   } else if (buf[0xbc6] == '.' && buf[0xbc7] == 'F' && buf[0xbc8] == 'N'
@@ -674,8 +671,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   } else if (tronictest(buf, bufsize)) {
     strcpy(pre, "TRONIC");	/* Tronic */
 
-/* generic ID Check at offset 0x00 */
-
+    /* generic ID Check at offset 0x00 */
   } else if (chk_id_offset(buf, bufsize, offset_0000_patterns, 0x00, pre)) {
 
     /*magic ids of some modpackers */
@@ -753,7 +749,7 @@ static int chk_id_offset(unsigned char *buf, int bufsize,
 {
   int i;
   for (i = 0; patterns[i]; i = i + 2) {
-    if (patterntest(buf, patterns[i], offset, sizeof(patterns[i]), bufsize)) {
+    if (patterntest(buf, patterns[i], offset, strlen(patterns[i]), bufsize)) {
       /* match found */
       strcpy(pre, patterns[i + 1]);
       return 1;
