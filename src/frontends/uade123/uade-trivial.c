@@ -54,6 +54,7 @@ static char *fileformat_detection(const char *modulename)
   char *candidates;
   char *t, *tn;
   int len;
+  static int warnings = 1;
 
   if ((f = fopen(modulename, "r")) == NULL) {
     fprintf(stderr, "can not open module: %s\n", modulename);
@@ -76,8 +77,12 @@ static char *fileformat_detection(const char *modulename)
   if (format_ds == NULL) {
     char formatsfile[PATH_MAX];
     snprintf(formatsfile, sizeof(formatsfile), "%s/uadeformats", basedir);
-    if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL)
+    if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL) {
+      if (warnings)
+	fprintf(stderr, "tried to load uadeformats file from %s, but failed\n", formatsfile);
+      warnings = 0;
       return NULL;
+    }
   }
 
   /* if filemagic found a match, we'll use player plugins associated with

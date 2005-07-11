@@ -77,7 +77,7 @@ char *uade_get_playername(const char *extension, void *formats, int nformats)
   f = bsearch(&key, uf, nformats, sizeof(uf[0]), ufcompare);
   if (f == NULL)
     return NULL;
-  return f->extension;
+  return f->playername;
 }
 
 
