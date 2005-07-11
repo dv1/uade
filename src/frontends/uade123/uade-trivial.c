@@ -38,8 +38,11 @@ static int format_ds_size;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
 
+static int song_end_trigger = 0;
+
 static int play_loop(void);
 static void setup_sighandlers(void);
+static int test_song_end_trigger(void);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
@@ -585,6 +588,29 @@ static void setup_sighandlers(void)
 }
 
 
+/* test song_end_trigger by taking care of mutual exclusion with SIGINT */
+static int test_song_end_trigger(void)
+{
+  int ret;
+  sigset_t set;
+  if (sigemptyset(&set))
+    goto sigerr;
+  if (sigaddset(&set, SIGINT))
+    goto sigerr;
+  if (sigprocmask(SIG_BLOCK, &set, NULL))
+    goto sigerr;
+  ret = song_end_trigger;
+  song_end_trigger = 0;
+  if (sigprocmask(SIG_UNBLOCK, &set, NULL))
+    goto sigerr;
+  return ret;
+
+ sigerr:
+  fprintf(stderr, "signal hell\n");
+  exit(-1);
+}
+
+
 static void trivial_cleanup(void)
 {
   if (uadepid != -1) {
@@ -617,8 +643,6 @@ static void trivial_sigint(int sig)
   if (debug_mode == 1) {
     debug_trigger = 1;
     return;
-  } else {
-    trivial_cleanup();
-    exit(-1);
   }
+  song_end_trigger = 1;
 }
