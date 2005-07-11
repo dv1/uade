@@ -127,6 +127,17 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 }
 
 
+int uade_receive_short_message(enum uade_msgtype msgtype)
+{
+  struct uade_msg um;
+  if (uade_receive_message(&um, sizeof(um)) <= 0) {
+    fprintf(stderr, "can not receive short message: %d\n", msgtype);
+    return -1;
+  }
+  return (um.msgtype == msgtype) ? 0 : -1;
+}
+
+
 int uade_receive_string(char *s, enum uade_msgtype com,
 				size_t maxlen)
 {
@@ -156,17 +167,6 @@ int uade_receive_string(char *s, enum uade_msgtype com,
 }
 
 
-int uade_receive_token(void)
-{
-  struct uade_msg um;
-  if (uade_receive_message(&um, sizeof(um)) <= 0) {
-    fprintf(stderr, "can not receive token\n");
-    return -1;
-  }
-  return (um.msgtype == UADE_COMMAND_TOKEN) ? 0 : -1;
-}
-
-
 int uade_send_message(struct uade_msg *um)
 {
   uint32_t size = um->size;
@@ -187,6 +187,16 @@ int uade_send_message(struct uade_msg *um)
   if (atomic_write(uade_output_fd, um, sizeof(*um) + size) < 0)
     return -1;
 
+  return 0;
+}
+
+
+int uade_send_short_message(enum uade_msgtype msgtype)
+{
+  if (uade_send_message(& (struct uade_msg) {.msgtype = msgtype})) {
+    fprintf(stderr, "can not send short message: %d\n", msgtype);
+    return -1;
+  }
   return 0;
 }
 
@@ -213,15 +223,6 @@ int uade_send_string(enum uade_msgtype com, const char *str)
   return 0;
 }
 
-
-int uade_send_token(void)
-{
-  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_TOKEN})) {
-    fprintf(stderr, "can not send token\n");
-    return -1;
-  }
-  return 0;
-}
 
 void uade_set_input_source(const char *input_source)
 {

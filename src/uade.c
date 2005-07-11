@@ -783,9 +783,8 @@ void uade_reset(void)
   uade_put_long(SCORE_SUPER_STACK, superstack);
   /* no message for score */
   uade_put_long(SCORE_OUTPUT_MSG, 0);
-  if ((userstack - (scoreaddr + bytesread)) < 0x1000) {
-    fprintf(stderr, "uade: stack over run warning!\n");
-  }
+  if ((userstack - (scoreaddr + bytesread)) < 0x1000)
+    fprintf(stderr, "uade: amiga stack overrun warning!\n");
 
   flush_sound();
 

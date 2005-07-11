@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  if (uade_send_token()) {
+  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
     fprintf(stderr, "can not send token after module\n");
     goto cleanup;
   }
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  if (uade_receive_token() < 0) {
+  if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
     fprintf(stderr, "can not receive token after play ack\n");
     goto cleanup;
   }
@@ -254,7 +254,7 @@ static int play_loop(void)
 	  return 0;
 	}
 	
-	if (uade_send_token()) {
+	if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
 	  fprintf(stderr, "can not send token\n");
 	  return 0;
 	}
