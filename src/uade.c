@@ -168,7 +168,7 @@ void uade_check_sound_buffers(int bytes)
 
   if (uade_read_size == 0) {
     /* if all requested data has been sent, move to S state */
-    if (uade_send_token()) {
+    if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
       fprintf(stderr, "uade: could not send token\n");
       exit(-1);
     }
@@ -798,7 +798,7 @@ void uade_reset(void)
 
   uade_reboot = 0;
 
-  if (uade_receive_token()) {
+  if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
     fprintf(stderr, "uade: can not receive token in uade_reset()\n");
     exit(-1);
   }
@@ -807,7 +807,7 @@ void uade_reset(void)
     fprintf(stderr, "uade: can not send 'CAN_PLAY' reply\n");
     exit(-1);
   }
-  if (uade_send_token()) {
+  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
     fprintf(stderr, "uade: can not send token from uade_reset()\n");
     exit(-1);
   }
