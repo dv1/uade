@@ -1,9 +1,10 @@
 2005-07-11  Heikki Orsila <heikki.orsila@iki.fi>
-	- Improved src/frontends/trivial/, and now it is called uade123.
-	  It can now do fileformat detection by content, and load proper
-	  players from their installation place. Also, it can play multiple
-	  songs in a sequence if one switches to next song with ctrl-c before
-	  the song actually ends ;)
+	- Improved the command line frontend in src/frontends/trivial/,
+	  and now it is called uade123. It can now do fileformat detection by
+	  content, and load proper players from their installation place.
+	  Also, it can play multiple songs in a sequence if one switches to
+	  next song with ctrl-c before the song actually ends. If the song
+	  ends by itself, the system will crash ;) 
 	- Found a bug in amifilemagic by accident. chk_id_offset() function
 	  tested patterns of length sizeof(patterns[i]) which is totally
 	  wrong. It was corrected to strlen(patterns[i]).
