@@ -45,17 +45,19 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static int fileformat_detection(char *playername, const char *modulename)
+static char *fileformat_detection(const char *modulename)
 {
   struct stat st;
-  char extension[16];
+  char extension[11];
   FILE *f;
   size_t readed;
   char *candidates;
+  char *t, *tn;
+  int len;
 
   if ((f = fopen(modulename, "r")) == NULL) {
     fprintf(stderr, "can not open module: %s\n", modulename);
-    return 0;
+    return NULL;
   }
   if (fstat(fileno(f), &st)) {
     fprintf(stderr, "very weird stat error: %s (%s)\n", modulename, strerror(errno));
@@ -64,29 +66,65 @@ static int fileformat_detection(char *playername, const char *modulename)
   readed = fread(fileformat_buf, 1, sizeof(fileformat_buf), f);
   fclose(f);
   if (readed == 0)
-    return 0;
+    return NULL;
   memset(&fileformat_buf[readed], 0, sizeof(fileformat_buf) - readed);
   extension[0] = 0;
   filemagic(fileformat_buf, extension, st.st_size);
+
   fprintf(stderr, "deduced extension: %s\n", extension);
 
   if (format_ds == NULL) {
     char formatsfile[PATH_MAX];
     snprintf(formatsfile, sizeof(formatsfile), "%s/uadeformats", basedir);
     if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL)
-      return 0;
-    fprintf(stderr, "read %d format lines\n", format_ds_size);
+      return NULL;
   }
 
-  candidates = uade_get_playername(extension, format_ds, format_ds_size);
-  if (candidates == NULL) {
-    fprintf(stderr, "file extension '%s' doesn't match anything in database. skipping %s\n", extension, modulename);
+  /* if filemagic found a match, we'll use player plugins associated with
+     that extension. if filemagic didn't find a match, we'll try to parse
+     pre- and postfixes from the modulename */
 
-    return 0;
+  if (extension[0]) {
+    /* get a ',' separated list of player plugin candidates for this
+       extension */
+    candidates = uade_get_playername(extension, format_ds, format_ds_size);
+    if (candidates)
+      return candidates;
+    fprintf(stderr, "interesting. a deduced file extension is not on the uadeformats list\n");
   }
-  fprintf(stderr, "got candidates: %s\n", candidates);
 
-  return 0;
+  /* magic wasn't able to deduce the format, so we'll try prefix and postfix
+     from modulename */
+  t = strrchr(modulename, (int) '/');
+  if (t == NULL) {
+    t = (char *) modulename;
+  } else {
+    t++;
+  }
+
+  /* try prefix first */
+  tn = strchr(t, '.');
+  if (tn == NULL) {
+    fprintf(stderr, "unknown format: %s\n", modulename);
+    return NULL;
+  }
+  len = ((intptr_t) tn) - ((intptr_t) t);
+  if (len < sizeof(extension)) {
+    memcpy(extension, t, len);
+    extension[len] = 0;
+    candidates = uade_get_playername(extension, format_ds, format_ds_size);
+    if (candidates)
+      return candidates;
+  }
+
+  /* prefix didn't match anything. trying postfix */
+  t = strrchr(t, '.');
+  if (strlcpy(extension, t, sizeof(extension)) >= sizeof(extension)) {
+    /* too long to be an extension */
+    fprintf(stderr, "unknown format: %s\n", modulename);
+    return NULL;
+  }
+  return uade_get_playername(extension, format_ds, format_ds_size);
 }
 
 
@@ -269,17 +307,60 @@ int main(int argc, char *argv[])
   }
 
   while (playlist_get_next(modulename, sizeof(modulename), &playlist)) {
+    char **playernames = NULL;
+    int nplayers;
 
     if (access(modulename, R_OK)) {
       fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
       exit(-1);
     }
 
+    nplayers = 1;
     if (playernamegiven == 0) {
-      if (!fileformat_detection(playername, modulename)) {
+      char *t, *tn;
+      char *candidates;
+      size_t len;
+
+      candidates = fileformat_detection(modulename);
+
+      fprintf(stderr, "got candidates: %s\n", candidates);
+
+      nplayers = 1;
+      t = candidates;
+      while ((t = strchr(t, (int) ','))) {
+	nplayers++;
+	t++;
+      }
+
+      playernames = malloc(sizeof(playernames[0]) * nplayers);
+      
+      t = candidates;
+      for (i = 0; i < nplayers; i++) {
+	tn = strchr(t, (int) ',');
+	if (tn == NULL) {
+	  len = strlen(t);
+	} else {
+	  len = ((intptr_t) tn) - ((intptr_t) t);
+	}
+	playernames[i] = malloc(len + 1);
+	if (playernames[i] == NULL) {
+	  fprintf(stderr, "out of memory.. damn it\n");
+	  exit(-1);
+	}
+	memcpy(playernames[i], t, len);
+	playernames[i][len] = 0;
+	t = tn;
+      }
+
+      if (nplayers < 1) {
 	fprintf(stderr, "skipping file with unknown format: %s\n", modulename);
 	continue;
       }
+      if (nplayers > 1) {
+	fprintf(stderr, "multiple players not supported yet\n");
+	continue;
+      }
+      snprintf(playername, sizeof(playername), "%s/players/%s", basedir, playernames[0]);
     }
 
     if (playername[0]) {
@@ -330,6 +411,11 @@ int main(int argc, char *argv[])
     if (!play_loop())
       goto cleanup;
 
+    if (playernames != NULL) {
+      for (i = 0; i < nplayers; i++)
+	free(playernames[i]);
+      free(playernames);
+    }
     break;
   }
 
