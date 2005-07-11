@@ -305,11 +305,11 @@ fi
 # Automatic checking for ALSA version 1.0.x. Fall back to OSS sound on
 # failure.
 if test "$AUDIOTARGET" = "ALSA"; then
- cat > test.c <<EOF
+ cat > alsatest.c <<EOF
 #include <alsa/asoundlib.h>
 int main(void) { return (!(SND_LIB_MAJOR==1 && SND_LIB_MINOR==0)); }
 EOF
-$CC -Wall -O2 -o testexe test.c 2>/dev/null || AUDIOTARGET="OSS"
+$CC -Wall -O2 -o alsatest alsatest.c 2>/dev/null || AUDIOTARGET="OSS"
 fi
 
 if test -n "$FORCEDAUDIOTARGET"; then
@@ -513,7 +513,7 @@ EOF
 OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 
 
-for file in src/Makefile.in src/frontends/*/Makefile.in ; do
+for file in Makefile.in src/Makefile.in src/frontends/*/Makefile.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|" -e "s|{ARCHLIBS}|$ARCHLIBS|" \
 	-e "s|{AUDIOFLAGS}|$AUDIOFLAGS|" -e "s|{AUDIOLIBS}|$AUDIOLIBS|" \

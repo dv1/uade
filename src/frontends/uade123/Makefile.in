@@ -2,9 +2,9 @@
 CC = {CC}
 CFLAGS = -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS}
 CLIBS = {ARCHLIBS} {AOLIBS}
-MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o
+MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o
 
-uade-trivial:	$(MODULES)
+uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
 
 uade-trivial.o:	uade-trivial.c ../../include/uademsg.h
@@ -19,8 +19,11 @@ unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
 	$(CC) $(CFLAGS) -o uadecontrol.o -c ../../uadecontrol.c
 
+amifilemagic.o:	../../amifilemagic.c ../../include/amifilemagic.h
+	$(CC) $(CFLAGS) -o amifilemagic.o -c ../../amifilemagic.c
+
 test:	
-	./uade-trivial -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
+	./uade123 -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
 
 clean:	
-	rm -f uade-trivial *.o
+	rm -f uade1337 *.o
