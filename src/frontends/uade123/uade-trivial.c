@@ -16,6 +16,9 @@
 #include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
+#include <uadeconfig.h>
+
+static char basedir[PATH_MAX];
 
 static char configname[PATH_MAX];
 static char modulename[PATH_MAX];
@@ -110,6 +113,8 @@ int main(int argc, char *argv[])
   struct uade_msg *um = (struct uade_msg *) space;
 
   for (i = 1; i < argc;) {
+    if (get_string_arg(basedir, sizeof(basedir), "-b", &i, argv, &argc))
+      continue;
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
       continue;
     if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
@@ -125,17 +130,27 @@ int main(int argc, char *argv[])
       continue;
     if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
       continue;
-    fprintf(stderr, "unknown arg: %s\n", argv[i]);
-    exit(-1);
+    if (argv[i][0] == '-') {
+      fprintf(stderr, "unknown arg: %s\n", argv[i]);
+      exit(-1);
+    }
+    fprintf(stderr, "would add %s to playlist\n", argv[i]);
+    i++;
   }
 
 #define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "must have %s\n", (y)); exit(-1); } } while (0)
-
-  CHECK_EXISTENCE(configname, "config name");
-  CHECK_EXISTENCE(modulename, "module name");
-  CHECK_EXISTENCE(playername, "player name");
-  CHECK_EXISTENCE(scorename, "score name");
-  CHECK_EXISTENCE(uadename, "uade executable name");
+  if (basedir[0]) {
+    if (configname[0] == 0)
+      snprintf(configname, sizeof(configname), "%s/uaerc", basedir);
+    if (scorename[0] == 0)
+      snprintf(scorename, sizeof(scorename), "%s/score", basedir);
+    if (uadename[0] == 0)
+      snprintf(uadename, sizeof(uadename), "%s/uadecore", basedir);
+  } else {
+    CHECK_EXISTENCE(configname, "config name");
+    CHECK_EXISTENCE(scorename, "score name");
+    CHECK_EXISTENCE(uadename, "uade executable name");
+  }
 
   setup_sighandlers();
 

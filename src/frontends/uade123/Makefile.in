@@ -7,7 +7,7 @@ MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
 
-uade-trivial.o:	uade-trivial.c ../../include/uademsg.h
+uade-trivial.o:	uade-trivial.c ../../include/uademsg.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h

@@ -515,8 +515,10 @@ OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 echo > src/include/uadeconfig.h
 if test "$user" = "yes" ; then
     echo "#define UADE_CONFIG_USER_MODE (1)" >> src/include/uadeconfig.h
+    echo "#define UADE_CONFIG_BASE_DIR \"$HOME/.uade2\"" >> src/include/uadeconfig.h
 else
     echo "#define UADE_CONFIG_USER_MODE (0)" >> src/include/uadeconfig.h
+    echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> src/include/uadeconfig.h
 fi
 
 sed -e "s|{MAKE}|$MAKE|" \
