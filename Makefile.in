@@ -1,13 +1,81 @@
+# Top-level Makefile for UADE
 
-all:	uadecore uade123
+MAKE = {MAKE}
+
+FINALBINDIR = {BINDIR}
+FINALDATADIR = {DATADIR}
+FINALDOCDIR = {DOCDIR}
+FINALMANDIR = {MANDIR}
+
+BINDIR = {PACKAGEPREFIX}/{BINDIR}
+DATADIR = {PACKAGEPREFIX}/{DATADIR}
+DOCDIR = {PACKAGEPREFIX}/{DOCDIR}
+MANDIR = {PACKAGEPREFIX}/{MANDIR}
+
+all:	src/include/uadeconfig.h uadecore uade123
 
 uadecore:	
-	make -C src
+	$(MAKE) -C src
 
 uade123:	
-	make -C src/frontends/trivial
+	$(MAKE) -C src/frontends/trivial
 
-install:	
-	mkdir -p $(HOME)/.uade2/players
-	cp -r players/* $(HOME)/.uade2/players/
+plugins:	
+	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms
+	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp
+
+
+src/include/uadeconfig.h:	
+	@echo ""
+	@echo "Run ./configure first!"
+	@echo ""
+	@false
+
+test:	
+	@ echo ""
+	@ echo "### UADE should be playing now 'AHX.Cruisin'"
+	@ echo ""
+	src/frontends/trivial/uade123 -B . songs/ahx/AHX.Cruisin
+
+uninstall:	
+	@test "{WITH_XMMS}" = "no" || $(MAKE) xmmspluginuninstall
+	@test "{WITH_BEEP}" = "no" || $(MAKE) beeppluginuninstall
+	rm -f "$(FINALBINDIR)/uade"
+	@echo
+	@echo "DELETE $(FINALDATADIR) and $(FINALDOCDIR) manually!!!"
+	@echo
+
+install:	all
+	mkdir -p "$(BINDIR)"
+	mkdir -p "$(DATADIR)/players"
+	mkdir -p "$(DOCDIR)"
+	mkdir -p "$(MANDIR)"
+
+	cp -f score uaerc uadeformats "$(DATADIR)/"
+	cp -rf players "$(DATADIR)/" || true
+	chmod -R og+rX "$(DATADIR)"
+
+	cp -f uade "$(BINDIR)/"
+	chmod og+rx "$(BINDIR)/uade"
+
+miniinstall:	
+	$(MAKE) plugininstall
+	cp -f uade $(BINDIR)/
+
+plugininstall:	
+	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms install
+	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp install
+
+pluginuninstall:	
+	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms uninstall
+	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp uninstall
+
+pluginclean:	
+	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms clean
+	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp clean
+
+clean:	
+	$(MAKE) -C src clean
+	$(MAKE) -C src/frontends/trivial clean
+
 
