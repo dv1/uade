@@ -18,6 +18,8 @@
 #include <unixatomic.h>
 #include <uadeconfig.h>
 
+#include "playlist.h"
+
 static char basedir[PATH_MAX];
 
 static char configname[PATH_MAX];
@@ -28,6 +30,7 @@ static char uadename[PATH_MAX];
 
 static int debug_mode = 0;
 static int debug_trigger = 0;
+static struct playlist playlist;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
 
@@ -111,6 +114,14 @@ int main(int argc, char *argv[])
   int i;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
+  int randommode = 0;
+  int recursivemode = 0;
+  int handleswitches = 1;
+
+  if (!playlist_init(&playlist)) {
+    fprintf(stderr, "can not initialize playlist\n");
+    exit(-1);
+  }
 
   for (i = 1; i < argc;) {
 
@@ -120,23 +131,39 @@ int main(int argc, char *argv[])
       continue;
     if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
       debug_mode = 1;
-      i ++;
+      i++;
       continue;
     }
     if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc))
       continue;
     if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc))
       continue;
+    if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--recursive") == 0) {
+      recursivemode = 1;
+      i++;
+      continue;
+    }
     if (get_string_arg(scorename, sizeof(scorename), "-s", &i, argv, &argc)) {
       continue;
     }
     if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
       continue;
-    if (argv[i][0] == '-') {
+    if (strcmp(argv[i], "-z") == 0 || strcmp(argv[i], "--shuffle") == 0) {
+      randommode = 1;
+      i++;
+      continue;
+    }
+    if (strcmp(argv[i], "--") == 0) {
+      handleswitches = 0;
+      i++;
+      continue;
+    }
+    if (handleswitches && argv[i][0] == '-') {
       fprintf(stderr, "unknown arg: %s\n", argv[i]);
       exit(-1);
     }
     fprintf(stderr, "would add %s to playlist\n", argv[i]);
+    playlist_add(&playlist, argv[i], recursivemode);
     i++;
   }
 
@@ -177,19 +204,6 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  if (modulename[0]) {
-    if (access(modulename, R_OK)) {
-      fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
-      exit(-1);
-    }
-  }
-  if (playername[0]) {
-    if (access(playername, R_OK)) {
-      fprintf(stderr, "could not read %s: %s\n", playername, strerror(errno));
-      exit(-1);
-    }
-  }
-
   setup_sighandlers();
 
   fork_exec_uade();
@@ -199,46 +213,63 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
-    fprintf(stderr, "can not send score name\n");
-    goto cleanup;
-  }
+  while (1) {
+    if (modulename[0]) {
+      if (access(modulename, R_OK)) {
+	fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
+	exit(-1);
+      }
+    }
+    if (playername[0]) {
+      if (access(playername, R_OK)) {
+	fprintf(stderr, "could not read %s: %s\n", playername, strerror(errno));
+	exit(-1);
+      }
+    }
 
-  if (uade_send_string(UADE_COMMAND_PLAYER, playername)) {
-    fprintf(stderr, "can not send player name\n");
-    goto cleanup;
-  }
+    if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
+      fprintf(stderr, "can not send score name\n");
+      goto cleanup;
+    }
 
-  if (uade_send_string(UADE_COMMAND_MODULE, modulename)) {
-    fprintf(stderr, "can not send module name\n");
-    goto cleanup;
-  }
+    if (uade_send_string(UADE_COMMAND_PLAYER, playername)) {
+      fprintf(stderr, "can not send player name\n");
+      goto cleanup;
+    }
 
-  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-    fprintf(stderr, "can not send token after module\n");
-    goto cleanup;
-  }
+    if (uade_send_string(UADE_COMMAND_MODULE, modulename)) {
+      fprintf(stderr, "can not send module name\n");
+      goto cleanup;
+    }
 
-  if (uade_receive_message(um, sizeof(space)) <= 0) {
-    fprintf(stderr, "can not receive acknowledgement from uade\n");
-    goto cleanup;
-  }
-  if (um->msgtype == UADE_REPLY_CANT_PLAY) {
-    fprintf(stderr, "uade refuses to play the song\n");
-    goto cleanup;
-  }
-  if (um->msgtype != UADE_REPLY_CAN_PLAY) {
-    fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
-    goto cleanup;
-  }
+    if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+      fprintf(stderr, "can not send token after module\n");
+      goto cleanup;
+    }
 
-  if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
-    fprintf(stderr, "can not receive token after play ack\n");
-    goto cleanup;
-  }
+    if (uade_receive_message(um, sizeof(space)) <= 0) {
+      fprintf(stderr, "can not receive acknowledgement from uade\n");
+      goto cleanup;
+    }
+    if (um->msgtype == UADE_REPLY_CANT_PLAY) {
+      fprintf(stderr, "uade refuses to play the song\n");
+      goto cleanup;
+    }
+    if (um->msgtype != UADE_REPLY_CAN_PLAY) {
+      fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
+      goto cleanup;
+    }
 
-  if (!play_loop())
-    goto cleanup;
+    if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
+      fprintf(stderr, "can not receive token after play ack\n");
+      goto cleanup;
+    }
+
+    if (!play_loop())
+      goto cleanup;
+
+    break;
+  }
 
   fprintf(stderr, "killing child (%d)\n", uadepid);
   trivial_cleanup();

@@ -2,7 +2,8 @@
 CC = {CC}
 CFLAGS = -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS}
 CLIBS = {ARCHLIBS} {AOLIBS}
-MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o
+MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
+	chrarray.o playlist.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -21,6 +22,12 @@ uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uad
 
 amifilemagic.o:	../../amifilemagic.c ../../include/amifilemagic.h
 	$(CC) $(CFLAGS) -o amifilemagic.o -c ../../amifilemagic.c
+
+chrarray.o:	chrarray.c chrarray.h
+	$(CC) $(CFLAGS) -c chrarray.c
+
+playlist.o:	playlist.c playlist.h
+	$(CC) $(CFLAGS) -c playlist.c
 
 test:	
 	./uade123 -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
