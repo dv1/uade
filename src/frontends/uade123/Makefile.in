@@ -7,7 +7,7 @@ MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o
 uade-trivial:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
 
-uade-trivial.o:	uade-trivial.c
+uade-trivial.o:	uade-trivial.c ../../include/uademsg.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
@@ -16,7 +16,7 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -o unixatomic.o -c ../../unixatomic.c
 
-uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h
+uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
 	$(CC) $(CFLAGS) -o uadecontrol.o -c ../../uadecontrol.c
 
 test:	
