@@ -140,6 +140,9 @@ int main(int argc, char *argv[])
     i++;
   }
 
+  if (basedir[0] == 0)
+    strlcpy(basedir, UADE_CONFIG_BASE_DIR, sizeof(basedir));
+
 #define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "must have %s\n", (y)); exit(-1); } } while (0)
 
   if (basedir[0]) {
