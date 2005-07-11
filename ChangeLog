@@ -1,8 +1,12 @@
 2005-07-11  Heikki Orsila <heikki.orsila@iki.fi>
-	- improved src/frontends/trivial/, and now it is called uade123
-	- found a bug in amifilemagic by accident. chk_id_offset() function
+	- Improved src/frontends/trivial/, and now it is called uade123.
+	  It can now do fileformat detection by content, and load proper
+	  players from their installation place. Also, it can play multiple
+	  songs in a sequence if one switches to next song with ctrl-c before
+	  the song actually ends ;)
+	- Found a bug in amifilemagic by accident. chk_id_offset() function
 	  tested patterns of length sizeof(patterns[i]) which is totally
-	  wrong. it was corrected to strlen(patterns[i])
+	  wrong. It was corrected to strlen(patterns[i]).
 
 2005-07-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- started hacking uade. the goal is to release uade 2.00 someday
