@@ -55,8 +55,11 @@ install:	all
 	cp -rf players "$(DATADIR)/" || true
 	chmod -R og+rX "$(DATADIR)"
 
-	cp -f uade "$(BINDIR)/"
-	chmod og+rx "$(BINDIR)/uade"
+	cp -f src/uadecore "$(BINDIR)/"
+	chmod og+rx "$(BINDIR)/uadecore"
+
+	cp -f src/frontends/trivial/uade123 "$(BINDIR)/"
+	chmod og+rx "$(BINDIR)/uade123"
 
 miniinstall:	
 	$(MAKE) plugininstall
