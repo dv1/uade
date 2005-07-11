@@ -323,6 +323,7 @@ static int play_loop(void)
   return 1;
 }
 
+
 static void setup_sighandlers(void)
 {
   while (1) {

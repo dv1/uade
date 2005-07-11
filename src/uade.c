@@ -84,17 +84,19 @@ static const int SCORE_CUR_SUBSONG   = 0x20C;
 static const int SCORE_OUTPUT_MSG    = 0x300;
 
 
-static int disable_modulechange = 0;
-struct uade_song song;
-static int uade_big_endian;
-static int uade_execdebugboolean = 0;
 int uade_debug = 0;
-static int uade_dmawait = 0;
-static int uade_highmem = 0x200000;
 int uade_read_size = 0;
 int uade_reboot;
-static int uade_speed_hack = 0;
 int uade_time_critical = 0;
+
+
+static int disable_modulechange = 0;
+static struct uade_song song;
+static int uade_big_endian;
+static int uade_dmawait = 0;
+static int uade_execdebugboolean = 0;
+static int uade_highmem = 0x200000;
+static int uade_speed_hack = 0;
 static int voltestboolean = 0;
 
 
@@ -382,6 +384,7 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_ACTIVATE_DEBUGGER:
       fprintf(stderr, "received activate debugger message\n");
       activate_debugger();
+      uade_debug = 1;
       break;
 
     case UADE_COMMAND_CHANGE_SUBSONG:
@@ -485,11 +488,7 @@ void uade_option(int argc, char **argv)
     
     if (argv[i][0] == '-') {
 
-      if (!strcmp(argv[i], "-debug") || !strcmp(argv[i], "-d")) {
-	uade_debug = 1;
-	i++;
-
-      } else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
+      if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h") || !strcmp(argv[i], "-help")) {
 	uade_print_help(OPTION_HELP, argv[0]);
 	exit(0);
 
@@ -547,9 +546,6 @@ void uade_option(int argc, char **argv)
 
   uade_portable_initializations();
 
-  if (uade_debug)
-    activate_debugger();
-
   uade_reboot = 1;
 }
 
@@ -574,11 +570,12 @@ static void uade_print_help(enum print_help problemcode, char *progname)
   fprintf(stderr, " %s [OPTIONS]\n\n", progname);
 
   fprintf(stderr, " options:\n");
-  fprintf(stderr, " -d\t\tSet debug mode\n");
   fprintf(stderr, " -h\t\tPrint help\n");
-  fprintf(stderr, " -i file\t\tSet input source\n");
-  fprintf(stderr, " -o file\t\tSet output destination\n");
+  fprintf(stderr, " -i file\tSet input source ('filename' or 'fd://number')\n");
+  fprintf(stderr, " -o file\tSet output destination ('filename' or 'fd://number'\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, "This tool should not be run from the command line. This is for internal use\n");
+  fprintf(stderr, "of other programs.\n");
 }
 
 
@@ -767,12 +764,12 @@ void uade_reset(void)
   m68k_areg(regs,7) = scoreaddr;
   m68k_setpc(scoreaddr);
 
-  /* override bit for sound format checking */
+  /* obey player format checking */
   uade_put_long(SCORE_FORCE, 0);
-  /* setsubsong */
+  /* set default subsong */
   uade_put_long(SCORE_SET_SUBSONG, 0);
   uade_put_long(SCORE_SUBSONG, 0);
-  /* set ntscbit correctly */
+  /* set PAL mode */
   uade_set_ntsc(0);
 
   /* pause bits (don't care!), for debugging purposes only */
