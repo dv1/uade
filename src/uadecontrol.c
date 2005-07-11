@@ -130,6 +130,14 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 int uade_receive_short_message(enum uade_msgtype msgtype)
 {
   struct uade_msg um;
+
+  if (uade_control_state == UADE_INITIAL_STATE) {
+    uade_control_state = UADE_R_STATE;
+  } else if (uade_control_state == UADE_S_STATE) {
+    fprintf(stderr, "protocol error: receiving (%d) in S state is forbidden\n", msgtype);
+    return -1;
+  }
+
   if (uade_receive_message(&um, sizeof(um)) <= 0) {
     fprintf(stderr, "can not receive short message: %d\n", msgtype);
     return -1;
