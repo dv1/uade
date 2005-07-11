@@ -35,7 +35,7 @@ test:
 	@ echo ""
 	@ echo "### UADE should be playing now 'AHX.Cruisin'"
 	@ echo ""
-	src/frontends/trivial/uade123 -b . songs/ahx/AHX.Cruisin
+	src/frontends/trivial/uade123 -b . -p players/AHX -m songs/AHX.Cruisin -u src/uadecore
 
 uninstall:	
 	@test "{WITH_XMMS}" = "no" || $(MAKE) xmmspluginuninstall

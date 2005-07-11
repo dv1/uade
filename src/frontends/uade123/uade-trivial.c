@@ -8,8 +8,8 @@
 #include <string.h>
 #include <time.h>
 #include <sys/wait.h>
-
 #include <netinet/in.h>
+#include <dirent.h>
 
 #include <ao/ao.h>
 
@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
   struct uade_msg *um = (struct uade_msg *) space;
 
   for (i = 1; i < argc;) {
+
     if (get_string_arg(basedir, sizeof(basedir), "-b", &i, argv, &argc))
       continue;
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
@@ -126,8 +127,9 @@ int main(int argc, char *argv[])
       continue;
     if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc))
       continue;
-    if (get_string_arg(scorename, sizeof(scorename), "-s", &i, argv, &argc))
+    if (get_string_arg(scorename, sizeof(scorename), "-s", &i, argv, &argc)) {
       continue;
+    }
     if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
       continue;
     if (argv[i][0] == '-') {
@@ -139,7 +141,14 @@ int main(int argc, char *argv[])
   }
 
 #define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "must have %s\n", (y)); exit(-1); } } while (0)
+
   if (basedir[0]) {
+    DIR *bd;
+    if ((bd = opendir(basedir)) == NULL) {
+      fprintf(stderr, "could not access dir %s: %s\n", basedir, strerror(errno));
+      exit(-1);
+    }
+    closedir(bd);
     if (configname[0] == 0)
       snprintf(configname, sizeof(configname), "%s/uaerc", basedir);
     if (scorename[0] == 0)
@@ -150,6 +159,32 @@ int main(int argc, char *argv[])
     CHECK_EXISTENCE(configname, "config name");
     CHECK_EXISTENCE(scorename, "score name");
     CHECK_EXISTENCE(uadename, "uade executable name");
+  }
+
+  if (access(configname, R_OK)) {
+    fprintf(stderr, "could not read %s: %s\n", configname, strerror(errno));
+    exit(-1);
+  }
+  if (access(scorename, R_OK)) {
+    fprintf(stderr, "could not read %s: %s\n", scorename, strerror(errno));
+    exit(-1);
+  }
+  if (access(uadename, X_OK)) {
+    fprintf(stderr, "could not execute %s: %s\n", uadename, strerror(errno));
+    exit(-1);
+  }
+
+  if (modulename[0]) {
+    if (access(modulename, R_OK)) {
+      fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
+      exit(-1);
+    }
+  }
+  if (playername[0]) {
+    if (access(playername, R_OK)) {
+      fprintf(stderr, "could not read %s: %s\n", playername, strerror(errno));
+      exit(-1);
+    }
   }
 
   setup_sighandlers();
