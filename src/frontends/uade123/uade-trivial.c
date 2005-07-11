@@ -573,10 +573,12 @@ static int play_loop(void)
   }
 
   if (songend) {
-    if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
-      fprintf(stderr, "can not receive token back after reboot\n");
-      return 0;
-    }
+    do {
+      if (uade_receive_message(um, sizeof(space)) <= 0) {
+	fprintf(stderr, "can not receive events from uade\n");
+	return 0;
+      }
+    } while (um->msgtype != UADE_COMMAND_TOKEN);
   }
 
   return 1;
