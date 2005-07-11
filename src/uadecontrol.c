@@ -23,11 +23,14 @@
 #include <strlrep.h>
 #include <unixatomic.h>
 
+
 unsigned int uade_inputbytes = 0;
 static char uade_inputbuffer[UADE_MAX_MESSAGE_SIZE];
 
 int uade_input_fd = 0; /* stdin */
 int uade_output_fd = 1; /* stdout */
+
+static int uade_control_state = UADE_INITIAL_STATE;
 
 
 static int uade_url_to_fd(const char *url, int flags, mode_t mode);
@@ -63,10 +66,10 @@ static ssize_t get_more(size_t bytes)
   if (uade_inputbytes < bytes) {
     ssize_t s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes);
     if (s <= 0)
-      return 0;
+      return -1;
     uade_inputbytes += s;
   }
-  return 1;
+  return 0;
 }
 
 
@@ -82,35 +85,44 @@ static void uade_copy_from_inputbuffer(void *dst, int bytes)
 }
 
 
-int uade_receive_message(struct uade_msg *uc, size_t maxbytes)
+int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 {
   size_t fullsize;
 
-  assert(sizeof(*uc) == 8);
+  if (uade_control_state == UADE_INITIAL_STATE) {
+    uade_control_state = UADE_R_STATE;
+  } else if (uade_control_state == UADE_S_STATE) {
+    fprintf(stderr, "protocol error: receiving in S state is forbidden\n");
+    return -1;
+  }
 
-  if (uade_inputbytes < sizeof(*uc)) {
-    if ((get_more(sizeof(*uc)) == 0))
+  if (uade_inputbytes < sizeof(*um)) {
+    if (get_more(sizeof(*um)))
       return 0;
   }
 
-  uade_copy_from_inputbuffer(uc, sizeof(*uc));
+  uade_copy_from_inputbuffer(um, sizeof(*um));
 
-  uc->msgtype = ntohl(uc->msgtype);
-  uc->size = ntohl(uc->size);
+  um->msgtype = ntohl(um->msgtype);
+  um->size = ntohl(um->size);
 
-  if (!uade_valid_message(uc))
+  if (!uade_valid_message(um))
     return -1;
 
-  fullsize = uc->size + sizeof(*uc);
+  fullsize = um->size + sizeof(*um);
   if (fullsize > maxbytes) {
     fprintf(stderr, "too big a command: %u\n", fullsize);
     return -1;
   }
-  if (uade_inputbytes < uc->size) {
-    if ((get_more(uc->size) == 0))
+  if (uade_inputbytes < um->size) {
+    if (get_more(um->size))
       return -1;
   }
-  uade_copy_from_inputbuffer(&uc->data, uc->size);
+  uade_copy_from_inputbuffer(&um->data, um->size);
+
+  if (um->msgtype == UADE_COMMAND_TOKEN)
+    uade_control_state = UADE_S_STATE;
+
   return 1;
 }
 
@@ -120,48 +132,96 @@ int uade_receive_string(char *s, enum uade_msgtype com,
 {
   const size_t COMLEN = 4096;
   uint8_t commandbuf[COMLEN];
-  struct uade_msg *uc = (struct uade_msg *) commandbuf;
+  struct uade_msg *um = (struct uade_msg *) commandbuf;
   int ret;
-  ret = uade_receive_message(uc, COMLEN);
+
+  if (uade_control_state == UADE_INITIAL_STATE) {
+    uade_control_state = UADE_R_STATE;
+  } else if (uade_control_state == UADE_S_STATE) {
+    fprintf(stderr, "protocol error: receiving in S state is forbidden\n");
+    return -1;
+  }
+
+  ret = uade_receive_message(um, COMLEN);
   if (ret <= 0)
     return ret;
-  if (uc->msgtype != com)
+  if (um->msgtype != com)
     return -1;
-  if (uc->size == 0)
+  if (um->size == 0)
     return -1;
-  if (uc->size != (strlen(uc->data) + 1))
+  if (um->size != (strlen(um->data) + 1))
     return -1;
-  strlcpy(s, uc->data, maxlen);
+  strlcpy(s, um->data, maxlen);
   return 1;
 }
 
 
-int uade_send_message(struct uade_msg *uc)
+int uade_receive_token(void)
 {
-  uint32_t size = uc->size;
-  if (!uade_valid_message(uc))
+  struct uade_msg um;
+  if (uade_receive_message(&um, sizeof(um)) <= 0) {
+    fprintf(stderr, "can not receive token\n");
     return -1;
-  uc->msgtype = htonl(uc->msgtype);
-  uc->size = htonl(uc->size);
-  if (atomic_write(uade_output_fd, uc, sizeof(*uc) + size) < 0)
+  }
+  return (um.msgtype == UADE_COMMAND_TOKEN) ? 0 : -1;
+}
+
+
+int uade_send_message(struct uade_msg *um)
+{
+  uint32_t size = um->size;
+
+  if (uade_control_state == UADE_INITIAL_STATE) {
+    uade_control_state = UADE_S_STATE;
+  } else if (uade_control_state == UADE_R_STATE) {
+    fprintf(stderr, "protocol error: sending in R state is forbidden\n");
     return -1;
-  return 1;
+  }
+
+  if (!uade_valid_message(um))
+    return -1;
+  if (um->msgtype == UADE_COMMAND_TOKEN)
+    uade_control_state = UADE_R_STATE;
+  um->msgtype = htonl(um->msgtype);
+  um->size = htonl(um->size);
+  if (atomic_write(uade_output_fd, um, sizeof(*um) + size) < 0)
+    return -1;
+
+  return 0;
 }
 
 
 int uade_send_string(enum uade_msgtype com, const char *str)
 {
   uint32_t size = strlen(str) + 1;
-  struct uade_msg uc = {.msgtype = ntohl(com), .size = ntohl(size)};
-  if ((sizeof(uc) + size) > UADE_MAX_MESSAGE_SIZE)
+  struct uade_msg um = {.msgtype = ntohl(com), .size = ntohl(size)};
+
+  if (uade_control_state == UADE_INITIAL_STATE) {
+    uade_control_state = UADE_S_STATE;
+  } else if (uade_control_state == UADE_R_STATE) {
+    fprintf(stderr, "protocol error: sending in R state is forbidden\n");
     return -1;
-  if (atomic_write(uade_output_fd, &uc, sizeof(uc)) < 0)
+  }
+
+  if ((sizeof(um) + size) > UADE_MAX_MESSAGE_SIZE)
+    return -1;
+  if (atomic_write(uade_output_fd, &um, sizeof(um)) < 0)
     return -1;
   if (atomic_write(uade_output_fd, str, size) < 0)
     return -1;
-  return 1;
+
+  return 0;
 }
 
+
+int uade_send_token(void)
+{
+  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_TOKEN})) {
+    fprintf(stderr, "can not send token\n");
+    return -1;
+  }
+  return 0;
+}
 
 void uade_set_input_source(const char *input_source)
 {
@@ -206,13 +266,13 @@ static int uade_url_to_fd(const char *url, int flags, mode_t mode)
 }
 
 
-static int uade_valid_message(struct uade_msg *uc)
+static int uade_valid_message(struct uade_msg *um)
 {
-  if (uc->msgtype <= UADE_MSG_FIRST || uc->msgtype >= UADE_MSG_LAST) {
-    fprintf(stderr, "unknown command: %d\n", uc->msgtype);
+  if (um->msgtype <= UADE_MSG_FIRST || um->msgtype >= UADE_MSG_LAST) {
+    fprintf(stderr, "unknown command: %d\n", um->msgtype);
     return 0;
   }
-  if ((sizeof(*uc) + uc->size) > UADE_MAX_MESSAGE_SIZE) {
+  if ((sizeof(*um) + um->size) > UADE_MAX_MESSAGE_SIZE) {
     fprintf(stderr, "too long a message\n");
     return 0;
   }

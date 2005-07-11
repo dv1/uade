@@ -1305,7 +1305,7 @@ void m68k_go (void)
     m68k_reset ();
     customreset ();
 
-    uade_receive_control(1);
+    uade_handle_r_state();
 
     while (uade_reboot == 0 && quit_program == 0) {
       if (debugging)

@@ -141,23 +141,28 @@ int main(int argc, char *argv[])
 
   fork_exec_uade();
 
-  if (uade_send_string(UADE_COMMAND_CONFIG, configname) == 0) {
+  if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
     goto cleanup;
   }
 
-  if (uade_send_string(UADE_COMMAND_SCORE, scorename) == 0) {
+  if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
     fprintf(stderr, "can not send score name\n");
     goto cleanup;
   }
 
-  if (uade_send_string(UADE_COMMAND_PLAYER, playername) == 0) {
+  if (uade_send_string(UADE_COMMAND_PLAYER, playername)) {
     fprintf(stderr, "can not send player name\n");
     goto cleanup;
   }
 
-  if (uade_send_string(UADE_COMMAND_MODULE, modulename) == 0) {
+  if (uade_send_string(UADE_COMMAND_MODULE, modulename)) {
     fprintf(stderr, "can not send module name\n");
+    goto cleanup;
+  }
+
+  if (uade_send_token()) {
+    fprintf(stderr, "can not send token after module\n");
     goto cleanup;
   }
 
@@ -171,6 +176,11 @@ int main(int argc, char *argv[])
   }
   if (um->msgtype != UADE_REPLY_CAN_PLAY) {
     fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
+    goto cleanup;
+  }
+
+  if (uade_receive_token() < 0) {
+    fprintf(stderr, "can not receive token after play ack\n");
     goto cleanup;
   }
 
@@ -216,79 +226,98 @@ static int play_loop(void)
   }
 
   left = 0;
+  enum uade_control_state state = UADE_S_STATE;
 
   while (1) {
 
     if (uadeterminated != 0)
       break;
 
-    if (left == 0) {
+    if (state == UADE_S_STATE) {
 
-      if (debug_trigger == 1) {
-	uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0});
-	debug_trigger = 0;
+      if (left == 0) {
+	
+	if (debug_trigger == 1) {
+	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
+	    fprintf(stderr, "can not active debugger\n");
+	    return 0;
+	  }
+	  debug_trigger = 0;
+	}
+	
+	left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
+	um->msgtype = UADE_COMMAND_READ;
+	um->size = 4;
+	* (uint32_t *) um->data = htonl(left);
+	if (uade_send_message(um)) {
+	  fprintf(stderr, "can not send read command\n");
+	  return 0;
+	}
+	
+	if (uade_send_token()) {
+	  fprintf(stderr, "can not send token\n");
+	  return 0;
+	}
+
+	state = UADE_R_STATE;
       }
 
-      left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
-      um->msgtype = UADE_COMMAND_READ;
-      um->size = 4;
-      * (uint32_t *) um->data = htonl(left);
-      if (uade_send_message(um) <= 0) {
-	fprintf(stderr, "can not send read command\n");
+    } else {
+
+      if (uade_receive_message(um, sizeof(space)) <= 0) {
+	fprintf(stderr, "can not receive events from uade\n");
+	return 0;
+      }
+      
+      switch (um->msgtype) {
+      case UADE_COMMAND_TOKEN:
+	state = UADE_S_STATE;
+	break;
+
+      case UADE_REPLY_DATA:
+	sm = (uint16_t *) um->data;
+	for (i = 0; i < um->size; i += 2) {
+	  *sm = ntohs(*sm);
+	  sm++;
+	}
+	
+	if (!ao_play(libao_device, um->data, um->size)) {
+	  fprintf(stderr, "libao error detected.\n");
+	  return 0;
+	}
+	
+	left -= um->size;
+	break;
+	
+      case UADE_REPLY_FORMATNAME:
+	uade_check_fix_string(um, 128);
+	fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
+	break;
+	
+      case UADE_REPLY_MODULENAME:
+	uade_check_fix_string(um, 128);
+	fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
+	break;
+	
+      case UADE_REPLY_PLAYERNAME:
+	uade_check_fix_string(um, 128);
+	fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
+	break;
+	
+      case UADE_REPLY_SUBSONG_INFO:
+	if (um->size != 12) {
+	  fprintf(stderr, "subsong info: too short a message\n");
+	  exit(-1);
+	}
+	u32ptr = (uint32_t *) um->data;
+	fprintf(stderr, "got subsong info: min: %d max: %d cur: %d\n", u32ptr[0], u32ptr[1], u32ptr[2]);
+	break;
+	
+      default:
+	fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
 	return 0;
       }
     }
-
-    if (uade_receive_message(um, sizeof(space)) <= 0) {
-      fprintf(stderr, "can not receive events from uade\n");
-      return 0;
-    }
-
-    switch (um->msgtype) {
-    case UADE_REPLY_DATA:
-      sm = (uint16_t *) um->data;
-      for (i = 0; i < um->size; i += 2) {
-	*sm = ntohs(*sm);
-	sm++;
-      }
-
-      if (!ao_play(libao_device, um->data, um->size)) {
-	fprintf(stderr, "libao error detected.\n");
-	return 0;
-      }
-
-      left -= um->size;
-      break;
-
-    case UADE_REPLY_FORMATNAME:
-      uade_check_fix_string(um, 128);
-      fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
-      break;
-
-    case UADE_REPLY_MODULENAME:
-      uade_check_fix_string(um, 128);
-      fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
-      break;
-
-    case UADE_REPLY_PLAYERNAME:
-      uade_check_fix_string(um, 128);
-      fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
-      break;
-
-    case UADE_REPLY_SUBSONG_INFO:
-      if (um->size != 12) {
-	fprintf(stderr, "subsong info: too short a message\n");
-	exit(-1);
-      }
-      u32ptr = (uint32_t *) um->data;
-      fprintf(stderr, "got subsong info: min: %d max: %d cur: %d\n", u32ptr[0], u32ptr[1], u32ptr[2]);
-      break;
-
-    default:
-      fprintf(stderr, "expected sound data. got %d.\n", um->msgtype);
-      return 0;
-    }
-
   }
 
   return 1;
