@@ -101,21 +101,21 @@ readcpu.o: include/readcpu.h
 main.o: config.h
 cia.o: config.h include/events.h
 custom.o: config.h include/events.h
-newcpu.o: newcpu.c include/uade.h config.h include/events.h
+newcpu.o: newcpu.c config.h include/events.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
-sd-sound.o:	include/uade.h config.h sd-sound.c sd-sound.h {SOUNDHEADER} {SOUNDSOURCE}
-audio.o: include/uade.h config.h include/events.h sd-sound.h {SOUNDHEADER}
+sd-sound.o:	config.h sd-sound.c sd-sound.h {SOUNDHEADER} {SOUNDSOURCE}
+audio.o: config.h include/events.h sd-sound.h {SOUNDHEADER}
 memory.o: config.h
 debug.o: config.h
 fpp.o: config.h
 
-uade.o: include/uade.h config.h sd-sound.h include/uademsg.h
+uade.o: config.h sd-sound.h include/uademsg.h
 
 uadecontrol.o:	config.h include/uadecontrol.h include/uademsg.h
 
 players.o:	players.c players.h
 
-ossupport.o:	include/uade.h ossupport.c {OSSUPPORTMODULES}
+ossupport.o:	ossupport.c {OSSUPPORTMODULES}
 
 
