@@ -305,7 +305,7 @@ fi
 # Automatic checking for ALSA version 1.0.x. Fall back to OSS sound on
 # failure.
 if test "$AUDIOTARGET" = "ALSA"; then
- cat > test.c <<EOF
+ cat > strltest.c <<EOF
 #include <alsa/asoundlib.h>
 int main(void) { return (!(SND_LIB_MAJOR==1 && SND_LIB_MINOR==0)); }
 EOF
