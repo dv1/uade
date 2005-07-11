@@ -75,7 +75,7 @@ const char *offset_0000_patterns[] = {
   "STP3", "STP3",		/* Soundtracker Pro 2 */
   "MTM", "MTM",			/* Multitracker */
   "Extended Module:", "XM",	/* Fasttracker2 */
-  0, 0
+  NULL, NULL
 };
 
 const char *offset_0024_patterns[] = {
@@ -91,7 +91,7 @@ const char *offset_0024_patterns[] = {
   "F.PLAYER", "FP",		/* F.Player */
   "S.PHIPPS", "CORE",		/* Core Design */
   "DAGLISH!", "BDS",		/* Benn Daglish */
-  0, 0
+  NULL, NULL
 };
 
 
