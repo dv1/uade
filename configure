@@ -305,11 +305,11 @@ fi
 # Automatic checking for ALSA version 1.0.x. Fall back to OSS sound on
 # failure.
 if test "$AUDIOTARGET" = "ALSA"; then
- cat > alsatest.c <<EOF
+ cat > test.c <<EOF
 #include <alsa/asoundlib.h>
 int main(void) { return (!(SND_LIB_MAJOR==1 && SND_LIB_MINOR==0)); }
 EOF
-$CC -Wall -O2 -o alsatest alsatest.c 2>/dev/null || AUDIOTARGET="OSS"
+$CC -Wall -O2 -o testexe test.c 2>/dev/null || AUDIOTARGET="OSS"
 fi
 
 if test -n "$FORCEDAUDIOTARGET"; then
