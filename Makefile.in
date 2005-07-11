@@ -1,0 +1,13 @@
+
+all:	uadecore uade123
+
+uadecore:	
+	make -C src
+
+uade123:	
+	make -C src/frontends/trivial
+
+install:	
+	mkdir -p $(HOME)/.uade2/players
+	cp -r players/* $(HOME)/.uade2/players/
+
