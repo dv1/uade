@@ -1,3 +1,10 @@
+2005-07-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Code in src/amifilemagic.c does amiga fileformats detection. If it's
+	  useful for any other project out there, it is now dual licensed
+	  under the GNU GPL _and_ Public Domain. By public domain we mean
+	  that you can do anything you like with the code, including
+	  relicensing arbitrarily for your projects.
+
 2005-07-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Improved the command line frontend in src/frontends/trivial/,
 	  and now it is called uade123. It can now do fileformat detection by
