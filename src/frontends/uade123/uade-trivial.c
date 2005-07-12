@@ -238,6 +238,8 @@ int main(int argc, char *argv[])
   char modulename[PATH_MAX];
   int playernamegiven = 0;
   struct playlist playlist;
+  char tmpstr[256];
+  long subsong = -1;
 
   if (!playlist_init(&playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
@@ -268,7 +270,21 @@ int main(int argc, char *argv[])
       i++;
       continue;
     }
-    if (get_string_arg(scorename, sizeof(scorename), "-s", &i, argv, &argc)) {
+    if (get_string_arg(tmpstr, sizeof(tmpstr), "-s", &i, argv, &argc) ||
+	get_string_arg(tmpstr, sizeof(tmpstr), "-sub", &i, argv, &argc)) {
+      char *endptr;
+      if (tmpstr[0] == 0) {
+	fprintf(stderr, "uade123: subsong string must be non-empty\n");
+	exit(-1);
+      }
+      subsong = strtol(tmpstr, &endptr, 10);
+      if (*endptr != 0 || subsong < 0 || subsong > 255) {
+	fprintf(stderr, "uade123: illegal subsong string: %s\n", tmpstr);
+	exit(-1);
+      }
+      continue;
+    }
+    if (get_string_arg(scorename, sizeof(scorename), "-S", &i, argv, &argc)) {
       continue;
     }
     if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
@@ -287,7 +303,6 @@ int main(int argc, char *argv[])
       fprintf(stderr, "unknown arg: %s\n", argv[i]);
       exit(-1);
     }
-    fprintf(stderr, "would add %s to playlist\n", argv[i]);
     playlist_add(&playlist, argv[i], recursivemode);
     i++;
   }
@@ -395,7 +410,13 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "multiple players not supported yet\n");
 	continue;
       }
-      snprintf(playername, sizeof(playername), "%s/players/%s", basedir, playernames[0]);
+
+      if (strcmp(playernames[0], "custom") == 0) {
+	strlcpy(playername, modulename, sizeof(playername));
+	modulename[0] = 0;
+      } else {
+	snprintf(playername, sizeof(playername), "%s/players/%s", basedir, playernames[0]);
+      }
     }
 
     if (playername[0]) {
@@ -476,6 +497,8 @@ static int play_loop(void)
   int songend = 0;
   int ret;
 
+  test_song_end_trigger(); /* clear a pending SIGINT */
+
   left = 0;
   enum uade_control_state state = UADE_S_STATE;
 
@@ -497,7 +520,6 @@ static int play_loop(void)
 	}
 
 	if (song_end_trigger) {
-	  test_song_end_trigger();
 	  songend = 1;
 	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
 	    fprintf(stderr, "can not send reboot\n");
@@ -565,7 +587,11 @@ static int play_loop(void)
 	uade_check_fix_string(um, 128);
 	fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
 	break;
-	
+
+      case UADE_REPLY_SONG_END:
+	songend = 1;
+	goto out;
+
       case UADE_REPLY_SUBSONG_INFO:
 	if (um->size != 12) {
 	  fprintf(stderr, "subsong info: too short a message\n");
@@ -581,7 +607,7 @@ static int play_loop(void)
       }
     }
   }
-
+ out:
   if (songend) {
     do {
       ret = uade_receive_message(um, sizeof(space));
