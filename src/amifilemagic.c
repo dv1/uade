@@ -4,12 +4,14 @@
                           http://uade.ton.tut.fi
  Copyright (C) 2000-2005  Michael Doering
 
- This module is licensed under the GNU GPL.
+ This module is dual licensed under the GNU GPL and the Public Domain.
+ Hence you may use _this_ module (not another code module) however you
+ want in your projects.
 
  About security:
 
  This module tries to avoid any buffer overruns by not copying anything but
- hard coded strings (such as "FC13") into pre string. This doesn't
+ hard coded strings (such as "FC13"). This doesn't
  copy any data from modules to program memory. Any memory writing with
  non-hard-coded data is an error by assumption. This module will only
  determine the format of a given module.
