@@ -43,6 +43,7 @@ static int uadeterminated = 0;
 static int song_end_trigger = 0;
 
 static int play_loop(void);
+static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
 static int test_song_end_trigger(void);
 static void trivial_sigchld(int sig);
@@ -464,6 +465,9 @@ int main(int argc, char *argv[])
       goto cleanup;
     }
 
+    if (subsong >= 0)
+      set_subsong(um, subsong);
+
     if (!play_loop())
       goto cleanup;
 
@@ -623,6 +627,18 @@ static int play_loop(void)
   }
 
   return 1;
+}
+
+
+static void set_subsong(struct uade_msg *um, int subsong)
+{
+  assert(subsong > 0 && subsong < 256);
+  *um = (struct uade_msg) {.msgtype = UADE_COMMAND_SET_SUBSONG, .size = 4};
+  * (uint32_t *) um->data = htonl(subsong);
+  if (uade_send_message(um) < 0) {
+    fprintf(stderr, "could not set subsong\n");
+    exit(-1);
+  }
 }
 
 
