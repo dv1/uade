@@ -391,7 +391,8 @@ void uade_handle_r_state(void)
 	fprintf(stderr, "illegal size with change subsong\n");
 	exit(-1);
       }
-      uade_change_subsong(* (uint32_t *) um->data);
+      x = ntohl(* (uint32_t *) um->data);
+      uade_change_subsong(x);
       break;
 
     case UADE_COMMAND_IGNORE_CHECK:
@@ -920,7 +921,7 @@ void uade_song_end(char *reason, int kill_it)
   um->msgtype = UADE_REPLY_SONG_END;
   * (uint32_t *) um->data = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
   strlcpy(((uint8_t *) um->data) + 4, reason, 256);
-  um->size = 4 + strlen(reason + 1);
+  um->size = 4 + strlen(reason) + 1;
   if (uade_send_message(um)) {
     fprintf(stderr, "uade: could not send song end message\n");
     exit(-1);

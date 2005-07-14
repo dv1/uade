@@ -498,15 +498,20 @@ static int play_loop(void)
   struct uade_msg *um = (struct uade_msg *) space;
 
   int left;
-  int songend = 0;
+  int song_end = 0;
+  int next_song = 0;
   int ret;
+  int cur_sub = -1, max_sub = -1;
+  int tailbytes = 0;
+  int playbytes;
+  char *reason;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
 
   left = 0;
   enum uade_control_state state = UADE_S_STATE;
 
-  while (songend == 0) {
+  while (next_song == 0) {
 
     if (uadeterminated)
       return 0;
@@ -523,8 +528,29 @@ static int play_loop(void)
 	  debug_trigger = 0;
 	}
 
+	if (song_end) {
+	  if (cur_sub != -1 && max_sub != -1) {
+	    cur_sub++;
+	    if (cur_sub >= max_sub) {
+	      song_end_trigger = 1;
+	    } else {
+	      song_end = 0;
+	      *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
+				       .size = 4};
+	      * (uint32_t *) um->data = htonl(cur_sub);
+	      if (uade_send_message(um)) {
+		fprintf(stderr, "could not change subsong\n");
+		exit(-1);
+	      }
+	    }
+	  } else {
+	    song_end_trigger = 1;
+	  }
+	}
+
+	/* check if control-c was pressed */
 	if (song_end_trigger) {
-	  songend = 1;
+	  next_song = 1;
 	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
 	    fprintf(stderr, "can not send reboot\n");
 	    return 0;
@@ -568,8 +594,18 @@ static int play_loop(void)
 	  *sm = ntohs(*sm);
 	  sm++;
 	}
-	
-	if (!ao_play(libao_device, um->data, um->size)) {
+
+	if (song_end) {
+	  if (tailbytes > 0) {
+	    playbytes = tailbytes;
+	    tailbytes = 0;
+	  } else {
+	    playbytes = 0;
+	  }
+	} else {
+	  playbytes = um->size;
+	}
+	if (!ao_play(libao_device, um->data, playbytes)) {
 	  fprintf(stderr, "libao error detected.\n");
 	  return 0;
 	}
@@ -593,8 +629,22 @@ static int play_loop(void)
 	break;
 
       case UADE_REPLY_SONG_END:
-	songend = 1;
-	goto out;
+	song_end = 1;
+	if (um->size < 5) {
+	  fprintf(stderr, "illegal song end reply\n");
+	  exit(-1);
+	}
+	i = 0;
+	reason = &((uint8_t *) um->data)[4];
+	while (reason[i] && i < (um->size - 4))
+	  i++;
+	if (reason[i] != 0 || (i != (um->size - 5))) {
+	  fprintf(stderr, "broken reason string with song end notice\n");
+	  exit(-1);
+	}
+	fprintf(stderr, "got song end (%s)\n", reason);
+	tailbytes = ntohl(* (uint32_t *) um->data);
+	break;
 
       case UADE_REPLY_SUBSONG_INFO:
 	if (um->size != 12) {
@@ -603,6 +653,8 @@ static int play_loop(void)
 	}
 	u32ptr = (uint32_t *) um->data;
 	fprintf(stderr, "got subsong info: min: %d max: %d cur: %d\n", u32ptr[0], u32ptr[1], u32ptr[2]);
+	cur_sub = u32ptr[2];
+	max_sub = u32ptr[1];
 	break;
 	
       default:
@@ -611,20 +663,18 @@ static int play_loop(void)
       }
     }
   }
- out:
-  if (songend) {
-    do {
-      ret = uade_receive_message(um, sizeof(space));
-      if (ret < 0) {
-	fprintf(stderr, "uade123: can not receive events (TOKEN) from uade\n");
-	return 0;
-      }
-      if (ret == 0) {
-	fprintf(stderr, "uade123: end of input after reboot\n");
-	return 0;
-      }
-    } while (um->msgtype != UADE_COMMAND_TOKEN);
-  }
+
+  do {
+    ret = uade_receive_message(um, sizeof(space));
+    if (ret < 0) {
+      fprintf(stderr, "uade123: can not receive events (TOKEN) from uade\n");
+      return 0;
+    }
+    if (ret == 0) {
+      fprintf(stderr, "uade123: end of input after reboot\n");
+      return 0;
+    }
+  } while (um->msgtype != UADE_COMMAND_TOKEN);
 
   return 1;
 }
