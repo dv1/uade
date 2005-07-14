@@ -542,6 +542,7 @@ static int play_loop(void)
 		fprintf(stderr, "could not change subsong\n");
 		exit(-1);
 	      }
+	      fprintf(stderr, "current subsong %d\n", cur_sub);
 	    }
 	  } else {
 	    song_end_trigger = 1;
