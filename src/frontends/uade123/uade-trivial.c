@@ -1,17 +1,18 @@
 #include <assert.h>
+#include <errno.h>
+#include <dirent.h>
+#include <limits.h>
+#include <netinet/in.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <limits.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <signal.h>
 #include <string.h>
-#include <time.h>
-#include <sys/wait.h>
-#include <netinet/in.h>
-#include <dirent.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <ao/ao.h>
 
@@ -768,9 +769,27 @@ static void trivial_sigchld(int sig)
 
 static void trivial_sigint(int sig)
 {
+  static struct timeval otv = {.tv_sec = 0, .tv_usec = 0};
+  struct timeval tv;
+  int msecs;
+
   if (debug_mode == 1) {
     debug_trigger = 1;
     return;
   }
   song_end_trigger = 1;
+
+  /* counts number of milliseconds between ctrl-c pushes, and terminates the
+     prog if they are less than 100 msecs apart. */ 
+  if (gettimeofday(&tv, 0)) {
+    fprintf(stderr, "uade123: gettimeofday() does not work\n");
+    return;
+  }
+  msecs = 0;
+  if (otv.tv_sec) {
+    msecs = (tv.tv_sec - otv.tv_sec) * 1000 + (tv.tv_usec - otv.tv_usec) / 1000;
+    if (msecs < 100)
+      exit(-1);
+  }
+  otv = tv;
 }

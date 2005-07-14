@@ -321,7 +321,7 @@ static int mod15check(unsigned char *buf, int bufsize)
     }
     ret = 1;			/* mod15 */
     fprintf(stderr,
-	    "*** INFO *** if it sounds broken or isn't played it could also be an Ultimate-ST file: use -P and -M parameter to overide autodetectiong\n");
+	    "*** INFO *** if it sounds broken or isn't played it could also be an Ultimate-ST file: use -p and -m parameters to overide autodetection\n");
   }
 
 
