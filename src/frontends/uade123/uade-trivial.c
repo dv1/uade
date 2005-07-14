@@ -404,13 +404,14 @@ int main(int argc, char *argv[])
 	t = tn;
       }
 
-      if (nplayers < 1) {
-	fprintf(stderr, "skipping file with unknown format: %s\n", modulename);
-	continue;
-      }
       if (nplayers > 1) {
 	fprintf(stderr, "multiple players not supported yet\n");
-	continue;
+	exit(-1);
+      }
+
+      if (nplayers < 1) {
+	fprintf(stderr, "skipping file with unknown format: %s\n", modulename);
+	goto nextsong;
       }
 
       if (strcmp(playernames[0], "custom") == 0) {
