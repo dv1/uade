@@ -590,13 +590,13 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
 void uade_reset(void)
 {
   /* don't load anything under 0x1000 (execbase top at $1000) */
-  int modnameaddr = 0x00400;
-  int scoreaddr   = 0x01000;
-  int userstack   = 0x08500;
-  int superstack  = 0x08f00;
-  int playeraddr  = 0x09000;
-  int relocaddr   = 0x40000;   /* default, recalculate this */
-  int modaddr     = 0x80000;   /* default, recalculate this */
+  const int modnameaddr = 0x00400;
+  const int scoreaddr   = 0x01000;
+  const int userstack   = 0x08500;
+  const int superstack  = 0x08f00;
+  const int playeraddr  = 0x09000;
+  int relocaddr;
+  int modaddr;
   int len;
   FILE *file;
   int bytesread;
@@ -606,6 +606,8 @@ void uade_reset(void)
   struct uade_msg *um = (struct uade_msg *) command;
 
   int ret;
+
+ nextsong:
 
   /* IMPORTANT:
      It seems that certain players don't work totally reliably if memory
@@ -626,8 +628,6 @@ void uade_reset(void)
     fprintf(stderr, ": warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
   }
   memset(get_real_address(0), 0, uade_highmem);
-  
- takenextsong:
 
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
@@ -693,18 +693,17 @@ void uade_reset(void)
   uade_put_long(SCORE_PLAYER_ADDR, playeraddr);
   len = uade_calc_reloc_size((uae_u32 *) get_real_address(playeraddr),
 			     (uae_u32 *) get_real_address(playeraddr + bytesread));
-  if (len) {
-    relocaddr  = ((playeraddr + bytesread) & 0x7FFFF000) + 0x4000;
-    /* + 0x4000 for hippel coso (wasseremu) */
-    modaddr = ((relocaddr + len) & 0x7FFFF000) + 0x2000;
-  } else {
+  if (!len) {
     fprintf(stderr, "uade: problem with reloc calculation\n");
     goto skiptonextsong;
   }
+  relocaddr  = ((playeraddr + bytesread) & 0x7FFFF000) + 0x4000;
+  /* + 0x4000 for hippel coso (wasseremu) */
+  modaddr = ((relocaddr + len) & 0x7FFFF000) + 0x2000;
 
   if (modaddr <= relocaddr) {
     /* this is very bad because sound core memory allocation will fail */
-    fprintf(stderr, "uade: this is very bad: modaddr <= relocaddr: 0x%x <= 0x%x\n", modaddr, relocaddr);
+    fprintf(stderr, "uade: this is a very bad: modaddr <= relocaddr: 0x%x <= 0x%x\n", modaddr, relocaddr);
   }
 
   uade_put_long(SCORE_RELOC_ADDR, relocaddr);  /*address for relocated player*/
@@ -806,9 +805,22 @@ void uade_reset(void)
   return;
 
  skiptonextsong:
-  fprintf(stderr, "uade: skipping to next song\n");
-  assert(0);
-  goto takenextsong;
+  fprintf(stderr, "uade: can't play. reboot.\n");
+
+  if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
+    fprintf(stderr, "uade: can not receive token in uade_reset()\n");
+    exit(-1);
+  }
+
+  if (uade_send_short_message(UADE_REPLY_CANT_PLAY)) {
+    fprintf(stderr, "uade: can not send 'CANT_PLAY' reply\n");
+    exit(-1);
+  }
+  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+    fprintf(stderr, "uade: can not send token from uade_reset()\n");
+    exit(-1);
+  }
+  goto nextsong;
 }
 
 

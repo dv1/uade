@@ -452,10 +452,16 @@ int main(int argc, char *argv[])
       fprintf(stderr, "can not receive acknowledgement from uade\n");
       goto cleanup;
     }
+
     if (um->msgtype == UADE_REPLY_CANT_PLAY) {
       fprintf(stderr, "uade refuses to play the song\n");
-      goto cleanup;
+      if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
+	fprintf(stderr, "uade123: can not receive token in main loop\n");
+	exit(-1);
+      }
+      goto nextsong;
     }
+
     if (um->msgtype != UADE_REPLY_CAN_PLAY) {
       fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
       goto cleanup;
@@ -471,6 +477,8 @@ int main(int argc, char *argv[])
 
     if (!play_loop())
       goto cleanup;
+
+  nextsong:
 
     if (playernames != NULL) {
       for (i = 0; i < nplayers; i++)
