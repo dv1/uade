@@ -683,7 +683,7 @@ static int play_loop(void)
 
 static void set_subsong(struct uade_msg *um, int subsong)
 {
-  assert(subsong > 0 && subsong < 256);
+  assert(subsong >= 0 && subsong < 256);
   *um = (struct uade_msg) {.msgtype = UADE_COMMAND_SET_SUBSONG, .size = 4};
   * (uint32_t *) um->data = htonl(subsong);
   if (uade_send_message(um) < 0) {
