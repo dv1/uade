@@ -140,7 +140,7 @@ static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
 void uade_change_subsong(int subsong)
 {
   song.cur_subsong = subsong;
-  fprintf(stderr, "uade: current subsong %d\n", subsong);
+  /* fprintf(stderr, "uade: current subsong %d\n", subsong); */
   uade_put_long(SCORE_SUBSONG, subsong);
   uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
   flush_sound();
@@ -206,7 +206,7 @@ void uade_get_amiga_message(void)
     mins = uade_get_long(SCORE_MIN_SUBSONG);
     maxs = uade_get_long(SCORE_MAX_SUBSONG);
     curs = uade_get_long(SCORE_CUR_SUBSONG);
-    fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs);
+    /* fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs); */
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
     u32ptr = (uint32_t *) um->data;
@@ -221,24 +221,24 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_PLAYERNAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    fprintf(stderr,"uade: playername: %s\n", tmpstr);
+    /* fprintf(stderr,"uade: playername: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr);
     break;
 
   case AMIGAMSG_MODULENAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    fprintf(stderr,"uade: modulename: %s\n", tmpstr);
+    /* fprintf(stderr,"uade: modulename: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_MODULENAME, tmpstr);
     break;
 
   case AMIGAMSG_FORMATNAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    fprintf(stderr,"uade: formatname: %s\n", tmpstr);
+    /* fprintf(stderr,"uade: formatname: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_FORMATNAME, tmpstr);
     break;
 
   case AMIGAMSG_GENERALMSG:
-    fprintf(stderr,"uade: general message: %s\n", get_real_address(0x204));
+    uade_send_string(UADE_REPLY_MSG, get_real_address(0x204));
     break;
 
   case AMIGAMSG_CHECKERROR:
@@ -688,7 +688,8 @@ void uade_reset(void)
     goto skiptonextsong;
   }
 
-  fprintf(stderr, "uade: player '%s' (%d bytes)\n", song.playername, bytesread);
+  /* fprintf(stderr, "uade: player '%s' (%d bytes)\n", song.playername, bytesread); */
+
   /* set player executable address for relocator */
   uade_put_long(SCORE_PLAYER_ADDR, playeraddr);
   len = uade_calc_reloc_size((uae_u32 *) get_real_address(playeraddr),
@@ -721,7 +722,7 @@ void uade_reset(void)
     if (bytesread == 0) {
       goto skiptonextsong;
     }
-    fprintf(stderr, "uade: module '%s' (%d bytes)\n", song.modulename, bytesread);
+    /* fprintf(stderr, "uade: module '%s' (%d bytes)\n", song.modulename, bytesread); */
     uade_put_long(SCORE_MODULE_LEN, bytesread);
 
     if (!valid_address(modnameaddr, strlen(song.modulename) + 1)) {

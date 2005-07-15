@@ -59,6 +59,7 @@ static int play_loop(void);
 static void print_help(void);
 static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
+ssize_t stat_file_size(const char *name);
 static int test_song_end_trigger(void);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
@@ -114,7 +115,7 @@ static char *fileformat_detection(const char *modulename)
   extension[0] = 0;
   filemagic(fileformat_buf, extension, st.st_size);
 
-  fprintf(stderr, "deduced extension: %s\n", extension);
+  fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
 
   if (format_ds == NULL) {
     char formatsfile[PATH_MAX];
@@ -421,6 +422,7 @@ int main(int argc, char *argv[])
   while (playlist_get_next(modulename, sizeof(modulename), &playlist)) {
     char **playernames = NULL;
     int nplayers;
+    ssize_t filesize;
 
     if (access(modulename, R_OK)) {
       fprintf(stderr, "can not read %s: %s\n", modulename, strerror(errno));
@@ -435,10 +437,11 @@ int main(int argc, char *argv[])
 
       candidates = fileformat_detection(modulename);
 
-      if (candidates == NULL)
+      if (candidates == NULL) {
+	fprintf(stderr, "unknown format: %s\n", modulename);
 	goto nextsong;
-
-      fprintf(stderr, "got candidates: %s\n", candidates);
+      }
+      fprintf(stderr, "\nplayer candidates: %s\n", candidates);
 
       nplayers = 1;
       t = candidates;
@@ -487,9 +490,22 @@ int main(int argc, char *argv[])
 
     if (playername[0]) {
       if (access(playername, R_OK)) {
-	fprintf(stderr, "could not read %s: %s\n", playername, strerror(errno));
-	exit(-1);
+	fprintf(stderr, "can not read %s: %s\n", playername, strerror(errno));
+	goto nextsong;
       }
+    }
+
+    if ((filesize = stat_file_size(playername)) < 0) {
+      fprintf(stderr, "can not stat player: %s\n", playername);
+      goto nextsong;
+    }
+    fprintf(stderr, "player: %s (%zd bytes)\n", playername, filesize);
+    if (modulename[0] != 0) {
+      if ((filesize = stat_file_size(modulename)) < 0) {
+	fprintf(stderr, "can not stat module: %s\n", modulename);
+	goto nextsong;
+      }
+      fprintf(stderr, "module: %s (%zd bytes)\n", modulename, filesize);
     }
 
     if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
@@ -574,7 +590,7 @@ static int play_loop(void)
   int song_end = 0;
   int next_song = 0;
   int ret;
-  int cur_sub = -1, max_sub = -1;
+  int cur_sub = -1, min_sub = -1, max_sub = -1;
   int tailbytes = 0;
   int playbytes;
   char *reason;
@@ -615,7 +631,7 @@ static int play_loop(void)
 		fprintf(stderr, "could not change subsong\n");
 		exit(-1);
 	      }
-	      fprintf(stderr, "current subsong %d\n", cur_sub);
+	      fprintf(stderr, "subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	    }
 	  } else {
 	    song_end_trigger = 1;
@@ -696,17 +712,22 @@ static int play_loop(void)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "got formatname: %s\n", (uint8_t *) um->data);
+	fprintf(stderr, "format name: %s\n", (uint8_t *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "got modulename: %s\n", (uint8_t *) um->data);
+	fprintf(stderr, "module name: %s\n", (uint8_t *) um->data);
+	break;
+
+      case UADE_REPLY_MSG:
+	uade_check_fix_string(um, 128);
+	fprintf(stderr, "message: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "got playername: %s\n", (uint8_t *) um->data);
+	fprintf(stderr, "player name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -723,7 +744,7 @@ static int play_loop(void)
 	  fprintf(stderr, "broken reason string with song end notice\n");
 	  exit(-1);
 	}
-	fprintf(stderr, "got song end (%s)\n", reason);
+	fprintf(stderr, "song end (%s)\n", reason);
 	tailbytes = ntohl(* (uint32_t *) um->data);
 	break;
 
@@ -733,9 +754,10 @@ static int play_loop(void)
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
-	fprintf(stderr, "got subsong info: min: %d max: %d cur: %d\n", u32ptr[0], u32ptr[1], u32ptr[2]);
-	cur_sub = u32ptr[2];
+	fprintf(stderr, "subsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
+	min_sub = u32ptr[0];
 	max_sub = u32ptr[1];
+	cur_sub = u32ptr[2];
 	break;
 	
       default:
@@ -825,6 +847,15 @@ static void setup_sighandlers(void)
     }
     break;
   }
+}
+
+
+ssize_t stat_file_size(const char *name)
+{
+  struct stat st;
+  if (stat(name, &st))
+    return -1;
+  return st.st_size;
 }
 
 
