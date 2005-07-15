@@ -11,8 +11,9 @@
 #include <time.h>
 #include <string.h>
 
-#include "playlist.h"
+#include <unixwalkdir.h>
 
+#include "playlist.h"
 
 int playlist_init(struct playlist *pl)
 {
@@ -66,17 +67,17 @@ int playlist_empty(struct playlist *pl)
 }
 
 
-#if 0
-static int recursive_func(const char *file, void *arg)
+static void *recursive_func(const char *file, enum uade_wtype wtype, void *pl)
 {
-  if (!playlist_add(arg, (char *) file, 0))
-    fprintf(stderr, "error enqueuing %s\n", file);
-  return 0;
+  if (wtype == UADE_WALK_REGULAR_FILE) {
+    if (!playlist_add(pl, file, 0))
+      fprintf(stderr, "error enqueuing %s\n", file);
+  }
+  return NULL;
 }
-#endif
 
 
-int playlist_add(struct playlist *pl, char *name, int recursive)
+int playlist_add(struct playlist *pl, const char *name, int recursive)
 {
   int ret;
   struct stat st;
@@ -90,24 +91,15 @@ int playlist_add(struct playlist *pl, char *name, int recursive)
   if (S_ISREG(st.st_mode)) {
     fprintf(stderr, "enqueuing regular: %s\n", name);
     ret = chrarray_add(&pl->list, name, strlen(name) + 1);
-  }
-
-#if 0
- else {
+  } else if (S_ISDIR(st.st_mode)) {
     /* add directories to playlist only if 'recursive' is non-zero */
     if (recursive) {
-      struct stat st;
-      if (!stat(name, &st)) {
-	if (S_ISDIR(st.st_mode)) {
-	  uade_ftw(name, ftw_func, 20, pl);
-	}
-      }
+      uade_walk_directories(name, recursive_func, pl);
     } else {
       fprintf(stderr, "Not adding directory %s. Use -r to add recursively.\n", name);
     }
     ret = 1;
   }
-#endif
 
   pl->upper_bound = pl->list.n_entries;
   return ret;

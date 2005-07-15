@@ -3,7 +3,7 @@ CC = {CC}
 CFLAGS = -Wall -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
-	chrarray.o playlist.o uadeformats.o
+	chrarray.o playlist.o uadeformats.o unixwalkdir.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -31,6 +31,9 @@ chrarray.o:	chrarray.c chrarray.h
 
 playlist.o:	playlist.c playlist.h
 	$(CC) $(CFLAGS) -c playlist.c
+
+unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
+	$(CC) $(CFLAGS) -o unixwalkdir.o -c ../../unixwalkdir.c
 
 test:	
 	./uade123 -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7

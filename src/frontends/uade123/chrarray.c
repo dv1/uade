@@ -35,7 +35,7 @@ void chrarray_destroy(struct chrarray *s)
   memset(s, 0, sizeof(*s));
 }
 
-int chrarray_add(struct chrarray *s, char *data, int len)
+int chrarray_add(struct chrarray *s, const char *data, int len)
 {
   int new_max;
   char *new_data;

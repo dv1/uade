@@ -23,7 +23,7 @@ struct chrarray {
 
 int chrarray_init(struct chrarray *s);
 void chrarray_destroy(struct chrarray *s);
-int chrarray_add(struct chrarray *s, char *data, int len);
+int chrarray_add(struct chrarray *s, const char *data, int len);
 void chrarray_flush(struct chrarray *s);
 
 #endif
