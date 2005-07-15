@@ -1,3 +1,15 @@
 
-2005-07-15: Cannon_Fodder_2/Cannon_Fodder_2-MorBase.sng gives odd subsong
-	    numbers (shd)
+2005-07-15: vectordean/Cannon_Fodder_2/Cannon_Fodder_2-MorBase.sng gives odd
+	    subsong numbers. This seems not to be reproducible. The output
+	    from uade123 was:
+		uade: subsong info: minimum: 0 maximum: 7 current: 0
+		got subsong info: min: 0 max: 7 cur: 0
+		uade: song end (player)
+		got song end (player)
+		current subsong 1
+		uade: current subsong 16777216
+		uade: song end (player)
+		got song end (player)
+		current subsong 2
+		uade: current subsong 33554432
+	    (shd)
