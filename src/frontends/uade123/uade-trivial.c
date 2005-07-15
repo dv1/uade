@@ -52,6 +52,9 @@ static int uadeterminated = 0;
 
 static int song_end_trigger = 0;
 
+static FILE *output_file = NULL;
+static int one_subsong_per_file = 0;
+
 static int play_loop(void);
 static void print_help(void);
 static void set_subsong(struct uade_msg *um, int subsong);
@@ -250,8 +253,9 @@ int main(int argc, char *argv[])
   char modulename[PATH_MAX];
   int playernamegiven = 0;
   struct playlist playlist;
-  char tmpstr[256];
+  char tmpstr[PATH_MAX + 256];
   long subsong = -1;
+  int have_modules = 0;
 
   if (!playlist_init(&playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
@@ -259,7 +263,29 @@ int main(int argc, char *argv[])
   }
 
   for (i = 1; i < argc;) {
-
+    if (get_string_arg(tmpstr, sizeof(tmpstr), "-@", &i, argv, &argc) ||
+	get_string_arg(tmpstr, sizeof(tmpstr), "--list", &i, argv, &argc)) {
+      char line[PATH_MAX];
+      FILE *listfile = fopen(tmpstr, "r");
+      if (listfile == NULL) {
+	fprintf(stderr, "can not open list file: %s\n", tmpstr);
+	exit(-1);
+      }
+      while ((fgets(line, sizeof(line), listfile)) != NULL) {
+	if (line[0] == '#')
+	  continue;
+	if (line[strlen(line) - 1] == '\n')
+	  line[strlen(line) - 1] = 0;
+	playlist_add(&playlist, line, 0);
+      }
+      fclose(listfile);
+      have_modules = 1;
+      continue;
+    }
+    if (strcmp(argv[i], "-1") == 0 || strcmp(argv[i], "--one") == 0) {
+      one_subsong_per_file = 1;
+      continue;
+    }
     if (get_string_arg(basedir, sizeof(basedir), "-b", &i, argv, &argc))
       continue;
     if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
@@ -269,16 +295,28 @@ int main(int argc, char *argv[])
       i++;
       continue;
     }
+    if (get_string_arg(tmpstr, sizeof(tmpstr), "-f", &i, argv, &argc) ||
+	get_string_arg(tmpstr, sizeof(tmpstr), "--file-output", &i, argv, &argc)) {
+      if (strcmp(tmpstr, "-") == 0) {
+	output_file = stdout;
+      } else if ((output_file = fopen(tmpstr, "w")) == NULL) {
+	fprintf(stderr, "can not open/create audio output file: %s\n", tmpstr);
+	exit(-1);
+      }
+      continue;
+    }
     if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       print_help();
       exit(0);
     }
     if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc)) {
       playlist_add(&playlist, modulename, 0);
+      have_modules = 1;
       continue;
     }
     if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc)) {
       playernamegiven = 1;
+      have_modules = 1;
       continue;
     }
     if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--recursive") == 0) {
@@ -287,7 +325,7 @@ int main(int argc, char *argv[])
       continue;
     }
     if (get_string_arg(tmpstr, sizeof(tmpstr), "-s", &i, argv, &argc) ||
-	get_string_arg(tmpstr, sizeof(tmpstr), "-sub", &i, argv, &argc)) {
+	get_string_arg(tmpstr, sizeof(tmpstr), "--subsong", &i, argv, &argc)) {
       char *endptr;
       if (tmpstr[0] == 0) {
 	fprintf(stderr, "uade123: subsong string must be non-empty\n");
@@ -320,7 +358,13 @@ int main(int argc, char *argv[])
       exit(-1);
     }
     playlist_add(&playlist, argv[i], recursivemode);
+    have_modules = 1;
     i++;
+  }
+
+  if (have_modules == 0) {
+    print_help();
+    exit(0);
   }
 
   if (basedir[0] == 0)
@@ -364,9 +408,11 @@ int main(int argc, char *argv[])
 
   fork_exec_uade();
 
-  if (!audio_init())
-    goto cleanup;
-  
+  if (output_file == NULL) {
+    if (!audio_init())
+      goto cleanup;
+  }
+
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
     goto cleanup;
@@ -633,9 +679,16 @@ static int play_loop(void)
 	} else {
 	  playbytes = um->size;
 	}
-	if (!ao_play(libao_device, um->data, playbytes)) {
-	  fprintf(stderr, "libao error detected.\n");
-	  return 0;
+	if (output_file == NULL) {
+	  if (!ao_play(libao_device, um->data, playbytes)) {
+	    fprintf(stderr, "libao error detected.\n");
+	    return 0;
+	  }
+	} else {
+	  if (fwrite(um->data, 1, playbytes, output_file) < playbytes) {
+	    fprintf(stderr, "write error on audio output file\n");
+	    return 0;
+	  }
 	}
 	
 	left -= um->size;
@@ -714,6 +767,29 @@ static void print_help(void)
   printf(" by Heikki Orsila <heikki.orsila@iki.fi>\n");
   printf("    Michael Doering <mldoering@gmx.net>\n");
   printf("uadecore is based on the UAE source code. UAE is made by Bernd Schmidt et al.\n");
+  printf("\n");
+  printf("Usage: uade123 [<options>] <input file> ...\n");
+  printf("\n");
+  printf("Expert options:\n");
+  printf(" -b dirname,  set uade base directory (contains data files)\n");
+  printf(" -c file,  set uade config file name\n");
+  printf(" -d/--debug,  enable debug mode (expert only)\n");
+  printf(" -f filename,  write audio output into 'filename'\n");
+  printf(" -S filename,  set sound core name\n");
+  printf(" -u uadename,  set uadecore executable name\n");
+  printf("\n");
+  printf("Normal options:\n");
+  printf(" -1, --one,  play at most one subsong per file\n");
+  printf(" -@ filename, --list filename,  read playlist of files from 'filename'\n");
+  printf(" -h/--help,  print help\n");
+  printf(" -m filename,  set module name\n");
+  printf(" -p filename,  set player name\n");
+  printf(" -r/--recursive,  recursive directory scan\n");
+  printf(" -s x, --subsong x,  set subsong 'x'\n");
+  printf(" -z, --shuffle,  set shuffling mode for playlist\n");
+  printf("\n");
+  printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
+  printf("  uade -z /chip/fc/*\n"); 
 }
 
 
@@ -780,6 +856,11 @@ static void trivial_cleanup(void)
   if (uadepid != -1) {
     kill(uadepid, SIGTERM);
     uadepid = -1;
+  }
+  if (output_file != NULL) {
+    if (output_file != stdout)
+      fclose(output_file);
+    output_file = NULL;
   }
 }
 
