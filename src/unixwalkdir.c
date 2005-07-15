@@ -30,6 +30,9 @@ void *uade_walk_directories(const char *dirname,
 
   while ((de = readdir(dir)) != NULL) {
 
+    if (strcmp(de->d_name, ".") == 0 || strcmp(de->d_name, "..") == 0)
+      continue;
+
     if (snprintf(dename, namelen, "%s/%s", dirname, de->d_name) >= namelen) {
       fprintf(stderr, "interesting: too long a filename\n");
       continue;

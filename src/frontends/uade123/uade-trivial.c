@@ -363,8 +363,8 @@ int main(int argc, char *argv[])
     int nplayers;
 
     if (access(modulename, R_OK)) {
-      fprintf(stderr, "could not read %s: %s\n", modulename, strerror(errno));
-      exit(-1);
+      fprintf(stderr, "can not read %s: %s\n", modulename, strerror(errno));
+      goto nextsong;
     }
 
     nplayers = 1;
@@ -374,6 +374,9 @@ int main(int argc, char *argv[])
       size_t len;
 
       candidates = fileformat_detection(modulename);
+
+      if (candidates == NULL)
+	goto nextsong;
 
       fprintf(stderr, "got candidates: %s\n", candidates);
 

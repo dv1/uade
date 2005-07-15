@@ -89,7 +89,7 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
     return 0;
 
   if (S_ISREG(st.st_mode)) {
-    fprintf(stderr, "enqueuing regular: %s\n", name);
+    /* fprintf(stderr, "enqueuing regular: %s\n", name); */
     ret = chrarray_add(&pl->list, name, strlen(name) + 1);
   } else if (S_ISDIR(st.st_mode)) {
     /* add directories to playlist only if 'recursive' is non-zero */
