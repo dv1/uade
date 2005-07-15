@@ -1,12 +1,3 @@
-/* UADE
- *
- * Copyright 2005 Heikki Orsila <heikki.orsila@iki.fi>
- *
- * This source code module is dual licensed under GPL and Public Domain.
- * Hence you may use _this_ module (not another code module) however you
- * want in your projects.
- */
-
 #ifndef _UADEIPC_H_
 #define _UADEIPC_H_
 

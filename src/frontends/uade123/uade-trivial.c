@@ -1,3 +1,12 @@
+/* uade123 - a simple command line frontend for uadecore.
+
+   Copyright (C) 2005 Heikki Orsila <heikki.orsila@iki.fi>
+
+   This source code module is dual licensed under GPL and Public Domain.
+   Hence you may use _this_ module (not another code module) in any way you
+   want in your projects.
+*/
+
 #include <assert.h>
 #include <errno.h>
 #include <dirent.h>
@@ -44,6 +53,7 @@ static int uadeterminated = 0;
 static int song_end_trigger = 0;
 
 static int play_loop(void);
+static void print_help(void);
 static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
 static int test_song_end_trigger(void);
@@ -258,6 +268,10 @@ int main(int argc, char *argv[])
       debug_mode = 1;
       i++;
       continue;
+    }
+    if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+      print_help();
+      exit(0);
     }
     if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc)) {
       playlist_add(&playlist, modulename, 0);
@@ -691,6 +705,15 @@ static int play_loop(void)
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
   return 1;
+}
+
+
+static void print_help(void)
+{
+  printf("uade123\n");
+  printf(" by Heikki Orsila <heikki.orsila@iki.fi>\n");
+  printf("    Michael Doering <mldoering@gmx.net>\n");
+  printf("uadecore is based on the UAE source code. UAE is made by Bernd Schmidt et al.\n");
 }
 
 

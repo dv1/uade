@@ -1,3 +1,10 @@
+/* UNIX support tools for uadecore.
+
+   Copyright 2000 - 2005 (C) Heikki Orsila <heikki.orsila@iki.fi>
+   
+   This module is licensed under the GNU GPL.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>

@@ -5,7 +5,7 @@
  Copyright (C) 2000-2005  Michael Doering
 
  This module is dual licensed under the GNU GPL and the Public Domain.
- Hence you may use _this_ module (not another code module) however you
+ Hence you may use _this_ module (not another code module) in any way you
  want in your projects.
 
  About security:

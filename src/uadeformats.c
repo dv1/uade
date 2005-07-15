@@ -7,7 +7,7 @@
  * example file provided with UADE distribution.
  *
  * This source code module is dual licensed under GPL and Public Domain.
- * Hence you may use _this_ module (not another code module) however you
+ * Hence you may use _this_ module (not another code module) in any you
  * want in your projects.
  */
 

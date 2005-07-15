@@ -1,9 +1,9 @@
 /* 
  * UADE
  * 
- * Support for ALSA sound
+ * Support for sound
  * 
- * Copyright 2004 Heikki Orsila <heikki.orsila@iki.fi>
+ * Copyright 2000 - 2005 Heikki Orsila <heikki.orsila@iki.fi>
  */
 
 #include "sysconfig.h"
