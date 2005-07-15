@@ -1,3 +1,17 @@
+2005-07-15  Heikki Orsila <heikki.orsila@iki.fi>
+        * UADE 1.50-pre1 (developer release)
+	- Lots of changes into uade123
+	- This is just a preview of the new system. There are no interesting
+	  features over uade 1.0x versions. This release doesn't even have
+	  xmms / beepmp plugins.
+	- Short instructions for testing:
+	   $ ./configure && make
+	   $ make test
+	   $ make install
+	  Will install everything to $(HOME)/.uade2/. Then
+	  $(HOME)/.uade2/uade123 is the player you can use. This version
+	  uses libao for audio output.
+
 2005-07-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Code in src/amifilemagic.c does amiga fileformats detection. If it's
 	  useful for any other project out there, it is now dual licensed
