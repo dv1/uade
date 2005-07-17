@@ -40,12 +40,6 @@
 
 
 static char basedir[PATH_MAX];
-
-static char configname[PATH_MAX];
-static char playername[PATH_MAX];
-static char scorename[PATH_MAX];
-static char uadename[PATH_MAX];
-
 static int debug_mode;
 static int debug_trigger;
 static uint8_t fileformat_buf[5122];
@@ -56,8 +50,12 @@ static char output_file_format[16];
 static char output_file_name[PATH_MAX];
 static int one_subsong_per_file;
 static pid_t uadepid;
+static char uadename[PATH_MAX];
 static int uadeterminated;
+static int sample_bytes_per_second;
 static int song_end_trigger;
+static int subsong_timeout_value = -1;
+static int timeout_value = -1;
 int verbose_mode;
 
 
@@ -83,6 +81,8 @@ static int audio_init(void)
   format.channels = 2;
   format.rate = 44100;
   format.byte_format = AO_FMT_NATIVE;
+
+  sample_bytes_per_second = (format.bits / 8) * format.channels * format.rate;
 
   if (output_file_name[0]) {
     driver = ao_driver_id(output_file_format[0] ? output_file_format : "wav");
@@ -249,14 +249,17 @@ int main(int argc, char *argv[])
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int recursivemode = 0;
-   char modulename[PATH_MAX];
+  char configname[PATH_MAX] = "";
+  char modulename[PATH_MAX] = "";
+  char playername[PATH_MAX] = "";
+  char scorename[PATH_MAX] = "";
   int playernamegiven = 0;
   struct playlist playlist;
   char tmpstr[PATH_MAX + 256];
   long subsong = -1;
   int have_modules = 0;
   int ret;
-
+  char *endptr;
   struct option long_options[] = {
     {"list", 1, NULL, '@'},
     {"one", 0, NULL, '1'},
@@ -264,6 +267,8 @@ int main(int argc, char *argv[])
     {"help", 0, NULL, 'h'},
     {"recursive", 0, NULL, 'r'},
     {"subsong", 1, NULL, 's'},
+    {"subsong-timeout", 1, NULL, 'w'},
+    {"timeout", 1, NULL, 't'},
     {"verbose", 0, NULL, 'v'},
     {"shuffle", 0, NULL, 'z'}
   };
@@ -278,7 +283,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:rs:S:u:vz", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:rs:S:t:u:vw:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -332,7 +337,6 @@ int main(int argc, char *argv[])
       break;
     case 's':
       do {
-	char *endptr;
 	if (optarg[0] == 0) {
 	  fprintf(stderr, "uade123: subsong string must be non-empty\n");
 	  exit(-1);
@@ -347,11 +351,29 @@ int main(int argc, char *argv[])
     case 'S':
       GET_OPT_STRING(scorename);
       break;
+    case 't':
+      do {
+	timeout_value = strtol(optarg, &endptr, 10);
+	if (*endptr != 0 || timeout_value < 0) {
+	  fprintf(stderr, "uade123: illegal timeout value: %s\n", optarg);
+	  exit(-1);
+	}
+      } while (0);
+      break;
     case 'u':
       GET_OPT_STRING(uadename);
       break;
     case 'v':
       verbose_mode = 1;
+      break;
+    case 'w':
+      do {
+	subsong_timeout_value = strtol(optarg, &endptr, 10);
+	if (*endptr != 0 || subsong_timeout_value < 0) {
+	  fprintf(stderr, "uade123: illegal subsong timeout value: %s\n", optarg);
+	  exit(-1);
+	}
+      } while (0);
       break;
     case 'z':
       playlist_random(&playlist, 1);
@@ -603,6 +625,8 @@ static int play_loop(void)
   int tailbytes = 0;
   int playbytes;
   char *reason;
+  int64_t total_bytes = 0;
+  int64_t subsong_bytes = 0;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
 
@@ -627,12 +651,13 @@ static int play_loop(void)
 	}
 
 	if (song_end) {
-	  if (cur_sub != -1 && max_sub != -1) {
+	  if (one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
 	    cur_sub++;
 	    if (cur_sub >= max_sub) {
 	      song_end_trigger = 1;
 	    } else {
 	      song_end = 0;
+	      subsong_bytes = 0;
 	      *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
 				       .size = 4};
 	      * (uint32_t *) um->data = htonl(cur_sub);
@@ -703,6 +728,24 @@ static int play_loop(void)
 	if (!ao_play(libao_device, um->data, playbytes)) {
 	  fprintf(stderr, "libao error detected.\n");
 	  return 0;
+	}
+	if (timeout_value != -1) {
+	  total_bytes += playbytes;
+	  if (song_end_trigger == 0) {
+	    if (total_bytes / sample_bytes_per_second >= timeout_value) {
+	      fprintf(stderr, "song end (timeout %ds)\n", timeout_value);
+	      song_end_trigger = 1;
+	    }
+	  }
+	}
+	if (subsong_timeout_value != -1) {
+	  subsong_bytes += playbytes;
+	  if (song_end == 0 && song_end_trigger == 0) {
+	    if (subsong_bytes / sample_bytes_per_second >= subsong_timeout_value) {
+	      fprintf(stderr, "song end (subsong timeout %ds)\n", subsong_timeout_value);
+	      song_end = 1;
+	    }
+	  }
 	}
 	left -= um->size;
 	break;
@@ -814,7 +857,9 @@ static void print_help(void)
   printf(" -p filename,  set player name\n");
   printf(" -r/--recursive,  recursive directory scan\n");
   printf(" -s x, --subsong x,  set subsong 'x'\n");
+  printf(" -t x, --timeout x,  set song timeout in seconds\n");
   printf(" -v,  --verbose,  turn on verbose mode\n");
+  printf(" -w, --subsong-timeout,  set subsong timeout in seconds\n");
   printf(" -z, --shuffle,  set shuffling mode for playlist\n");
   printf("\n");
   printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
