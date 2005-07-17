@@ -1,3 +1,11 @@
+2005-07-17  Heikki Orsila <heikki.orsila@iki.fi>
+	- uade123 now uses GNU getopt
+	- The sound core now reports to the simulator when audio output should
+	  start. Traditionally the simulator has produced audio output from
+	  the reboot of the amiga even if it is only useful to output audio
+	  after all the lengthy player initializations have been made in
+	  the sound core. This has been on my job list for many years :)
+
 2005-07-15  Heikki Orsila <heikki.orsila@iki.fi>
         * UADE 1.50-pre1 (developer release)
 	- Lots of changes into uade123

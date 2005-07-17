@@ -19,7 +19,7 @@
 extern uae_u16 sndbuffer[];
 extern uae_u16 *sndbufpt;
 extern int sndbufsize;
-extern int sound_bytes_per_sample;
+extern int sound_bytes_per_second;
 extern ao_device *libao_device;
 
 extern void finish_sound_buffer (void);
@@ -31,8 +31,19 @@ static void check_sound_buffers (void)
     return;
   assert(uade_read_size > 0);
   intptr_t bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
-  if (bytes == 2048 || bytes == uade_read_size) {
-    uade_check_sound_buffers(uade_read_size > 2048 ? 2048 : uade_read_size);
+  if (uade_audio_output) {
+    if (bytes == 2048 || bytes == uade_read_size) {
+      uade_check_sound_buffers(uade_read_size > 2048 ? 2048 : uade_read_size);
+      sndbufpt = sndbuffer;
+    }
+  } else {
+    uade_audio_skip += bytes;
+    /* if sound core doesn't report audio output start in 3 seconds from
+       the reboot, begin audio output anyway */
+    if (uade_audio_skip >= (sound_bytes_per_second * 3)) {
+      fprintf(stderr, "involuntary audio output start\n");
+      uade_audio_output = 1;
+    }
     sndbufpt = sndbuffer;
   }
 }

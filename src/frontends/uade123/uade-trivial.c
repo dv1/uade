@@ -687,12 +687,8 @@ static int play_loop(void)
 	}
 
 	if (song_end) {
-	  if (tailbytes > 0) {
-	    playbytes = tailbytes;
-	    tailbytes = 0;
-	  } else {
-	    playbytes = 0;
-	  }
+	  playbytes = tailbytes;
+	  tailbytes = 0;
 	} else {
 	  playbytes = um->size;
 	}
@@ -724,21 +720,29 @@ static int play_loop(void)
 	break;
 
       case UADE_REPLY_SONG_END:
-	song_end = 1;
-	if (um->size < 5) {
+	if (um->size < 9) {
 	  fprintf(stderr, "illegal song end reply\n");
 	  exit(-1);
 	}
+	tailbytes = ntohl(((uint32_t *) um->data)[0]);
+	/* next ntohl() is only there for a principle. it is not useful */
+	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
+	  /* normal happy song end. go to next subsong if any */
+	  song_end = 1;
+	} else {
+	  /* unhappy song end (error in the 68k side). skip to next song
+	     ignoring possible subsongs */
+	  song_end_trigger = 1;
+	}
 	i = 0;
-	reason = &((uint8_t *) um->data)[4];
-	while (reason[i] && i < (um->size - 4))
+	reason = &((uint8_t *) um->data)[8];
+	while (reason[i] && i < (um->size - 8))
 	  i++;
-	if (reason[i] != 0 || (i != (um->size - 5))) {
+	if (reason[i] != 0 || (i != (um->size - 9))) {
 	  fprintf(stderr, "broken reason string with song end notice\n");
 	  exit(-1);
 	}
 	fprintf(stderr, "song end (%s)\n", reason);
-	tailbytes = ntohl(* (uint32_t *) um->data);
 	break;
 
       case UADE_REPLY_SUBSONG_INFO:

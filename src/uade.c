@@ -83,6 +83,8 @@ static const int SCORE_CUR_SUBSONG   = 0x20C;
 static const int SCORE_OUTPUT_MSG    = 0x300;
 
 
+int uade_audio_skip;
+int uade_audio_output;
 int uade_debug = 0;
 int uade_read_size = 0;
 int uade_reboot;
@@ -348,6 +350,11 @@ void uade_get_amiga_message(void)
     }
     len = uade_get_info(get_real_address(dst), get_real_address(src), len);
     uade_put_long(0x20C, len);
+    break;
+
+  case AMIGAMSG_START_OUTPUT:
+    uade_audio_output = 1;
+    fprintf(stderr, "starting audio output at %d\n", uade_audio_skip);
     break;
 
   default:
@@ -790,6 +797,9 @@ void uade_reset(void)
 
   uade_reboot = 0;
 
+  uade_audio_output = 0;
+  uade_audio_skip = 0;
+
   if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
     fprintf(stderr, "uade: can not receive token in uade_reset()\n");
     exit(-1);
@@ -932,13 +942,20 @@ void uade_song_end(char *reason, int kill_it)
   struct uade_msg *um = (struct uade_msg *) space;
   fprintf(stderr, "uade: song end (%s)\n", reason);
   um->msgtype = UADE_REPLY_SONG_END;
-  * (uint32_t *) um->data = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
-  strlcpy(((uint8_t *) um->data) + 4, reason, 256);
-  um->size = 4 + strlen(reason) + 1;
+  ((uint32_t *) um->data)[0] = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
+  ((uint32_t *) um->data)[1] = htonl(kill_it);
+  strlcpy(((uint8_t *) um->data) + 8, reason, 256);
+  um->size = 8 + strlen(reason) + 1;
   if (uade_send_message(um)) {
     fprintf(stderr, "uade: could not send song end message\n");
     exit(-1);
   }
+  /* if audio_output is zero (and thus the client is waiting for the first
+     sound data block from this song), then start audio output so that the
+     clients first sound finishes ASAP and we can go to the next (sub)song.
+     uade must finish the pending sound data request (for the client) even if
+     the sound core crashed */
+  uade_audio_output = 1;
 }
 
 

@@ -26,6 +26,8 @@ void uade_set_ntsc(int usentsc);
 void uade_song_end(char *reason, int kill_it);
 void uade_swap_buffer_bytes(void *data, int bytes);
 
+extern int uade_audio_output;
+extern int uade_audio_skip;
 extern int uade_debug;
 extern int uade_local_sound;
 extern int uade_read_size;

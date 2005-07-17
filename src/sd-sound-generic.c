@@ -22,7 +22,7 @@ uae_u16 sndbuffer[MAX_SOUND_BUF_SIZE / 2];
 uae_u16 *sndbufpt;
 int sndbufsize;
 
-int sound_bytes_per_sample;
+int sound_bytes_per_second;
 
 void close_sound (void)
 {
@@ -49,8 +49,9 @@ int init_sound (void)
   
   dspbits = currprefs.sound_bits;
   rate    = currprefs.sound_freq;
-  sound_bytes_per_sample = dspbits / 8;
   channels = currprefs.stereo ? 2 : 1;
+
+  sound_bytes_per_second = (dspbits / 8) *  channels * rate;
   
   sample_evtime = (long) maxhpos * maxvpos * 50 / rate;
   if (dspbits == 16) {
