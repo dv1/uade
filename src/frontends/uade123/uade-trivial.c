@@ -23,6 +23,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#define _GNU_SOURCE
+#include <getopt.h>
+
 #include <ao/ao.h>
 
 #include <uadecontrol.h>
@@ -47,13 +50,13 @@ static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
 static ao_device *libao_device;
+static char output_file_format[16];
+static char output_file_name[PATH_MAX];
+static int one_subsong_per_file = 0;
 static pid_t uadepid = -1;
 static int uadeterminated = 0;
-
 static int song_end_trigger = 0;
 
-static FILE *output_file = NULL;
-static int one_subsong_per_file = 0;
 
 static int play_loop(void);
 static void print_help(void);
@@ -68,20 +71,29 @@ static void trivial_cleanup(void);
 
 static int audio_init(void)
 {
-  int default_driver;
+  int driver;
   ao_sample_format format;
 
   ao_initialize();
-  default_driver = ao_default_driver_id();
 
   format.bits = 16;
   format.channels = 2;
   format.rate = 44100;
   format.byte_format = AO_FMT_NATIVE;
 
-  libao_device = ao_open_live(default_driver, &format, NULL);
+  if (output_file_name[0]) {
+    driver = ao_driver_id(output_file_format[0] ? output_file_format : "wav");
+    if (driver < 0) {
+      fprintf(stderr, "illegal libao driver\n");
+      return 0;
+    }
+    libao_device = ao_open_file(driver, output_file_name, 1, &format, NULL);
+  } else {
+    driver = ao_default_driver_id();
+    libao_device = ao_open_live(driver, &format, NULL);
+  }
   if (libao_device == NULL) {
-    fprintf(stderr, "error opening device\n");
+    fprintf(stderr, "error opening device: errno %d\n", errno);
     return 0;
   }
   return 1;
@@ -228,139 +240,128 @@ static void fork_exec_uade(void)
 }
 
 
-static int get_string_arg(char *dst, size_t maxlen, const char *arg, int *i,
-			  char *argv[], int *argc)
-{
-  if (strcmp(argv[*i], arg) == 0) {
-    if ((*i + 1) >= *argc) {
-      fprintf(stderr, "missing parameter for %s\n", argv[*i]);
-      exit(-1);
-    }
-    strlcpy(dst, argv[*i + 1], maxlen);
-    *i += 2;
-    return 1;
-  }
-  return 0;
-}
-
-
 int main(int argc, char *argv[])
 {
   int i;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int recursivemode = 0;
-  int handleswitches = 1;
-  char modulename[PATH_MAX];
+   char modulename[PATH_MAX];
   int playernamegiven = 0;
   struct playlist playlist;
   char tmpstr[PATH_MAX + 256];
   long subsong = -1;
   int have_modules = 0;
+  int ret;
+
+  struct option long_options[] = {
+    {"list", 1, NULL, '@'},
+    {"one", 0, NULL, '1'},
+    {"debug", 0, NULL, 'd'},
+    {"help", 0, NULL, 'h'},
+    {"recursive", 0, NULL, 'r'},
+    {"subsong", 1, NULL, 's'},
+    {"shuffle", 0, NULL, 'z'}
+  };
 
   if (!playlist_init(&playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
     exit(-1);
   }
 
-  for (i = 1; i < argc;) {
-    if (get_string_arg(tmpstr, sizeof(tmpstr), "-@", &i, argv, &argc) ||
-	get_string_arg(tmpstr, sizeof(tmpstr), "--list", &i, argv, &argc)) {
-      char line[PATH_MAX];
-      FILE *listfile = fopen(tmpstr, "r");
-      if (listfile == NULL) {
-	fprintf(stderr, "can not open list file: %s\n", tmpstr);
-	exit(-1);
+#define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
+	fprintf(stderr, "too long a string for option %c\n", ret); \
+         exit(-1); \
       }
-      while ((fgets(line, sizeof(line), listfile)) != NULL) {
-	if (line[0] == '#')
-	  continue;
-	if (line[strlen(line) - 1] == '\n')
-	  line[strlen(line) - 1] = 0;
-	playlist_add(&playlist, line, 0);
-      }
-      fclose(listfile);
-      have_modules = 1;
-      continue;
-    }
-    if (strcmp(argv[i], "-1") == 0 || strcmp(argv[i], "--one") == 0) {
+
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:rs:S:u:z", long_options, 0)) != -1) {
+    switch (ret) {
+    case '@':
+      do {
+	FILE *listfile = fopen(optarg, "r");
+	if (listfile == NULL) {
+	  fprintf(stderr, "can not open list file: %s\n", optarg);
+	  exit(-1);
+	}
+	while ((fgets(tmpstr, sizeof(tmpstr), listfile)) != NULL) {
+	  if (tmpstr[0] == '#')
+	    continue;
+	  if (tmpstr[strlen(tmpstr) - 1] == '\n')
+	    tmpstr[strlen(tmpstr) - 1] = 0;
+	  playlist_add(&playlist, tmpstr, 0);
+	}
+	fclose(listfile);
+	have_modules = 1;
+      } while (0);
+      break;
+    case '1':
       one_subsong_per_file = 1;
-      continue;
-    }
-    if (get_string_arg(basedir, sizeof(basedir), "-b", &i, argv, &argc))
-      continue;
-    if (get_string_arg(configname, sizeof(configname), "-c", &i, argv, &argc))
-      continue;
-    if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
+      break;
+    case 'b':
+      GET_OPT_STRING(basedir);
+      break;
+    case 'c':
+      GET_OPT_STRING(configname);
+      break;
+    case 'd':
       debug_mode = 1;
-      i++;
-      continue;
-    }
-    if (get_string_arg(tmpstr, sizeof(tmpstr), "-f", &i, argv, &argc) ||
-	get_string_arg(tmpstr, sizeof(tmpstr), "--file-output", &i, argv, &argc)) {
-      if (strcmp(tmpstr, "-") == 0) {
-	output_file = stdout;
-      } else if ((output_file = fopen(tmpstr, "w")) == NULL) {
-	fprintf(stderr, "can not open/create audio output file: %s\n", tmpstr);
-	exit(-1);
-      }
-      continue;
-    }
-    if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+      break;
+    case 'e':
+      GET_OPT_STRING(output_file_format);
+      break;
+    case 'f':
+      GET_OPT_STRING(output_file_name);
+      break;
+    case 'h':
       print_help();
       exit(0);
-    }
-    if (get_string_arg(modulename, sizeof(modulename), "-m", &i, argv, &argc)) {
-      playlist_add(&playlist, modulename, 0);
-      have_modules = 1;
-      continue;
-    }
-    if (get_string_arg(playername, sizeof(playername), "-p", &i, argv, &argc)) {
+    case 'm':
+      playlist_add(&playlist, optarg, 0);
+      break;
+    case 'p':
+      GET_OPT_STRING(playername);
       playernamegiven = 1;
       have_modules = 1;
-      continue;
-    }
-    if (strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--recursive") == 0) {
+      break;
+    case 'r':
       recursivemode = 1;
-      i++;
-      continue;
-    }
-    if (get_string_arg(tmpstr, sizeof(tmpstr), "-s", &i, argv, &argc) ||
-	get_string_arg(tmpstr, sizeof(tmpstr), "--subsong", &i, argv, &argc)) {
-      char *endptr;
-      if (tmpstr[0] == 0) {
-	fprintf(stderr, "uade123: subsong string must be non-empty\n");
-	exit(-1);
-      }
-      subsong = strtol(tmpstr, &endptr, 10);
-      if (*endptr != 0 || subsong < 0 || subsong > 255) {
-	fprintf(stderr, "uade123: illegal subsong string: %s\n", tmpstr);
-	exit(-1);
-      }
-      continue;
-    }
-    if (get_string_arg(scorename, sizeof(scorename), "-S", &i, argv, &argc)) {
-      continue;
-    }
-    if (get_string_arg(uadename, sizeof(uadename), "-u", &i, argv, &argc))
-      continue;
-    if (strcmp(argv[i], "-z") == 0 || strcmp(argv[i], "--shuffle") == 0) {
+      break;
+    case 's':
+      do {
+	char *endptr;
+	if (optarg[0] == 0) {
+	  fprintf(stderr, "uade123: subsong string must be non-empty\n");
+	  exit(-1);
+	}
+	subsong = strtol(optarg, &endptr, 10);
+	if (*endptr != 0 || subsong < 0 || subsong > 255) {
+	  fprintf(stderr, "uade123: illegal subsong string: %s\n", optarg);
+	  exit(-1);
+	}
+      } while (0);
+      break;
+    case 'S':
+      GET_OPT_STRING(scorename);
+      break;
+    case 'u':
+      GET_OPT_STRING(uadename);
+      break;
+    case 'z':
       playlist_random(&playlist, 1);
-      i++;
-      continue;
-    }
-    if (strcmp(argv[i], "--") == 0) {
-      handleswitches = 0;
-      i++;
-      continue;
-    }
-    if (handleswitches && argv[i][0] == '-') {
-      fprintf(stderr, "unknown arg: %s\n", argv[i]);
+      break;
+    case '?':
+    case ':':
+      exit(-1);
+
+    default:
+      fprintf(stderr, "impossible option\n");
       exit(-1);
     }
+  }
+
+  for (i = optind; i < argc; i++) {
     playlist_add(&playlist, argv[i], recursivemode);
     have_modules = 1;
-    i++;
   }
 
   if (have_modules == 0) {
@@ -409,10 +410,8 @@ int main(int argc, char *argv[])
 
   fork_exec_uade();
 
-  if (output_file == NULL) {
-    if (!audio_init())
-      goto cleanup;
-  }
+  if (!audio_init())
+    goto cleanup;
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
@@ -435,13 +434,15 @@ int main(int argc, char *argv[])
       char *candidates;
       size_t len;
 
+      fprintf(stderr, "\n");
+
       candidates = fileformat_detection(modulename);
 
       if (candidates == NULL) {
 	fprintf(stderr, "unknown format: %s\n", modulename);
 	goto nextsong;
       }
-      fprintf(stderr, "\nplayer candidates: %s\n", candidates);
+      fprintf(stderr, "player candidates: %s\n", candidates);
 
       nplayers = 1;
       t = candidates;
@@ -695,18 +696,10 @@ static int play_loop(void)
 	} else {
 	  playbytes = um->size;
 	}
-	if (output_file == NULL) {
-	  if (!ao_play(libao_device, um->data, playbytes)) {
-	    fprintf(stderr, "libao error detected.\n");
-	    return 0;
-	  }
-	} else {
-	  if (fwrite(um->data, 1, playbytes, output_file) < playbytes) {
-	    fprintf(stderr, "write error on audio output file\n");
-	    return 0;
-	  }
+	if (!ao_play(libao_device, um->data, playbytes)) {
+	  fprintf(stderr, "libao error detected.\n");
+	  return 0;
 	}
-	
 	left -= um->size;
 	break;
 	
@@ -796,13 +789,14 @@ static void print_help(void)
   printf(" -b dirname,  set uade base directory (contains data files)\n");
   printf(" -c file,  set uade config file name\n");
   printf(" -d/--debug,  enable debug mode (expert only)\n");
-  printf(" -f filename,  write audio output into 'filename'\n");
   printf(" -S filename,  set sound core name\n");
   printf(" -u uadename,  set uadecore executable name\n");
   printf("\n");
   printf("Normal options:\n");
   printf(" -1, --one,  play at most one subsong per file\n");
   printf(" -@ filename, --list filename,  read playlist of files from 'filename'\n");
+  printf(" -e format,  set output file format. use with -f. wav is the default format.\n");
+  printf(" -f filename,  write audio output into 'filename' (see -e also)\n");
   printf(" -h/--help,  print help\n");
   printf(" -m filename,  set module name\n");
   printf(" -p filename,  set player name\n");
@@ -888,11 +882,8 @@ static void trivial_cleanup(void)
     kill(uadepid, SIGTERM);
     uadepid = -1;
   }
-  if (output_file != NULL) {
-    if (output_file != stdout)
-      fclose(output_file);
-    output_file = NULL;
-  }
+  if (libao_device != NULL)
+    ao_close(libao_device);
 }
 
 
