@@ -2,13 +2,13 @@
 CC = {CC}
 CFLAGS = -Wall -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
-MODULES = uade-trivial.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
+MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
 	chrarray.o playlist.o uadeformats.o unixwalkdir.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
 
-uade-trivial.o:	uade-trivial.c ../../include/uademsg.h ../../include/uadeconfig.h
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
@@ -29,14 +29,11 @@ uadeformats.o:	../../uadeformats.c ../../include/uadeformats.h
 chrarray.o:	chrarray.c chrarray.h
 	$(CC) $(CFLAGS) -c chrarray.c
 
-playlist.o:	playlist.c playlist.h
+playlist.o:	playlist.c playlist.h uade123.h
 	$(CC) $(CFLAGS) -c playlist.c
 
 unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
 	$(CC) $(CFLAGS) -o unixwalkdir.o -c ../../unixwalkdir.c
-
-test:	
-	./uade123 -c ../../../uaerc -u ../../uadecore -s ../../../score -p ../../FC1.3 -m ../../fc13.smod7
 
 clean:	
 	rm -f uade1337 *.o

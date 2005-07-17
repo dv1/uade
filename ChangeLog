@@ -14,7 +14,8 @@
 	  code that was designed to be used when running sound core under a
 	  _real_ AmigaOS.
 	- Made uade123 less verbose. Use -v option to get more details.
-	
+	- Renamed directory 'trivial' to 'uade123' in src/frontends/
+
 2005-07-15  Heikki Orsila <heikki.orsila@iki.fi>
         * UADE 1.50-pre1 (developer release)
 	- Lots of changes into uade123

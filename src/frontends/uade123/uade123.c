@@ -36,7 +36,7 @@
 #include <uadeformats.h>
 
 #include "playlist.h"
-#include "uade-trivial.h"
+#include "uade123.h"
 
 
 static char basedir[PATH_MAX];

@@ -18,7 +18,7 @@ uadecore:
 	$(MAKE) -C src
 
 uade123:	
-	$(MAKE) -C src/frontends/trivial
+	$(MAKE) -C src/frontends/uade123
 
 plugins:	
 	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms
@@ -35,7 +35,7 @@ test:
 	@ echo ""
 	@ echo "### UADE should be playing now 'AHX.Cruisin'"
 	@ echo ""
-	src/frontends/trivial/uade123 -b . -p players/AHX -m songs/AHX.Cruisin -u src/uadecore
+	src/frontends/uade123/uade123 -b . -p players/AHX -m songs/AHX.Cruisin -u src/uadecore
 
 uninstall:	
 	@test "{WITH_XMMS}" = "no" || $(MAKE) xmmspluginuninstall
@@ -58,7 +58,7 @@ install:	all
 	cp -f src/uadecore "$(BINDIR)/"
 	chmod og+rx "$(BINDIR)/uadecore"
 
-	cp -f src/frontends/trivial/uade123 "$(BINDIR)/"
+	cp -f src/frontends/uade123/uade123 "$(BINDIR)/"
 	chmod og+rx "$(BINDIR)/uade123"
 
 miniinstall:	
@@ -79,6 +79,6 @@ pluginclean:
 
 clean:	
 	$(MAKE) -C src clean
-	$(MAKE) -C src/frontends/trivial clean
+	$(MAKE) -C src/frontends/uade123 clean
 
 

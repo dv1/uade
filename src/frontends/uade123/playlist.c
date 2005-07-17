@@ -13,9 +13,8 @@
 
 #include <unixwalkdir.h>
 
-#include "uade-trivial.h"
-
 #include "playlist.h"
+#include "uade123.h"
 
 int playlist_init(struct playlist *pl)
 {
