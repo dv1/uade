@@ -36,6 +36,8 @@
 #include <uadeformats.h>
 
 #include "playlist.h"
+#include "uade-trivial.h"
+
 
 static char basedir[PATH_MAX];
 
@@ -56,7 +58,7 @@ static int one_subsong_per_file;
 static pid_t uadepid;
 static int uadeterminated;
 static int song_end_trigger;
-static int verbose_mode;
+int verbose_mode;
 
 
 static int play_loop(void);
@@ -128,7 +130,7 @@ static char *fileformat_detection(const char *modulename)
   extension[0] = 0;
   filemagic(fileformat_buf, extension, st.st_size);
 
-  fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
+  debug("%s: deduced extension: %s\n", modulename, extension);
 
   if (format_ds == NULL) {
     char formatsfile[PATH_MAX];
@@ -262,6 +264,7 @@ int main(int argc, char *argv[])
     {"help", 0, NULL, 'h'},
     {"recursive", 0, NULL, 'r'},
     {"subsong", 1, NULL, 's'},
+    {"verbose", 0, NULL, 'v'},
     {"shuffle", 0, NULL, 'z'}
   };
 
@@ -438,7 +441,7 @@ int main(int argc, char *argv[])
       char *candidates;
       size_t len;
 
-      fprintf(stderr, "\n");
+      debug("\n");
 
       candidates = fileformat_detection(modulename);
 
@@ -446,7 +449,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "unknown format: %s\n", modulename);
 	goto nextsong;
       }
-      fprintf(stderr, "player candidates: %s\n", candidates);
+      debug("player candidates: %s\n", candidates);
 
       nplayers = 1;
       t = candidates;
@@ -504,7 +507,8 @@ int main(int argc, char *argv[])
       fprintf(stderr, "can not stat player: %s\n", playername);
       goto nextsong;
     }
-    fprintf(stderr, "player: %s (%zd bytes)\n", playername, filesize);
+    if (verbose_mode || modulename[0] == 0)
+      fprintf(stderr, "player: %s (%zd bytes)\n", playername, filesize);
     if (modulename[0] != 0) {
       if ((filesize = stat_file_size(modulename)) < 0) {
 	fprintf(stderr, "can not stat module: %s\n", modulename);
@@ -539,7 +543,7 @@ int main(int argc, char *argv[])
     }
 
     if (um->msgtype == UADE_REPLY_CANT_PLAY) {
-      fprintf(stderr, "uade refuses to play the song\n");
+      debug("uade refuses to play the song\n");
       if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
 	fprintf(stderr, "uade123: can not receive token in main loop\n");
 	exit(-1);
@@ -572,7 +576,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  fprintf(stderr, "killing child (%d)\n", uadepid);
+  debug("killing child (%d)\n", uadepid);
   trivial_cleanup();
   return 0;
 
@@ -705,22 +709,22 @@ static int play_loop(void)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "format name: %s\n", (uint8_t *) um->data);
+	debug("format name: %s\n", (uint8_t *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "module name: %s\n", (uint8_t *) um->data);
+	debug("module name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "message: %s\n", (char *) um->data);
+	debug("message: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	fprintf(stderr, "player name: %s\n", (uint8_t *) um->data);
+	debug("player name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -755,7 +759,7 @@ static int play_loop(void)
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
-	fprintf(stderr, "subsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
+	debug("subsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
 	min_sub = u32ptr[0];
 	max_sub = u32ptr[1];
 	cur_sub = u32ptr[2];
@@ -810,6 +814,7 @@ static void print_help(void)
   printf(" -p filename,  set player name\n");
   printf(" -r/--recursive,  recursive directory scan\n");
   printf(" -s x, --subsong x,  set subsong 'x'\n");
+  printf(" -v,  --verbose,  turn on verbose mode\n");
   printf(" -z, --shuffle,  set shuffling mode for playlist\n");
   printf("\n");
   printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
@@ -904,7 +909,7 @@ static void trivial_sigchld(int sig)
   if (process == 0)
     return;
   successful = (WEXITSTATUS(status) == 0);
-  fprintf(stderr, "uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
+  debug("uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
   if (uadepid != 0 && process != uadepid)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);

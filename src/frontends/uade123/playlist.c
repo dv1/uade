@@ -13,6 +13,8 @@
 
 #include <unixwalkdir.h>
 
+#include "uade-trivial.h"
+
 #include "playlist.h"
 
 int playlist_init(struct playlist *pl)
@@ -96,7 +98,7 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
     if (recursive) {
       uade_walk_directories(name, recursive_func, pl);
     } else {
-      fprintf(stderr, "Not adding directory %s. Use -r to add recursively.\n", name);
+      debug("Not adding directory %s. Use -r to add recursively.\n", name);
     }
     ret = 1;
   }
