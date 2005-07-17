@@ -7,7 +7,8 @@
 	  start. Traditionally the simulator has produced audio output from
 	  the reboot of the amiga even if it is only useful to output audio
 	  after all the lengthy player initializations have been made in
-	  the sound core. This has been on my job list for many years :)
+	  the sound core. For example, AHX.Cruisin now has 0.96 seconds less
+	  zero samples in the beginning.
 	- Cleaned up sound core a bit. Removed some unused definitions
 	  of messages between sound core and the simulator. Removed unused
 	  code that was designed to be used when running sound core under a
