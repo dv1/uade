@@ -413,7 +413,8 @@ if test "$user" = "no"; then
     if test -z "$prefix"; then
 	prefix="/usr/local"
     fi
-    uadedatadir="$prefix/share/uade"
+    uadedatadir="$prefix/share/uade2"
+    uadelibdir="$prefix/lib/uade2"
     if test -z "$bindir"; then
 	bindir="$prefix/bin"
     fi
@@ -435,6 +436,7 @@ else
 	prefix="$HOME/.uade2"
     fi
     uadedatadir="$prefix"
+    uadelibdir="$prefix"
     if test -z "$bindir"; then
 	bindir="$prefix"
     fi
@@ -515,11 +517,11 @@ OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 echo > src/include/uadeconfig.h
 if test "$user" = "yes" ; then
     echo "#define UADE_CONFIG_USER_MODE (1)" >> src/include/uadeconfig.h
-    echo "#define UADE_CONFIG_BASE_DIR \"$HOME/.uade2\"" >> src/include/uadeconfig.h
 else
     echo "#define UADE_CONFIG_USER_MODE (0)" >> src/include/uadeconfig.h
-    echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> src/include/uadeconfig.h
 fi
+echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> src/include/uadeconfig.h
+echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> src/include/uadeconfig.h
 
 sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{DATADIR}|$uadedatadir|" \

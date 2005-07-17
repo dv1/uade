@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
     if (scorename[0] == 0)
       snprintf(scorename, sizeof(scorename), "%s/score", basedir);
     if (uadename[0] == 0)
-      snprintf(uadename, sizeof(uadename), "%s/uadecore", basedir);
+      strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof(uadename));
   } else {
     CHECK_EXISTENCE(configname, "config name");
     CHECK_EXISTENCE(scorename, "score name");
