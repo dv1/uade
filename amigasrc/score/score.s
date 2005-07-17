@@ -22,23 +22,23 @@
 	include	devices/timer.i
 
 
-UADE_REBOOT	equ	1
-UADE_SETSUBSONG	equ	2
-UADE_SONGEND	equ	4
-UADE_PLAYERNAME	equ	6
-UADE_MODULENAME	equ	7
-UADE_SUBSINFO	equ	9
-UADE_CHECKERROR	equ	10
-UADE_SCORECRASH	equ	11
-UADE_SCOREDEAD	equ	12
-UADE_GENERALMSG	equ	13
-UADE_NTSC	equ	14
-UADE_FORMATNAME	equ	15
-UADE_LOADFILE	equ	16
-UADE_READ	equ	17
-UADE_FILESIZE	equ	18
-UADE_TIME_CRITICAL equ	19
-UADE_GET_INFO equ	22
+UADE_SETSUBSONG	equ	1
+UADE_SONG_END	equ	2
+UADE_PLAYERNAME	equ	3
+UADE_MODULENAME	equ	4
+UADE_SUBSINFO	equ	5
+UADE_CHECKERROR	equ	6
+UADE_SCORECRASH	equ	7
+UADE_SCOREDEAD	equ	8
+UADE_GENERALMSG	equ	9
+UADE_NTSC	equ	10
+UADE_FORMATNAME	equ	11
+UADE_LOADFILE	equ	12
+UADE_READ	equ	13
+UADE_FILESIZE	equ	14
+UADE_TIME_CRITICAL	equ	15
+UADE_GET_INFO	equ	16
+UADE_START_OUTPUT	equ	17
 
 EXECBASE	equ	$0D00
 EXECENTRIES	equ	210
@@ -53,9 +53,6 @@ TRAP_VECTOR_6	equ	$98	* bin trap
 UadeTimeCritical	equ	-6
 UadePutString		equ	-12
 UadeGetInfo		equ	-18
-
-* set this to ZERO for uade build, otherwise non-zero (for testing in asmone)
-asmone=	0
 
 * $100	mod address
 * $104	mod length
@@ -86,42 +83,10 @@ asmone=	0
 * $0800 -
 * $0D00	exec base (-6*EXECENTRIES == -6 * 210)
 
-*
-* This is just a stub for testing in asmone
-*
 	section	uadesoundcore,code_c
-	if asmone=0
 	illegal
-	else
-	move.l	#module,$100
-	move.l	#modulee-module,$104
-	move.l	#playeri,$108
-	move.l	#chipbuf,$10c
-	move.l	#0,$11c			* dont set sub
-	move.l	#1,$120			* sub 1
-	move.l	#0,$124			* set PAL
-	move	#0,aud0vol+custom
-	move	#0,aud1vol+custom
-	move	#0,aud2vol+custom
-	move	#0,aud3vol+custom
-	move	#$f,dmacon+custom
-	jmp	start
-	dc.l	modulee-module
-module
-	incbin	somemodule
-modulee	even
-	ds.b	256000
-playeri
-	incbin	someplayer
-	even
-chipbuf	ds.b	256000
-	endif
-*
-* This is the real thing: UADE sound core (in asmone: build, wb, start, end)
-*
-start	if asmone=0
 
-	* set super stack and user stack
+start	* set super stack and user stack
 	move.l	$114,a7
 	move.l	$110,a0
 	move.l	a0,usp
@@ -324,8 +289,6 @@ exceploop	move	d0,$dff180
 contplayer	* initialize messaging trap *
 	bsr	set_message_traps
 
-	endif
-
 	lea	moduleptr(pc),a0
 	lea	modulesize(pc),a1
 	move.l	$100.w,(a0)
@@ -337,15 +300,12 @@ contplayer	* initialize messaging trap *
 	bsr	relocator
 	tst.l	d0
 	beq.b	reloc_success
-	if asmone=0
 	lea	reloc_error_msg(pc),a0
 	bsr	put_string
 	moveq	#UADE_SCOREDEAD,d0
 	bsr	put_message_by_value
 reloc_wait_forever	bra	reloc_wait_forever
-	else
-	illegal
-	endif
+
 reloc_error_msg	dc.b	'reloc error',0
 	even
 
@@ -361,7 +321,6 @@ reloc_success	lea	binbase(pc),a1
 	clr.b	d0
 	move.l	d0,(a0)
 
-	if asmone=0
 	* volume test (debug)
 	lea	voltestbit(pc),a0
 	moveq	#0,d0
@@ -405,7 +364,6 @@ noepmc
 is_pal	move	d1,beamcon0+custom
 	lea	vbi_hz(pc),a0
 	move	d2,(a0)
-	endif
 
 	* check deliplayer's header tags
 	bsr	parse_player_tags
@@ -426,9 +384,7 @@ is_pal	move	d1,beamcon0+custom
 	bsr	call_extload
 
 	* initialize interrupts concerning Timing
-	if asmone=0
 	bsr	init_interrupts
-	endif
 
 	* initialize noteplayer (after configfunc)
 	bsr	np_init
@@ -501,6 +457,10 @@ timernonzero
 	bne.b	notimerhack
 	clr	dtg_Timer(a5)
 notimerhack
+	* tell the simulator that audio output should start now
+	move.l	#UADE_START_OUTPUT,d0
+	bsr	put_message_by_value
+
 	move.l	startintfunc(pc),d0
 	bne.b	timernotset
 	* if dtg_Timer was set non-zero in initsound routine,
@@ -514,16 +474,7 @@ timernotset
 	* call startint (player initializes own interrupts here)
 	bsr	call_start_int
 
-playloop						* PLAY LOOP
-	if asmone=1
-	cmp.b	#$80,$dff006
-	bne.b	playloop
-playloop_c	cmp.b	#$88,$dff006
-	bne.b	playloop_c
-
-	else
-
-	* this is for debugging only
+playloop	* this is for debugging only
 	bsr	volumetest
 
 	bsr	waittrap		* wait for next frame
@@ -590,7 +541,6 @@ adjacentsub
 dontresetciabplayer
 	move	#$c000,intena+custom
 dontchangesubs
-	endif
 
 	btst	#6,$bfe001
 	beq.b	end_song
@@ -622,11 +572,7 @@ dont_check_start_int
 	lea	trapcall(pc),a1
 	move.l	a1,TRAP_VECTOR_3
 	lea	eaglebase(pc),a5
-	if asmone=0
 	trap	#3
-	else
-	jsr	(a0)
-	endif
 	lea	callinginterrupt(pc),a0
 	clr.l	(a0)
 	move.l	settimercalled(pc),d0
@@ -636,12 +582,7 @@ dontcallintfunc
 
 	bra	playloop			* loop back
 
-end_song
-	if asmone=1
-	illegal
-	endif
-
-	* FIRST: report that song has ended
+end_song	* FIRST: report that song has ended
 	bsr	report_song_end
 
 	* THEN do the deinit stuff...
@@ -673,10 +614,7 @@ subsongseqloop
 	bne	playloop
 	bra.b	subsongseqloop
 
-dontplay	if asmone=1
-	illegal
-	else
-	* report that score is dead
+dontplay	* report that score is dead
 	bsr	set_message_traps
 	move	songendbit(pc),d0
 	bne.b	noscoredeadmsg
@@ -697,7 +635,7 @@ smallint	move	#$0020,intreq+custom
 
 flashloop	move	$dff006,$dff180
 	bra.b	flashloop
-	endif
+
 
 jsrcom	jsr	0
 jmpcom	jmp	0
@@ -755,15 +693,13 @@ bindump	dcb.b	100,0
 	even
 
 * outputs constant d0 to output trap
-put_value	if asmone=0
-	push	all
+put_value	push	all
 	* d0 has input
 	lea	pollmsgcode(pc),a0
 	bsr	genhexstring
 	lea	pollmsg(pc),a0
 	bsr	put_string
 	pull	all
-	endif
 	rts
 pollmsg	dc.b	'debug value '
 pollmsgcode	dcb.b	9,0
@@ -802,9 +738,6 @@ doserrorcode	dcb.b	8,0
 doserrormsge	even
 
 split_module_name
-	if asmone=1
-	rts
-	endif
 	move.l	$128.w,d0
 	beq.b	nomodulename
 	move.l	d0,a0
@@ -951,27 +884,22 @@ input_msg_error	dc.b	'sound core got unknown input message 0x'
 inputmsgcode	dcb.b	9,0
 	even
 
-put_message	if asmone=0
-	move.l	msgptr(pc),a1
+put_message	move.l	msgptr(pc),a1
 msgloop	tst.l	d0
 	beq.b	endmsgloop
 	move.b	(a0)+,(a1)+
 	subq.l	#1,d0
 	bra.b	msgloop
 endmsgloop	trap	#5
-	endif
 	rts
 
 put_message_by_value
-	if asmone=0
 	move.l	msgptr(pc),a0
 	move.l	d0,(a0)
 	trap	#5
-	endif
 	rts
 
-put_string	if asmone=0
-	push	all
+put_string	push	all
 	bsr	strlen
 	addq.l	#1,d0
 	move.l	msgptr(pc),a1
@@ -983,7 +911,6 @@ stringmsgloop	tst.l	d0
 	bra.b	stringmsgloop
 endstringmsgloop	trap	#5
 	pull	all
-	endif
 	rts
 
 strlen	pushr	a0
@@ -1577,10 +1504,8 @@ do_ep_check	move.l	d0,a0
 	jsr	(a0)
 	tst.l	d0
 	beq.b	song_ok
-	if asmone=0		* check for force_by_default
 	tst.l	$118.w
 	bne.b	song_ok
-	endif
 	moveq	#UADE_CHECKERROR,d0
 	bsr	put_message_by_value
 	bra	dontplay
@@ -1597,7 +1522,6 @@ call_config	lea	eaglebase(pc),a5
 noconfig	rts
 
 call_extload	* load external data if requested
-	if asmone=0
 	move.l	extloadfunc(pc),d0
 	beq.b	noextloadfunc
 	lea	eaglebase(pc),a5
@@ -1610,10 +1534,9 @@ call_extload	* load external data if requested
 	bra	dontplay
 extloaderrmsg	dc.b	'ExtLoad failed',0
 	even
-noextloadfunc	endif
-	rts
+noextloadfunc	rts
 
-report_song_end	moveq	#UADE_SONGEND,d0
+report_song_end	moveq	#UADE_SONG_END,d0
 	bsr	put_message_by_value
 	rts
 
