@@ -48,7 +48,7 @@ enum print_help {
 
 
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
-static int uade_get_long(int addr);
+static int uade_get_u32(int addr);
 static void uade_print_help(enum print_help problemcode, char *progname);
 static void uade_put_long(int addr,int val);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
@@ -196,18 +196,18 @@ void uade_get_amiga_message(void)
   uint8_t space[256];
   struct uade_msg *um = (struct uade_msg *) space;
 
-  /* get input message type */
-  x = uade_get_long(SCORE_INPUT_MSG);
+  x = uade_get_u32(SCORE_INPUT_MSG);  /* message type from amiga */
 
   switch (x) {
+
   case AMIGAMSG_SONG_END:
     uade_song_end("player", 0);
     break;
 
   case AMIGAMSG_SUBSINFO:
-    mins = uade_get_long(SCORE_MIN_SUBSONG);
-    maxs = uade_get_long(SCORE_MAX_SUBSONG);
-    curs = uade_get_long(SCORE_CUR_SUBSONG);
+    mins = uade_get_u32(SCORE_MIN_SUBSONG);
+    maxs = uade_get_u32(SCORE_MAX_SUBSONG);
+    curs = uade_get_u32(SCORE_CUR_SUBSONG);
     /* fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs); */
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
@@ -268,14 +268,14 @@ void uade_get_amiga_message(void)
   case AMIGAMSG_LOADFILE:
     /* load a file named at 0x204 (name pointer) to address pointed by
        0x208 and insert the length to 0x20C */
-    src = uade_get_long(0x204);
+    src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
       fprintf(stderr, "uade: load: name in invalid address range\n");
       break;
     }
     nameptr = get_real_address(src);
     if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
-      dst = uade_get_long(0x208);
+      dst = uade_get_u32(0x208);
       len = uade_safe_load(dst, file, uade_highmem - dst);
       fclose(file); file = 0;
       uade_put_long(0x20C, len);
@@ -284,15 +284,15 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_READ:
-    src = uade_get_long(0x204);
+    src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
       fprintf(stderr, "uade: read: name in invalid address range\n");
       break;
     }
     nameptr = get_real_address(src);
-    dst = uade_get_long(0x208);
-    off = uade_get_long(0x20C);
-    len = uade_get_long(0x210);
+    dst = uade_get_u32(0x208);
+    off = uade_get_u32(0x20C);
+    len = uade_get_u32(0x210);
     /* fprintf(stderr,"uade: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
     if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       if (fseek(file, off, SEEK_SET)) {
@@ -312,7 +312,7 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_FILESIZE:
-    src = uade_get_long(0x204);
+    src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
       fprintf(stderr, "uade: filesize: name in invalid address range\n");
       break;
@@ -333,7 +333,7 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_TIME_CRITICAL:
-    uade_time_critical = uade_get_long(0x204) ? 1 : 0;
+    uade_time_critical = uade_get_u32(0x204) ? 1 : 0;
     if (uade_speed_hack < 0) {
       /* a negative value forbids use of speed hack */
       uade_time_critical = 0;
@@ -341,9 +341,9 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_GET_INFO:
-    src = uade_get_long(0x204);
-    dst = uade_get_long(0x208);
-    len = uade_get_long(0x20C);
+    src = uade_get_u32(0x204);
+    dst = uade_get_u32(0x208);
+    len = uade_get_u32(0x20C);
     if (!uade_valid_string(src) || !uade_valid_string(dst)) {
       fprintf(stderr, "uade: invalid address from 0x%x or 0x%x\n", src, dst);
       break;
@@ -354,11 +354,15 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_START_OUTPUT:
     uade_audio_output = 1;
-    fprintf(stderr, "starting audio output at %d\n", uade_audio_skip);
+    snprintf(tmpstr, sizeof(tmpstr), "starting audio output at %d", uade_audio_skip);
+    if (uade_send_string(UADE_REPLY_MSG, tmpstr) < 0) {
+      fprintf(stderr, "can not send audio output start string\n");
+      exit(-1);
+    }
     break;
 
   default:
-    fprintf(stderr,"uade: unknown message from score ($%x)\n",x);
+    fprintf(stderr,"uade: unknown message from score (%d)\n", x);
     break;
   }
 }
@@ -847,12 +851,12 @@ static void uade_put_long(int addr, int val)
 }
 
 
-static int uade_get_long(int addr)
+static int uade_get_u32(int addr)
 {
   uae_u32 *ptr;
   int x;
   if (!valid_address(addr, 4)) {
-    fprintf(stderr, "uade: invalid uade_get_long (0x%x)\n", addr);
+    fprintf(stderr, "uade: invalid uade_get_u32 (0x%x)\n", addr);
     return 0;
   }
   ptr = (uae_u32 *) get_real_address(addr);

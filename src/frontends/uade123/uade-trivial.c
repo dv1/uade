@@ -44,18 +44,19 @@ static char playername[PATH_MAX];
 static char scorename[PATH_MAX];
 static char uadename[PATH_MAX];
 
-static int debug_mode = 0;
-static int debug_trigger = 0;
+static int debug_mode;
+static int debug_trigger;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
 static ao_device *libao_device;
 static char output_file_format[16];
 static char output_file_name[PATH_MAX];
-static int one_subsong_per_file = 0;
-static pid_t uadepid = -1;
-static int uadeterminated = 0;
-static int song_end_trigger = 0;
+static int one_subsong_per_file;
+static pid_t uadepid;
+static int uadeterminated;
+static int song_end_trigger;
+static int verbose_mode;
 
 
 static int play_loop(void);
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:rs:S:u:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:rs:S:u:vz", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -345,6 +346,9 @@ int main(int argc, char *argv[])
       break;
     case 'u':
       GET_OPT_STRING(uadename);
+      break;
+    case 'v':
+      verbose_mode = 1;
       break;
     case 'z':
       playlist_random(&playlist, 1);
@@ -882,9 +886,9 @@ static int test_song_end_trigger(void)
 
 static void trivial_cleanup(void)
 {
-  if (uadepid != -1) {
+  if (uadepid) {
     kill(uadepid, SIGTERM);
-    uadepid = -1;
+    uadepid = 0;
   }
   if (libao_device != NULL)
     ao_close(libao_device);
@@ -901,10 +905,10 @@ static void trivial_sigchld(int sig)
     return;
   successful = (WEXITSTATUS(status) == 0);
   fprintf(stderr, "uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
-  if (uadepid != -1 && process != uadepid)
+  if (uadepid != 0 && process != uadepid)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
-  uadepid = -1;
+  uadepid = 0;
   uadeterminated = 1;
 }
 
