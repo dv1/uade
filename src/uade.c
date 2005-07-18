@@ -408,7 +408,7 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_IGNORE_CHECK:
       /* override bit for sound format checking */
-      uade_put_long(SCORE_FORCE, 0);
+      uade_put_long(SCORE_FORCE, 1);
       break;
 
     case UADE_COMMAND_READ:

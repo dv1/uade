@@ -265,11 +265,13 @@ int main(int argc, char *argv[])
   int have_modules = 0;
   int ret;
   char *endptr;
+  int ignore_player_check = 0;
   struct option long_options[] = {
     {"list", 1, NULL, '@'},
     {"one", 0, NULL, '1'},
     {"debug", 0, NULL, 'd'},
     {"help", 0, NULL, 'h'},
+    {"ignore", 0, NULL, 'i'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
     {"subsong", 1, NULL, 's'},
@@ -289,7 +291,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hm:p:P:rs:S:t:u:vw:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:him:p:P:rs:S:t:u:vw:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -330,6 +332,9 @@ int main(int argc, char *argv[])
     case 'h':
       print_help();
       exit(0);
+    case 'i':
+      ignore_player_check = 1;
+      break;
     case 'm':
       playlist_add(&playlist, optarg, 0);
       break;
@@ -595,6 +600,13 @@ int main(int argc, char *argv[])
     if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
       fprintf(stderr, "uade123: can not receive token after play ack\n");
       goto cleanup;
+    }
+
+    if (ignore_player_check) {
+      if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
+	fprintf(stderr, "uade123: can not send ignore check message\n");
+	exit(-1);
+      }
     }
 
     if (subsong >= 0)
@@ -871,6 +883,7 @@ static void print_help(void)
   printf(" -e format,  set output file format. use with -f. wav is the default format.\n");
   printf(" -f filename,  write audio output into 'filename' (see -e also)\n");
   printf(" -h/--help,  print help\n");
+  printf(" -i, --ignore,  ignore eagleplayer fileformat check result. play always.\n");
   printf(" -m filename,  set module name\n");
   printf(" -p x, --panning x,  set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,  set player name\n");
