@@ -679,7 +679,7 @@ static int play_loop(void)
 	if (song_end) {
 	  if (one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
 	    cur_sub++;
-	    if (cur_sub >= max_sub) {
+	    if (cur_sub > max_sub) {
 	      song_end_trigger = 1;
 	    } else {
 	      song_end = 0;

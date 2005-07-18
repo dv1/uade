@@ -1,4 +1,8 @@
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
+	- fixed a bug in uade123 that prevented it from playing the last
+	  subsong of a song.
+
+2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre2 (developer release)
 	- uade123 now has eagleplayer fileformat check ignoring feature (-i),
 	  panning (-p), song timeout (-t), and subsong timeouts (-w)

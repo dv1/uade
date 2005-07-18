@@ -944,7 +944,7 @@ void uade_song_end(char *reason, int kill_it)
 {
   uint8_t space[sizeof(struct uade_msg) + 4 + 256];
   struct uade_msg *um = (struct uade_msg *) space;
-  fprintf(stderr, "uade: song end (%s)\n", reason);
+  /* fprintf(stderr, "uade: song end (%s)\n", reason); */
   um->msgtype = UADE_REPLY_SONG_END;
   ((uint32_t *) um->data)[0] = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
   ((uint32_t *) um->data)[1] = htonl(kill_it);
