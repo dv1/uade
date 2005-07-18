@@ -1,5 +1,6 @@
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
-	- uade123 now has song timeout, subsong timeouts, and panning
+	- uade123 now has eagleplayer fileformat check ignoring feature (-i),
+	  panning (-p), song timeout (-t), and subsong timeouts (-w)
 
 2005-07-17  Heikki Orsila <heikki.orsila@iki.fi>
 	- uade123 now uses GNU getopt
