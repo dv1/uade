@@ -1,3 +1,6 @@
+2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
+	- uade123 now has song timeout, subsong timeouts, and panning
+
 2005-07-17  Heikki Orsila <heikki.orsila@iki.fi>
 	- uade123 now uses GNU getopt
 	- uade123 can now output both raw and wav formats by using libao
