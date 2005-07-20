@@ -12,31 +12,31 @@ uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
-	$(CC) $(CFLAGS) -o strlrep.o -c ../../strlrep.c
+	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
-	$(CC) $(CFLAGS) -o unixatomic.o -c ../../unixatomic.c
+	$(CC) $(CFLAGS) -c $<
 
 uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
-	$(CC) $(CFLAGS) -o uadecontrol.o -c ../../uadecontrol.c
+	$(CC) $(CFLAGS) -c $<
 
 amifilemagic.o:	../../amifilemagic.c ../../include/amifilemagic.h
-	$(CC) $(CFLAGS) -o amifilemagic.o -c ../../amifilemagic.c
+	$(CC) $(CFLAGS) -c $<
 
 uadeformats.o:	../../uadeformats.c ../../include/uadeformats.h
-	$(CC) $(CFLAGS) -o uadeformats.o -c ../../uadeformats.c
+	$(CC) $(CFLAGS) -c $<
 
 chrarray.o:	chrarray.c chrarray.h
-	$(CC) $(CFLAGS) -c chrarray.c
+	$(CC) $(CFLAGS) -c $<
 
 playlist.o:	playlist.c playlist.h uade123.h
-	$(CC) $(CFLAGS) -c playlist.c
+	$(CC) $(CFLAGS) -c $<
 
 unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
-	$(CC) $(CFLAGS) -o unixwalkdir.o -c ../../unixwalkdir.c
+	$(CC) $(CFLAGS) -c $<
 
 effects.o:	effects.c effects.h
-	$(CC) $(CFLAGS) -c effects.c
+	$(CC) $(CFLAGS) -c $<
 
 clean:	
-	rm -f uade1337 *.o
+	rm -f uade123 *.o
