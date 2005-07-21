@@ -19,21 +19,23 @@
 #include "audio.h"
 
 
-static int uade_test_silence(void *buf, int size)
+static int uade_test_silence(void *buf, size_t size)
 {
   int i, s, exceptioncounter;
   int16_t *sm;
   static int64_t zero_count = 0;
+  int nsamples;
 
   if (uade_silence_timeout < 0)
     return 0;
 
   exceptioncounter = 0;
   sm = buf;
+  nsamples = size / 2;
 
-  for (i = 0; i < (size / 2); i++) {
+  for (i = 0; i < nsamples; i++) {
     s = (sm[i] >= 0) ? sm[i] : -sm[i];
-    if (s >= (32767 * 1 /100)) {
+    if (s >= (32767 * 1 / 100)) {
       exceptioncounter++;
       if (exceptioncounter >= (size * 2 / 100)) {
 	zero_count = 0;
@@ -41,12 +43,11 @@ static int uade_test_silence(void *buf, int size)
       }
     }
   }
-  if (i == (size / 2)) {
+  if (i == nsamples) {
     zero_count += size;
-    if ((zero_count / uade_sample_bytes_per_second) >= uade_silence_timeout)
+    if (zero_count / uade_sample_bytes_per_second >= uade_silence_timeout)
       return 1;
   }
-
   return 0;
 }
 

@@ -1,19 +1,21 @@
 2005-07-22  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 1.50-pre3 (developer release)
 	- Added a -j to skip x seconds of audio from the beginning. Note that
 	  this does not affect timeout parameters in any way. If timeout is
 	  1 minute and skip is 2 minutes, the song will just end before
 	  anything is played.
 
 2005-07-21  Heikki Orsila <heikki.orsila@iki.fi>
-	- Restructured uade123 code into different code modules to make
-	  maintaining and code reuse easier.
+	- Added silence timeout
 	- Wrote a config file parser for uade123. Look at uade.conf file
 	  for instructions. uade123 tries to load following files in order on
 	  startup: BASEDIR/uade.conf and $(HOME)/.uade2/uade.conf. Command
 	  line options can override config file parameters. Users of uade123
 	  might want to configure timeout, panning and such values as
-	  personal defaults.
-	- Added silence timeout
+	  personal defaults. This is a very important feature important over
+	  uade 1.0x command line tool.
+	- Restructured uade123 code into different code modules to make
+	  maintaining and code reuse easier.
 	
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug in uade123 that prevented it from playing the last
