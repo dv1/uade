@@ -36,6 +36,8 @@
 #include "uade123.h"
 #include "playlist.h"
 #include "effects.h"
+#include "playloop.h"
+#include "audio.h"
 
 
 static char basedir[PATH_MAX];
@@ -45,9 +47,8 @@ int debug_trigger;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
-ao_device *libao_device;
-static char output_file_format[16];
-static char output_file_name[PATH_MAX];
+char output_file_format[16];
+char output_file_name[PATH_MAX];
 int one_subsong_per_file;
 float panning_value;
 static pid_t uadepid;
@@ -62,7 +63,6 @@ int timeout_value = -1;
 int verbose_mode;
 
 
-static int play_loop(void);
 static void print_help(void);
 static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
@@ -70,40 +70,6 @@ ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
-
-
-static int audio_init(void)
-{
-  int driver;
-  ao_sample_format format;
-
-  ao_initialize();
-
-  format.bits = 16;
-  format.channels = 2;
-  format.rate = 44100;
-  format.byte_format = AO_FMT_NATIVE;
-
-  bytes_per_sample = format.bits / 8;
-  sample_bytes_per_second = bytes_per_sample * format.channels * format.rate;
-
-  if (output_file_name[0]) {
-    driver = ao_driver_id(output_file_format[0] ? output_file_format : "wav");
-    if (driver < 0) {
-      fprintf(stderr, "illegal libao driver\n");
-      return 0;
-    }
-    libao_device = ao_open_file(driver, output_file_name, 1, &format, NULL);
-  } else {
-    driver = ao_default_driver_id();
-    libao_device = ao_open_live(driver, &format, NULL);
-  }
-  if (libao_device == NULL) {
-    fprintf(stderr, "error opening device: errno %d\n", errno);
-    return 0;
-  }
-  return 1;
-}
 
 
 static char *fileformat_detection(const char *modulename)
@@ -631,233 +597,6 @@ int main(int argc, char *argv[])
 }
 
 
-static int play_loop(void)
-{
-  uint16_t *sm;
-  int i;
-  uint32_t *u32ptr;
-
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
-
-  int left;
-  int song_end = 0;
-  int next_song = 0;
-  int ret;
-  int cur_sub = -1, min_sub = -1, max_sub = -1;
-  int tailbytes = 0;
-  int playbytes;
-  char *reason;
-  int64_t total_bytes = 0;
-  int64_t subsong_bytes = 0;
-
-  test_song_end_trigger(); /* clear a pending SIGINT */
-
-  left = 0;
-  enum uade_control_state state = UADE_S_STATE;
-
-  while (next_song == 0) {
-
-    if (uadeterminated)
-      return 0;
-
-    if (state == UADE_S_STATE) {
-
-      if (left == 0) {
-
-	if (debug_trigger == 1) {
-	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
-	    fprintf(stderr, "can not active debugger\n");
-	    return 0;
-	  }
-	  debug_trigger = 0;
-	}
-
-	if (song_end) {
-	  if (one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
-	    cur_sub++;
-	    if (cur_sub > max_sub) {
-	      song_end_trigger = 1;
-	    } else {
-	      song_end = 0;
-	      subsong_bytes = 0;
-	      *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
-				       .size = 4};
-	      * (uint32_t *) um->data = htonl(cur_sub);
-	      if (uade_send_message(um)) {
-		fprintf(stderr, "could not change subsong\n");
-		exit(-1);
-	      }
-	      fprintf(stderr, "subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
-	    }
-	  } else {
-	    song_end_trigger = 1;
-	  }
-	}
-
-	/* check if control-c was pressed */
-	if (song_end_trigger) {
-	  next_song = 1;
-	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
-	    fprintf(stderr, "can not send reboot\n");
-	    return 0;
-	  }
-	  goto sendtoken;
-	}
-
-	left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
-	um->msgtype = UADE_COMMAND_READ;
-	um->size = 4;
-	* (uint32_t *) um->data = htonl(left);
-	if (uade_send_message(um)) {
-	  fprintf(stderr, "can not send read command\n");
-	  return 0;
-	}
-
-      sendtoken:
-	if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-	  fprintf(stderr, "can not send token\n");
-	  return 0;
-	}
-	state = UADE_R_STATE;
-      }
-
-    } else {
-
-      if (uade_receive_message(um, sizeof(space)) <= 0) {
-	fprintf(stderr, "can not receive events from uade\n");
-	return 0;
-      }
-      
-      switch (um->msgtype) {
-
-      case UADE_COMMAND_TOKEN:
-	state = UADE_S_STATE;
-	break;
-
-      case UADE_REPLY_DATA:
-	sm = (uint16_t *) um->data;
-	for (i = 0; i < um->size; i += 2) {
-	  *sm = ntohs(*sm);
-	  sm++;
-	}
-
-	if (song_end) {
-	  playbytes = tailbytes;
-	  tailbytes = 0;
-	} else {
-	  playbytes = um->size;
-	}
-
-	if (use_panning)
-	  uade_effect_pan(um->data, playbytes, bytes_per_sample, panning_value);
-
-	if (!ao_play(libao_device, um->data, playbytes)) {
-	  fprintf(stderr, "libao error detected.\n");
-	  return 0;
-	}
-	if (timeout_value != -1) {
-	  total_bytes += playbytes;
-	  if (song_end_trigger == 0) {
-	    if (total_bytes / sample_bytes_per_second >= timeout_value) {
-	      fprintf(stderr, "song end (timeout %ds)\n", timeout_value);
-	      song_end_trigger = 1;
-	    }
-	  }
-	}
-	if (subsong_timeout_value != -1) {
-	  subsong_bytes += playbytes;
-	  if (song_end == 0 && song_end_trigger == 0) {
-	    if (subsong_bytes / sample_bytes_per_second >= subsong_timeout_value) {
-	      fprintf(stderr, "song end (subsong timeout %ds)\n", subsong_timeout_value);
-	      song_end = 1;
-	    }
-	  }
-	}
-	left -= um->size;
-	break;
-	
-      case UADE_REPLY_FORMATNAME:
-	uade_check_fix_string(um, 128);
-	debug("format name: %s\n", (uint8_t *) um->data);
-	break;
-	
-      case UADE_REPLY_MODULENAME:
-	uade_check_fix_string(um, 128);
-	debug("module name: %s\n", (uint8_t *) um->data);
-	break;
-
-      case UADE_REPLY_MSG:
-	uade_check_fix_string(um, 128);
-	debug("message: %s\n", (char *) um->data);
-	break;
-	
-      case UADE_REPLY_PLAYERNAME:
-	uade_check_fix_string(um, 128);
-	debug("player name: %s\n", (uint8_t *) um->data);
-	break;
-
-      case UADE_REPLY_SONG_END:
-	if (um->size < 9) {
-	  fprintf(stderr, "illegal song end reply\n");
-	  exit(-1);
-	}
-	tailbytes = ntohl(((uint32_t *) um->data)[0]);
-	/* next ntohl() is only there for a principle. it is not useful */
-	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
-	  /* normal happy song end. go to next subsong if any */
-	  song_end = 1;
-	} else {
-	  /* unhappy song end (error in the 68k side). skip to next song
-	     ignoring possible subsongs */
-	  song_end_trigger = 1;
-	}
-	i = 0;
-	reason = &((uint8_t *) um->data)[8];
-	while (reason[i] && i < (um->size - 8))
-	  i++;
-	if (reason[i] != 0 || (i != (um->size - 9))) {
-	  fprintf(stderr, "broken reason string with song end notice\n");
-	  exit(-1);
-	}
-	fprintf(stderr, "song end (%s)\n", reason);
-	break;
-
-      case UADE_REPLY_SUBSONG_INFO:
-	if (um->size != 12) {
-	  fprintf(stderr, "subsong info: too short a message\n");
-	  exit(-1);
-	}
-	u32ptr = (uint32_t *) um->data;
-	debug("subsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
-	min_sub = u32ptr[0];
-	max_sub = u32ptr[1];
-	cur_sub = u32ptr[2];
-	break;
-	
-      default:
-	fprintf(stderr, "uade123: expected sound data. got %d.\n", um->msgtype);
-	return 0;
-      }
-    }
-  }
-
-  do {
-    ret = uade_receive_message(um, sizeof(space));
-    if (ret < 0) {
-      fprintf(stderr, "uade123: can not receive events (TOKEN) from uade\n");
-      return 0;
-    }
-    if (ret == 0) {
-      fprintf(stderr, "uade123: end of input after reboot\n");
-      return 0;
-    }
-  } while (um->msgtype != UADE_COMMAND_TOKEN);
-
-  return 1;
-}
-
-
 static void print_help(void)
 {
   printf("uade123\n");
@@ -973,8 +712,7 @@ static void trivial_cleanup(void)
     kill(uadepid, SIGTERM);
     uadepid = 0;
   }
-  if (libao_device != NULL)
-    ao_close(libao_device);
+  audio_close();
 }
 
 

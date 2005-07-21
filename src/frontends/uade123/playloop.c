@@ -9,15 +9,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <netinet/in.h>
 
 #include <uadecontrol.h>
-#include <strlrep.h>
-#include <unixatomic.h>
 
 #include "uade123.h"
 #include "effects.h"
+#include "audio.h"
 
 
 int play_loop(void)
@@ -141,7 +139,7 @@ int play_loop(void)
 	if (use_panning)
 	  uade_effect_pan(um->data, playbytes, bytes_per_sample, panning_value);
 
-	if (!ao_play(libao_device, um->data, playbytes)) {
+	if (!audio_play(um->data, playbytes)) {
 	  fprintf(stderr, "libao error detected.\n");
 	  return 0;
 	}

@@ -1,14 +1,15 @@
 #ifndef _UADE123_H_
 #define _UADE123_H_
 
-#include <ao/ao.h>
+#include <limits.h>
 
 #define debug(fmt, args...) if (verbose_mode) { fprintf(stderr, fmt, ## args); }
 
 extern int bytes_per_sample;
 extern int debug_trigger;
-extern ao_device *libao_device;
 extern int one_subsong_per_file;
+extern char output_file_format[16];
+extern char output_file_name[PATH_MAX];
 extern int sample_bytes_per_second;
 extern int song_end_trigger;
 extern int subsong_timeout_value;
