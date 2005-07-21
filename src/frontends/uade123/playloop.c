@@ -45,26 +45,26 @@ int play_loop(void)
 
   while (next_song == 0) {
 
-    if (uadeterminated)
+    if (uade_terminated)
       return 0;
 
     if (state == UADE_S_STATE) {
 
       if (left == 0) {
 
-	if (debug_trigger == 1) {
+	if (uade_debug_trigger == 1) {
 	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
 	    fprintf(stderr, "can not active debugger\n");
 	    return 0;
 	  }
-	  debug_trigger = 0;
+	  uade_debug_trigger = 0;
 	}
 
 	if (song_end) {
-	  if (one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
+	  if (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
 	    cur_sub++;
 	    if (cur_sub > max_sub) {
-	      song_end_trigger = 1;
+	      uade_song_end_trigger = 1;
 	    } else {
 	      song_end = 0;
 	      subsong_bytes = 0;
@@ -78,12 +78,12 @@ int play_loop(void)
 	      fprintf(stderr, "subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	    }
 	  } else {
-	    song_end_trigger = 1;
+	    uade_song_end_trigger = 1;
 	  }
 	}
 
 	/* check if control-c was pressed */
-	if (song_end_trigger) {
+	if (uade_song_end_trigger) {
 	  next_song = 1;
 	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
 	    fprintf(stderr, "can not send reboot\n");
@@ -136,27 +136,27 @@ int play_loop(void)
 	  playbytes = um->size;
 	}
 
-	if (use_panning)
-	  uade_effect_pan(um->data, playbytes, bytes_per_sample, panning_value);
+	if (uade_use_panning)
+	  uade_effect_pan(um->data, playbytes, uade_bytes_per_sample, uade_panning_value);
 
 	if (!audio_play(um->data, playbytes)) {
 	  fprintf(stderr, "libao error detected.\n");
 	  return 0;
 	}
-	if (timeout_value != -1) {
+	if (uade_timeout != -1) {
 	  total_bytes += playbytes;
-	  if (song_end_trigger == 0) {
-	    if (total_bytes / sample_bytes_per_second >= timeout_value) {
-	      fprintf(stderr, "song end (timeout %ds)\n", timeout_value);
-	      song_end_trigger = 1;
+	  if (uade_song_end_trigger == 0) {
+	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
+	      fprintf(stderr, "song end (timeout %ds)\n", uade_timeout);
+	      uade_song_end_trigger = 1;
 	    }
 	  }
 	}
-	if (subsong_timeout_value != -1) {
+	if (uade_subsong_timeout != -1) {
 	  subsong_bytes += playbytes;
-	  if (song_end == 0 && song_end_trigger == 0) {
-	    if (subsong_bytes / sample_bytes_per_second >= subsong_timeout_value) {
-	      fprintf(stderr, "song end (subsong timeout %ds)\n", subsong_timeout_value);
+	  if (song_end == 0 && uade_song_end_trigger == 0) {
+	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
+	      fprintf(stderr, "song end (subsong timeout %ds)\n", uade_subsong_timeout);
 	      song_end = 1;
 	    }
 	  }
@@ -197,7 +197,7 @@ int play_loop(void)
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
-	  song_end_trigger = 1;
+	  uade_song_end_trigger = 1;
 	}
 	i = 0;
 	reason = &((uint8_t *) um->data)[8];

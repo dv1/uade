@@ -1,5 +1,9 @@
+2005-07-21  Heikki Orsila <heikki.orsila@iki.fi>
+	- Restructured uade123 code into different code modules to make
+	  maintaining and code reuse easier.
+
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
-	- fixed a bug in uade123 that prevented it from playing the last
+	- Fixed a bug in uade123 that prevented it from playing the last
 	  subsong of a song.
 
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>

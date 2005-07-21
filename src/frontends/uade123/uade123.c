@@ -41,30 +41,30 @@
 #include "config.h"
 
 
+int uade_debug_trigger;
+int uade_ignore_player_check;
+char uade_output_file_format[16];
+char uade_output_file_name[PATH_MAX];
+int uade_one_subsong_per_file;
+float uade_panning_value;
+struct playlist uade_playlist;
+int uade_recursivemode;
+int uade_terminated;
+int uade_use_panning;
+int uade_silence_timeout = 20; /* -1 is infinite */
+int uade_song_end_trigger;
+int uade_subsong_timeout = 512;
+int uade_timeout = -1;
+int uade_verbose_mode;
+
+
 static char basedir[PATH_MAX];
-int bytes_per_sample;
 static int debug_mode;
-int debug_trigger;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
-int ignore_player_check;
-char output_file_format[16];
-char output_file_name[PATH_MAX];
-int one_subsong_per_file;
-float panning_value;
-struct playlist playlist;
-int recursivemode;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
-int uadeterminated;
-int use_panning;
-int sample_bytes_per_second;
-static int silence_timeout = 20; /* -1 is infinite */
-int song_end_trigger;
-int subsong_timeout_value = 512;
-int timeout_value = -1;
-int verbose_mode;
 
 
 static void print_help(void);
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
     {"shuffle", 0, NULL, 'z'}
   };
 
-  if (!playlist_init(&playlist)) {
+  if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
     exit(-1);
   }
@@ -277,14 +277,14 @@ int main(int argc, char *argv[])
 	    continue;
 	  if (tmpstr[strlen(tmpstr) - 1] == '\n')
 	    tmpstr[strlen(tmpstr) - 1] = 0;
-	  playlist_add(&playlist, tmpstr, 0);
+	  playlist_add(&uade_playlist, tmpstr, 0);
 	}
 	fclose(listfile);
 	have_modules = 1;
       } while (0);
       break;
     case '1':
-      one_subsong_per_file = 1;
+      uade_one_subsong_per_file = 1;
       break;
     case 'b':
       GET_OPT_STRING(basedir);
@@ -294,30 +294,25 @@ int main(int argc, char *argv[])
       break;
     case 'd':
       debug_mode = 1;
-      debug_trigger = 1;
+      uade_debug_trigger = 1;
       break;
     case 'e':
-      GET_OPT_STRING(output_file_format);
+      GET_OPT_STRING(uade_output_file_format);
       break;
     case 'f':
-      GET_OPT_STRING(output_file_name);
+      GET_OPT_STRING(uade_output_file_name);
       break;
     case 'h':
       print_help();
       exit(0);
     case 'i':
-      ignore_player_check = 1;
+      uade_ignore_player_check = 1;
       break;
     case 'm':
-      playlist_add(&playlist, optarg, 0);
+      playlist_add(&uade_playlist, optarg, 0);
       break;
     case 'p':
-      panning_value = strtod(optarg, &endptr);
-      if (*endptr != 0 || panning_value < 0.0 || panning_value > 2.0) {
-	fprintf(stderr, "uade123: illegal panning value: %f\n", panning_value);
-	exit(-1);
-      }
-      use_panning = 1;
+      config_set_panning(optarg);
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -325,7 +320,7 @@ int main(int argc, char *argv[])
       have_modules = 1;
       break;
     case 'r':
-      recursivemode = 1;
+      uade_recursivemode = 1;
       break;
     case 's':
       subsong = strtol(optarg, &endptr, 10);
@@ -338,34 +333,22 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(scorename);
       break;
     case 't':
-      timeout_value = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || timeout_value < -1) {
-	fprintf(stderr, "uade123: illegal timeout value: %s\n", optarg);
-	exit(-1);
-      }
+      config_set_timeout(optarg);
       break;
     case 'u':
       GET_OPT_STRING(uadename);
       break;
     case 'v':
-      verbose_mode = 1;
+      uade_verbose_mode = 1;
       break;
     case 'w':
-      subsong_timeout_value = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || subsong_timeout_value < -1) {
-	fprintf(stderr, "uade123: illegal subsong timeout value: %s\n", optarg);
-	exit(-1);
-      }
+      config_set_subsong_timeout(optarg);
       break;
     case 'y':
-      silence_timeout = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || silence_timeout < -1) {
-	fprintf(stderr, "uade123: illegal silence timeout value: %s\n", optarg);
-	exit(-1);
-      }
+      config_set_silence_timeout(optarg);
       break;
     case 'z':
-      playlist_random(&playlist, 1);
+      playlist_random(&uade_playlist, 1);
       break;
     case '?':
     case ':':
@@ -378,7 +361,7 @@ int main(int argc, char *argv[])
   }
 
   for (i = optind; i < argc; i++) {
-    playlist_add(&playlist, argv[i], recursivemode);
+    playlist_add(&uade_playlist, argv[i], uade_recursivemode);
     have_modules = 1;
   }
 
@@ -436,7 +419,7 @@ int main(int argc, char *argv[])
     goto cleanup;
   }
 
-  while (playlist_get_next(modulename, sizeof(modulename), &playlist)) {
+  while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
     char **playernames = NULL;
     int nplayers;
     ssize_t filesize;
@@ -518,7 +501,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "can not stat player: %s\n", playername);
       goto nextsong;
     }
-    if (verbose_mode || modulename[0] == 0)
+    if (uade_verbose_mode || modulename[0] == 0)
       fprintf(stderr, "player: %s (%zd bytes)\n", playername, filesize);
     if (modulename[0] != 0) {
       if ((filesize = stat_file_size(modulename)) < 0) {
@@ -572,7 +555,7 @@ int main(int argc, char *argv[])
       goto cleanup;
     }
 
-    if (ignore_player_check) {
+    if (uade_ignore_player_check) {
       if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
 	fprintf(stderr, "uade123: can not send ignore check message\n");
 	exit(-1);
@@ -701,8 +684,8 @@ int test_song_end_trigger(void)
     goto sigerr;
   if (sigprocmask(SIG_BLOCK, &set, NULL))
     goto sigerr;
-  ret = song_end_trigger;
-  song_end_trigger = 0;
+  ret = uade_song_end_trigger;
+  uade_song_end_trigger = 0;
   if (sigprocmask(SIG_UNBLOCK, &set, NULL))
     goto sigerr;
   return ret;
@@ -737,7 +720,7 @@ static void trivial_sigchld(int sig)
     fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
 	    uadepid, process);
   uadepid = 0;
-  uadeterminated = 1;
+  uade_terminated = 1;
 }
 
 
@@ -748,10 +731,10 @@ static void trivial_sigint(int sig)
   int msecs;
 
   if (debug_mode == 1) {
-    debug_trigger = 1;
+    uade_debug_trigger = 1;
     return;
   }
-  song_end_trigger = 1;
+  uade_song_end_trigger = 1;
 
   /* counts number of milliseconds between ctrl-c pushes, and terminates the
      prog if they are less than 100 msecs apart. */ 
