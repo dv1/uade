@@ -322,6 +322,7 @@ int main(int argc, char *argv[])
       break;
     case 'd':
       debug_mode = 1;
+      debug_trigger = 1;
       break;
     case 'e':
       GET_OPT_STRING(output_file_format);
