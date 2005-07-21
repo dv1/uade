@@ -1,9 +1,6 @@
 Ideas of things to do for UADE 2:
 
-2005-07-17: start audio output from simulator to the client after sound core
-	    has initialized the player plugin. currently the simulator
-	    writes zero audio samples during the initialization in sound core.
-	    (shd)
+2005-07-20: fast forward seeking + GUI support (ave)
 2005-07-12: convert asmone source code in sound core to gnu assembler format
 	    (shd)
 2005-07-12: rewrite parts of the sound core in C, and cross-compile with a
@@ -11,3 +8,11 @@ Ideas of things to do for UADE 2:
 2005-07-12: rewrite src/amifilemagic.c. It should be much cleaner. (shd)
 2005-07-11: good song length database format (supports subsong lengths) (shd)
 2005-07-11: sync tool to update song length database (grue)
+
+
+DONE:
+
+2005-07-17: start audio output from simulator to the client after sound core
+	    has initialized the player plugin. currently the simulator
+	    writes zero audio samples during the initialization in sound core.
+	    (shd)
