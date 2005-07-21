@@ -18,6 +18,38 @@
 #include "audio.h"
 
 
+static int uade_test_silence(void *buf, int size)
+{
+  int i, s, exceptioncounter;
+  int16_t *sm;
+  static int64_t zero_count = 0;
+
+  if (uade_silence_timeout < 0)
+    return 0;
+
+  exceptioncounter = 0;
+  sm = buf;
+
+  for (i = 0; i < (size / 2); i++) {
+    s = (sm[i] >= 0) ? sm[i] : -sm[i];
+    if (s >= (32767 * 1 /100)) {
+      exceptioncounter++;
+      if (exceptioncounter >= (size * 2 / 100)) {
+	zero_count = 0;
+	break;
+      }
+    }
+  }
+  if (i == (size / 2)) {
+    zero_count += size;
+    if ((zero_count / uade_sample_bytes_per_second) >= uade_silence_timeout)
+      return 1;
+  }
+
+  return 0;
+}
+
+
 int play_loop(void)
 {
   uint16_t *sm;
@@ -143,6 +175,7 @@ int play_loop(void)
 	  fprintf(stderr, "libao error detected.\n");
 	  return 0;
 	}
+
 	if (uade_timeout != -1) {
 	  total_bytes += playbytes;
 	  if (uade_song_end_trigger == 0) {
@@ -152,6 +185,7 @@ int play_loop(void)
 	    }
 	  }
 	}
+
 	if (uade_subsong_timeout != -1) {
 	  subsong_bytes += playbytes;
 	  if (song_end == 0 && uade_song_end_trigger == 0) {
@@ -161,6 +195,13 @@ int play_loop(void)
 	    }
 	  }
 	}
+
+	if (uade_test_silence(um->data, playbytes)) {
+	  if (song_end == 0 && uade_song_end_trigger == 0)
+	    fprintf(stderr, "silence detected (%d seconds)\n", uade_silence_timeout);
+	  song_end = 1;
+	}
+
 	left -= um->size;
 	break;
 	
