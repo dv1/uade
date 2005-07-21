@@ -1,7 +1,14 @@
 2005-07-21  Heikki Orsila <heikki.orsila@iki.fi>
 	- Restructured uade123 code into different code modules to make
 	  maintaining and code reuse easier.
-
+	- Wrote a config file parser for uade123. Look at uade.conf file
+	  for instructions. uade123 tries to load following files in order on
+	  startup: BASEDIR/uade.conf and $(HOME)/.uade2/uade.conf. Command
+	  line options can override config file parameters. Users of uade123
+	  might want to configure timeout, panning and such values as
+	  personal defaults.
+	- Added silence timeout
+	
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug in uade123 that prevented it from playing the last
 	  subsong of a song.
