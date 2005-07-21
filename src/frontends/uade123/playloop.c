@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <netinet/in.h>
+#include <string.h>
 
 #include <uadecontrol.h>
 
@@ -69,6 +70,12 @@ int play_loop(void)
   char *reason;
   int64_t total_bytes = 0;
   int64_t subsong_bytes = 0;
+  int64_t skip_bytes;
+
+  /* skip bytes must be a multiple of audio frame size, which is 4 from the
+     simulator */
+  skip_bytes = uade_jump_pos * 4 * 44100;
+  skip_bytes = (skip_bytes / 4) * 4;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
 
@@ -166,6 +173,17 @@ int play_loop(void)
 	  tailbytes = 0;
 	} else {
 	  playbytes = um->size;
+	}
+
+	if (skip_bytes > 0) {
+	  if (playbytes <= skip_bytes) {
+	    skip_bytes -= playbytes;
+	    playbytes = 0;
+	  } else {
+	    playbytes -= skip_bytes;
+	    memcpy(um->data, ((uint8_t *) um->data) + skip_bytes, playbytes);
+	    skip_bytes = 0;
+	  }
 	}
 
 	if (uade_use_panning)

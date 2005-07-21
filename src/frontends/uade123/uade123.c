@@ -43,6 +43,7 @@
 
 int uade_debug_trigger;
 int uade_ignore_player_check;
+double uade_jump_pos = 0.0;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
@@ -237,6 +238,7 @@ int main(int argc, char *argv[])
     {"debug", 0, NULL, 'd'},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
+    {"jump", 1, NULL, 'j'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
     {"silence-timeout", 1, NULL, 'y'},
@@ -263,7 +265,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:him:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hij:m:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -307,6 +309,13 @@ int main(int argc, char *argv[])
       exit(0);
     case 'i':
       uade_ignore_player_check = 1;
+      break;
+    case 'j':
+      uade_jump_pos = strtod(optarg, &endptr);
+      if (*endptr != 0 || uade_jump_pos < 0.0) {
+	fprintf(stderr, "uade123: illegal jump position: %s\n", optarg);
+	exit(-1);
+      }
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
@@ -610,6 +619,8 @@ static void print_help(void)
   printf(" -f filename,  write audio output into 'filename' (see -e also)\n");
   printf(" -h/--help,  print help\n");
   printf(" -i, --ignore,  ignore eagleplayer fileformat check result. play always.\n");
+  printf(" -j x, --jump x,  jump to time position 'x' seconds from the beginning.\n");
+  printf("                  fractions of a second are allowed too.\n");
   printf(" -m filename,  set module name\n");
   printf(" -p x, --panning x,  set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,  set player name\n");

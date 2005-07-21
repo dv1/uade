@@ -1,3 +1,9 @@
+2005-07-22  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added a -j to skip x seconds of audio from the beginning. Note that
+	  this does not affect timeout parameters in any way. If timeout is
+	  1 minute and skip is 2 minutes, the song will just end before
+	  anything is played.
+
 2005-07-21  Heikki Orsila <heikki.orsila@iki.fi>
 	- Restructured uade123 code into different code modules to make
 	  maintaining and code reuse easier.
