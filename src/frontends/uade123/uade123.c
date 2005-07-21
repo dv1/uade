@@ -38,6 +38,7 @@
 #include "effects.h"
 #include "playloop.h"
 #include "audio.h"
+#include "config.h"
 
 
 static char basedir[PATH_MAX];
@@ -47,10 +48,13 @@ int debug_trigger;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
+int ignore_player_check;
 char output_file_format[16];
 char output_file_name[PATH_MAX];
 int one_subsong_per_file;
 float panning_value;
+struct playlist playlist;
+int recursivemode;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
 int uadeterminated;
@@ -217,19 +221,16 @@ int main(int argc, char *argv[])
   int i;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
-  int recursivemode = 0;
   char configname[PATH_MAX] = "";
   char modulename[PATH_MAX] = "";
   char playername[PATH_MAX] = "";
   char scorename[PATH_MAX] = "";
   int playernamegiven = 0;
-  struct playlist playlist;
   char tmpstr[PATH_MAX + 256];
   long subsong = -1;
   int have_modules = 0;
   int ret;
   char *endptr;
-  int ignore_player_check = 0;
   struct option long_options[] = {
     {"list", 1, NULL, '@'},
     {"one", 0, NULL, '1'},
@@ -249,6 +250,12 @@ int main(int argc, char *argv[])
   if (!playlist_init(&playlist)) {
     fprintf(stderr, "can not initialize playlist\n");
     exit(-1);
+  }
+
+  load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
+  if (getenv("HOME") != NULL) {
+    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", getenv("HOME"));
+    load_config(tmpstr);
   }
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\

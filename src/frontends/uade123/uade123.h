@@ -3,13 +3,19 @@
 
 #include <limits.h>
 
+#include "playlist.h"
+
+
 #define debug(fmt, args...) if (verbose_mode) { fprintf(stderr, fmt, ## args); }
 
 extern int bytes_per_sample;
 extern int debug_trigger;
+extern int ignore_player_check;
 extern int one_subsong_per_file;
 extern char output_file_format[16];
 extern char output_file_name[PATH_MAX];
+extern struct playlist playlist;
+extern int recursivemode;
 extern int sample_bytes_per_second;
 extern int song_end_trigger;
 extern int subsong_timeout_value;

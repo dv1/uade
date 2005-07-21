@@ -3,6 +3,7 @@
 
 #include <ao/ao.h>
 
+#include "audio.h"
 #include "uade123.h"
 
 
