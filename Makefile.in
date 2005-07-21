@@ -51,6 +51,7 @@ install:	all
 	mkdir -p "$(DOCDIR)"
 	mkdir -p "$(MANDIR)"
 
+	test -e "$(DATADIR)/uade.conf" || cp -f uade.conf "$(DATADIR)/"
 	cp -f score uaerc uadeformats "$(DATADIR)/"
 	cp -rf players "$(DATADIR)/" || true
 	chmod -R og+rX "$(DATADIR)"
