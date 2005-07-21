@@ -3,7 +3,7 @@ CC = {CC}
 CFLAGS = -Wall -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
-	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o
+	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o playloop.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -36,6 +36,9 @@ unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	effects.c effects.h
+	$(CC) $(CFLAGS) -c $<
+
+playloop.o:	playloop.c playloop.h uade123.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:	

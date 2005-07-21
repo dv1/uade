@@ -26,8 +26,6 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 
-#include <ao/ao.h>
-
 #include <uadecontrol.h>
 #include <strlrep.h>
 #include <unixatomic.h>
@@ -41,25 +39,26 @@
 
 
 static char basedir[PATH_MAX];
-static int bytes_per_sample;
+int bytes_per_sample;
 static int debug_mode;
-static int debug_trigger;
+int debug_trigger;
 static uint8_t fileformat_buf[5122];
 static void *format_ds = NULL;
 static int format_ds_size;
-static ao_device *libao_device;
+ao_device *libao_device;
 static char output_file_format[16];
 static char output_file_name[PATH_MAX];
-static int one_subsong_per_file;
+int one_subsong_per_file;
+float panning_value;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
-static int uadeterminated;
-static int use_panning;
-static float panning_value;
-static int sample_bytes_per_second;
-static int song_end_trigger;
-static int subsong_timeout_value = -1;
-static int timeout_value = -1;
+int uadeterminated;
+int use_panning;
+int sample_bytes_per_second;
+static int silence_timeout = 20; /* -1 is infinite */
+int song_end_trigger;
+int subsong_timeout_value = 512;
+int timeout_value = -1;
 int verbose_mode;
 
 
@@ -68,7 +67,6 @@ static void print_help(void);
 static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
 ssize_t stat_file_size(const char *name);
-static int test_song_end_trigger(void);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
@@ -274,6 +272,7 @@ int main(int argc, char *argv[])
     {"ignore", 0, NULL, 'i'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
+    {"silence-timeout", 1, NULL, 'y'},
     {"subsong", 1, NULL, 's'},
     {"subsong-timeout", 1, NULL, 'w'},
     {"timeout", 1, NULL, 't'},
@@ -356,29 +355,21 @@ int main(int argc, char *argv[])
       recursivemode = 1;
       break;
     case 's':
-      do {
-	if (optarg[0] == 0) {
-	  fprintf(stderr, "uade123: subsong string must be non-empty\n");
-	  exit(-1);
-	}
-	subsong = strtol(optarg, &endptr, 10);
-	if (*endptr != 0 || subsong < 0 || subsong > 255) {
-	  fprintf(stderr, "uade123: illegal subsong string: %s\n", optarg);
-	  exit(-1);
-	}
-      } while (0);
+      subsong = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || subsong < 0 || subsong > 255) {
+	fprintf(stderr, "uade123: illegal subsong string: %s\n", optarg);
+	exit(-1);
+      }
       break;
     case 'S':
       GET_OPT_STRING(scorename);
       break;
     case 't':
-      do {
-	timeout_value = strtol(optarg, &endptr, 10);
-	if (*endptr != 0 || timeout_value < 0) {
-	  fprintf(stderr, "uade123: illegal timeout value: %s\n", optarg);
-	  exit(-1);
-	}
-      } while (0);
+      timeout_value = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || timeout_value < -1) {
+	fprintf(stderr, "uade123: illegal timeout value: %s\n", optarg);
+	exit(-1);
+      }
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -387,13 +378,18 @@ int main(int argc, char *argv[])
       verbose_mode = 1;
       break;
     case 'w':
-      do {
-	subsong_timeout_value = strtol(optarg, &endptr, 10);
-	if (*endptr != 0 || subsong_timeout_value < 0) {
-	  fprintf(stderr, "uade123: illegal subsong timeout value: %s\n", optarg);
-	  exit(-1);
-	}
-      } while (0);
+      subsong_timeout_value = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || subsong_timeout_value < -1) {
+	fprintf(stderr, "uade123: illegal subsong timeout value: %s\n", optarg);
+	exit(-1);
+      }
+      break;
+    case 'y':
+      silence_timeout = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || silence_timeout < -1) {
+	fprintf(stderr, "uade123: illegal silence timeout value: %s\n", optarg);
+	exit(-1);
+      }
       break;
     case 'z':
       playlist_random(&playlist, 1);
@@ -890,9 +886,13 @@ static void print_help(void)
   printf(" -P filename,  set player name\n");
   printf(" -r/--recursive,  recursive directory scan\n");
   printf(" -s x, --subsong x,  set subsong 'x'\n");
-  printf(" -t x, --timeout x,  set song timeout in seconds\n");
+  printf(" -t x, --timeout x,  set song timeout in seconds. -1 is infinite.\n");
+  printf("                     default is infinite.\n");
   printf(" -v,  --verbose,  turn on verbose mode\n");
-  printf(" -w, --subsong-timeout,  set subsong timeout in seconds\n");
+  printf(" -w, --subsong-timeout,  set subsong timeout in seconds. -1 is infinite.\n");
+  printf("                         default is 512s\n");
+  printf(" -y, --silence-timeout,  set silence timeout in seconds. -1 is infinite.\n");
+  printf("                         default is 20s\n");
   printf(" -z, --shuffle,  set shuffling mode for playlist\n");
   printf("\n");
   printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
@@ -945,7 +945,7 @@ ssize_t stat_file_size(const char *name)
 
 
 /* test song_end_trigger by taking care of mutual exclusion with SIGINT */
-static int test_song_end_trigger(void)
+int test_song_end_trigger(void)
 {
   int ret;
   sigset_t set;
