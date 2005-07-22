@@ -1,5 +1,7 @@
 Ideas of things to do for UADE 2:
 
+2005-07-22: command line interaction for seeking and skipping songs (shd)
+2005-07-20: force timeout even if playtime is known (ave)
 2005-07-20: fast forward seeking + GUI support (ave)
 2005-07-12: convert asmone source code in sound core to gnu assembler format
 	    (shd)
