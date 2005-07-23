@@ -1,3 +1,17 @@
+2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added shell interaction keys into UADE123. The keys can be enabled
+	  with -k switch, or adding line "action_keys" into uade.conf.
+	  The keys are (mimiking XMMS):
+	    z     - Previous subsong
+	    c     - Pause
+	    b     - Next subsong
+	    n     - Next song
+	    .     - Skip 10 seconds forward
+	    ENTER - Next song
+	    SPACE - Next subsong
+	  Does someone want these configurable into uade.conf? Please email
+	  me.
+	
 2005-07-22  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre3 (developer release)
 	- Added a -j to skip x seconds of audio from the beginning. Note that
