@@ -99,9 +99,11 @@ int play_loop(void)
 
       if (left == 0) {
 
-	deciseconds = time_bytes * 10 / (44100 * 4);
-	printf("Playing time position %d.%ds subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
-	fflush(stdout);
+	if (skip_bytes == 0) {
+	  deciseconds = time_bytes * 10 / (44100 * 4);
+	  printf("Playing time position %d.%ds subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  fflush(stdout);
+	}
 
 	if (uade_terminal_mode) {
 	  switch ((ret = poll_terminal())) {
@@ -113,12 +115,14 @@ int play_loop(void)
 	      skip_bytes = 4 * 44100 * 10;
 	    }
 	    break;
+	  case ' ':
 	  case 'b':
 	    song_end = 1;
 	    break;
 	  case 'c':
-	    pause_terminal(void);
+	    pause_terminal();
 	    break;
+	  case '\n':
 	  case 'n':
 	    uade_song_end_trigger = 1;
 	    break;

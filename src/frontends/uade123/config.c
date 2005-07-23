@@ -126,7 +126,9 @@ int load_config(const char *filename)
       *value = 0;
       value = nextnonspace(value + 1);
     }
-    if (strncmp(key, "ignore_player_check", 6) == 0) {
+    if (strncmp(key, "action_keys", 6) == 0) {
+      uade_terminal_mode = 1;
+    } else if (strncmp(key, "ignore_player_check", 6) == 0) {
       uade_ignore_player_check = 1;
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uade_one_subsong_per_file = 1;

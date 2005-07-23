@@ -322,7 +322,6 @@ int main(int argc, char *argv[])
       break;
     case 'k':
       uade_terminal_mode = 1;
-      setup_terminal();
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
@@ -385,6 +384,9 @@ int main(int argc, char *argv[])
     print_help();
     exit(0);
   }
+
+  if (uade_terminal_mode)
+    setup_terminal();
 
   if (basedir[0] == 0)
     strlcpy(basedir, UADE_CONFIG_BASE_DIR, sizeof(basedir));

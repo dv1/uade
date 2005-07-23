@@ -1,4 +1,5 @@
 2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>
+        * UADE 1.50-pre4 (developer release)
 	- Added shell interaction keys into UADE123. The keys can be enabled
 	  with -k switch, or adding line "action_keys" into uade.conf.
 	  The keys are (mimiking XMMS):
