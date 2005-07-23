@@ -21,6 +21,7 @@ extern int uade_silence_timeout;
 extern int uade_subsong_timeout;
 extern int uade_timeout;
 extern int uade_terminated;
+extern int uade_terminal_mode;
 extern int uade_use_panning;
 extern float uade_panning_value;
 extern int uade_verbose_mode;

@@ -4,7 +4,7 @@ CFLAGS = -Wall -I../../include {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
 	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o \
-	playloop.o audio.o config.o
+	playloop.o audio.o config.o terminal.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -46,6 +46,9 @@ audio.o:	audio.c audio.h
 	$(CC) $(CFLAGS) -c $<
 
 config.o:	config.c config.h
+	$(CC) $(CFLAGS) -c $<
+
+terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:	

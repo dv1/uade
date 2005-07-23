@@ -11,12 +11,14 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <uadecontrol.h>
 
 #include "uade123.h"
 #include "effects.h"
 #include "audio.h"
+#include "terminal.h"
 
 
 static int uade_test_silence(void *buf, size_t size)
@@ -72,6 +74,9 @@ int play_loop(void)
   int64_t total_bytes = 0;
   int64_t subsong_bytes = 0;
   int64_t skip_bytes;
+  int64_t time_bytes = 0;
+  int deciseconds;
+  int jump_sub = 0;
 
   /* skip bytes must be a multiple of audio frame size, which is 4 from the
      simulator */
@@ -85,37 +90,82 @@ int play_loop(void)
 
   while (next_song == 0) {
 
-    if (uade_terminated)
+    if (uade_terminated) {
+      printf("\n");
       return 0;
+    }
 
     if (state == UADE_S_STATE) {
 
       if (left == 0) {
 
+	deciseconds = time_bytes * 10 / (44100 * 4);
+	printf("Playing time position %d.%ds subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	fflush(stdout);
+
+	if (uade_terminal_mode) {
+	  switch ((ret = poll_terminal())) {
+	  case 0:
+	    break;
+	  case '.':
+	    if (skip_bytes == 0) {
+	      fprintf(stderr, "\nskipping 10 seconds\n");
+	      skip_bytes = 4 * 44100 * 10;
+	    }
+	    break;
+	  case 'b':
+	    song_end = 1;
+	    break;
+	  case 'c':
+	    pause_terminal(void);
+	    break;
+	  case 'n':
+	    uade_song_end_trigger = 1;
+	    break;
+	  case 'q':
+	    printf("\n");
+	    return 0;
+	  case 'z':
+	    cur_sub -= 2;
+	    if (cur_sub < 0)
+	      cur_sub = -1;
+	    if (min_sub >= 0 && cur_sub < min_sub)
+	      cur_sub = min_sub - 1;
+	    song_end = 1;
+	    jump_sub = 1;
+	    break;
+	  default:
+	    if (!isspace(ret))
+	      fprintf(stderr, "\n%c is not a valid command\n", ret);
+	  }
+	}
+
 	if (uade_debug_trigger == 1) {
 	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
-	    fprintf(stderr, "can not active debugger\n");
+	    fprintf(stderr, "\ncan not active debugger\n");
 	    return 0;
 	  }
 	  uade_debug_trigger = 0;
 	}
 
 	if (song_end) {
-	  if (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1) {
+	  if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
 	    cur_sub++;
+	    jump_sub = 0;
 	    if (cur_sub > max_sub) {
 	      uade_song_end_trigger = 1;
 	    } else {
 	      song_end = 0;
 	      subsong_bytes = 0;
+	      time_bytes = 0;
 	      *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
 				       .size = 4};
 	      * (uint32_t *) um->data = htonl(cur_sub);
 	      if (uade_send_message(um)) {
-		fprintf(stderr, "could not change subsong\n");
+		fprintf(stderr, "\ncould not change subsong\n");
 		exit(-1);
 	      }
-	      fprintf(stderr, "subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
+	      fprintf(stderr, "\nsubsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	    }
 	  } else {
 	    uade_song_end_trigger = 1;
@@ -126,7 +176,7 @@ int play_loop(void)
 	if (uade_song_end_trigger) {
 	  next_song = 1;
 	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
-	    fprintf(stderr, "can not send reboot\n");
+	    fprintf(stderr, "\ncan not send reboot\n");
 	    return 0;
 	  }
 	  goto sendtoken;
@@ -137,13 +187,13 @@ int play_loop(void)
 	um->size = 4;
 	* (uint32_t *) um->data = htonl(left);
 	if (uade_send_message(um)) {
-	  fprintf(stderr, "can not send read command\n");
+	  fprintf(stderr, "\ncan not send read command\n");
 	  return 0;
 	}
 
       sendtoken:
 	if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-	  fprintf(stderr, "can not send token\n");
+	  fprintf(stderr, "\ncan not send token\n");
 	  return 0;
 	}
 	state = UADE_R_STATE;
@@ -152,7 +202,7 @@ int play_loop(void)
     } else {
 
       if (uade_receive_message(um, sizeof(space)) <= 0) {
-	fprintf(stderr, "can not receive events from uade\n");
+	fprintf(stderr, "\ncan not receive events from uade\n");
 	return 0;
       }
       
@@ -176,6 +226,14 @@ int play_loop(void)
 	  playbytes = um->size;
 	}
 
+	time_bytes += playbytes;
+
+	if (uade_timeout != -1)
+	  total_bytes += playbytes;
+
+	if (uade_subsong_timeout != -1)
+	  subsong_bytes += playbytes;
+
 	if (skip_bytes > 0) {
 	  if (playbytes <= skip_bytes) {
 	    skip_bytes -= playbytes;
@@ -191,25 +249,23 @@ int play_loop(void)
 	  uade_effect_pan(um->data, playbytes, uade_bytes_per_sample, uade_panning_value);
 
 	if (!audio_play(um->data, playbytes)) {
-	  fprintf(stderr, "libao error detected.\n");
+	  fprintf(stderr, "\nlibao error detected.\n");
 	  return 0;
 	}
 
 	if (uade_timeout != -1) {
-	  total_bytes += playbytes;
 	  if (uade_song_end_trigger == 0) {
 	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
-	      fprintf(stderr, "song end (timeout %ds)\n", uade_timeout);
+	      fprintf(stderr, "\nsong end (timeout %ds)\n", uade_timeout);
 	      uade_song_end_trigger = 1;
 	    }
 	  }
 	}
 
 	if (uade_subsong_timeout != -1) {
-	  subsong_bytes += playbytes;
 	  if (song_end == 0 && uade_song_end_trigger == 0) {
 	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
-	      fprintf(stderr, "song end (subsong timeout %ds)\n", uade_subsong_timeout);
+	      fprintf(stderr, "\nsong end (subsong timeout %ds)\n", uade_subsong_timeout);
 	      song_end = 1;
 	    }
 	  }
@@ -217,7 +273,7 @@ int play_loop(void)
 
 	if (uade_test_silence(um->data, playbytes)) {
 	  if (song_end == 0 && uade_song_end_trigger == 0)
-	    fprintf(stderr, "silence detected (%d seconds)\n", uade_silence_timeout);
+	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uade_silence_timeout);
 	  song_end = 1;
 	}
 
@@ -226,27 +282,27 @@ int play_loop(void)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	debug("format name: %s\n", (uint8_t *) um->data);
+	debug("\nformat name: %s\n", (uint8_t *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	debug("module name: %s\n", (uint8_t *) um->data);
+	debug("\nmodule name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	debug("message: %s\n", (char *) um->data);
+	debug("\nmessage: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	debug("player name: %s\n", (uint8_t *) um->data);
+	debug("\nplayer name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
 	if (um->size < 9) {
-	  fprintf(stderr, "illegal song end reply\n");
+	  fprintf(stderr, "\nillegal song end reply\n");
 	  exit(-1);
 	}
 	tailbytes = ntohl(((uint32_t *) um->data)[0]);
@@ -264,26 +320,26 @@ int play_loop(void)
 	while (reason[i] && i < (um->size - 8))
 	  i++;
 	if (reason[i] != 0 || (i != (um->size - 9))) {
-	  fprintf(stderr, "broken reason string with song end notice\n");
+	  fprintf(stderr, "\nbroken reason string with song end notice\n");
 	  exit(-1);
 	}
-	fprintf(stderr, "song end (%s)\n", reason);
+	fprintf(stderr, "\nsong end (%s)\n", reason);
 	break;
 
       case UADE_REPLY_SUBSONG_INFO:
 	if (um->size != 12) {
-	  fprintf(stderr, "subsong info: too short a message\n");
+	  fprintf(stderr, "\nsubsong info: too short a message\n");
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
-	debug("subsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
+	debug("\nsubsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
 	min_sub = u32ptr[0];
 	max_sub = u32ptr[1];
 	cur_sub = u32ptr[2];
 	break;
 	
       default:
-	fprintf(stderr, "uade123: expected sound data. got %d.\n", um->msgtype);
+	fprintf(stderr, "\nuade123: expected sound data. got %d.\n", um->msgtype);
 	return 0;
       }
     }
@@ -292,14 +348,15 @@ int play_loop(void)
   do {
     ret = uade_receive_message(um, sizeof(space));
     if (ret < 0) {
-      fprintf(stderr, "uade123: can not receive events (TOKEN) from uade\n");
+      fprintf(stderr, "\nuade123: can not receive events (TOKEN) from uade\n");
       return 0;
     }
     if (ret == 0) {
-      fprintf(stderr, "uade123: end of input after reboot\n");
+      fprintf(stderr, "\nuade123: end of input after reboot\n");
       return 0;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
+  printf("\n");
   return 1;
 }

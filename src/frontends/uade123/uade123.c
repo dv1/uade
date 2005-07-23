@@ -39,6 +39,7 @@
 #include "playloop.h"
 #include "audio.h"
 #include "config.h"
+#include "terminal.h"
 
 
 int uade_debug_trigger;
@@ -51,6 +52,7 @@ float uade_panning_value;
 struct playlist uade_playlist;
 int uade_recursivemode;
 int uade_terminated;
+int uade_terminal_mode;
 int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
@@ -239,6 +241,7 @@ int main(int argc, char *argv[])
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"jump", 1, NULL, 'j'},
+    {"keys", 0, NULL, 'k'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
     {"silence-timeout", 1, NULL, 'y'},
@@ -265,7 +268,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hij:m:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hij:km:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -316,6 +319,10 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "uade123: illegal jump position: %s\n", optarg);
 	exit(-1);
       }
+      break;
+    case 'k':
+      uade_terminal_mode = 1;
+      setup_terminal();
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
@@ -621,6 +628,7 @@ static void print_help(void)
   printf(" -i, --ignore,  ignore eagleplayer fileformat check result. play always.\n");
   printf(" -j x, --jump x,  jump to time position 'x' seconds from the beginning.\n");
   printf("                  fractions of a second are allowed too.\n");
+  printf(" -k, --keys,  enable action keys for playback control on terminal\n");
   printf(" -m filename,  set module name\n");
   printf(" -p x, --panning x,  set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,  set player name\n");
