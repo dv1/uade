@@ -1,3 +1,10 @@
+2005-07-24  Heikki Orsila <heikki.orsila@iki.fi>
+	- New keys for interactive mode:
+	   [0-9]  - Select subsong in range [0, 9]
+	   q	  - Quit player
+	   s      - Switch between normal and shuffle mode
+	   x      - Restart current subsong
+
 2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>
         * UADE 1.50-pre4 (developer release)
 	- Added shell interaction keys into UADE123. The keys can be enabled

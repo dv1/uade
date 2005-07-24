@@ -68,7 +68,7 @@ int play_loop(void)
   int song_end = 0;
   int next_song = 0;
   int ret;
-  int cur_sub = -1, min_sub = -1, max_sub = -1;
+  int cur_sub = -1, min_sub = -1, max_sub = -1, new_sub;
   int tailbytes = 0;
   int playbytes;
   char *reason;
@@ -132,20 +132,40 @@ int play_loop(void)
 	    return 0;
 	  case 's':
 	    playlist_random(&uade_playlist, -1);
-	    printf("\n%s mode\n", uade_playlist.randomize ? "shuffle" : "normal");
+	    printf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
+	    break;
+	  case 'x':
+	    cur_sub--;
+	    song_end = 1;
+	    jump_sub = 1;
 	    break;
 	  case 'z':
-	    cur_sub -= 2;
-	    if (cur_sub < 0)
-	      cur_sub = -1;
-	    if (min_sub >= 0 && cur_sub < min_sub)
-	      cur_sub = min_sub - 1;
+	    new_sub = cur_sub - 1;
+	    if (new_sub < 0)
+	      new_sub = 0;
+	    if (min_sub >= 0 && new_sub < min_sub)
+	      new_sub = min_sub;
+	    cur_sub = new_sub - 1;
 	    song_end = 1;
 	    jump_sub = 1;
 	    break;
 	  default:
-	    if (!isspace(ret))
+	    if (isdigit(ret)) {
+	      new_sub = ret - '0';
+	      if (min_sub >= 0 && new_sub < min_sub) {
+		fprintf(stderr, "\ntoo low a subsong number\n");
+		break;
+	      }
+	      if (max_sub >= 0 && new_sub > max_sub) {
+		fprintf(stderr, "\ntoo high a subsong number\n");
+		break;
+	      }
+	      cur_sub = new_sub - 1;
+	      song_end = 1;
+	      jump_sub = 1;
+	    } else if (!isspace(ret)) {
 	      fprintf(stderr, "\n%c is not a valid command\n", ret);
+	    }
 	  }
 	}
 
@@ -291,22 +311,22 @@ int play_loop(void)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	debug("\nformat name: %s\n", (uint8_t *) um->data);
+	debug("\nFormat name: %s\n", (uint8_t *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	debug("\nmodule name: %s\n", (uint8_t *) um->data);
+	debug("\nModule name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	debug("\nmessage: %s\n", (char *) um->data);
+	debug("\nMessage: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	debug("\nplayer name: %s\n", (uint8_t *) um->data);
+	debug("\nPlayer name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:

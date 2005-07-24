@@ -520,13 +520,13 @@ int main(int argc, char *argv[])
       goto nextsong;
     }
     if (uade_verbose_mode || modulename[0] == 0)
-      fprintf(stderr, "player: %s (%zd bytes)\n", playername, filesize);
+      fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
     if (modulename[0] != 0) {
       if ((filesize = stat_file_size(modulename)) < 0) {
 	fprintf(stderr, "can not stat module: %s\n", modulename);
 	goto nextsong;
       }
-      fprintf(stderr, "module: %s (%zd bytes)\n", modulename, filesize);
+      fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
     }
 
     if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
