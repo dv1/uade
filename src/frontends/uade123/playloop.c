@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include <uadecontrol.h>
 
@@ -102,7 +103,7 @@ int play_loop(void)
 
 	if (skip_bytes == 0) {
 	  deciseconds = time_bytes * 10 / (44100 * 4);
-	  printf("Playing time position %d.%ds subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
 	  fflush(stdout);
 	}
 
@@ -365,6 +366,9 @@ int play_loop(void)
 	min_sub = u32ptr[0];
 	max_sub = u32ptr[1];
 	cur_sub = u32ptr[2];
+	assert(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub);
+	if ((max_sub - min_sub) != 0)
+	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
 	break;
 	
       default:
