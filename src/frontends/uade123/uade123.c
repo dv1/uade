@@ -390,6 +390,10 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
+  /* we want to control terminal differently in debug mode */
+  if (debug_mode)
+    uade_terminal_mode = 0;
+
   if (uade_terminal_mode)
     setup_terminal();
 

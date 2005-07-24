@@ -113,7 +113,7 @@ int play_loop(void)
 	    break;
 	  case '.':
 	    if (skip_bytes == 0) {
-	      fprintf(stderr, "\nskipping 10 seconds\n");
+	      fprintf(stderr, "\nSkipping 10 seconds\n");
 	      skip_bytes = 4 * 44100 * 10;
 	    }
 	    break;
@@ -195,7 +195,7 @@ int play_loop(void)
 		fprintf(stderr, "\ncould not change subsong\n");
 		exit(-1);
 	      }
-	      fprintf(stderr, "\nsubsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
+	      fprintf(stderr, "\nSubsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	    }
 	  } else {
 	    uade_song_end_trigger = 1;
@@ -286,7 +286,7 @@ int play_loop(void)
 	if (uade_timeout != -1) {
 	  if (uade_song_end_trigger == 0) {
 	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
-	      fprintf(stderr, "\nsong end (timeout %ds)\n", uade_timeout);
+	      fprintf(stderr, "\nSong end (timeout %ds)\n", uade_timeout);
 	      uade_song_end_trigger = 1;
 	    }
 	  }
@@ -295,7 +295,7 @@ int play_loop(void)
 	if (uade_subsong_timeout != -1) {
 	  if (song_end == 0 && uade_song_end_trigger == 0) {
 	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
-	      fprintf(stderr, "\nsong end (subsong timeout %ds)\n", uade_subsong_timeout);
+	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uade_subsong_timeout);
 	      song_end = 1;
 	    }
 	  }
@@ -353,7 +353,7 @@ int play_loop(void)
 	  fprintf(stderr, "\nbroken reason string with song end notice\n");
 	  exit(-1);
 	}
-	fprintf(stderr, "\nsong end (%s)\n", reason);
+	fprintf(stderr, "\nSong end (%s)\n", reason);
 	break;
 
       case UADE_REPLY_SUBSONG_INFO:

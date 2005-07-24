@@ -119,18 +119,18 @@ static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
 
   if (src >= end)
     return 0;
-  nhunks = ntohl(*src); /* take number of hunks */
-  if (nhunks <= 0)
+  /* take number of hunks, and apply the undocumented 16-bit mask feature */
+  nhunks = ntohl(*src) & 0xffff;
+  if (nhunks == 0)
     return 0;
   src += 3;          /* skip number of hunks, and first & last hunk indexes */
 
   offset = 0;
 
   for (i = 0; i < nhunks; i++) {
-
     if (src >= end)
       return 0;
-    offset += 4 * (ntohl(*src) & 0x3FFFFFFF);
+    offset += 4 * (ntohl(*src) & 0x00FFFFFF);
     src++;
   }
   if (((int) offset) <= 0 || ((int) offset) >= uade_highmem)
@@ -208,6 +208,9 @@ void uade_get_amiga_message(void)
     mins = uade_get_u32(SCORE_MIN_SUBSONG);
     maxs = uade_get_u32(SCORE_MAX_SUBSONG);
     curs = uade_get_u32(SCORE_CUR_SUBSONG);
+    /* brain damage in TFMX BC Kid Despair */
+    if (maxs < mins)
+      maxs = mins;
     /* fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs); */
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
@@ -888,9 +891,9 @@ static int uade_safe_load(int dst, FILE *file, int maxlen)
     maxlen -= nbytes;
   }
   /* find out how much would have been read even if maxlen was violated */
-  while ((nbytes = fread(buf, 1, bufsize, file))) {
+  while ((nbytes = fread(buf, 1, bufsize, file)))
     off += nbytes;
-  }
+
   return off;
 }
 
