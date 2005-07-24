@@ -45,6 +45,7 @@
 int uade_debug_trigger;
 int uade_ignore_player_check;
 double uade_jump_pos = 0.0;
+int uade_no_song_end;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
@@ -235,21 +236,22 @@ int main(int argc, char *argv[])
   int ret;
   char *endptr;
   struct option long_options[] = {
-    {"list", 1, NULL, '@'},
-    {"one", 0, NULL, '1'},
     {"debug", 0, NULL, 'd'},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"jump", 1, NULL, 'j'},
     {"keys", 0, NULL, 'k'},
+    {"list", 1, NULL, '@'},
+    {"no-song-end", 0, NULL, '£'},
+    {"one", 0, NULL, '1'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
+    {"shuffle", 0, NULL, 'z'},
     {"silence-timeout", 1, NULL, 'y'},
     {"subsong", 1, NULL, 's'},
     {"subsong-timeout", 1, NULL, 'w'},
     {"timeout", 1, NULL, 't'},
     {"verbose", 0, NULL, 'v'},
-    {"shuffle", 0, NULL, 'z'}
   };
 
   if (!playlist_init(&uade_playlist)) {
@@ -268,7 +270,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:hij:km:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:hij:km:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -287,6 +289,9 @@ int main(int argc, char *argv[])
 	fclose(listfile);
 	have_modules = 1;
       } while (0);
+      break;
+    case '£':
+      uade_no_song_end = 1;
       break;
     case '1':
       uade_one_subsong_per_file = 1;
@@ -615,35 +620,37 @@ static void print_help(void)
   printf("Usage: uade123 [<options>] <input file> ...\n");
   printf("\n");
   printf("Expert options:\n");
-  printf(" -b dirname,  set uade base directory (contains data files)\n");
-  printf(" -c file,  set uade config file name\n");
-  printf(" -d/--debug,  enable debug mode (expert only)\n");
-  printf(" -S filename,  set sound core name\n");
-  printf(" -u uadename,  set uadecore executable name\n");
+  printf(" -b dirname,         Set uade base directory (contains data files)\n");
+  printf(" -c file,            Set uade config file name\n");
+  printf(" -d/--debug,         Enable debug mode (expert only)\n");
+  printf(" -S filename,        Set sound core name\n");
+  printf(" -u uadename,        Set uadecore executable name\n");
   printf("\n");
   printf("Normal options:\n");
-  printf(" -1, --one,  play at most one subsong per file\n");
-  printf(" -@ filename, --list filename,  read playlist of files from 'filename'\n");
-  printf(" -e format,  set output file format. use with -f. wav is the default format.\n");
-  printf(" -f filename,  write audio output into 'filename' (see -e also)\n");
-  printf(" -h/--help,  print help\n");
-  printf(" -i, --ignore,  ignore eagleplayer fileformat check result. play always.\n");
-  printf(" -j x, --jump x,  jump to time position 'x' seconds from the beginning.\n");
-  printf("                  fractions of a second are allowed too.\n");
-  printf(" -k, --keys,  enable action keys for playback control on terminal\n");
-  printf(" -m filename,  set module name\n");
-  printf(" -p x, --panning x,  set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
-  printf(" -P filename,  set player name\n");
-  printf(" -r/--recursive,  recursive directory scan\n");
-  printf(" -s x, --subsong x,  set subsong 'x'\n");
-  printf(" -t x, --timeout x,  set song timeout in seconds. -1 is infinite.\n");
-  printf("                     default is infinite.\n");
-  printf(" -v,  --verbose,  turn on verbose mode\n");
-  printf(" -w, --subsong-timeout,  set subsong timeout in seconds. -1 is infinite.\n");
-  printf("                         default is 512s\n");
-  printf(" -y, --silence-timeout,  set silence timeout in seconds. -1 is infinite.\n");
-  printf("                         default is 20s\n");
-  printf(" -z, --shuffle,  set shuffling mode for playlist\n");
+  printf(" -1, --one,          Play at most one subsong per file\n");
+  printf(" -@ filename, --list filename,  Read playlist of files from 'filename'\n");
+  printf(" -£, --no-song-end,  Ignore song end report. Just keep playing.\n");
+  printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
+  printf("                     format.\n");
+  printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
+  printf(" -h/--help,          Print help\n");
+  printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
+  printf(" -j x, --jump x,     Jump to time position 'x' seconds from the beginning.\n");
+  printf("                     fractions of a second are allowed too.\n");
+  printf(" -k, --keys,         Enable action keys for playback control on terminal\n");
+  printf(" -m filename,        Set module name\n");
+  printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
+  printf(" -P filename,        Set player name\n");
+  printf(" -r/--recursive,     Recursive directory scan\n");
+  printf(" -s x, --subsong x,  Set subsong 'x'\n");
+  printf(" -t x, --timeout x,  Set song timeout in seconds. -1 is infinite.\n");
+  printf("                     Default is infinite.\n");
+  printf(" -v,  --verbose,     Turn on verbose mode\n");
+  printf(" -w, --subsong-timeout,  Set subsong timeout in seconds. -1 is infinite.\n");
+  printf("                         Default is 512s\n");
+  printf(" -y, --silence-timeout,  Set silence timeout in seconds. -1 is infinite.\n");
+  printf("                         Default is 20s\n");
+  printf(" -z, --shuffle,      Set shuffling mode for playlist\n");
   printf("\n");
   printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
   printf("  uade -z /chip/fc/*\n"); 
