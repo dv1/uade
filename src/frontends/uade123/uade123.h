@@ -11,7 +11,6 @@
 extern int uade_debug_trigger;
 extern int uade_ignore_player_check;
 extern double uade_jump_pos;
-extern int uade_no_song_end;
 extern int uade_one_subsong_per_file;
 extern char uade_output_file_format[16];
 extern char uade_output_file_name[PATH_MAX];

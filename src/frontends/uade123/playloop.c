@@ -336,16 +336,14 @@ int play_loop(void)
 	  exit(-1);
 	}
 	tailbytes = ntohl(((uint32_t *) um->data)[0]);
-	if (uade_no_song_end == 0) {
-	  /* next ntohl() is only there for a principle. it is not useful */
-	  if (ntohl(((uint32_t *) um->data)[1]) == 0) {
-	    /* normal happy song end. go to next subsong if any */
-	    song_end = 1;
-	  } else {
-	    /* unhappy song end (error in the 68k side). skip to next song
-	       ignoring possible subsongs */
-	    uade_song_end_trigger = 1;
-	  }
+	/* next ntohl() is only there for a principle. it is not useful */
+	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
+	  /* normal happy song end. go to next subsong if any */
+	  song_end = 1;
+	} else {
+	  /* unhappy song end (error in the 68k side). skip to next song
+	     ignoring possible subsongs */
+	  uade_song_end_trigger = 1;
 	}
 	i = 0;
 	reason = &((uint8_t *) um->data)[8];

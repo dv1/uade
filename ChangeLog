@@ -4,6 +4,10 @@
 	   q	  - Quit player
 	   s      - Switch between normal and shuffle mode
 	   x      - Restart current subsong
+	- Added -£ or --no-song-end switches. Song just keeps playing even if
+	  the amiga player says it has ended. Dude! You can get pretty weird
+	  sounds with this, and sometimes the sound core crashes, and should
+	  crash. Fortunately that doesn't kill the simulator :)
 	- Made help print (-h) prettier by aligning tex columns
 	
 2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>

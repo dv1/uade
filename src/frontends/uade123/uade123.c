@@ -45,7 +45,6 @@
 int uade_debug_trigger;
 int uade_ignore_player_check;
 double uade_jump_pos = 0.0;
-int uade_no_song_end;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
@@ -235,6 +234,7 @@ int main(int argc, char *argv[])
   int have_modules = 0;
   int ret;
   char *endptr;
+  int uade_no_song_end = 0;
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
     {"help", 0, NULL, 'h'},
@@ -581,6 +581,13 @@ int main(int argc, char *argv[])
     if (uade_ignore_player_check) {
       if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
 	fprintf(stderr, "uade123: can not send ignore check message\n");
+	exit(-1);
+      }
+    }
+
+    if (uade_no_song_end) {
+      if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
+	fprintf(stderr, "uade123: can not send 'song end not possible'\n");
 	exit(-1);
       }
     }
