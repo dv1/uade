@@ -243,6 +243,7 @@ int main(int argc, char *argv[])
     {"keys", 0, NULL, 'k'},
     {"list", 1, NULL, '@'},
     {"no-song-end", 0, NULL, '£'},
+    {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
     {"panning", 0, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
@@ -270,7 +271,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:hij:km:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:hij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -327,6 +328,9 @@ int main(int argc, char *argv[])
       break;
     case 'k':
       uade_terminal_mode = 1;
+      break;
+    case 'K':
+      uade_terminal_mode = 0;
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
@@ -649,6 +653,8 @@ static void print_help(void)
   printf(" -j x, --jump x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k, --keys,         Enable action keys for playback control on terminal\n");
+  printf(" -K, --no-keys,      Disable action keys for playback control on terminal\n");
+  printf("                     This is the default. Use this for overriding uade.conf\n");
   printf(" -m filename,        Set module name\n");
   printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,        Set player name\n");

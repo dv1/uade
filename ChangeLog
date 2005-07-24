@@ -9,6 +9,8 @@
 	  sounds with this, and sometimes the sound core crashes, and should
 	  crash. Fortunately that doesn't kill the simulator :)
 	- Made help print (-h) prettier by aligning tex columns
+	- Added -K or --no-keys to disable action keys (this can be used to
+	  override the uade.conf if it enables actions by default).
 	
 2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>
         * UADE 1.50-pre4 (developer release)
