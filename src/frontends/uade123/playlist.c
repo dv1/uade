@@ -10,11 +10,62 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <stdint.h>
 
 #include <unixwalkdir.h>
+#include <uadeconfig.h>
+#include <unixatomic.h>
 
 #include "playlist.h"
 #include "uade123.h"
+
+
+static int random_fd = -1;
+#ifdef UADE_CONFIG_HAVE_URANDOM
+static int using_urandom = 1;
+#else
+static int using_urandom = 0;
+#endif
+
+
+static void random_init(void)
+{
+  if (using_urandom == 0)
+    srandom(time(NULL));
+}
+
+
+static int get_random(int max)
+{
+  int ret;
+  uint8_t buf[4];
+  if (using_urandom) {
+    if (random_fd == -1) {
+      random_fd = open("/dev/urandom", O_RDONLY);
+      if (random_fd < 0) {
+	fprintf(stderr, "not using urandom anymore: %s\n", strerror(errno));
+	using_urandom = 0;
+	goto nourandom;
+      }
+    }
+    ret = atomic_read(random_fd, buf, sizeof(buf));
+    if (ret < 0) {
+      fprintf(stderr, "error on reading urandom: %s\n", strerror(errno));
+      using_urandom = 0;
+      goto nourandom;
+    } else if (ret == 0) {
+      fprintf(stderr, "unexpected eof on urandom\n");
+      using_urandom = 0;
+      goto nourandom;
+    }
+    return ((double) max) * ((* (uint32_t * ) buf) & 0x3fffffff) / 0x40000000;
+  }
+ nourandom:
+  return ((double) max) * random() / (RAND_MAX + 1.0);
+}
+
 
 int playlist_init(struct playlist *pl)
 {
@@ -25,6 +76,7 @@ int playlist_init(struct playlist *pl)
   pl->repeat = 0;
   ret = chrarray_init(&pl->list);
   pl->valid = ret ? 1 : 0;
+  random_init();
   return ret;
 }
 
@@ -39,7 +91,6 @@ int playlist_random(struct playlist *pl, int enable)
   } else {
     pl->randomize = enable ? 1 : 0;
   }
-  srandom(time(0));
   return pl->randomize;
 }
 
@@ -130,7 +181,7 @@ int playlist_get_next(char *name, size_t maxlen, struct playlist *pl)
 	return 0;
       pl->upper_bound = pl->list.n_entries;
     }
-    i = random() % pl->upper_bound; /* improper use of random() */
+    i = get_random(pl->upper_bound);
     t = pl->list.entries[i];
     if (i != (pl->upper_bound - 1)) {
       /* not end of the list => need to shuffle (swap places) */

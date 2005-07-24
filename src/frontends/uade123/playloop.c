@@ -19,6 +19,7 @@
 #include "effects.h"
 #include "audio.h"
 #include "terminal.h"
+#include "playlist.h"
 
 
 static int uade_test_silence(void *buf, size_t size)
@@ -129,6 +130,10 @@ int play_loop(void)
 	  case 'q':
 	    printf("\n");
 	    return 0;
+	  case 's':
+	    playlist_random(&uade_playlist, -1);
+	    printf("\n%s mode\n", uade_playlist.randomize ? "shuffle" : "normal");
+	    break;
 	  case 'z':
 	    cur_sub -= 2;
 	    if (cur_sub < 0)

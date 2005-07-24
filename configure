@@ -514,14 +514,16 @@ cat > src/include/ossupport.h <<EOF
 EOF
 OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 
-echo > src/include/uadeconfig.h
+conffile=src/include/uadeconfig.h
+echo > "$conffile"
 if test "$user" = "yes" ; then
-    echo "#define UADE_CONFIG_USER_MODE (1)" >> src/include/uadeconfig.h
+    echo "#define UADE_CONFIG_USER_MODE (1)" >> "$conffile"
 else
-    echo "#define UADE_CONFIG_USER_MODE (0)" >> src/include/uadeconfig.h
+    echo "#define UADE_CONFIG_USER_MODE (0)" >> "$conffile"
 fi
-echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> src/include/uadeconfig.h
-echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> src/include/uadeconfig.h
+echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
+echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> "$conffile"
+test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 
 sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{DATADIR}|$uadedatadir|" \
