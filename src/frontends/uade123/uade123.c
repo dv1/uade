@@ -766,8 +766,6 @@ static void trivial_sigchld(int sig)
     debug("uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
     uadepid = 0;
     uade_terminated = 1;
-  } else {
-    fprintf(stderr, "A child exited, but it was not uade: pid=%d\n", process);
   }
 }
 
