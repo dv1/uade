@@ -759,13 +759,16 @@ static void trivial_sigchld(int sig)
   process = waitpid(-1, &status, WNOHANG);
   if (process == 0)
     return;
-  successful = (WEXITSTATUS(status) == 0);
-  debug("uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
-  if (uadepid != 0 && process != uadepid)
-    fprintf(stderr, "interesting sigchld: uadepid = %d and processpid = %d\n",
-	    uadepid, process);
-  uadepid = 0;
-  uade_terminated = 1;
+  if (uadepid == 0)
+    return;
+  if (process == uadepid) {
+    successful = (WEXITSTATUS(status) == 0);
+    debug("uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
+    uadepid = 0;
+    uade_terminated = 1;
+  } else {
+    fprintf(stderr, "A child exited, but it was not uade: pid=%d\n", process);
+  }
 }
 
 

@@ -1,3 +1,9 @@
+2005-07-25  Heikki Orsila <heikki.orsila@iki.fi>
+	- It seems ALSA lib could fork and consequently terminate a process
+	  when used through libao, and we must not consider it an error in
+	  our signal handler that catches all dead children. The signal
+	  handler assumed that the only child that could die is uade. (shd)
+
 2005-07-24  Heikki Orsila <heikki.orsila@iki.fi>
 	- New keys for interactive mode:
 	   [0-9]  - Select subsong in range [0, 9]
