@@ -1,5 +1,12 @@
 Ideas of things to do for UADE 2:
 
+2005-07-31: Song length database format. Contains following information:
+		* subsong lengths and volume levels
+		* md5 content checksum
+		* file length
+		* mark information as static
+		* maybe: advisory file name, comment
+	    (shd)
 2005-07-22: command line interaction for seeking and skipping songs (shd)
 2005-07-20: force timeout even if playtime is known (ave)
 2005-07-20: fast forward seeking + GUI support (ave)
@@ -8,7 +15,6 @@ Ideas of things to do for UADE 2:
 2005-07-12: rewrite parts of the sound core in C, and cross-compile with a
 	    68k gcc. (shd)
 2005-07-12: rewrite src/amifilemagic.c. It should be much cleaner. (shd)
-2005-07-11: good song length database format (supports subsong lengths) (shd)
 2005-07-11: sync tool to update song length database (grue)
 
 
