@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include <ao/ao.h>
 #include <errno.h>
 #include <string.h>
 
