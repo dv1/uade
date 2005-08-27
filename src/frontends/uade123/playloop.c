@@ -270,7 +270,7 @@ int play_loop(void)
 	    playbytes = 0;
 	  } else {
 	    playbytes -= skip_bytes;
-	    memcpy(um->data, ((uint8_t *) um->data) + skip_bytes, playbytes);
+	    memmove(um->data, ((uint8_t *) um->data) + skip_bytes, playbytes);
 	    skip_bytes = 0;
 	  }
 	}
