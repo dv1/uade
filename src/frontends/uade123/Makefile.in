@@ -7,7 +7,7 @@ MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
 	playloop.o audio.o config.o terminal.o
 
 uade123:	$(MODULES)
-	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
+	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 
 uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<

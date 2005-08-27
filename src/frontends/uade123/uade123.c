@@ -688,8 +688,11 @@ static void set_subsong(struct uade_msg *um, int subsong)
 
 static void setup_sighandlers(void)
 {
+  struct sigaction act;
+  memset(&act, 0, sizeof act);
+  act.sa_handler = trivial_sigint;
   while (1) {
-    if ((sigaction(SIGINT, & (struct sigaction) {.sa_handler = trivial_sigint}, NULL)) < 0) {
+    if ((sigaction(SIGINT, &act, NULL)) < 0) {
       if (errno == EINTR)
 	continue;
       fprintf(stderr, "can not install signal handler SIGINT: %s\n", strerror(errno));
@@ -697,8 +700,11 @@ static void setup_sighandlers(void)
     }
     break;
   }
+  memset(&act, 0, sizeof act);
+  act.sa_handler = trivial_sigchld;
+  act.sa_flags = SA_NOCLDSTOP;
   while (1) {
-    if ((sigaction(SIGCHLD, & (struct sigaction) {.sa_handler = trivial_sigchld, .sa_flags = SA_NOCLDSTOP}, NULL)) < 0) {
+    if ((sigaction(SIGCHLD, &act, NULL)) < 0) {
       if (errno == EINTR)
 	continue;
       fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));

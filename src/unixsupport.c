@@ -172,9 +172,13 @@ void uade_portable_initializations(void)
 {
   int signals[] = {SIGINT, -1};
   int *signum = signals;
+  struct sigaction act;
+  memset(&act, 0, sizeof act);
+  act.sa_handler = SIG_IGN;
+
   while (*signum != -1) {
     while (1) {
-      if ((sigaction(*signum, & (struct sigaction) {.sa_handler = SIG_IGN}, NULL)) < 0) {
+      if ((sigaction(*signum, &act, NULL)) < 0) {
 	if (errno == EINTR)
 	  continue;
 	fprintf(stderr, "can not ignore signal %d: %s\n", *signum, strerror(errno));

@@ -2,6 +2,8 @@
 	- Fixed a memory copying bug which could cause sound data
 	  corruption when skipping 10 seconds forward with uade123. The bug
 	  was at playloop.c:273. memmove should be used instead of memcpy (shd)
+	- A patch from Jarno Paananen <jpaana@s2.org>. It fixes use of C99
+	  anonymous initializers with sigaction (2) on Cygwin.
 
 2005-07-28  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre5 (developer release)
