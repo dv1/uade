@@ -7,10 +7,10 @@ FINALDATADIR = {DATADIR}
 FINALDOCDIR = {DOCDIR}
 FINALMANDIR = {MANDIR}
 
-BINDIR = {PACKAGEPREFIX}/{BINDIR}
-DATADIR = {PACKAGEPREFIX}/{DATADIR}
-DOCDIR = {PACKAGEPREFIX}/{DOCDIR}
-MANDIR = {PACKAGEPREFIX}/{MANDIR}
+BINDIR = {PACKAGEPREFIX}{BINDIR}
+DATADIR = {PACKAGEPREFIX}{DATADIR}
+DOCDIR = {PACKAGEPREFIX}{DOCDIR}
+MANDIR = {PACKAGEPREFIX}{MANDIR}
 
 all:	src/include/uadeconfig.h uadecore uade123
 
@@ -19,11 +19,6 @@ uadecore:
 
 uade123:	
 	$(MAKE) -C src/frontends/uade123
-
-plugins:	
-	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms
-	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp
-
 
 src/include/uadeconfig.h:	
 	@echo ""
@@ -38,12 +33,14 @@ test:
 	src/frontends/uade123/uade123 -b . -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
 
 uninstall:	
-	@test "{WITH_XMMS}" = "no" || $(MAKE) xmmspluginuninstall
-	@test "{WITH_BEEP}" = "no" || $(MAKE) beeppluginuninstall
-	rm -f "$(FINALBINDIR)/uade"
-	@echo
-	@echo "DELETE $(FINALDATADIR) and $(FINALDOCDIR) manually!!!"
-	@echo
+	rm -f "$(FINALBINDIR)/uadecore"
+	rm -f "$(FINALBINDIR)/uade123"
+	rm -f "$(FINALDATADIR)/uade.conf"
+	rm -f "$(FINALDATADIR)/score"
+	rm -f "$(FINALDATADIR)/uaerc"
+	rm -f "$(FINALDATADIR)/uadeformats"
+	rm -rf "$(FINALDATADIR)/players"
+	rmdir "$(FINALDATADIR)" || true
 
 install:	all
 	mkdir -p "$(BINDIR)"
@@ -59,24 +56,8 @@ install:	all
 	cp -f src/uadecore "$(BINDIR)/"
 	chmod og+rx "$(BINDIR)/uadecore"
 
-	cp -f src/frontends/uade123/uade123 "$(BINDIR)/"
+	cp -f src/frontends/uade123/uade123 "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/uade123"
-
-miniinstall:	
-	$(MAKE) plugininstall
-	cp -f uade $(BINDIR)/
-
-plugininstall:	
-	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms install
-	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp install
-
-pluginuninstall:	
-	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms uninstall
-	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp uninstall
-
-pluginclean:	
-	@test "{WITH_XMMS}" = "no" || $(MAKE) -C plugindir/xmms clean
-	@test "{WITH_BEEP}" = "no" || $(MAKE) -C plugindir/beepmp clean
 
 clean:	
 	$(MAKE) -C src clean

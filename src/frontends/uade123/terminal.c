@@ -65,7 +65,7 @@ void setup_terminal(void)
   }
   atexit(uade_restore_terminal);
   tp = old_terminal;
-  tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ECHOPRT);
+  tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
   if (tcsetattr(0, TCSAFLUSH, &tp)) {
     perror("uade123: can't setup interactive mode (tcsetattr())");
     exit(-1);
