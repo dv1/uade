@@ -56,8 +56,8 @@ install:	all
 	cp -f src/uadecore "$(BINDIR)/"
 	chmod og+rx "$(BINDIR)/uadecore"
 
-	cp -f src/frontends/uade123/uade123 "$(BINDIR)/" || true
-	chmod og+rx "$(BINDIR)/uade123"
+	cp -f src/frontends/uade123/{UADE123NAME} "$(BINDIR)/" || true
+	chmod og+rx "$(BINDIR)/{UADE123NAME}"
 
 clean:	
 	$(MAKE) -C src clean

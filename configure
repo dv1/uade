@@ -244,6 +244,7 @@ fi
 UNIXSHELL="yes"
 AUDIOTARGET="NULL"
 LIBTOOL="libtool"
+UADE123NAME="uade123"
 
 if test -n "$OS" && test "$OS" = "SunOS"; then
     echo
@@ -286,6 +287,14 @@ elif test -n "$OS" && test "$OS" = "OpenBSD"; then
         interaction=yes
     fi
     AUDIOTARGET="SOLARIS"
+else
+    grep -i cygwin 2>/dev/null >/dev/null <<EOF
+$OS
+EOF
+    if test "$?" = "0" ; then
+	OS="Cygwin"
+	UADE123NAME="uade123.exe"
+    fi
 fi
 
 if test "$disablealsa" = "yes" && test "$AUDIOTARGET" = "ALSA"; then
@@ -533,6 +542,7 @@ sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{WITH_XMMS}|$usexmms|" \
     -e "s|{WITH_BEEP}|$usebmp|" \
     -e "s|{PACKAGEPREFIX}|$packageprefix|" \
+    -e "s|{UADE123NAME}|$UADE123NAME|" \
     Makefile.in > Makefile
 
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do

@@ -1,3 +1,7 @@
+2005-09-01  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cygwin fixes. Add cygwin detection to configure script. Makefile
+	  should be aware that uade123 is named uade123.exe on cygwin.
+
 2005-08-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a memory copying bug which could cause sound data
 	  corruption when skipping 10 seconds forward with uade123. The bug
