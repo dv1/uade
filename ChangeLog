@@ -1,3 +1,15 @@
+2005-09-04  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added -g option to uade123 to only print information about songs.
+	  Songs are not played in this mode. All relevant output goes into
+	  stdout. This should be useful for scripting people. An example:
+
+	  $ uade123 -g /svu/chip/mod/mod.Unit-a-remix 2>/dev/null
+	  playername: Protracker & relatives
+	  modulename: unit-a-remix
+	  formatname: type: Protracker
+	  subsong_info: 1 1 1 (cur, min, max)
+	  <uade123 quits fast>
+
 2005-09-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cygwin fixes. Add cygwin detection to configure script. Makefile
 	  should be aware that uade123 is named uade123.exe on cygwin.

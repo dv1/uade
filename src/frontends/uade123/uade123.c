@@ -44,7 +44,9 @@
 
 int uade_debug_trigger;
 int uade_ignore_player_check;
+int uade_info_mode;
 double uade_jump_pos = 0.0;
+int uade_no_output;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
@@ -237,6 +239,7 @@ int main(int argc, char *argv[])
   int uade_no_song_end = 0;
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
+    {"get-info", 0, NULL, 'g'},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"jump", 1, NULL, 'j'},
@@ -271,7 +274,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:hij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -312,6 +315,11 @@ int main(int argc, char *argv[])
       break;
     case 'f':
       GET_OPT_STRING(uade_output_file_name);
+      break;
+    case 'g':
+      uade_info_mode = 1;
+      uade_no_output = 1;
+      uade_terminal_mode = 0;
       break;
     case 'h':
       print_help();
@@ -648,6 +656,8 @@ static void print_help(void)
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
+  printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
+  printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
   printf(" -j x, --jump x,     Jump to time position 'x' seconds from the beginning.\n");

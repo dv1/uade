@@ -25,6 +25,12 @@ int audio_init(void)
   int driver;
   ao_sample_format format;
 
+  if (uade_no_output) {
+    uade_bytes_per_sample = 2;
+    uade_sample_bytes_per_second = uade_bytes_per_sample * 2 * 44100;
+    return 1;
+  }
+
   ao_initialize();
 
   format.bits = 16;
@@ -56,6 +62,8 @@ int audio_init(void)
 
 int audio_play(char *samples, int bytes)
 {
+  if (uade_no_output)
+    return bytes;
   /* ao_play returns 0 on failure */
   return ao_play(libao_device, samples, bytes);
 }

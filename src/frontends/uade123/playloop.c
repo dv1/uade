@@ -80,6 +80,8 @@ int play_loop(void)
   int deciseconds;
   int jump_sub = 0;
 
+  int have_subsong_info = 0;
+
   /* skip bytes must be a multiple of audio frame size, which is 4 from the
      simulator */
   skip_bytes = uade_jump_pos * 4 * 44100;
@@ -93,7 +95,8 @@ int play_loop(void)
   while (next_song == 0) {
 
     if (uade_terminated) {
-      printf("\n");
+      if (!uade_no_output)
+	printf("\n");
       return 0;
     }
 
@@ -103,8 +106,10 @@ int play_loop(void)
 
 	if (skip_bytes == 0) {
 	  deciseconds = time_bytes * 10 / (44100 * 4);
-	  printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
-	  fflush(stdout);
+	  if (!uade_no_output) {
+	    printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	    fflush(stdout);
+	  }
 	}
 
 	if (uade_terminal_mode) {
@@ -176,6 +181,12 @@ int play_loop(void)
 	    return 0;
 	  }
 	  uade_debug_trigger = 0;
+	}
+
+	if (uade_info_mode && have_subsong_info) {
+	  /* we assume that subsong info is the last info we get */
+	  uade_song_end_trigger = 1;
+	  song_end = 0;
 	}
 
 	if (song_end) {
@@ -313,11 +324,15 @@ int play_loop(void)
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
 	debug("\nFormat name: %s\n", (uint8_t *) um->data);
+	if (uade_info_mode)
+	  printf("formatname: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
 	debug("\nModule name: %s\n", (uint8_t *) um->data);
+	if (uade_info_mode)
+	  printf("modulename: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
@@ -328,6 +343,8 @@ int play_loop(void)
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
 	debug("\nPlayer name: %s\n", (uint8_t *) um->data);
+	if (uade_info_mode)
+	  printf("playername: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -369,6 +386,9 @@ int play_loop(void)
 	assert(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub);
 	if ((max_sub - min_sub) != 0)
 	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
+	have_subsong_info = 1;
+	if (uade_info_mode)
+	  printf("subsong_info: %d %d %d (cur, min, max)\n", cur_sub, min_sub, max_sub);
 	break;
 	
       default:
