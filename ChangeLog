@@ -1,3 +1,8 @@
+2005-09-08  Heikki Orsila <heikki.orsila@iki.fi>
+	- Giulio Canevari pointed out that --panning doesn't work. For
+	  some reason I didn't notice that (perhaps didn't test ;-). The
+	  problem was false parameters for GNU getopt.
+
 2005-09-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added -g option to uade123 to only print information about songs.
 	  Songs are not played in this mode. All relevant output goes into
