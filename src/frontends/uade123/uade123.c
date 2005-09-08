@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
     {"no-song-end", 0, NULL, '£'},
     {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
-    {"panning", 0, NULL, 'p'},
+    {"panning", 1, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
     {"shuffle", 0, NULL, 'z'},
     {"silence-timeout", 1, NULL, 'y'},
