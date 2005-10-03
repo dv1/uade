@@ -1,3 +1,6 @@
+2005-10-03  Heikki Orsila <heikki.orsila@iki.fi>
+	- Action keys made into default behavior for uade123.
+
 2005-09-08  Heikki Orsila <heikki.orsila@iki.fi>
 	- Giulio Canevari pointed out that --panning doesn't work. For
 	  some reason I didn't notice that (perhaps didn't test ;-). The
