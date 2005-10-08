@@ -12,6 +12,8 @@
 	  belong to UADE. It might also interfere with other players when
 	  UADE is used as an XMMS plugin. Use XMP, modplug or something
 	  else for these formats.
+	- 'make check' is now 'make soundcheck' because it's more a sound
+	  check than a good test set.
 
 2005-10-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Action keys made into default behavior for uade123.
