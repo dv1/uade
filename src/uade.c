@@ -306,7 +306,7 @@ void uade_get_amiga_message(void)
 	if (x > len)
 	  x = len;
       }
-      fclose(file); file = 0;
+      fclose(file);
       uade_put_long(0x214, x);
     } else {
       fprintf(stderr, "uade: read: error when reading '%s'\n", nameptr);
@@ -324,7 +324,7 @@ void uade_get_amiga_message(void)
     if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       fseek(file, 0, SEEK_END);
       len = ftell(file);
-      fclose(file); file = 0;
+      fclose(file);
       /* fprintf(stderr, "uade: size: 0x%x '%s'\n", len, nameptr); */
       uade_put_long(0x208, len);
       uade_put_long(0x20C, -1);
