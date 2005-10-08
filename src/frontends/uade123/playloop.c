@@ -102,145 +102,144 @@ int play_loop(void)
 
     if (state == UADE_S_STATE) {
 
-      if (left == 0) {
-
-	if (skip_bytes == 0) {
-	  deciseconds = time_bytes * 10 / (44100 * 4);
-	  if (!uade_no_output) {
-	    printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
-	    fflush(stdout);
-	  }
+      if (skip_bytes == 0) {
+	deciseconds = time_bytes * 10 / (44100 * 4);
+	if (!uade_no_output) {
+	  printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  fflush(stdout);
 	}
+      }
 
-	if (uade_terminal_mode) {
-	  switch ((ret = poll_terminal())) {
-	  case 0:
-	    break;
-	  case '.':
-	    if (skip_bytes == 0) {
-	      fprintf(stderr, "\nSkipping 10 seconds\n");
-	      skip_bytes = 4 * 44100 * 10;
+      if (uade_terminal_mode) {
+	switch ((ret = poll_terminal())) {
+	case 0:
+	  break;
+	case '.':
+	  if (skip_bytes == 0) {
+	    fprintf(stderr, "\nSkipping 10 seconds\n");
+	    skip_bytes = 4 * 44100 * 10;
+	  }
+	  break;
+	case ' ':
+	case 'b':
+	  song_end = 1;
+	  break;
+	case 'c':
+	  pause_terminal();
+	  break;
+	case '\n':
+	case 'n':
+	  uade_song_end_trigger = 1;
+	  break;
+	case 'q':
+	  printf("\n");
+	  return 0;
+	case 's':
+	  playlist_random(&uade_playlist, -1);
+	  printf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
+	  break;
+	case 'x':
+	  cur_sub--;
+	  song_end = 1;
+	  jump_sub = 1;
+	  break;
+	case 'z':
+	  new_sub = cur_sub - 1;
+	  if (new_sub < 0)
+	    new_sub = 0;
+	  if (min_sub >= 0 && new_sub < min_sub)
+	    new_sub = min_sub;
+	  cur_sub = new_sub - 1;
+	  song_end = 1;
+	  jump_sub = 1;
+	  break;
+	default:
+	  if (isdigit(ret)) {
+	    new_sub = ret - '0';
+	    if (min_sub >= 0 && new_sub < min_sub) {
+	      fprintf(stderr, "\ntoo low a subsong number\n");
+	      break;
 	    }
-	    break;
-	  case ' ':
-	  case 'b':
-	    song_end = 1;
-	    break;
-	  case 'c':
-	    pause_terminal();
-	    break;
-	  case '\n':
-	  case 'n':
-	    uade_song_end_trigger = 1;
-	    break;
-	  case 'q':
-	    printf("\n");
-	    return 0;
-	  case 's':
-	    playlist_random(&uade_playlist, -1);
-	    printf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
-	    break;
-	  case 'x':
-	    cur_sub--;
-	    song_end = 1;
-	    jump_sub = 1;
-	    break;
-	  case 'z':
-	    new_sub = cur_sub - 1;
-	    if (new_sub < 0)
-	      new_sub = 0;
-	    if (min_sub >= 0 && new_sub < min_sub)
-	      new_sub = min_sub;
+	    if (max_sub >= 0 && new_sub > max_sub) {
+	      fprintf(stderr, "\ntoo high a subsong number\n");
+	      break;
+	    }
 	    cur_sub = new_sub - 1;
 	    song_end = 1;
 	    jump_sub = 1;
-	    break;
-	  default:
-	    if (isdigit(ret)) {
-	      new_sub = ret - '0';
-	      if (min_sub >= 0 && new_sub < min_sub) {
-		fprintf(stderr, "\ntoo low a subsong number\n");
-		break;
-	      }
-	      if (max_sub >= 0 && new_sub > max_sub) {
-		fprintf(stderr, "\ntoo high a subsong number\n");
-		break;
-	      }
-	      cur_sub = new_sub - 1;
-	      song_end = 1;
-	      jump_sub = 1;
-	    } else if (!isspace(ret)) {
-	      fprintf(stderr, "\n%c is not a valid command\n", ret);
-	    }
+	  } else if (!isspace(ret)) {
+	    fprintf(stderr, "\n%c is not a valid command\n", ret);
 	  }
 	}
-
-	if (uade_debug_trigger == 1) {
-	  if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
-	    fprintf(stderr, "\ncan not active debugger\n");
-	    return 0;
-	  }
-	  uade_debug_trigger = 0;
-	}
-
-	if (uade_info_mode && have_subsong_info) {
-	  /* we assume that subsong info is the last info we get */
-	  uade_song_end_trigger = 1;
-	  song_end = 0;
-	}
-
-	if (song_end) {
-	  if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
-	    cur_sub++;
-	    jump_sub = 0;
-	    if (cur_sub > max_sub) {
-	      uade_song_end_trigger = 1;
-	    } else {
-	      song_end = 0;
-	      subsong_bytes = 0;
-	      time_bytes = 0;
-	      *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
-				       .size = 4};
-	      * (uint32_t *) um->data = htonl(cur_sub);
-	      if (uade_send_message(um)) {
-		fprintf(stderr, "\ncould not change subsong\n");
-		exit(-1);
-	      }
-	      fprintf(stderr, "\nSubsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
-	    }
-	  } else {
-	    uade_song_end_trigger = 1;
-	  }
-	}
-
-	/* check if control-c was pressed */
-	if (uade_song_end_trigger) {
-	  next_song = 1;
-	  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
-	    fprintf(stderr, "\ncan not send reboot\n");
-	    return 0;
-	  }
-	  goto sendtoken;
-	}
-
-	left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
-	um->msgtype = UADE_COMMAND_READ;
-	um->size = 4;
-	* (uint32_t *) um->data = htonl(left);
-	if (uade_send_message(um)) {
-	  fprintf(stderr, "\ncan not send read command\n");
-	  return 0;
-	}
-
-      sendtoken:
-	if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-	  fprintf(stderr, "\ncan not send token\n");
-	  return 0;
-	}
-	state = UADE_R_STATE;
       }
 
+      if (uade_debug_trigger == 1) {
+	if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
+	  fprintf(stderr, "\ncan not active debugger\n");
+	  return 0;
+	}
+	uade_debug_trigger = 0;
+      }
+      
+      if (uade_info_mode && have_subsong_info) {
+	/* we assume that subsong info is the last info we get */
+	uade_song_end_trigger = 1;
+	song_end = 0;
+      }
+
+      if (song_end) {
+	if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
+	  cur_sub++;
+	  jump_sub = 0;
+	  if (cur_sub > max_sub) {
+	    uade_song_end_trigger = 1;
+	  } else {
+	    song_end = 0;
+	    subsong_bytes = 0;
+	    time_bytes = 0;
+	    *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
+				     .size = 4};
+	    * (uint32_t *) um->data = htonl(cur_sub);
+	    if (uade_send_message(um)) {
+	      fprintf(stderr, "\ncould not change subsong\n");
+	      exit(-1);
+	    }
+	    fprintf(stderr, "\nSubsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
+	  }
+	} else {
+	  uade_song_end_trigger = 1;
+	}
+      }
+
+      /* check if control-c was pressed */
+      if (uade_song_end_trigger) {
+	next_song = 1;
+	if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
+	  fprintf(stderr, "\ncan not send reboot\n");
+	  return 0;
+	}
+	goto sendtoken;
+      }
+
+      left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
+      um->msgtype = UADE_COMMAND_READ;
+      um->size = 4;
+      * (uint32_t *) um->data = htonl(left);
+      if (uade_send_message(um)) {
+	fprintf(stderr, "\ncan not send read command\n");
+	return 0;
+      }
+
+    sendtoken:
+      if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+	fprintf(stderr, "\ncan not send token\n");
+	return 0;
+      }
+      state = UADE_R_STATE;
+
     } else {
+
+      /* receive state */
 
       if (uade_receive_message(um, sizeof(space)) <= 0) {
 	fprintf(stderr, "\ncan not receive events from uade\n");
@@ -319,6 +318,7 @@ int play_loop(void)
 	}
 
 	left -= um->size;
+	assert(left >= 0);
 	break;
 	
       case UADE_REPLY_FORMATNAME:

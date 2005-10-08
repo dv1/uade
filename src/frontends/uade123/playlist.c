@@ -146,7 +146,27 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
   } else if (S_ISDIR(st.st_mode)) {
     /* add directories to playlist only if 'recursive' is non-zero */
     if (recursive) {
-      uade_walk_directories(name, recursive_func, pl);
+
+      /* strip directory name of ending '/' characters */
+      char *strippedname = strdup(name);
+      size_t len = strlen(name);
+      if (strippedname == NULL) {
+	fprintf(stderr, "Not enough memory for directory name.\n");
+	exit(-1);
+      }
+      while (len > 0) {
+	len--;
+	if (strippedname[len] != '/')
+	  break;
+	strippedname[len] = 0;
+      }
+
+      /* walk directory hierarchy */
+      uade_walk_directories(strippedname, recursive_func, pl);
+
+      /* free stripped name */
+      free(strippedname);
+
     } else {
       debug("Not adding directory %s. Use -r to add recursively.\n", name);
     }

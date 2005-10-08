@@ -3,6 +3,9 @@
 	  terminate uade123 on an unknown keyword.
 	- First try to load uade.conf from ~/.uade2/uade.conf, and then
 	  try the global config file ($PREFIX/etc/uade.conf)
+	- Simplify playloop in uade123.
+	- Beautify directory hierarchy scanning by avoiding unnecessary
+	  '/' characters.
 
 2005-10-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Action keys made into default behavior for uade123.
