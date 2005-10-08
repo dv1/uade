@@ -66,7 +66,7 @@ int play_loop(void)
   struct uade_msg *um = (struct uade_msg *) space;
 
   int left;
-  int song_end = 0;
+  int subsong_end = 0;
   int next_song = 0;
   int ret;
   int cur_sub = -1, min_sub = -1, max_sub = -1, new_sub;
@@ -122,7 +122,7 @@ int play_loop(void)
 	  break;
 	case ' ':
 	case 'b':
-	  song_end = 1;
+	  subsong_end = 1;
 	  break;
 	case 'c':
 	  pause_terminal();
@@ -140,7 +140,7 @@ int play_loop(void)
 	  break;
 	case 'x':
 	  cur_sub--;
-	  song_end = 1;
+	  subsong_end = 1;
 	  jump_sub = 1;
 	  break;
 	case 'z':
@@ -150,7 +150,7 @@ int play_loop(void)
 	  if (min_sub >= 0 && new_sub < min_sub)
 	    new_sub = min_sub;
 	  cur_sub = new_sub - 1;
-	  song_end = 1;
+	  subsong_end = 1;
 	  jump_sub = 1;
 	  break;
 	default:
@@ -165,7 +165,7 @@ int play_loop(void)
 	      break;
 	    }
 	    cur_sub = new_sub - 1;
-	    song_end = 1;
+	    subsong_end = 1;
 	    jump_sub = 1;
 	  } else if (!isspace(ret)) {
 	    fprintf(stderr, "\n%c is not a valid command\n", ret);
@@ -184,17 +184,17 @@ int play_loop(void)
       if (uade_info_mode && have_subsong_info) {
 	/* we assume that subsong info is the last info we get */
 	uade_song_end_trigger = 1;
-	song_end = 0;
+	subsong_end = 0;
       }
 
-      if (song_end) {
+      if (subsong_end) {
 	if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
 	  cur_sub++;
 	  jump_sub = 0;
 	  if (cur_sub > max_sub) {
 	    uade_song_end_trigger = 1;
 	  } else {
-	    song_end = 0;
+	    subsong_end = 0;
 	    subsong_bytes = 0;
 	    time_bytes = 0;
 	    *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
@@ -259,7 +259,7 @@ int play_loop(void)
 	  sm++;
 	}
 
-	if (song_end) {
+	if (subsong_end) {
 	  playbytes = tailbytes;
 	  tailbytes = 0;
 	} else {
@@ -303,18 +303,19 @@ int play_loop(void)
 	}
 
 	if (uade_subsong_timeout != -1) {
-	  if (song_end == 0 && uade_song_end_trigger == 0) {
+	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
 	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uade_subsong_timeout);
-	      song_end = 1;
+	      subsong_end = 1;
 	    }
 	  }
 	}
 
 	if (uade_test_silence(um->data, playbytes)) {
-	  if (song_end == 0 && uade_song_end_trigger == 0)
+	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
 	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uade_silence_timeout);
-	  song_end = 1;
+	    subsong_end = 1;
+	  }
 	}
 
 	assert (left >= um->size);
@@ -356,7 +357,7 @@ int play_loop(void)
 	/* next ntohl() is only there for a principle. it is not useful */
 	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
 	  /* normal happy song end. go to next subsong if any */
-	  song_end = 1;
+	  subsong_end = 1;
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
