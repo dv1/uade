@@ -317,8 +317,8 @@ int play_loop(void)
 	  song_end = 1;
 	}
 
+	assert (left >= um->size);
 	left -= um->size;
-	assert(left >= 0);
 	break;
 	
       case UADE_REPLY_FORMATNAME:
