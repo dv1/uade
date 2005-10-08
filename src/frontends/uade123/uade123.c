@@ -237,6 +237,8 @@ int main(int argc, char *argv[])
   int ret;
   char *endptr;
   int uade_no_song_end = 0;
+  int config_loaded;
+
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
@@ -263,11 +265,15 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
+  config_loaded = 0;
   if (getenv("HOME") != NULL) {
     snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", getenv("HOME"));
-    load_config(tmpstr);
+    config_loaded = load_config(tmpstr);
   }
+  if (config_loaded == 0)
+    config_loaded = load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
+  if (config_loaded == 0)
+    fprintf(stderr, "Not able to load uade.conf from ~/.uade2/uade.conf or %s/uade.conf\n", UADE_CONFIG_BASE_DIR);
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "too long a string for option %c\n", ret); \
@@ -644,7 +650,7 @@ static void print_help(void)
   printf("\n");
   printf("Expert options:\n");
   printf(" -b dirname,         Set uade base directory (contains data files)\n");
-  printf(" -c file,            Set uade config file name\n");
+  printf(" -c file,            Set uaerc config file name\n");
   printf(" -d/--debug,         Enable debug mode (expert only)\n");
   printf(" -S filename,        Set sound core name\n");
   printf(" -u uadename,        Set uadecore executable name\n");

@@ -1,3 +1,9 @@
+2005-10-08  Heikki Orsila <heikki.orsila@iki.fi>
+	- Unknown keywords in uade.conf are ignored. Old behavior was to
+	  terminate uade123 on an unknown keyword.
+	- First try to load uade.conf from ~/.uade2/uade.conf, and then
+	  try the global config file ($PREFIX/etc/uade.conf)
+
 2005-10-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Action keys made into default behavior for uade123.
 

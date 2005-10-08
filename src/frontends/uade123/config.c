@@ -146,7 +146,6 @@ int load_config(const char *filename)
       config_set_timeout(value);
     } else {
       fprintf(stderr, "unknown config key in %s on line %d: %s\n", filename, linenumber, key);
-      exit(-1);
     }
   }
 
