@@ -1,0 +1,6 @@
+
+To do:
+
+ - Song end checking is broken (wrong order)
+ - Sound data handling is undone
+ - Full textual explanation of the protocol
