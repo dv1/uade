@@ -187,7 +187,7 @@ int play_loop(void)
 	subsong_end = 0;
       }
 
-      if (subsong_end) {
+      if (subsong_end && uade_song_end_trigger == 0) {
 	if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
 	  cur_sub++;
 	  jump_sub = 0;
@@ -211,7 +211,7 @@ int play_loop(void)
 	}
       }
 
-      /* check if control-c was pressed */
+      /* Check if control-c was pressed */
       if (uade_song_end_trigger) {
 	next_song = 1;
 	if (uade_send_short_message(UADE_COMMAND_REBOOT)) {

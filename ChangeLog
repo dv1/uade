@@ -1,3 +1,7 @@
+2005-10-16  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added a fuzzy state diagram on client-server interaction from client
+	  perspective.
+
 2005-10-08  Heikki Orsila <heikki.orsila@iki.fi>
 	- Unknown keywords in uade.conf are ignored. Old behavior was to
 	  terminate uade123 on an unknown keyword.
