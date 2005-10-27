@@ -1,5 +1,5 @@
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
-	* UADE 1.50-pre5 (tester pre)
+	* UADE 1.50-pre6 (tester pre)
 	- Uade core now supports only 16-bits stereo. If 8-bits or mono is
 	  needed the sample data can be postprocessed.
 	- Added experimental filtering support. It should be better than the
