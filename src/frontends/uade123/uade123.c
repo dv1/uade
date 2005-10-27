@@ -57,6 +57,7 @@ float uade_panning_value;
 struct playlist uade_playlist;
 int uade_recursivemode;
 int uade_terminated;
+FILE *uade_terminal_file;
 int uade_terminal_mode;
 int uade_use_filter = 1;
 int uade_use_panning;
@@ -247,6 +248,7 @@ int main(int argc, char *argv[])
 #define OPT_NO_FILTER    0x101
 #define OPT_FORCE_FILTER 0x102
 #define OPT_INTERPOLATOR 0x103
+#define OPT_STDERR       0x104
 
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
@@ -267,6 +269,7 @@ int main(int argc, char *argv[])
     {"recursive", 0, NULL, 'r'},
     {"shuffle", 0, NULL, 'z'},
     {"silence-timeout", 1, NULL, 'y'},
+    {"stderr", 0, NULL, OPT_STDERR},
     {"subsong", 1, NULL, 's'},
     {"subsong-timeout", 1, NULL, 'w'},
     {"timeout", 1, NULL, 't'},
@@ -336,6 +339,9 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "uade123: No memory for interpolator mode.\n");
 	exit(-1);
       }
+      break;
+    case OPT_STDERR:
+      uade_terminal_file = stderr;
       break;
     case '1':
       uade_one_subsong_per_file = 1;
@@ -714,6 +720,7 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r/--recursive,     Recursive directory scan\n");
   printf(" -s x, --subsong x,  Set subsong 'x'\n");
+  printf(" --stderr,           Print messages on stderr.\n");
   printf(" -t x, --timeout x,  Set song timeout in seconds. -1 is infinite.\n");
   printf("                     Default is infinite.\n");
   printf(" -v,  --verbose,     Turn on verbose mode\n");

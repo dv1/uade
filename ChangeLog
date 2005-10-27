@@ -5,6 +5,10 @@
 	    rh      = rh interpolator (broken atm),
 	    crux    = crux interpolator (broken atm),
 	    cspline = Antti S. Lankialas spline interpolator (testing).
+	- As per Michael Doering's needs, I added --stderr option to uade123.
+	  It will force all terminal output printed onto the stderr, and thus
+	  allows piping pure sound data. Example:
+	    uade123 --stderr -e raw -f /dev/stdout DW.Platoon |postprocessing
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre7

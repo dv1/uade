@@ -5,6 +5,8 @@
 #include <sys/poll.h>
 #include <errno.h>
 
+#include "uade123.h"
+
 static struct termios old_terminal;
 
 
@@ -19,7 +21,7 @@ void pause_terminal(void)
   struct pollfd pfd = {.fd = 0, .events = POLLIN};
   char c;
   int ret;
-  printf("\nPaused. Press any key to continue...\n");
+  tprintf("\nPaused. Press any key to continue...\n");
   while (1) {
     ret = poll(&pfd, 1, -1);
     if (ret < 0) {
@@ -37,7 +39,7 @@ void pause_terminal(void)
     }
     break;
   }
-  printf("\n");
+  tprintf("\n");
 }
 
 

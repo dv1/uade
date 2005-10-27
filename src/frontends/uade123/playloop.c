@@ -134,7 +134,7 @@ int play_loop(void)
 
     if (uade_terminated) {
       if (!uade_no_output)
-	printf("\n");
+	tprintf("\n");
       return 0;
     }
 
@@ -143,7 +143,7 @@ int play_loop(void)
       if (skip_bytes == 0) {
 	deciseconds = time_bytes * 10 / (44100 * 4);
 	if (!uade_no_output) {
-	  printf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
 	  fflush(stdout);
 	}
       }
@@ -169,7 +169,7 @@ int play_loop(void)
 	  uade_use_filter = 1;
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
-	  printf("\nFilter %s\n", (uade_filter_state & 1) ? "on" : "off");
+	  tprintf("\nFilter %s\n", (uade_filter_state & 1) ? "on" : "off");
 	  filter_command();
 	  break;
 	case '\n':
@@ -177,11 +177,11 @@ int play_loop(void)
 	  uade_song_end_trigger = 1;
 	  break;
 	case 'q':
-	  printf("\n");
+	  tprintf("\n");
 	  return 0;
 	case 's':
 	  playlist_random(&uade_playlist, -1);
-	  printf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
+	  tprintf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
 	  break;
 	case 'x':
 	  cur_sub--;
@@ -371,26 +371,26 @@ int play_loop(void)
 	uade_check_fix_string(um, 128);
 	debug("\nFormat name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
-	  printf("formatname: %s\n", (char *) um->data);
+	  tprintf("formatname: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
 	debug("\nModule name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
-	  printf("modulename: %s\n", (char *) um->data);
+	  tprintf("modulename: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
 	debug("\nMessage: %s\n", (char *) um->data);
 	break;
-	
+
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
 	debug("\nPlayer name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
-	  printf("playername: %s\n", (char *) um->data);
+	  tprintf("playername: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -434,7 +434,7 @@ int play_loop(void)
 	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
 	have_subsong_info = 1;
 	if (uade_info_mode)
-	  printf("subsong_info: %d %d %d (cur, min, max)\n", cur_sub, min_sub, max_sub);
+	  tprintf("subsong_info: %d %d %d (cur, min, max)\n", cur_sub, min_sub, max_sub);
 	break;
 	
       default:
@@ -460,6 +460,6 @@ int play_loop(void)
   uade_force_filter = old_force_filter;
   uade_filter_state = old_filter_state;
 
-  printf("\n");
+  tprintf("\n");
   return 1;
 }
