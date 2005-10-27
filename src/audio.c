@@ -11,7 +11,6 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "config.h"
 #include "options.h"
 #include "memory.h"
 #include "custom.h"
@@ -38,10 +37,6 @@ static float sound_left_input[6];
 static float sound_left_output[6];
 static float sound_right_input[6];
 static float sound_right_output[6];
-
-
-#define SCALE_BY_VOLUME(v, c) do { (v) *= audio_channel[c].vol; } while (0)
-#define SCALE_SAMPLE(data, b,logn) do { (data) <<= (b) - 14 - (logn); } while (0);
 
 /* apply filter emulation (IIR)
    y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2,
@@ -116,10 +111,10 @@ static inline void sample_backend(int left, int right)
       right = filter(right, sound_right_input, sound_right_output, -128 * 64 * 2, 127 * 64 * 2);
     }
 
-    SCALE_SAMPLE (left, 16, 1);
+    left <<= 16 - 14 - 1;
     PUT_SOUND_WORD_RIGHT (left);
 
-    SCALE_SAMPLE (right, 16, 1);
+    right <<= 16 - 14 - 1;
     PUT_SOUND_WORD_LEFT (right);
     
     check_sound_buffers ();
@@ -133,7 +128,8 @@ void sample16s_handler (void)
     int i;
     for (i = 0; i < 4; i++) {
       datas[i] = audio_channel[i].current_sample;
-      SCALE_BY_VOLUME (datas[i], i);
+
+      datas[i] *= audio_channel[i].vol;
       datas[i] &= audio_channel[i].adk_mask;
     }
 
@@ -155,7 +151,7 @@ void sample16si_crux_handler (void)
 #undef INTERVAL
 	datas[i] = ((       ratio) * audio_channel[i].current_sample
                   + (4096 - ratio) * audio_channel[i].last_sample[0]) >> 12;
-        SCALE_BY_VOLUME(datas[i], i);
+	datas[i] *= audio_channel[i].vol;
         datas[i] &= audio_channel[i].adk_mask;
     }
 
@@ -173,7 +169,7 @@ void sample16si_linear_handler (void)
         int position = ((audio_channel[i].evtime % period) << 8) / period;
         datas[i] = ((      position) * audio_channel[i].last_sample[0]
                   + (256 - position) * audio_channel[i].current_sample) >> 8;
-        SCALE_BY_VOLUME(datas[i], i);
+	datas[i] *= audio_channel[i].vol;
         datas[i] &= audio_channel[i].adk_mask;
     }
 
@@ -213,7 +209,7 @@ void sample16si_cspline_handler (void)
             audio_channel[i].current_sample,
             (audio_channel[i].evtime % period) / (1.0 * period)
         );
-        SCALE_BY_VOLUME(datas[i], i);
+	datas[i] *= audio_channel[i].vol;
         datas[i] &= audio_channel[i].adk_mask;
     }
 
