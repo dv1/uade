@@ -67,6 +67,30 @@ static float sound_right_output[6];
    and x0 is the current input sample, x1 the input 1 sample ago, x2 the
    input 2 samples ago, y1 the output of filter 1 sample ago, and y2 the
    output 2 samples ago.
+
+   The filter factors are classical biquad low pass filter parameters
+   computed with the following parameters:
+
+   samplerate = 44100       // Hz
+   center_frequency = 3000  // Hz
+   bandwidth = 1.7          // Octaves
+   
+   omega = 2 * M_PI * center_frequency / samplerate;
+   sn = sin(omega);
+   cs = cos(omega);
+   alpha = sn * sinh(log(2) / 2 * bandwidth * omega / sn);
+   a0 = 1 + alpha;
+   
+   b0 = (1 - cs) / 2 / a0;
+   b1 = 1 - cs       / a0;
+   b2 = b0
+   a1 = -2 * cs      / a0;
+   a2 = 1 - alpha    / a0;
+
+   The bandwidth parameter affects the shape of the filtering curve slightly
+   around the cutoff frequency (the -3 dB point) which is about 3250 Hz with
+   these parameters. There is now a slight boost before cutoff, which is
+   accounted for with the 0.99 scale factor.
 */
 
 static int filter(int data, float *input, float *output, int down, int up)
@@ -76,19 +100,20 @@ static int filter(int data, float *input, float *output, int down, int up)
   const int scale = -down;
   input[2] = input[1];
   input[1] = input[0];
-  input[0] = ((float) data) / scale;
+  input[0] = (float) data;
 
-  if (!gui_ledstate) {
-    s = 0.0;
-    o = data;
-  } else {
-    s = 0.0354860792783 * input[0] + 0.0709721585565 * input[1] + 0.0354860792783 * input[2];
-    s -= -1.43583028974 * output[0] + 0.577774606849 * output[1];
-    s *= 0.99; /* to avoid overruns */
-    o = s * up;
-  }
+  /* The filter is run continuously, but its result may be discarded.
+   * This is to reduce audible snapping when switching filter on. */
+  s = 0.0354860792783 * input[0] + 0.0709721585565 * input[1] + 0.0354860792783 * input[2];
+  s -= -1.43583028974 * output[0] + 0.577774606849 * output[1];
   output[1] = output[0];
   output[0] = s;
+  
+  if (!gui_ledstate) {
+    o = data;
+  } else {
+    o = output[0] * 0.99; /* to avoid overruns */
+  }
   if (o > up) {
     o = up;
   } else if (o < down) {

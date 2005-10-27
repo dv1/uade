@@ -1,4 +1,12 @@
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
+	- Antti S. Lankiala <alankila@bel.fi> fixed and improved filter
+	  behavior. The filter state must be updated even when filtering
+	  is not outputted. Output scaling was fixed to the right place
+	  so that it does not distort filter state. Unnecessary range
+	  scaling of input samples was removed. Some documentation was
+	  added about technical properties of the IIR filter.
+	
+2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre6 (tester pre)
 	- Uade core now supports only 16-bits stereo. If 8-bits or mono is
 	  needed the sample data can be postprocessed.
