@@ -249,6 +249,7 @@ int main(int argc, char *argv[])
 #define OPT_FORCE_FILTER 0x102
 #define OPT_INTERPOLATOR 0x103
 #define OPT_STDERR       0x104
+#define OPT_NO_SONG_END  0x105
 
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
@@ -262,7 +263,7 @@ int main(int argc, char *argv[])
     {"keys", 0, NULL, 'k'},
     {"list", 1, NULL, '@'},
     {"no-filter", 0, NULL, OPT_NO_FILTER},
-    {"no-song-end", 0, NULL, '£'},
+    {"no-song-end", 0, NULL, OPT_NO_SONG_END},
     {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
     {"panning", 1, NULL, 'p'},
@@ -296,7 +297,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -315,33 +316,6 @@ int main(int argc, char *argv[])
 	fclose(listfile);
 	have_modules = 1;
       } while (0);
-      break;
-    case '£':
-      uade_no_song_end = 1;
-      break;
-    case OPT_FILTER:
-      uade_use_filter = 1;
-      break;
-    case OPT_NO_FILTER:
-      uade_use_filter = 0;
-      break;
-    case OPT_FORCE_FILTER:
-      uade_force_filter = 1;
-      uade_use_filter = 1;
-      uade_filter_state = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
-	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
-	exit(-1);
-      }
-      break;
-    case OPT_INTERPOLATOR:
-      if ((uade_interpolation_mode = strdup(optarg)) == NULL) {
-	fprintf(stderr, "uade123: No memory for interpolator mode.\n");
-	exit(-1);
-      }
-      break;
-    case OPT_STDERR:
-      uade_terminal_file = stderr;
       break;
     case '1':
       uade_one_subsong_per_file = 1;
@@ -431,7 +405,33 @@ int main(int argc, char *argv[])
     case '?':
     case ':':
       exit(-1);
-
+    case OPT_FILTER:
+      uade_use_filter = 1;
+      break;
+    case OPT_NO_FILTER:
+      uade_use_filter = 0;
+      break;
+    case OPT_FORCE_FILTER:
+      uade_force_filter = 1;
+      uade_use_filter = 1;
+      uade_filter_state = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
+	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
+	exit(-1);
+      }
+      break;
+    case OPT_INTERPOLATOR:
+      if ((uade_interpolation_mode = strdup(optarg)) == NULL) {
+	fprintf(stderr, "uade123: No memory for interpolator mode.\n");
+	exit(-1);
+      }
+      break;
+    case OPT_STDERR:
+      uade_terminal_file = stderr;
+      break;
+    case OPT_NO_SONG_END:
+      uade_no_song_end = 1;
+      break;
     default:
       fprintf(stderr, "impossible option\n");
       exit(-1);
@@ -698,7 +698,6 @@ static void print_help(void)
   printf("Normal options:\n");
   printf(" -1, --one,          Play at most one subsong per file\n");
   printf(" -@ filename, --list filename,  Read playlist of files from 'filename'\n");
-  printf(" -£, --no-song-end,  Ignore song end report. Just keep playing.\n");
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
@@ -716,6 +715,7 @@ static void print_help(void)
   printf(" -K, --no-keys,      Disable action keys for playback control on terminal\n");
   printf("                     This is the default. Use this for overriding uade.conf\n");
   printf(" -m filename,        Set module name\n");
+  printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
   printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,        Set player name\n");
   printf(" -r/--recursive,     Recursive directory scan\n");
