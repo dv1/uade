@@ -105,7 +105,7 @@ newcpu.o: newcpu.c include/uade.h config.h include/events.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
 sd-sound.o:	include/uade.h config.h sd-sound.c sd-sound.h {SOUNDHEADER} {SOUNDSOURCE}
-audio.o: include/uade.h config.h include/events.h sd-sound.h {SOUNDHEADER}
+audio.o: include/uade.h config.h include/events.h sd-sound.h include/gensound.h include/audio.h {SOUNDHEADER}
 memory.o: config.h
 debug.o: config.h
 fpp.o: config.h

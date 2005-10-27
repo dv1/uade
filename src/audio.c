@@ -125,21 +125,11 @@ void init_sound_table8 (void)
 	    sound_table[j][i] = (j * (uae_s8)i * (currprefs.stereo ? 2 : 1)) / 256;
 }
 
-#define MULTIPLICATION_PROFITABLE
-
-#ifdef MULTIPLICATION_PROFITABLE
 typedef uae_s8 sample8_t;
 #define DO_CHANNEL_1(v, c) do { (v) *= audio_channel[c].vol; } while (0)
 #define SBASEVAL8(logn) ((logn) == 1 ? SOUND8_BASE_VAL << 7 : SOUND8_BASE_VAL << 8)
 #define SBASEVAL16(logn) ((logn) == 1 ? SOUND16_BASE_VAL >> 1 : SOUND16_BASE_VAL)
-#define FINISH_DATA(b,logn) do { if (14 - (b) + (logn) > 0) data >>= 14 - (b) + (logn); else data <<= (b) - 14 - (logn); } while (0);
-#else
-typedef uae_u8 sample8_t;
-#define DO_CHANNEL_1(v, c) do { (v) = audio_channel[c].voltbl[(v)]; } while (0)
-#define SBASEVAL8(logn) SOUND8_BASE_VAL
-#define SBASEVAL16(logn) SOUND16_BASE_VAL
-#define FINISH_DATA(b,logn)
-#endif
+#define FINISH_DATA(data, b,logn) do { if (14 - (b) + (logn) > 0) (data) >>= 14 - (b) + (logn); else (data) <<= (b) - 14 - (logn); } while (0);
 
 #define DO_CHANNEL(v, c) do { (v) &= audio_channel[c].adk_mask; data += v; } while (0);
 
@@ -149,40 +139,30 @@ typedef uae_u8 sample8_t;
 
 void sample16s_handler (void)
 {
-    uae_u32 data0 = audio_channel[0].current_sample;
-    uae_u32 data1 = audio_channel[1].current_sample;
-    uae_u32 data2 = audio_channel[2].current_sample;
-    uae_u32 data3 = audio_channel[3].current_sample;
-
-    DO_CHANNEL_1 (data0, 0);
-    DO_CHANNEL_1 (data1, 1);
-    DO_CHANNEL_1 (data2, 2);
-    DO_CHANNEL_1 (data3, 3);
-
-    data0 &= audio_channel[0].adk_mask;
-    data1 &= audio_channel[1].adk_mask;
-    data2 &= audio_channel[2].adk_mask;
-    data3 &= audio_channel[3].adk_mask;
+    int datas[4];
+    int data, data0, data1;
+    int i;
+    for (i = 0; i < 4; i++) {
+      datas[i] = audio_channel[i].current_sample;
+      DO_CHANNEL_1 (datas[i], i);
+      datas[i] &= audio_channel[i].adk_mask;
+    }
     
-    data0 += data3;
-    data1 += data2;
+    data0 = datas[0] + datas[3];
+    data1 = datas[1] + datas[2];
 
     if (sound_use_filter) {
       data0 = FILTER_LEFT(data0, 2);
       data1 = FILTER_RIGHT(data1, 2);
     }
 
-    {
-	uae_u32 data = SBASEVAL16(1) + data0;
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_RIGHT (data);
-    }
+    data = SBASEVAL16(1) + data0;
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_RIGHT (data);
 
-    {
-	uae_u32 data = SBASEVAL16(1) + data1;
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_LEFT (data);
-    }
+    data = SBASEVAL16(1) + data1;
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_LEFT (data);
     
     check_sound_buffers ();
 }
@@ -191,6 +171,7 @@ void sample16si_crux_handler (void)
 {
     int i;
     int datas[4];
+    int data;
 
     for (i = 0; i < 4; i += 1) {
         int ratio1 = audio_channel[i].per - audio_channel[i].evtime;
@@ -213,25 +194,22 @@ void sample16si_crux_handler (void)
       datas[1] = FILTER_RIGHT(datas[1], 2);
     }
 
-    {
-	int data = SBASEVAL16 (1) + datas[0];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_RIGHT (data);
-    }
+    data = SBASEVAL16 (1) + datas[0];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_RIGHT (data);
 
-    {
-	int data = SBASEVAL16 (1) + datas[1];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_LEFT (data);
-    }
+    data = SBASEVAL16 (1) + datas[1];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_LEFT (data);
     
     check_sound_buffers ();
 }
 
-void sample16si_rh_handler (void)
+void sample16si_linear_handler (void)
 {
     int i;
     int datas[4];
+    int data;
 
     for (i = 0; i < 4; i += 1) {
         int period = audio_channel[i].per;
@@ -250,17 +228,13 @@ void sample16si_rh_handler (void)
       datas[1] = FILTER_RIGHT(datas[1], 2);
     }
 
-    {
-	int data = SBASEVAL16 (1) + datas[0];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_RIGHT (data);
-    }
+    data = SBASEVAL16 (1) + datas[0];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_RIGHT (data);
 
-    {
-        int data = SBASEVAL16 (1) + datas[1];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_LEFT (data);
-    }
+    data = SBASEVAL16 (1) + datas[1];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_LEFT (data);
     
     check_sound_buffers ();
 }
@@ -289,6 +263,7 @@ void sample16si_cspline_handler (void)
 {
     int i;
     int datas[4];
+    int data;
 
     for (i = 0; i < 4; i += 1) {
         int period = audio_channel[i].per;
@@ -309,18 +284,14 @@ void sample16si_cspline_handler (void)
       datas[1] = FILTER_RIGHT(datas[1], 2);
     }
 
-    {
-	int data = SBASEVAL16 (1) + datas[0];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_RIGHT (data);
-    }
+    data = SBASEVAL16 (1) + datas[0];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_RIGHT (data);
 
-    {
-	int data = SBASEVAL16 (1) + datas[1];
-	FINISH_DATA (16, 1);
-	PUT_SOUND_WORD_LEFT (data);
-    }
-    
+    data = SBASEVAL16 (1) + datas[1];
+    FINISH_DATA (data, 16, 1);
+    PUT_SOUND_WORD_LEFT (data);
+
     check_sound_buffers ();
 }
 
@@ -588,7 +559,7 @@ void select_audio_interpolator(char *name)
     sample_handler = sample16s_handler;
     break;
   case 1:
-    sample_handler = sample16si_rh_handler;
+    sample_handler = sample16si_linear_handler;
     break;
   case 2:
     sample_handler = sample16si_crux_handler;
@@ -603,8 +574,8 @@ void select_audio_interpolator(char *name)
   if (name != NULL) {
     if (strcmp(name, "default") == 0) {
       sample_handler = sample16s_handler;
-    } else if (strcmp(name, "rh") == 0) {
-      sample_handler = sample16si_rh_handler;
+    } else if (strcmp(name, "rh") == 0 || strcmp(name, "linear") == 0) {
+      sample_handler = sample16si_linear_handler;
     } else if (strcmp(name, "crux") == 0) {
       sample_handler = sample16si_crux_handler;
     } else if (strcmp(name, "cspline") == 0) {
