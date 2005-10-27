@@ -47,6 +47,7 @@ int uade_force_filter;
 int uade_filter_state;
 int uade_ignore_player_check;
 int uade_info_mode;
+char *uade_interpolation_mode;
 double uade_jump_pos = 0.0;
 int uade_no_output;
 char uade_output_file_format[16];
@@ -242,17 +243,23 @@ int main(int argc, char *argv[])
   int uade_no_song_end = 0;
   int config_loaded;
 
+#define OPT_FILTER       0x100
+#define OPT_NO_FILTER    0x101
+#define OPT_FORCE_FILTER 0x102
+#define OPT_INTERPOLATOR 0x103
+
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
-    {"filter", 0, NULL, '$'},
-    {"force-filter", 1, NULL, '{'},
+    {"filter", 0, NULL, OPT_FILTER},
+    {"force-filter", 1, NULL, OPT_FORCE_FILTER},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
+    {"interpolator", 1, NULL, OPT_INTERPOLATOR},
     {"jump", 1, NULL, 'j'},
     {"keys", 0, NULL, 'k'},
     {"list", 1, NULL, '@'},
-    {"no-filter", 0, NULL, '¥'},
+    {"no-filter", 0, NULL, OPT_NO_FILTER},
     {"no-song-end", 0, NULL, '£'},
     {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
@@ -286,7 +293,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:£$¥{1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -309,18 +316,24 @@ int main(int argc, char *argv[])
     case '£':
       uade_no_song_end = 1;
       break;
-    case '$':
+    case OPT_FILTER:
       uade_use_filter = 1;
       break;
-    case '¥':
+    case OPT_NO_FILTER:
       uade_use_filter = 0;
       break;
-    case '{':
+    case OPT_FORCE_FILTER:
       uade_force_filter = 1;
       uade_use_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
 	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
+	exit(-1);
+      }
+      break;
+    case OPT_INTERPOLATOR:
+      if ((uade_interpolation_mode = strdup(optarg)) == NULL) {
+	fprintf(stderr, "uade123: No memory for interpolator mode.\n");
 	exit(-1);
       }
       break;
@@ -689,6 +702,8 @@ static void print_help(void)
   printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
+  printf(" --interpolator=x    Set interpolator to x, where x = default, rh, crux or\n");
+  printf("                     cspline.\n");
   printf(" -j x, --jump x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k, --keys,         Enable action keys for playback control on terminal\n");

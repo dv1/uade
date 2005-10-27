@@ -29,6 +29,7 @@
 #include "gensound.h"
 #include "cia.h"
 #include "sd-sound.h"
+#include "audio.h"
 
 #include "../config.h"
 
@@ -432,6 +433,11 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_IGNORE_CHECK:
       /* override bit for sound format checking */
       uade_put_long(SCORE_FORCE, 1);
+      break;
+
+    case UADE_COMMAND_SET_INTERPOLATION_MODE:
+      uade_check_fix_string(um, 16);
+      select_audio_interpolator(um->data);
       break;
 
     case UADE_COMMAND_READ:

@@ -12,7 +12,7 @@ extern struct audio_channel_data {
     unsigned char dmaen, intreq2, data_written;
     uaecptr lc, pt;
     int state, wper, wlen;
-    int current_sample, last_sample;
+    int current_sample, last_sample[3];
     int vol;
     int *voltbl;
     uae_u16 dat, nextdat, per, len;    
@@ -33,5 +33,5 @@ extern void AUDxLCL (int nr, uae_u16 value);
 extern void AUDxLEN (int nr, uae_u16 value);
 
 extern void audio_reset (void);
-extern void dump_audio_bench (void);
+void select_audio_interpolator(char *name);
 extern void update_audio (void);

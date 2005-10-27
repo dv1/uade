@@ -2,9 +2,9 @@
 	- Made interpolation mode selectable from command line. Use
 	  --interpolator=x to choose the interpolation mode, where
 	    x       = default (no interpolation),
-	    rh      = rh interpolator,
-	    crux    = crux interpolator,
-	    cspline = Antti S. Lankialas spline interpolator.
+	    rh      = rh interpolator (broken atm),
+	    crux    = crux interpolator (broken atm),
+	    cspline = Antti S. Lankialas spline interpolator (testing).
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre7

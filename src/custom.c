@@ -448,7 +448,9 @@ static void DMACON (uae_u16 v)
 	} else {
 	    if (cdp->state == 1 || cdp->state == 5) {
 		cdp->state = 0;
-		cdp->last_sample = 0;
+		cdp->last_sample[0] = 0;
+		cdp->last_sample[1] = 0;
+		cdp->last_sample[2] = 0;
 		cdp->current_sample = 0;
 	    }
 	}
@@ -1366,8 +1368,6 @@ void dumpcustom (void)
 	if (total_skipped)
 	    write_log ("Skipped frames: %d\n", total_skipped);
     }
-    dump_audio_bench ();
-    /*for (i=0; i<256; i++) if (blitcount[i]) fprintf (stderr, "minterm %x = %d\n",i,blitcount[i]);  blitter debug */
 }
 
 int intlev (void)

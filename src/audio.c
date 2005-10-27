@@ -668,7 +668,7 @@ void select_audio_interpolator(char *name)
     sample_handler = sample16si_crux_handler;
     break;
   default:
-    fprintf(stderr, "Unknown interpolator number in uaerc: %d\n", currprefs.sound_interpol);
+    fprintf(stderr, "\nUnknown interpolator number in uaerc: %d\n", currprefs.sound_interpol);
     exit(-1);
   }
 
@@ -684,7 +684,7 @@ void select_audio_interpolator(char *name)
     } else if (strcmp(name, "cspline") == 0) {
       sample_handler = sample16si_cspline_handler;
     } else {
-      fprintf(stderr, "Unknown interpolation mode: %s\n", name);
+      fprintf(stderr, "\nUnknown interpolation mode: %s\n", name);
       exit(-1);
     }
   }

@@ -13,6 +13,7 @@ extern int uade_force_filter;
 extern int uade_filter_state;
 extern int uade_ignore_player_check;
 extern int uade_info_mode;
+extern char *uade_interpolation_mode;
 extern double uade_jump_pos;
 extern int uade_no_output;
 extern int uade_one_subsong_per_file;
