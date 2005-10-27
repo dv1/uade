@@ -346,6 +346,22 @@ static void audio_handler (int nr)
     }
 }
 
+void aud0_handler (void)
+{
+    audio_handler (0);
+}
+void aud1_handler (void)
+{
+    audio_handler (1);
+}
+void aud2_handler (void)
+{
+    audio_handler (2);
+}
+void aud3_handler (void)
+{
+    audio_handler (3);
+}
 
 void audio_reset (void)
 {
