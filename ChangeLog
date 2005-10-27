@@ -8,6 +8,10 @@
 	              (This is not recommended for chip songs! The spline
 		       spline interpolator is good for natural instruments,
 		       but may produce bad sounds with chips.)
+	- Interpolator is selectable from uade.conf file by adding line:
+	    interpolator foo
+	  Note that using anything else but default is not recommended
+	  at the moment.
 	- As per Michael Doering's needs, I added --stderr option to uade123.
 	  It will force all terminal output printed onto the stderr, and thus
 	  allows piping pure sound data. Example:

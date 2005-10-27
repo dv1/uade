@@ -19,6 +19,19 @@
 static char *config_filename = NULL;
 
 
+void config_set_interpolation_mode(const char *value)
+{
+  if (strlen(value) == 0) {
+    fprintf(stderr, "Empty interpolator string not allowed.\n");
+    exit(-1);
+  }
+  if ((uade_interpolation_mode = strdup(value)) == NULL) {
+    fprintf(stderr, "No memory for interpolation mode.\n");
+    exit(-1);
+  }
+}
+
+
 void config_set_panning(const char *value)
 {
   char *endptr;
@@ -136,6 +149,8 @@ int load_config(const char *filename)
       uade_filter_state = 0;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
       uade_ignore_player_check = 1;
+    } else if (strncmp(key, "interpolator", 5) == 0) {
+      config_set_interpolation_mode(value);
     } else if (strncmp(key, "no_filter", 9) == 0) {
       uade_use_filter = 0;
     } else if (strncmp(key, "one_subsong", 3) == 0) {

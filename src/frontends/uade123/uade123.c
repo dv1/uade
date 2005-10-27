@@ -421,10 +421,7 @@ int main(int argc, char *argv[])
       }
       break;
     case OPT_INTERPOLATOR:
-      if ((uade_interpolation_mode = strdup(optarg)) == NULL) {
-	fprintf(stderr, "uade123: No memory for interpolator mode.\n");
-	exit(-1);
-      }
+      config_set_interpolation_mode(optarg);
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
