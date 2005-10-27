@@ -409,6 +409,26 @@ void uade_handle_r_state(void)
       uade_change_subsong(x);
       break;
 
+    case UADE_COMMAND_FILTER:
+      if (um->size != 8) {
+	fprintf(stderr, "illegal size with filter command\n");
+	exit(-1);
+      }
+      do {
+	int filter_enable = ntohl(((uint32_t *) um->data)[0]);
+	int filter_force = ntohl(((uint32_t *) um->data)[1]);
+	sound_use_filter = filter_enable;
+	gui_ledstate &= ~1;
+	if (filter_force & 2) {
+	  gui_ledstate_forced = filter_force & 3;
+	  gui_ledstate |= gui_ledstate_forced & 1;
+	} else {
+	  gui_ledstate_forced = 0;
+	  gui_ledstate |= ((~ciaapra & 2) >> 1);
+	}
+      } while (0);
+      break;
+
     case UADE_COMMAND_IGNORE_CHECK:
       /* override bit for sound format checking */
       uade_put_long(SCORE_FORCE, 1);

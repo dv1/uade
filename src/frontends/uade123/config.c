@@ -128,8 +128,16 @@ int load_config(const char *filename)
     }
     if (strncmp(key, "action_keys", 6) == 0) {
       uade_terminal_mode = 1;
+    } else if (strncmp(key, "filter", 6) == 0) {
+      uade_use_filter = 1;
+    } else if (strncmp(key, "filter_off", 10) == 0) {
+      uade_use_filter = 1;
+      uade_force_filter = 1;
+      uade_filter_state = 0;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
       uade_ignore_player_check = 1;
+    } else if (strncmp(key, "no_filter", 9) == 0) {
+      uade_use_filter = 0;
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uade_one_subsong_per_file = 1;
     } else if (strncmp(key, "panning_value", 3) == 0) {

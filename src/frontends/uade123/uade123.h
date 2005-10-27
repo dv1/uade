@@ -9,6 +9,8 @@
 #define debug(fmt, args...) if (uade_verbose_mode) { fprintf(stderr, fmt, ## args); }
 
 extern int uade_debug_trigger;
+extern int uade_force_filter;
+extern int uade_filter_state;
 extern int uade_ignore_player_check;
 extern int uade_info_mode;
 extern double uade_jump_pos;
@@ -24,6 +26,7 @@ extern int uade_subsong_timeout;
 extern int uade_timeout;
 extern int uade_terminated;
 extern int uade_terminal_mode;
+extern int uade_use_filter;
 extern int uade_use_panning;
 extern float uade_panning_value;
 extern int uade_verbose_mode;

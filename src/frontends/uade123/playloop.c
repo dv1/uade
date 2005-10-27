@@ -56,6 +56,24 @@ static int uade_test_silence(void *buf, size_t size)
 }
 
 
+static void filter_command(void)
+{
+  if (uade_use_filter || uade_force_filter) {
+    struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
+    ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
+    if (uade_force_filter == 0) {
+      ((uint32_t *) um.data)[1] = htonl(0);
+    } else {
+      ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
+    }
+    if (uade_send_message(&um)) {
+      fprintf(stderr, "uade123: Can not setup filters.\n");
+      exit(-1);
+    }
+  }
+}
+
+
 int play_loop(void)
 {
   uint16_t *sm;
@@ -81,6 +99,12 @@ int play_loop(void)
   int jump_sub = 0;
 
   int have_subsong_info = 0;
+
+  int old_use_filter = uade_use_filter;
+  int old_force_filter = uade_force_filter;
+  int old_filter_state = uade_filter_state;
+
+  filter_command();
 
   /* skip bytes must be a multiple of audio frame size, which is 4 from the
      simulator */
@@ -126,6 +150,13 @@ int play_loop(void)
 	  break;
 	case 'c':
 	  pause_terminal();
+	  break;
+	case 'f':
+	  uade_use_filter = 1;
+	  uade_force_filter = 1;
+	  uade_filter_state ^= 1;
+	  printf("\nFilter %s\n", (uade_filter_state & 1) ? "on" : "off");
+	  filter_command();
 	  break;
 	case '\n':
 	case 'n':
@@ -174,7 +205,7 @@ int play_loop(void)
       }
 
       if (uade_debug_trigger == 1) {
-	if (uade_send_message(& (struct uade_msg) {.msgtype = UADE_COMMAND_ACTIVATE_DEBUGGER, .size = 0})) {
+	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER)) {
 	  fprintf(stderr, "\ncan not active debugger\n");
 	  return 0;
 	}
@@ -410,6 +441,10 @@ int play_loop(void)
       return 0;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
+
+  uade_use_filter = old_use_filter;
+  uade_force_filter = old_force_filter;
+  uade_filter_state = old_filter_state;
 
   printf("\n");
   return 1;

@@ -43,6 +43,8 @@
 
 
 int uade_debug_trigger;
+int uade_force_filter;
+int uade_filter_state;
 int uade_ignore_player_check;
 int uade_info_mode;
 double uade_jump_pos = 0.0;
@@ -55,6 +57,7 @@ struct playlist uade_playlist;
 int uade_recursivemode;
 int uade_terminated;
 int uade_terminal_mode;
+int uade_use_filter;
 int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
@@ -242,11 +245,14 @@ int main(int argc, char *argv[])
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
+    {"filter", 0, NULL, '$'},
+    {"force-filter", 1, NULL, '{'},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"jump", 1, NULL, 'j'},
     {"keys", 0, NULL, 'k'},
     {"list", 1, NULL, '@'},
+    {"no-filter", 0, NULL, '¥'},
     {"no-song-end", 0, NULL, '£'},
     {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
@@ -280,7 +286,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:£1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:£$¥{1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -302,6 +308,21 @@ int main(int argc, char *argv[])
       break;
     case '£':
       uade_no_song_end = 1;
+      break;
+    case '$':
+      uade_use_filter = 1;
+      break;
+    case '¥':
+      uade_use_filter = 0;
+      break;
+    case '{':
+      uade_force_filter = 1;
+      uade_use_filter = 1;
+      uade_filter_state = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
+	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
+	exit(-1);
+      }
       break;
     case '1':
       uade_one_subsong_per_file = 1;
@@ -662,6 +683,8 @@ static void print_help(void)
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
+  printf(" --filter,           Enable filter emulation (default off)\n");
+  printf(" --force-filter=x,   Force filter state to 0 or 1 (off or on)\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");

@@ -1,3 +1,19 @@
+2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 1.50-pre5 (tester pre)
+	- Uade core now supports only 16-bits stereo. If 8-bits or mono is
+	  needed the sample data can be postprocessed.
+	- Added experimental filtering support. It should be better than the
+	  one found from uade1. Thanks to Antti S. Lankila <alankila@bel.fi>
+	  for IIR filter coefficients and advice.
+	- New uade.conf options:
+	   filter     - enable filter emulation
+	   no_filter  - disable filter emulation
+	   filter_off - turn filter always off
+	- New command line options:
+	   --filter Enable filter emulation
+	   --force-filter=x, where x = 0, or x = 1. Set filter state either
+	     off (0) or on (1).
+
 2005-10-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a fuzzy state diagram on client-server interaction from client
 	  perspective.

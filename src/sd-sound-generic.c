@@ -51,16 +51,23 @@ int init_sound (void)
   rate    = currprefs.sound_freq;
   channels = currprefs.stereo ? 2 : 1;
 
+  if (dspbits != 16) {
+    fprintf(stderr, "Only 16 bit sounds supported.\n");
+    exit(-1);
+  }
+  if (channels != 2) {
+    fprintf(stderr, "Only stereo supported.\n");
+    exit(-1);
+  }
+
   sound_bytes_per_second = (dspbits / 8) *  channels * rate;
   
   sample_evtime = (long) maxhpos * maxvpos * 50 / rate;
-  if (dspbits == 16) {
-    init_sound_table16 ();
-    sample_handler = currprefs.stereo ? sample16s_handler : sample16_handler;
-  } else {
-    init_sound_table8 ();
-    sample_handler = currprefs.stereo ? sample8s_handler : sample8_handler;
-  }
+
+  init_sound_table16 ();
+
+  sample_handler = sample16s_handler;
+
   sound_available = 1;
   
   sndbufpt = sndbuffer;

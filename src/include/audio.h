@@ -18,6 +18,8 @@ extern struct audio_channel_data {
     uae_u16 dat, nextdat, per, len;    
 } audio_channel[4];
 
+extern int sound_use_filter;
+
 extern void aud0_handler (void);
 extern void aud1_handler (void);
 extern void aud2_handler (void);
