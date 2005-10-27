@@ -58,18 +58,16 @@ static int uade_test_silence(void *buf, size_t size)
 
 static void filter_command(void)
 {
-  if (uade_use_filter || uade_force_filter) {
-    struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
-    ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
-    if (uade_force_filter == 0) {
-      ((uint32_t *) um.data)[1] = htonl(0);
-    } else {
-      ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
-    }
-    if (uade_send_message(&um)) {
-      fprintf(stderr, "uade123: Can not setup filters.\n");
-      exit(-1);
-    }
+  struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
+  ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
+  if (uade_force_filter == 0) {
+    ((uint32_t *) um.data)[1] = htonl(0);
+  } else {
+    ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
+  }
+  if (uade_send_message(&um)) {
+    fprintf(stderr, "uade123: Can not setup filters.\n");
+    exit(-1);
   }
 }
 

@@ -50,7 +50,7 @@ static unsigned long last_cycles, next_sample_evtime;
 
 unsigned long sample_evtime;
 
-int sound_use_filter = 0;
+int sound_use_filter = 1;
 static float sound_left_input[6];
 static float sound_left_output[6];
 static float sound_right_input[6];
