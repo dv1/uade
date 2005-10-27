@@ -64,8 +64,6 @@ int init_sound (void)
   
   sample_evtime = (long) maxhpos * maxvpos * 50 / rate;
 
-  init_sound_table16 ();
-
   sample_handler = sample16s_handler;
 
   sound_available = 1;

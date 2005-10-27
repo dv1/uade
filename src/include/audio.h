@@ -14,7 +14,6 @@ extern struct audio_channel_data {
     int state, wper, wlen;
     int current_sample, last_sample[3];
     int vol;
-    int *voltbl;
     uae_u16 dat, nextdat, per, len;    
 } audio_channel[4];
 

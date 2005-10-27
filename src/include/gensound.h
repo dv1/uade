@@ -29,6 +29,3 @@ extern void sample16si_crux_handler (void);
 extern void sample16si_linear_handler (void);
 extern void sample16si_cspline_handler (void);
 extern int sample16si_cspline_interpolate_one (int *, int, float);
-extern void sample_ulaw_handler (void);
-extern void init_sound_table16 (void);
-extern void init_sound_table8 (void);

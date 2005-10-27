@@ -710,7 +710,6 @@ static void print_help(void)
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k, --keys,         Enable action keys for playback control on terminal\n");
   printf(" -K, --no-keys,      Disable action keys for playback control on terminal\n");
-  printf("                     This is the default. Use this for overriding uade.conf\n");
   printf(" -m filename,        Set module name\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
   printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");

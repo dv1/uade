@@ -1,6 +1,7 @@
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up audio.c. Unsigned variables made rh and crux
-	  interpolators break.
+	  interpolators break. Removed lots of unnecessary macros, variables
+	  and functions.
 	- rh interpolator is now names as linear.
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
