@@ -11,7 +11,6 @@
 #include "sysdeps.h"
 #include <assert.h>
 
-#include "config.h"
 #include "options.h"
 #include "events.h"
 #include "memory.h"

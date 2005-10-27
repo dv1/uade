@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <ctype.h>
 
-#include "config.h"
 #include "options.h"
 #include "readcpu.h"
 
@@ -60,7 +59,6 @@ int main(int argc, char **argv)
 
     printf ("#include \"sysconfig.h\"\n");
     printf ("#include \"sysdeps.h\"\n");
-    printf ("#include \"config.h\"\n");
     printf ("#include \"options.h\"\n");
     printf ("#include \"readcpu.h\"\n");
     printf ("struct instr_def defs68k[] = {\n");

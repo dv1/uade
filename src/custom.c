@@ -13,7 +13,6 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "gensound.h"

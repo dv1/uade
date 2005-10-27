@@ -12,7 +12,6 @@
 
 #include <ctype.h>
 
-#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "custom.h"

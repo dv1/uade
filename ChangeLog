@@ -1,8 +1,10 @@
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
-	- Cleaned up audio.c. Unsigned variables made rh and crux
-	  interpolators break. Removed lots of unnecessary macros, variables
-	  and functions.
+	- Radical cleaned up in audio.c.
+	- Fixed rh and crux interpolators. Thanks to Antti S. Lankiala.
+	  <alankila@bel.fi>
+	- Removed lots of unnecessary macros, variables and functions.
 	- rh interpolator is now names as linear.
+	- Removed src/config.h. It is unnecessary.
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use

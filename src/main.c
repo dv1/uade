@@ -11,7 +11,6 @@
 #include "sysdeps.h"
 #include <assert.h>
 
-#include "config.h"
 #include "options.h"
 #include "uae.h"
 #include "gensound.h"
@@ -27,8 +26,6 @@
 
 #include "uade.h"
 #include "strlrep.h"
-
-long int version = 256*65536L*UAEMAJOR + 65536L*UAEMINOR + UAESUBREV;
 
 struct uae_prefs currprefs, changed_prefs;
 

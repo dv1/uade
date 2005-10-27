@@ -17,7 +17,6 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 
-#include "config.h"
 #include "options.h"
 #include "events.h"
 #include "uae.h"
@@ -30,8 +29,6 @@
 #include "cia.h"
 #include "sd-sound.h"
 #include "audio.h"
-
-#include "../config.h"
 
 #include "uade.h"
 #include "amigamsg.h"
