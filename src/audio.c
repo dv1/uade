@@ -25,21 +25,6 @@
 
 /* #define AUDIO_HW_DEBUG */
 
-#undef BENCHMARK_AUDIO
-
-#ifdef BENCHMARK_AUDIO
-
-#define BEGIN_BENCH frame_time_t audbench = read_processor_time ();
-#define END_BENCH sh_time += read_processor_time () - audbench; sh_count++;
-static frame_time_t sh_time = 0;
-unsigned long sh_count = 0;
-
-#else
-
-#define BEGIN_BENCH
-#define END_BENCH
-
-#endif
 
 struct audio_channel_data audio_channel[4];
 int sound_available = 0;
@@ -165,8 +150,6 @@ typedef uae_u8 sample8_t;
 
 void sample16s_handler (void)
 {
-    BEGIN_BENCH
-
     uae_u32 data0 = audio_channel[0].current_sample;
     uae_u32 data1 = audio_channel[1].current_sample;
     uae_u32 data2 = audio_channel[2].current_sample;
@@ -202,8 +185,6 @@ void sample16s_handler (void)
 	PUT_SOUND_WORD_LEFT (data);
     }
     
-    END_BENCH
-    
     check_sound_buffers ();
 }
 
@@ -211,16 +192,14 @@ void sample16si_crux_handler (void)
 {
     unsigned long delta, ratio;
 
-    BEGIN_BENCH
-
     uae_u32 data0 = audio_channel[0].current_sample;
     uae_u32 data1 = audio_channel[1].current_sample;
     uae_u32 data2 = audio_channel[2].current_sample;
     uae_u32 data3 = audio_channel[3].current_sample;
-    uae_u32 data0p = audio_channel[0].last_sample;
-    uae_u32 data1p = audio_channel[1].last_sample;
-    uae_u32 data2p = audio_channel[2].last_sample;
-    uae_u32 data3p = audio_channel[3].last_sample;
+    uae_u32 data0p = audio_channel[0].last_sample[0];
+    uae_u32 data1p = audio_channel[1].last_sample[0];
+    uae_u32 data2p = audio_channel[2].last_sample[0];
+    uae_u32 data3p = audio_channel[3].last_sample[0];
 
     DO_CHANNEL_1 (data0, 0);
     DO_CHANNEL_1 (data1, 1);
@@ -292,8 +271,6 @@ void sample16si_crux_handler (void)
 	PUT_SOUND_WORD_LEFT (data);
     }
     
-    END_BENCH
-    
     check_sound_buffers ();
 }
 
@@ -301,16 +278,14 @@ void sample16si_rh_handler (void)
 {
     unsigned long delta, ratio;
 
-    BEGIN_BENCH
-
     uae_u32 data0 = audio_channel[0].current_sample;
     uae_u32 data1 = audio_channel[1].current_sample;
     uae_u32 data2 = audio_channel[2].current_sample;
     uae_u32 data3 = audio_channel[3].current_sample;
-    uae_u32 data0p = audio_channel[0].last_sample;
-    uae_u32 data1p = audio_channel[1].last_sample;
-    uae_u32 data2p = audio_channel[2].last_sample;
-    uae_u32 data3p = audio_channel[3].last_sample;
+    uae_u32 data0p = audio_channel[0].last_sample[0];
+    uae_u32 data1p = audio_channel[1].last_sample[0];
+    uae_u32 data2p = audio_channel[2].last_sample[0];
+    uae_u32 data3p = audio_channel[3].last_sample[0];
 
     DO_CHANNEL_1 (data0, 0);
     DO_CHANNEL_1 (data1, 1);
@@ -361,11 +336,67 @@ void sample16si_rh_handler (void)
 	PUT_SOUND_WORD_LEFT (data);
     }
     
-    END_BENCH
-    
     check_sound_buffers ();
 }
 
+/* Interpolation matrix
+
+       part       x**3    x**2    x**1    x**0
+       Y[IP-1]    -0.5     1      -0.5    0
+       Y[IP]       1.5    -2.5     0      1
+       Y[IP+1]    -1.5     2       0.5    0
+       Y[IP+2]     0.5    -0.5     0      0
+
+  See libmodplug fastmix.cpp for derivation.
+ */
+int sample16si_cspline_interpolate_one(int *last, int current, float x)
+{
+    float x2 = x * x;
+    float x3 = x * x * x;
+    return  ((                 1.0 * last[0]                                )
+        + x *(-0.5 * current                 + 0.5 * last[1]                )
+        + x2*( 1.0 * current - 2.5 * last[0] + 2.0 * last[1] - 0.5 * last[2])
+        + x3*(-0.5 * current + 1.5 * last[0] - 1.5 * last[1] + 0.5 * last[2]));
+}
+
+void sample16si_cspline_handler (void)
+{
+    int i;
+    uae_u32 datas[4];
+
+    for (i = 0; i < 4; i += 1) {
+        int period = audio_channel[i].per;
+        datas[i] = sample16si_cspline_interpolate_one(
+            audio_channel[i].last_sample,
+            audio_channel[i].current_sample,
+            (audio_channel[i].evtime % period) / (1.0 * period)
+        );
+        DO_CHANNEL_1(datas[i], i);
+        datas[i] &= audio_channel[i].adk_mask;
+    }
+    
+    datas[0] += datas[3];
+    datas[1] += datas[2];
+    
+    if (sound_use_filter) {
+      datas[0] = FILTER_LEFT (datas[0], 2);
+      datas[1] = FILTER_RIGHT(datas[1], 2);
+    }
+
+    {
+	uae_u32 data = SBASEVAL16 (1) + datas[0];
+	FINISH_DATA (16, 1);
+	PUT_SOUND_WORD_RIGHT (data);
+    }
+
+    {
+	uae_u32 data = SBASEVAL16 (1) + datas[1];
+	FINISH_DATA (16, 1);
+	PUT_SOUND_WORD_LEFT (data);
+    }
+    
+    check_sound_buffers ();
+}
 
 static uae_u8 int2ulaw (int ch)
 {
@@ -446,7 +477,9 @@ static void audio_handler (int nr)
 
 	cdp->evtime = cdp->per;
 	cdp->dat = cdp->nextdat;
-	cdp->last_sample = cdp->current_sample;
+        cdp->last_sample[2] = cdp->last_sample[1];
+        cdp->last_sample[1] = cdp->last_sample[0];
+	cdp->last_sample[0] = cdp->current_sample;
 	cdp->current_sample = (sample8_t)(cdp->dat >> 8);
 
 	cdp->state = 2;
@@ -464,7 +497,9 @@ static void audio_handler (int nr)
 	if (currprefs.produce_sound == 0)
 	    cdp->per = 65535;
 
-	cdp->last_sample = cdp->current_sample;
+	cdp->last_sample[2] = cdp->last_sample[1];
+	cdp->last_sample[1] = cdp->last_sample[0];
+	cdp->last_sample[0] = cdp->current_sample;
 	cdp->current_sample = (sample8_t)(cdp->dat & 0xFF);
 	cdp->evtime = cdp->per;
 
@@ -501,7 +536,9 @@ static void audio_handler (int nr)
 
 	if ((INTREQR() & (0x80 << nr)) && !cdp->dmaen) {
 	    cdp->state = 0;
-	    cdp->last_sample = 0;
+	    cdp->last_sample[2] = 0;
+	    cdp->last_sample[1] = 0;
+	    cdp->last_sample[0] = 0;
 	    cdp->current_sample = 0;
 	    break;
 	} else {
@@ -517,7 +554,9 @@ static void audio_handler (int nr)
 	    cdp->intreq2 = 0;
 
 	    cdp->dat = cdp->nextdat;
-	    cdp->last_sample = cdp->current_sample;
+            cdp->last_sample[2] = cdp->last_sample[1];
+            cdp->last_sample[1] = cdp->last_sample[0];
+            cdp->last_sample[0] = cdp->current_sample;
 	    cdp->current_sample = (sample8_t)(cdp->dat >> 8);
 
 	    if (cdp->dmaen && napnav)
@@ -612,13 +651,43 @@ void check_prefs_changed_audio (void)
 		}
 	}
     }
-    /* Select the right interpolation method.  */
-    if (sample_handler == sample16s_handler
-	|| sample_handler == sample16si_crux_handler
-	|| sample_handler == sample16si_rh_handler)
-      sample_handler = (currprefs.sound_interpol == 0 ? sample16s_handler
-			  : currprefs.sound_interpol == 1 ? sample16si_rh_handler
-			  : sample16si_crux_handler);
+}
+
+void select_audio_interpolator(char *name)
+{
+
+  /* This is just for compatibility with the old crap */
+  switch (currprefs.sound_interpol) {
+  case 0:
+    sample_handler = sample16s_handler;
+    break;
+  case 1:
+    sample_handler = sample16si_rh_handler;
+    break;
+  case 2:
+    sample_handler = sample16si_crux_handler;
+    break;
+  default:
+    fprintf(stderr, "Unknown interpolator number in uaerc: %d\n", currprefs.sound_interpol);
+    exit(-1);
+  }
+
+  /* This is the new system (a user should give the interpolation mode as a
+     human-readable string) */
+  if (name != NULL) {
+    if (strcmp(name, "default") == 0) {
+      sample_handler = sample16s_handler;
+    } else if (strcmp(name, "rh") == 0) {
+      sample_handler = sample16si_rh_handler;
+    } else if (strcmp(name, "crux") == 0) {
+      sample_handler = sample16si_crux_handler;
+    } else if (strcmp(name, "cspline") == 0) {
+      sample_handler = sample16si_cspline_handler;
+    } else {
+      fprintf(stderr, "Unknown interpolation mode: %s\n", name);
+      exit(-1);
+    }
+  }
 }
 
 void update_audio (void)
@@ -770,11 +839,3 @@ void AUDxVOL (int nr, uae_u16 v)
     }
 #endif
 }
-
-void dump_audio_bench (void)
-{
-#ifdef BENCHMARK_AUDIO
-    printf ("Average cycles per sample handler: %f\n", ((double)sh_time / sh_count));
-#endif
-}
-

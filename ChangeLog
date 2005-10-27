@@ -1,4 +1,12 @@
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
+	- Made interpolation mode selectable from command line. Use
+	  --interpolator=x to choose the interpolation mode, where
+	    x       = default (no interpolation),
+	    rh      = rh interpolator,
+	    crux    = crux interpolator,
+	    cspline = Antti S. Lankialas spline interpolator.
+
+2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre7
 	- Antti S. Lankiala <alankila@bel.fi> fixed and improved filter
 	  behavior. The filter state must be updated even when filtering
