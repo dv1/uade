@@ -1,3 +1,7 @@
+2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cleaned up audio.c. Unsigned variables made rh and crux
+	  interpolators break.
+
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use
 	  --interpolator=x to choose the interpolation mode, where
