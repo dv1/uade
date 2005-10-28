@@ -2,6 +2,8 @@ To be solved:
 
 Resolved:
 
+2005-10-29: Oktalyzer with dream.okt: channels are out of sync on time index
+	    01:20 (shd)
 2005-07-20: debug mode doesn't kick in instantenously with uade123 (shd)
 2005-07-15: vectordean/Cannon_Fodder_2/Cannon_Fodder_2-MorBase.sng gives odd
 	    subsong numbers. This seems not to be reproducible. The output
