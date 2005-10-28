@@ -429,6 +429,7 @@ void uade_handle_r_state(void)
 	int filter_enable = ntohl(((uint32_t *) um->data)[0]);
 	int filter_force = ntohl(((uint32_t *) um->data)[1]);
 	sound_use_filter = filter_enable;
+	printf("filter enable: %d\n", filter_enable);
 	gui_ledstate &= ~1;
 	if (filter_force & 2) {
 	  gui_ledstate_forced = filter_force & 3;

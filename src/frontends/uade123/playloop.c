@@ -60,6 +60,7 @@ static void filter_command(void)
 {
   struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
   ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
+  printf("%d\n", ntohl(* (uint32_t *) um.data));
   if (uade_force_filter == 0) {
     ((uint32_t *) um.data)[1] = htonl(0);
   } else {
