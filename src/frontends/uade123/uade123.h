@@ -40,7 +40,9 @@ extern int uade_verbose_mode;
 
 
 void print_action_keys(void);
+void send_filter_command(void);
 void set_filter_on(const char *model);
+void set_interpolation_mode(const char *value);
 int test_song_end_trigger(void);
 
 #endif

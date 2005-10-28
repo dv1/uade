@@ -78,31 +78,13 @@ static char uadename[PATH_MAX];
 
 
 static void print_help(void);
+static void send_interpolation_command(void);
 static void set_subsong(struct uade_msg *um, int subsong);
 static void setup_sighandlers(void);
 ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
-
-
-void set_filter_on(const char *model)
-{
-  if (uade_use_filter == 0)
-    uade_use_filter = FILTER_MODEL_A1200;
-
-  if (model == NULL)
-    return;
-
-  if (strcasecmp(model, "a500") == 0) {
-    uade_use_filter = FILTER_MODEL_A500;
-  } else if (strcasecmp(model, "a1200") == 0) {
-    uade_use_filter = FILTER_MODEL_A1200;
-  } else {
-    fprintf(stderr, "Unknown filter model: %s\n", model);
-    exit(-1);
-  }
-}
 
 
 static char *fileformat_detection(const char *modulename)
@@ -440,7 +422,7 @@ int main(int argc, char *argv[])
       }
       break;
     case OPT_INTERPOLATOR:
-      config_set_interpolation_mode(optarg);
+      set_interpolation_mode(optarg);
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
@@ -673,6 +655,9 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       set_subsong(um, subsong);
 
+    send_filter_command();
+    send_interpolation_command();
+
     if (!play_loop())
       goto cleanup;
 
@@ -767,6 +752,69 @@ void print_action_keys(void)
   tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
   tprintf(" 'x'           Restart current subsong.\n");
   tprintf(" 'z'           Previous subsong.\n");
+}
+
+
+void send_filter_command(void)
+{
+  struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
+  ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
+  if (uade_force_filter == 0) {
+    ((uint32_t *) um.data)[1] = htonl(0);
+  } else {
+    ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
+  }
+  if (uade_send_message(&um)) {
+    fprintf(stderr, "uade123: Can not setup filters.\n");
+    exit(-1);
+  }
+}
+
+
+static void send_interpolation_command(void)
+{
+  if (uade_interpolation_mode != NULL) {
+    if (strlen(uade_interpolation_mode) == 0) {
+      fprintf(stderr, "uade123: Interpolation mode may not be empty.\n");
+      exit(-1);
+    }
+    if (uade_send_string(UADE_COMMAND_SET_INTERPOLATION_MODE, uade_interpolation_mode)) {
+      fprintf(stderr, "uade123: Can not set interpolation mode.\n");
+      exit(-1);
+    }
+  }
+}
+
+
+void set_filter_on(const char *model)
+{
+  if (uade_use_filter == 0)
+    uade_use_filter = FILTER_MODEL_A1200;
+
+  if (model == NULL)
+    return;
+
+  if (strcasecmp(model, "a500") == 0) {
+    uade_use_filter = FILTER_MODEL_A500;
+  } else if (strcasecmp(model, "a1200") == 0) {
+    uade_use_filter = FILTER_MODEL_A1200;
+  } else {
+    fprintf(stderr, "Unknown filter model: %s\n", model);
+    exit(-1);
+  }
+}
+
+
+void set_interpolation_mode(const char *value)
+{
+  if (strlen(value) == 0) {
+    fprintf(stderr, "Empty interpolator string not allowed.\n");
+    exit(-1);
+  }
+  if ((uade_interpolation_mode = strdup(value)) == NULL) {
+    fprintf(stderr, "No memory for interpolation mode.\n");
+    exit(-1);
+  }
 }
 
 

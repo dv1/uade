@@ -56,37 +56,6 @@ static int uade_test_silence(void *buf, size_t size)
 }
 
 
-static void filter_command(void)
-{
-  struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
-  ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
-  if (uade_force_filter == 0) {
-    ((uint32_t *) um.data)[1] = htonl(0);
-  } else {
-    ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
-  }
-  if (uade_send_message(&um)) {
-    fprintf(stderr, "uade123: Can not setup filters.\n");
-    exit(-1);
-  }
-}
-
-
-static void interpolation_command(void)
-{
-  if (uade_interpolation_mode != NULL) {
-    if (strlen(uade_interpolation_mode) == 0) {
-      fprintf(stderr, "uade123: Interpolation mode may not be empty.\n");
-      exit(-1);
-    }
-    if (uade_send_string(UADE_COMMAND_SET_INTERPOLATION_MODE, uade_interpolation_mode)) {
-      fprintf(stderr, "uade123: Can not set interpolation mode.\n");
-      exit(-1);
-    }
-  }
-}
-
-
 int play_loop(void)
 {
   uint16_t *sm;
@@ -116,9 +85,6 @@ int play_loop(void)
   int old_use_filter = uade_use_filter;
   int old_force_filter = uade_force_filter;
   int old_filter_state = uade_filter_state;
-
-  filter_command();
-  interpolation_command();
 
   /* skip bytes must be a multiple of audio frame size, which is 4 from the
      simulator */
@@ -170,7 +136,7 @@ int play_loop(void)
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");
-	  filter_command();
+	  send_filter_command();
 	  break;
 	case 'h':
 	  tprintf("\n\n");
