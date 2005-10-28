@@ -22,6 +22,9 @@
 	- To verify whether a song uses filter or not, enable verbose mode
 	  for uade123 by -v. You'll see messages like:
 	   Message: Filter ON
+	- Added two different types of filters: A500 and A1200. Thanks to
+	  Antti S. Lankiala, again. Using option --a500 or --a1200 lets one
+	  choose the machine type.
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use

@@ -63,7 +63,6 @@ static int filter(int data, float *input, float *output, int down, int up)
 {
   int o;
   float s;
-  const int scale = -down;
 
   if (sound_use_filter == FILTER_MODEL_A500) {
     s  = 0.36 * data;
