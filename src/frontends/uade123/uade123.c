@@ -244,12 +244,14 @@ int main(int argc, char *argv[])
   char *endptr;
   int uade_no_song_end = 0;
   int config_loaded;
+  int speedhack = 0;
 
 #define OPT_FILTER       0x100
 #define OPT_FORCE_LED    0x101
 #define OPT_INTERPOLATOR 0x102
 #define OPT_STDERR       0x103
 #define OPT_NO_SONG_END  0x104
+#define OPT_SPEED_HACK   0x105
 
   struct option long_options[] = {
     {"debug", 0, NULL, 'd'},
@@ -270,6 +272,7 @@ int main(int argc, char *argv[])
     {"recursive", 0, NULL, 'r'},
     {"shuffle", 0, NULL, 'z'},
     {"silence-timeout", 1, NULL, 'y'},
+    {"speedhack", 0, NULL, OPT_SPEED_HACK},
     {"stderr", 0, NULL, OPT_STDERR},
     {"subsong", 1, NULL, 's'},
     {"subsong-timeout", 1, NULL, 'w'},
@@ -429,6 +432,9 @@ int main(int argc, char *argv[])
       break;
     case OPT_NO_SONG_END:
       uade_no_song_end = 1;
+      break;
+    case OPT_SPEED_HACK:
+      speedhack = 1;
       break;
     default:
       fprintf(stderr, "impossible option\n");
@@ -658,6 +664,13 @@ int main(int argc, char *argv[])
     send_filter_command();
     send_interpolation_command();
 
+    if (speedhack) {
+      if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
+	fprintf(stderr, "uade123: Can not send speed hack command.\n");
+	exit(-1);
+      }
+    }
+
     if (!play_loop())
       goto cleanup;
 
@@ -722,6 +735,7 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r/--recursive,     Recursive directory scan\n");
   printf(" -s x, --subsong x,  Set subsong 'x'\n");
+  printf(" --speedhack,        Set speed hack on. This gives more virtual CPU power.\n");
   printf(" --stderr,           Print messages on stderr.\n");
   printf(" -t x, --timeout x,  Set song timeout in seconds. -1 is infinite.\n");
   printf("                     Default is infinite.\n");

@@ -29,6 +29,10 @@
 	- --force-filter was changed to --force-led.
 	- Fixed a bug with getopts. The long options list was not zero
 	  terminated, and it had worked by luck so long..
+	- Added good ol' speed hack feature into uade123. Use --speedhack
+	  to increase CPU speed for players that extra virtual power. It
+	  is useful for players that require more cpu than 68k can give,
+	  multichannel oktalyzer for example.
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use

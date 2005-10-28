@@ -450,6 +450,10 @@ void uade_handle_r_state(void)
       select_audio_interpolator(um->data);
       break;
 
+    case UADE_COMMAND_SPEED_HACK:
+      uade_time_critical = 1;
+      break;
+
     case UADE_COMMAND_READ:
       if (uade_read_size != 0) {
 	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
