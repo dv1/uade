@@ -101,7 +101,7 @@ readcpu.o: include/readcpu.h
 main.o: 
 cia.o: include/events.h
 custom.o: include/events.h
-newcpu.o: newcpu.c include/uade.h include/events.h
+newcpu.o: newcpu.c include/uade.h include/events.h include/uademsg.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
 sd-sound.o:	include/uade.h sd-sound.c sd-sound.h {SOUNDHEADER} {SOUNDSOURCE}

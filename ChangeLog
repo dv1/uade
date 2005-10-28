@@ -14,7 +14,7 @@
 	   'c'           Pause.
 	   'f'           Toggle filter (takes filter control away from eagleplayer).
 	   'h'           Print this list.
-	   RETURN, 'n'   Next subsong.
+	   RETURN, 'n'   Next song.
 	   'q'           Quit.
 	   's'           Toggle between shuffle mode and normal play.
 	   'x'           Restart current subsong.
