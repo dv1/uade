@@ -5,6 +5,20 @@
 	- Removed lots of unnecessary macros, variables and functions.
 	- rh interpolator is now names as linear.
 	- Removed src/config.h. It is unnecessary.
+	- uade123 help will now print usable action keys too. Also, one may
+	  press 'h' at run-time to see usable keys. It will print currently
+	  as follows:
+	  Action keys for interactive mode:
+	   '.'           Skip 10 seconds forward.
+	   SPACE, 'b'    Go to next subsong.
+	   'c'           Pause.
+	   'f'           Toggle filter (takes filter control away from eagleplayer).
+	   'h'           Print this list.
+	   RETURN, 'n'   Next subsong.
+	   'q'           Quit.
+	   's'           Toggle between shuffle mode and normal play.
+	   'x'           Restart current subsong.
+	   'z'           Previous subsong.
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use

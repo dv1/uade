@@ -36,6 +36,7 @@ extern float uade_panning_value;
 extern int uade_verbose_mode;
 
 
+void print_action_keys(void);
 int test_song_end_trigger(void);
 
 #endif

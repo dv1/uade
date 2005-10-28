@@ -726,8 +726,26 @@ static void print_help(void)
   printf("                         Default is 20s\n");
   printf(" -z, --shuffle,      Set shuffling mode for playlist\n");
   printf("\n");
+  print_action_keys();
+  printf("\n");
   printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
   printf("  uade -z /chip/fc/*\n"); 
+}
+
+
+void print_action_keys(void)
+{
+  tprintf("Action keys for interactive mode:\n");
+  tprintf(" '.'           Skip 10 seconds forward.\n");
+  tprintf(" SPACE, 'b'    Go to next subsong.\n");
+  tprintf(" 'c'           Pause.\n");
+  tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
+  tprintf(" 'h'           Print this list.\n");
+  tprintf(" RETURN, 'n'   Next subsong.\n");
+  tprintf(" 'q'           Quit.\n");
+  tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
+  tprintf(" 'x'           Restart current subsong.\n");
+  tprintf(" 'z'           Previous subsong.\n");
 }
 
 

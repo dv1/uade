@@ -172,6 +172,11 @@ int play_loop(void)
 	  tprintf("\nFilter %s\n", (uade_filter_state & 1) ? "on" : "off");
 	  filter_command();
 	  break;
+	case 'h':
+	  tprintf("\n\n");
+	  print_action_keys();
+	  tprintf("\n");
+	  break;
 	case '\n':
 	case 'n':
 	  uade_song_end_trigger = 1;
