@@ -19,6 +19,9 @@
 	   's'           Toggle between shuffle mode and normal play.
 	   'x'           Restart current subsong.
 	   'z'           Previous subsong.
+	- To verify whether a song uses filter or not, enable verbose mode
+	  for uade123 by -v. You'll see messages like:
+	   Message: Filter ON
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use

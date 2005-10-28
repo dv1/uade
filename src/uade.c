@@ -90,6 +90,7 @@ int uade_time_critical = 0;
 
 
 static int disable_modulechange = 0;
+static int old_ledstate;
 static int uade_big_endian;
 static int uade_dmawait = 0;
 static int uade_execdebugboolean = 0;
@@ -156,6 +157,18 @@ void uade_check_sound_buffers(int bytes)
   /* transmit in big endian format, so swap if little endian */
   if (uade_big_endian == 0)
     uade_swap_buffer_bytes(sndbuffer, bytes);
+
+  /* LED state changes are reported here because we are in send state and
+     this place is heavily rate limited. */
+  if (old_ledstate != gui_ledstate) {
+    char msg[32];
+    old_ledstate = gui_ledstate;
+    snprintf(msg, sizeof(msg), "Filter %s", gui_ledstate ? "ON" : "OFF");
+    if (uade_send_string(UADE_REPLY_MSG, msg)) {
+      fprintf(stderr, "uade: Can not send message.\n");
+      exit(-1);
+    }
+  }
 
   um->msgtype = UADE_REPLY_DATA;
   um->size = bytes;
@@ -356,7 +369,7 @@ void uade_get_amiga_message(void)
   case AMIGAMSG_START_OUTPUT:
     uade_audio_output = 1;
     snprintf(tmpstr, sizeof(tmpstr), "starting audio output at %d", uade_audio_skip);
-    if (uade_send_string(UADE_REPLY_MSG, tmpstr) < 0) {
+    if (uade_send_string(UADE_REPLY_MSG, tmpstr)) {
       fprintf(stderr, "can not send audio output start string\n");
       exit(-1);
     }
@@ -829,6 +842,8 @@ void uade_reset(void)
 
   uade_audio_output = 0;
   uade_audio_skip = 0;
+
+  old_ledstate = gui_ledstate;
 
   if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
     fprintf(stderr, "uade: can not receive token in uade_reset()\n");
