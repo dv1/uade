@@ -86,6 +86,25 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
+void set_filter_on(const char *model)
+{
+  if (uade_use_filter == 0)
+    uade_use_filter = FILTER_MODEL_A1200;
+
+  if (model == NULL)
+    return;
+
+  if (strcasecmp(model, "a500") == 0) {
+    uade_use_filter = FILTER_MODEL_A500;
+  } else if (strcasecmp(model, "a1200") == 0) {
+    uade_use_filter = FILTER_MODEL_A1200;
+  } else {
+    fprintf(stderr, "Unknown filter model: %s\n", model);
+    exit(-1);
+  }
+}
+
+
 static char *fileformat_detection(const char *modulename)
 {
   struct stat st;
@@ -409,21 +428,10 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      uade_use_filter = FILTER_MODEL_A1200;
-      if (optarg != NULL) {
-	if (strcasecmp(optarg, "a500") == 0) {
-	  uade_use_filter = FILTER_MODEL_A500;
-	} else if (strcasecmp(optarg, "a1200") == 0) {
-	  uade_use_filter = FILTER_MODEL_A1200;
-	} else {
-	  fprintf(stderr, "Unknown filter model: %s\n", optarg);
-	  exit(-1);
-	}
-      }
+      set_filter_on(optarg);
       break;
     case OPT_FORCE_LED:
-      if (uade_use_filter == 0)
-	uade_use_filter = FILTER_MODEL_A1200;
+      set_filter_on(NULL);
       uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
