@@ -163,7 +163,7 @@ void uade_check_sound_buffers(int bytes)
   if (old_ledstate != gui_ledstate) {
     char msg[32];
     old_ledstate = gui_ledstate;
-    snprintf(msg, sizeof(msg), "Filter %s", gui_ledstate ? "ON" : "OFF");
+    snprintf(msg, sizeof(msg), "LED is %s", gui_ledstate ? "ON" : "OFF");
     if (uade_send_string(UADE_REPLY_MSG, msg)) {
       fprintf(stderr, "uade: Can not send message.\n");
       exit(-1);
