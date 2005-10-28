@@ -10,8 +10,8 @@
 #define debug(fmt, args...) if (uade_verbose_mode) { fprintf(stderr, fmt, ## args); }
 #define tprintf(fmt, args...) do {fprintf(uade_terminal_file ? uade_terminal_file : stdout, fmt, ## args); } while (0)
 
-#define FILTER_MODEL_A500  0
-#define FILTER_MODEL_A1200 1
+#define FILTER_MODEL_A500  1
+#define FILTER_MODEL_A1200 2
 
 extern int uade_debug_trigger;
 extern int uade_force_filter;

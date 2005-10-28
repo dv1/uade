@@ -68,8 +68,6 @@ static int filter(int data, float *input, float *output, int down, int up)
     s  = 0.36 * data;
     s += 0.64 * output[2];
     output[2] = s;
-    printf("a500!\n");
-    sleep(1);
   } else if (sound_use_filter == FILTER_MODEL_A1200) {
     output[2] = data;
   } else {

@@ -142,9 +142,18 @@ int load_config(const char *filename)
     if (strncmp(key, "action_keys", 6) == 0) {
       uade_terminal_mode = 1;
     } else if (strncmp(key, "filter", 6) == 0) {
-      uade_use_filter = 1;
-    } else if (strncmp(key, "filter_off", 10) == 0) {
-      uade_use_filter = 1;
+      uade_use_filter = FILTER_MODEL_A1200;
+      if (value != NULL) {
+	if (strcasecmp(value, "a500") == 0) {
+	  uade_use_filter = FILTER_MODEL_A500;
+	} else if (strcasecmp(value, "a1200") == 0) {
+	  uade_use_filter = FILTER_MODEL_A1200;
+	} else {
+	  fprintf(stderr, "Unknown filter model in uade.conf: %s\n", value);
+	  exit(-1);
+	}
+      }
+    } else if (strncmp(key, "force_led_off", 10) == 0) {
       uade_force_filter = 1;
       uade_filter_state = 0;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
