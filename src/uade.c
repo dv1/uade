@@ -432,10 +432,10 @@ void uade_handle_r_state(void)
 	gui_ledstate &= ~1;
 	if (filter_force & 2) {
 	  gui_ledstate_forced = filter_force & 3;
-	  gui_ledstate |= gui_ledstate_forced & 1;
+	  gui_ledstate = gui_ledstate_forced & 1;
 	} else {
 	  gui_ledstate_forced = 0;
-	  gui_ledstate |= ((~ciaapra & 2) >> 1);
+	  gui_ledstate = (~ciaapra & 2) >> 1;
 	}
       } while (0);
       break;

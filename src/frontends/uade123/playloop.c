@@ -166,7 +166,8 @@ int play_loop(void)
 	  pause_terminal();
 	  break;
 	case 'f':
-	  uade_use_filter = 1;
+	  if (uade_use_filter == 0)
+	    uade_use_filter = FILTER_MODEL_A1200;
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");

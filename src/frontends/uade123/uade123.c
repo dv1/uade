@@ -41,8 +41,6 @@
 #include "config.h"
 #include "terminal.h"
 
-#define FILTER_MODEL_A500  1
-#define FILTER_MODEL_A1200 2
 
 int uade_debug_trigger;
 int uade_force_filter;

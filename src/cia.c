@@ -372,13 +372,12 @@ static void WriteCIAA(uae_u16 addr,uae_u8 val)
 	oldovl = ciaapra & 1;
 	oldled = ciaapra & 2;
 	ciaapra = (ciaapra & ~0x3) | (val & 0x3); 
-	gui_ledstate &= ~1;
+	gui_ledstate = 0;
 	if (!gui_ledstate_forced) {
-	  gui_ledstate |= ((~ciaapra & 2) >> 1);
+	  gui_ledstate = (~ciaapra & 2) >> 1;
 	} else {
-	  gui_ledstate |= gui_ledstate_forced & 1 ? 1 : 0;
+	  gui_ledstate = gui_ledstate_forced & 1;
 	}
-
 	/* we don't want to have ersatzkickfile or kickstart roms in uade */
 	/*
 	if ((ciaapra & 1) != oldovl) {
