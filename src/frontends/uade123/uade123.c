@@ -47,7 +47,6 @@
 int uade_debug_trigger;
 int uade_force_filter;
 int uade_filter_state;
-int uade_filter_type = FILTER_MODEL_A1200;
 int uade_ignore_player_check;
 int uade_info_mode;
 char *uade_interpolation_mode;
@@ -62,7 +61,7 @@ int uade_recursivemode;
 int uade_terminated;
 FILE *uade_terminal_file;
 int uade_terminal_mode;
-int uade_use_filter = 1;
+int uade_use_filter = FILTER_MODEL_A1200;
 int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
@@ -248,28 +247,23 @@ int main(int argc, char *argv[])
   int config_loaded;
 
 #define OPT_FILTER       0x100
-#define OPT_NO_FILTER    0x101
-#define OPT_FORCE_FILTER 0x102
-#define OPT_INTERPOLATOR 0x103
-#define OPT_STDERR       0x104
-#define OPT_NO_SONG_END  0x105
-#define OPT_A500         0x106
-#define OPT_A1200        0x107
+#define OPT_FORCE_LED    0x101
+#define OPT_INTERPOLATOR 0x102
+#define OPT_STDERR       0x103
+#define OPT_NO_SONG_END  0x104
 
   struct option long_options[] = {
-    {"a500", 0, NULL, OPT_A500},
-    {"a1200", 0, NULL, OPT_A1200},
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
-    {"filter", 0, NULL, OPT_FILTER},
-    {"force-filter", 1, NULL, OPT_FORCE_FILTER},
+    {"filter", 2, NULL, OPT_FILTER},
+    {"force-led", 1, NULL, OPT_FORCE_LED},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"interpolator", 1, NULL, OPT_INTERPOLATOR},
     {"jump", 1, NULL, 'j'},
     {"keys", 0, NULL, 'k'},
     {"list", 1, NULL, '@'},
-    {"no-filter", 0, NULL, OPT_NO_FILTER},
+    {"no-filter", 0, NULL, 'n'},
     {"no-song-end", 0, NULL, OPT_NO_SONG_END},
     {"no-keys", 0, NULL, 'K'},
     {"one", 0, NULL, '1'},
@@ -304,7 +298,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:ghij:kKm:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:ghij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -370,6 +364,9 @@ int main(int argc, char *argv[])
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       break;
+    case 'n':
+      uade_use_filter = 0;
+      break;
     case 'p':
       config_set_panning(optarg);
       break;
@@ -413,12 +410,19 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      uade_use_filter = 1;
+      uade_use_filter = FILTER_MODEL_A1200;
+      if (optarg != NULL) {
+	if (strcasecmp(optarg, "a500") == 0) {
+	  uade_use_filter = FILTER_MODEL_A500;
+	} else if (strcasecmp(optarg, "a1200") == 0) {
+	  uade_use_filter = FILTER_MODEL_A1200;
+	} else {
+	  fprintf(stderr, "Unknown filter model: %s\n", optarg);
+	  exit(-1);
+	}
+      }
       break;
-    case OPT_NO_FILTER:
-      uade_use_filter = 0;
-      break;
-    case OPT_FORCE_FILTER:
+    case OPT_FORCE_LED:
       uade_force_filter = 1;
       uade_use_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
@@ -435,12 +439,6 @@ int main(int argc, char *argv[])
       break;
     case OPT_NO_SONG_END:
       uade_no_song_end = 1;
-      break;
-    case OPT_A500:
-      uade_filter_type = FILTER_MODEL_A500;
-      break;
-    case OPT_A1200:
-      uade_filter_type = FILTER_MODEL_A1200;
       break;
     default:
       fprintf(stderr, "impossible option\n");
@@ -706,15 +704,14 @@ static void print_help(void)
   printf(" -u uadename,        Set uadecore executable name\n");
   printf("\n");
   printf("Normal options:\n");
-  printf(" --a500              Amiga 500 sound filter is used\n");
-  printf(" --a1200             Amiga 1200 sound filter is used\n");
   printf(" -1, --one,          Play at most one subsong per file\n");
   printf(" -@ filename, --list filename,  Read playlist of files from 'filename'\n");
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter,           Enable filter emulation (default off)\n");
-  printf(" --force-filter=x,   Force filter state to 0 or 1 (off or on)\n");
+  printf(" --filter,           Enable filter emulation. Default is ON.\n");
+  printf(" --filter=a500/a1200 Enable A500 or A1200 filter model. Default is A1200.\n"); 
+  printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");
@@ -726,6 +723,7 @@ static void print_help(void)
   printf(" -k, --keys,         Enable action keys for playback control on terminal\n");
   printf(" -K, --no-keys,      Disable action keys for playback control on terminal\n");
   printf(" -m filename,        Set module name\n");
+  printf(" -n, --no-filter     No filter emulation.\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
   printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
   printf(" -P filename,        Set player name\n");

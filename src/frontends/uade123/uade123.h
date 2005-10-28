@@ -13,7 +13,6 @@
 extern int uade_debug_trigger;
 extern int uade_force_filter;
 extern int uade_filter_state;
-extern int uade_filter_type;
 extern int uade_ignore_player_check;
 extern int uade_info_mode;
 extern char *uade_interpolation_mode;
