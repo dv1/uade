@@ -422,9 +422,9 @@ int main(int argc, char *argv[])
       }
       break;
     case OPT_FORCE_LED:
-      uade_force_filter = 1;
       if (uade_use_filter == 0)
 	uade_use_filter = FILTER_MODEL_A1200;
+      uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
 	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
