@@ -32,47 +32,31 @@ static unsigned long last_cycles, next_sample_evtime;
 
 unsigned long sample_evtime;
 
-int sound_use_filter = 1;
+int sound_use_filter = FILTER_MODEL_A1200;
+
 static float sound_left_input[6];
 static float sound_left_output[6];
 static float sound_right_input[6];
 static float sound_right_output[6];
 
-/* apply filter emulation (IIR)
-   y0 = b0 * x0 + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2,
-   where
-     b0 = 0.0354860792783
-     b1 = 0.0709721585565
-     b2 = 0.0354860792783
-     a1 = -1.43583028974
-     a2 = 0.577774606849
-   and x0 is the current input sample, x1 the input 1 sample ago, x2 the
-   input 2 samples ago, y1 the output of filter 1 sample ago, and y2 the
-   output 2 samples ago.
-
-   The filter factors are classical biquad low pass filter parameters
-   computed with the following parameters:
-
-   samplerate = 44100       // Hz
-   center_frequency = 3000  // Hz
-   bandwidth = 1.7          // Octaves
-   
-   omega = 2 * M_PI * center_frequency / samplerate;
-   sn = sin(omega);
-   cs = cos(omega);
-   alpha = sn * sinh(log(2) / 2 * bandwidth * omega / sn);
-   a0 = 1 + alpha;
-   
-   b0 = (1 - cs) / 2 / a0;
-   b1 = 1 - cs       / a0;
-   b2 = b0
-   a1 = -2 * cs      / a0;
-   a2 = 1 - alpha    / a0;
-
-   The bandwidth parameter affects the shape of the filtering curve slightly
-   around the cutoff frequency (the -3 dB point) which is about 3250 Hz with
-   these parameters. There is now a slight boost before cutoff, which is
-   accounted for with the 0.99 scale factor.
+/* Amiga has two separate filtering circuits per channel, a static RC filter
+ * that is always on and the LED filter. This code emulates both.
+ * 
+ * The Amiga filtering circuitry depends on Amiga model. Older Amigas seem
+ * to have a 6 dB/oct RC filter with cutoff frequency such that the -6 dB
+ * point for filter is reached at 6 kHz, while newer Amigas have moved the
+ * -6 dB point up to 11 kHz or so. In addition, the treble attenuation
+ * appears to level out slightly which might suggest some kind of highboost.
+ * The effect is slight, if real at all, and thus not modelled.
+ *
+ * The LED filter is complicated, and we are modelling it with a pair of
+ * RC filters, the other providing a highboost. The LED starts to cut
+ * into signal somewhere around 5-6 kHz, and there's some kind of highboost
+ * in effect above 10 kHz. More experimenting is probably required.
+ *
+ * The current filtering should be accurate within about 2 dB with the filter
+ * turned on, and within 1 dB with the filter turned off. We need more
+ * accurate sampling to resolve the behaviour around 14 kHz clearly.
 */
 
 static int filter(int data, float *input, float *output, int down, int up)
@@ -80,21 +64,32 @@ static int filter(int data, float *input, float *output, int down, int up)
   int o;
   float s;
   const int scale = -down;
-  input[2] = input[1];
-  input[1] = input[0];
-  input[0] = (float) data;
 
-  /* The filter is run continuously, but its result may be discarded.
-   * This is to reduce audible snapping when switching filter on. */
-  s = 0.0354860792783 * input[0] + 0.0709721585565 * input[1] + 0.0354860792783 * input[2];
-  s -= -1.43583028974 * output[0] + 0.577774606849 * output[1];
-  output[1] = output[0];
-  output[0] = s;
-  
-  if (!gui_ledstate) {
-    o = data;
+  if (sound_use_filter == FILTER_MODEL_A500) {
+    s  = 0.36 * data;
+    s += 0.64 * output[2];
+    output[2] = s;
+  } else if (sound_use_filter == FILTER_MODEL_A1200) {
+    output[2] = data;
   } else {
-    o = output[0] * 0.99; /* to avoid overruns */
+    fprintf(stderr, "Unknown filter mode\n");
+    exit(-1);
+  }
+
+  /* output[0] is lowpass output */
+  s  = 0.33 * output[2];
+  s += 0.67 * output[0];
+  output[0] = s;
+
+  /* lowpass, but when we compute output[1] - output[2] it's highpass */
+  s  = 0.90 * output[2];
+  s += 0.10 * output[1];
+  output[1] = s;
+
+  if (!gui_ledstate) {
+    o = output[2];
+  } else {
+    o = (output[0] + (output[2] - output[1])) * 0.99; /* to avoid overruns */
   }
   if (o > up) {
     o = up;
@@ -346,22 +341,6 @@ static void audio_handler (int nr)
     }
 }
 
-void aud0_handler (void)
-{
-    audio_handler (0);
-}
-void aud1_handler (void)
-{
-    audio_handler (1);
-}
-void aud2_handler (void)
-{
-    audio_handler (2);
-}
-void aud3_handler (void)
-{
-    audio_handler (3);
-}
 
 void audio_reset (void)
 {

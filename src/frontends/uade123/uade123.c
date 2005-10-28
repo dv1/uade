@@ -41,10 +41,13 @@
 #include "config.h"
 #include "terminal.h"
 
+#define FILTER_MODEL_A500  1
+#define FILTER_MODEL_A1200 2
 
 int uade_debug_trigger;
 int uade_force_filter;
 int uade_filter_state;
+int uade_filter_type = FILTER_MODEL_A1200;
 int uade_ignore_player_check;
 int uade_info_mode;
 char *uade_interpolation_mode;
@@ -250,8 +253,12 @@ int main(int argc, char *argv[])
 #define OPT_INTERPOLATOR 0x103
 #define OPT_STDERR       0x104
 #define OPT_NO_SONG_END  0x105
+#define OPT_A500         0x106
+#define OPT_A1200        0x107
 
   struct option long_options[] = {
+    {"a500", 0, NULL, OPT_A500},
+    {"a1200", 0, NULL, OPT_A1200},
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
     {"filter", 0, NULL, OPT_FILTER},
@@ -428,6 +435,12 @@ int main(int argc, char *argv[])
       break;
     case OPT_NO_SONG_END:
       uade_no_song_end = 1;
+      break;
+    case OPT_A500:
+      uade_filter_type = FILTER_MODEL_A500;
+      break;
+    case OPT_A1200:
+      uade_filter_type = FILTER_MODEL_A1200;
       break;
     default:
       fprintf(stderr, "impossible option\n");
@@ -693,6 +706,8 @@ static void print_help(void)
   printf(" -u uadename,        Set uadecore executable name\n");
   printf("\n");
   printf("Normal options:\n");
+  printf(" --a500              Amiga 500 sound filter is used\n");
+  printf(" --a1200             Amiga 1200 sound filter is used\n");
   printf(" -1, --one,          Play at most one subsong per file\n");
   printf(" -@ filename, --list filename,  Read playlist of files from 'filename'\n");
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
