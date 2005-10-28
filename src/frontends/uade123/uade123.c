@@ -276,6 +276,7 @@ int main(int argc, char *argv[])
     {"subsong-timeout", 1, NULL, 'w'},
     {"timeout", 1, NULL, 't'},
     {"verbose", 0, NULL, 'v'},
+    {NULL, 0, NULL, 0}
   };
 
   if (!playlist_init(&uade_playlist)) {

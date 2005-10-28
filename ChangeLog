@@ -27,6 +27,8 @@
 	  the A1200 case is the default. Both types of filter are
 	  but A1200 filter is better tested. We need feedback on A500 filter.
 	- --force-filter was changed to --force-led.
+	- Fixed a bug with getopts. The long options list was not zero
+	  terminated, and it had worked by luck so long..
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made interpolation mode selectable from command line. Use
