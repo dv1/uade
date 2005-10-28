@@ -58,7 +58,7 @@ struct playlist uade_playlist;
 int uade_recursivemode;
 int uade_terminated;
 FILE *uade_terminal_file;
-int uade_terminal_mode;
+int uade_terminal_mode = 1;
 int uade_use_filter = FILTER_MODEL_A1200;
 int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */

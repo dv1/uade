@@ -128,6 +128,16 @@ int load_config(const char *filename)
     }
     if (strncmp(key, "action_keys", 6) == 0) {
       uade_terminal_mode = 1;
+      if (value != NULL) {
+	if (strcasecmp(value, "on") == 0) {
+	  uade_terminal_mode = 1;
+	} else if (strcasecmp(value, "off") == 0) {
+	  uade_terminal_mode = 0;
+	} else {
+	  fprintf(stderr, "Unknown setting for action keys: %s\n", value);
+	  exit(-1);
+	}
+      }
     } else if (strncmp(key, "filter", 6) == 0) {
       set_filter_on(value);
     } else if (strncmp(key, "force_led_off", 10) == 0) {
