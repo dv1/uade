@@ -77,14 +77,14 @@ static int filter(int data, float *input, float *output)
     output[0] = s;
 
     /* output[1] is output[2] with slight highboost */
-    s  = 1.06 * output[0];
-    s -= 0.06 * output[1];
+    s  = 1.35 * output[0];
+    s -= 0.35 * output[1];
     output[1] = s;
 
     if (!gui_ledstate) {
 	o = output[2];
     } else {
-	o = output[1] * 0.99; /* to avoid overruns */
+	o = output[1] * 0.98; /* to avoid overruns */
     }
 
     if (o > 32767) {

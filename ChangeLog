@@ -1,8 +1,10 @@
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Beautified audio.c and sd-sound-generic.h.
-	- Antti S. Lankila fixed a bug that caused 1 bit precision loss
-	  in audio output. Sample data was multiplied after filtering,
-	  but it should have been multiplied before.
+	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'
+	  in ChangeLog from now.
+	- Fixed a bug that caused 1 bit precision loss in audio output.
+	  Sample data was multiplied after filtering, but it should have been
+	  multiplied before. (alankila)
 	- cust.Bubble_Bobble gives wrong subsong information. Added a logic
 	  into uade123 that determines subsong ranges if default subsong
 	  is outside the reported range.
@@ -18,15 +20,15 @@
 	- Fixed a bug in uade123/playloop.c. If one subsong ended because of
 	  silence, all the rest subsongs would end because of silence too.
 	  I forgot to reset the silence counter to zero..
-	- Antti S. Lankila <alankila@bel.fi> provided us with a headphone
-	  postprocessing effect, and an effect framework for different
-	  uade frontends. Try --headphone.
+	- Added a headphone postprocessing effect, and an effect framework for
+	  different uade frontends. Try --headphone. (alankila)
 	- Try pressing 'p' on uade123 to toggle postprocessing effects on
 	  and off.
+	- New filter code (alankila)
 
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.
-	- Fixed rh and crux interpolators. Thanks to Antti S. Lankiala.
+	- Fixed rh and crux interpolators. Thanks to Antti S. Lankila.
 	  <alankila@bel.fi>
 	- Removed lots of unnecessary macros, variables and functions.
 	- rh interpolator is now names as linear.
@@ -49,7 +51,7 @@
 	  for uade123 by -v. You'll see messages like:
 	   Message: Filter ON
 	- Added two different types of filters: A500 and A1200. Thanks to
-	  Antti S. Lankiala, again. Use --filter=a500 or --filter=a1200,
+	  Antti S. Lankila, again. Use --filter=a500 or --filter=a1200,
 	  the A1200 case is the default. Both types of filter are
 	  but A1200 filter is better tested. We need feedback on A500 filter.
 	- --force-filter was changed to --force-led.
@@ -66,7 +68,7 @@
 	    x       = default (no interpolation),
 	    rh      = rh interpolator (broken atm),
 	    crux    = crux interpolator (broken atm),
-	    cspline = Antti S. Lankiala's spline interpolator
+	    cspline = Antti S. Lankila's spline interpolator
 	              (This is not recommended for chip songs! The spline
 		       spline interpolator is good for natural instruments,
 		       but may produce bad sounds with chips.)
@@ -81,7 +83,7 @@
 
 2005-10-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre7
-	- Antti S. Lankiala <alankila@bel.fi> fixed and improved filter
+	- Antti S. Lankila <alankila@bel.fi> fixed and improved filter
 	  behavior. The filter state must be updated even when filtering
 	  is not outputted. Output scaling was fixed to the right place
 	  so that it does not distort filter state. Unnecessary range
