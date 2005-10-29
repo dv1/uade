@@ -152,6 +152,15 @@ int play_loop(void)
 	case 'n':
 	  uade_song_end_trigger = 1;
 	  break;
+	case 'p':
+	  uade_use_headphones ^= 1;
+	  tprintf("\nHeadphone effect %s\n", uade_use_headphones ? "ON" : "OFF");
+	  uade_effect_disable(UADE_EFFECT_HEADPHONES);
+	  if (uade_use_headphones) {
+	    uade_effect_reset_internals();
+	    uade_effect_enable(UADE_EFFECT_HEADPHONES);
+	  }
+	  break;
 	case 'q':
 	  tprintf("\n");
 	  return 0;

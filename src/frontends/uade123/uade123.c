@@ -777,6 +777,7 @@ void print_action_keys(void)
   tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
   tprintf(" 'h'           Print this list.\n");
   tprintf(" RETURN, 'n'   Next song.\n");
+  tprintf(" 'p'           Toggle headphone effect.\n");
   tprintf(" 'q'           Quit.\n");
   tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
   tprintf(" 'x'           Restart current subsong.\n");

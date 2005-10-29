@@ -20,7 +20,8 @@
 	  I forgot to reset the silence counter to zero..
 	- Antti S. Lankila <alankila@bel.fi> provided us with a headphone
 	  postprocessing effect, and an effect framework for different
-	  uade frontends. Try --headphone.
+	  uade frontends. Try --headphone, also try pressing 'p' on uade123
+	  to toggle headphone effect on and off.
 
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.
