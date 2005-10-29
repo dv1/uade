@@ -2,6 +2,11 @@ To be solved:
 
 Resolved:
 
+2005-10-29: CUST.Wings does not work (shd)
+2005-10-29: CUST.Vortex42 has snapping sounds (shd)
+2005-10-29: JCBO.Pacland doesn't work (shd)
+2005-10-29: Forgotten worlds intro doesn't work. (shd)
+2005-10-29: benn_daglish/MTH/BD.MTH.1 is buggy. (shd)
 2005-10-29: Oktalyzer with dream.okt: channels are out of sync on time index
 	    01:20 (shd)
 2005-07-20: debug mode doesn't kick in instantenously with uade123 (shd)
