@@ -23,12 +23,13 @@
 #include "playlist.h"
 
 
+/* Note that this function has side effects (static int64_t silence_count) */
 static int uade_test_silence(void *buf, size_t size)
 {
   int i, s, exceptioncounter;
   int16_t *sm;
-  static int64_t zero_count = 0;
   int nsamples;
+  static int64_t silence_count = 0;
 
   if (uade_silence_timeout < 0)
     return 0;
@@ -42,15 +43,17 @@ static int uade_test_silence(void *buf, size_t size)
     if (s >= (32767 * 1 / 100)) {
       exceptioncounter++;
       if (exceptioncounter >= (size * 2 / 100)) {
-	zero_count = 0;
+	silence_count = 0;
 	break;
       }
     }
   }
   if (i == nsamples) {
-    zero_count += size;
-    if (zero_count / uade_sample_bytes_per_second >= uade_silence_timeout)
+    silence_count += size;
+    if (silence_count / uade_sample_bytes_per_second >= uade_silence_timeout) {
+      silence_count = 0;
       return 1;
+    }
   }
   return 0;
 }

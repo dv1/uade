@@ -246,14 +246,18 @@ int main(int argc, char *argv[])
   int config_loaded;
   int speedhack = 0;
 
-#define OPT_FILTER       0x100
-#define OPT_FORCE_LED    0x101
-#define OPT_INTERPOLATOR 0x102
-#define OPT_STDERR       0x103
-#define OPT_NO_SONG_END  0x104
-#define OPT_SPEED_HACK   0x105
+  enum {
+    OPT_FILTER = 0x100,
+    OPT_FORCE_LED,
+    OPT_INTERPOLATOR,
+    OPT_STDERR,
+    OPT_NO_SONG_END,
+    OPT_SPEED_HACK,
+    OPT_BASEDIR
+  };
 
   struct option long_options[] = {
+    {"basedir", 1, NULL, OPT_BASEDIR},
     {"debug", 0, NULL, 'd'},
     {"get-info", 0, NULL, 'g'},
     {"filter", 2, NULL, OPT_FILTER},
@@ -301,7 +305,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1b:c:de:f:ghij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1de:f:ghij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -323,12 +327,6 @@ int main(int argc, char *argv[])
       break;
     case '1':
       uade_one_subsong_per_file = 1;
-      break;
-    case 'b':
-      GET_OPT_STRING(basedir);
-      break;
-    case 'c':
-      GET_OPT_STRING(configname);
       break;
     case 'd':
       debug_mode = 1;
@@ -436,6 +434,9 @@ int main(int argc, char *argv[])
     case OPT_SPEED_HACK:
       speedhack = 1;
       break;
+    case OPT_BASEDIR:
+      GET_OPT_STRING(basedir);
+      break;
     default:
       fprintf(stderr, "impossible option\n");
       exit(-1);
@@ -471,8 +472,7 @@ int main(int argc, char *argv[])
       exit(-1);
     }
     closedir(bd);
-    if (configname[0] == 0)
-      snprintf(configname, sizeof(configname), "%s/uaerc", basedir);
+    snprintf(configname, sizeof(configname), "%s/uaerc", basedir);
     if (scorename[0] == 0)
       snprintf(scorename, sizeof(scorename), "%s/score", basedir);
     if (uadename[0] == 0)
@@ -703,8 +703,7 @@ static void print_help(void)
   printf("Usage: uade123 [<options>] <input file> ...\n");
   printf("\n");
   printf("Expert options:\n");
-  printf(" -b dirname,         Set uade base directory (contains data files)\n");
-  printf(" -c file,            Set uaerc config file name\n");
+  printf(" --basedir=dirname,  Set uade base directory (contains data files)\n");
   printf(" -d/--debug,         Enable debug mode (expert only)\n");
   printf(" -S filename,        Set sound core name\n");
   printf(" -u uadename,        Set uadecore executable name\n");

@@ -15,6 +15,9 @@
 	  so far (those which I mentioned).
 	- Removed score from uade source root, now it's only located at
 	  amigasrc/score/ directory.
+	- Fixed a bug in uade123/playloop.c. If one subsong ended because of
+	  silence, all the rest subsongs would end because of silence too.
+	  I forgot to reset the silence counter to zero..
 
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.
