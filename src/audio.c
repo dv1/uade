@@ -40,23 +40,19 @@ static float sound_right_input[4];
 static float sound_right_output[4];
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
- * that is always on and the LED filter. This code emulates both.
+ * on A500 and the LED filter. This code emulates both.
  * 
  * The Amiga filtering circuitry depends on Amiga model. Older Amigas seem
  * to have a 6 dB/oct RC filter with cutoff frequency such that the -6 dB
- * point for filter is reached at 6 kHz, while newer Amigas have moved the
- * -6 dB point up to 11 kHz or so. In addition, the treble attenuation
- * appears to level out slightly which might suggest some kind of highboost.
- * The effect is slight, if real at all, and thus not modelled.
+ * point for filter is reached at 6 kHz, while newer Amigas have no filtering.
  *
  * The LED filter is complicated, and we are modelling it with a pair of
  * RC filters, the other providing a highboost. The LED starts to cut
  * into signal somewhere around 5-6 kHz, and there's some kind of highboost
- * in effect above 10 kHz. More experimenting is probably required.
+ * in effect above 12 kHz. Better measurements are required.
  *
- * The current filtering should be accurate within about 2 dB with the filter
- * turned on, and within 1 dB with the filter turned off. We need more
- * accurate sampling to resolve the behaviour around 14 kHz clearly.
+ * The current filtering should be accurate to 2 dB with the filter on,
+ * and to 1 dB with the filter off.
 */
 
 static int filter(int data, float *input, float *output)
@@ -75,20 +71,20 @@ static int filter(int data, float *input, float *output)
 	exit(-1);
     }
 
-    /* output[0] is lowpass output */
+    /* output[0] is output[2] through lowpass */
     s  = 0.33 * output[2];
     s += 0.67 * output[0];
     output[0] = s;
 
-    /* lowpass, but when we compute output[1] - output[2] it's highpass */
-    s  = 0.90 * output[2];
-    s += 0.10 * output[1];
+    /* output[1] is output[2] with slight highboost */
+    s  = 1.06 * output[0];
+    s -= 0.06 * output[1];
     output[1] = s;
 
     if (!gui_ledstate) {
 	o = output[2];
     } else {
-	o = (output[0] + (output[2] - output[1])) * 0.99; /* to avoid overruns */
+	o = output[1] * 0.99; /* to avoid overruns */
     }
 
     if (o > 32767) {

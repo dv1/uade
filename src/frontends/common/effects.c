@@ -110,7 +110,7 @@ static float uade_effect_headphones_lpf(float in, float *state)
     state[3] = state[2];
     state[2] = out;
 
-    return out;
+    return out * 0.99; /* avoid overflow */
 }
 
 static void uade_effect_headphones(int16_t *sm, int frames)
@@ -126,8 +126,8 @@ static void uade_effect_headphones(int16_t *sm, int frames)
 	l = uade_effect_headphones_lpf(l, uade_effect_headphones_bq_l);
 	r = uade_effect_headphones_lpf(r, uade_effect_headphones_bq_r);
 
-	sm[0] += r * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL;
-	sm[1] += l * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL;
+	sm[0] = (sm[0] + r * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / (1 + UADE_EFFECT_HEADPHONES_CROSSMIX_VOL);
+	sm[1] = (sm[1] + l * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / (1 + UADE_EFFECT_HEADPHONES_CROSSMIX_VOL);
 	sm += 2;
     }
 }
