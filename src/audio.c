@@ -34,10 +34,10 @@ unsigned long sample_evtime;
 
 int sound_use_filter = FILTER_MODEL_A1200;
 
-static float sound_left_input[6];
-static float sound_left_output[6];
-static float sound_right_input[6];
-static float sound_right_output[6];
+static float sound_left_input[4];
+static float sound_left_output[4];
+static float sound_right_input[4];
+static float sound_right_output[4];
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
  * that is always on and the LED filter. This code emulates both.
@@ -59,72 +59,97 @@ static float sound_right_output[6];
  * accurate sampling to resolve the behaviour around 14 kHz clearly.
 */
 
-static int filter(int data, float *input, float *output, int down, int up)
+static int filter(int data, float *input, float *output)
 {
-  int o;
-  float s;
+    int o;
+    float s;
 
-  if (sound_use_filter == FILTER_MODEL_A500) {
-    s  = 0.36 * data;
-    s += 0.64 * output[2];
-    output[2] = s;
-  } else if (sound_use_filter == FILTER_MODEL_A1200) {
-    output[2] = data;
-  } else {
-    fprintf(stderr, "Unknown filter mode\n");
-    exit(-1);
-  }
+    if (sound_use_filter == FILTER_MODEL_A500) {
+	s  = 0.36 * data;
+	s += 0.64 * output[2];
+	output[2] = s;
+    } else if (sound_use_filter == FILTER_MODEL_A1200) {
+	output[2] = data;
+    } else {
+	fprintf(stderr, "Unknown filter mode\n");
+	exit(-1);
+    }
 
-  /* output[0] is lowpass output */
-  s  = 0.33 * output[2];
-  s += 0.67 * output[0];
-  output[0] = s;
+    /* output[0] is lowpass output */
+    s  = 0.33 * output[2];
+    s += 0.67 * output[0];
+    output[0] = s;
 
-  /* lowpass, but when we compute output[1] - output[2] it's highpass */
-  s  = 0.90 * output[2];
-  s += 0.10 * output[1];
-  output[1] = s;
+    /* lowpass, but when we compute output[1] - output[2] it's highpass */
+    s  = 0.90 * output[2];
+    s += 0.10 * output[1];
+    output[1] = s;
 
-  if (!gui_ledstate) {
-    o = output[2];
-  } else {
-    o = (output[0] + (output[2] - output[1])) * 0.99; /* to avoid overruns */
-  }
-  if (o > up) {
-    o = up;
-  } else if (o < down) {
-    o = down;
-  }
-  return o;
+    if (!gui_ledstate) {
+	o = output[2];
+    } else {
+	o = (output[0] + (output[2] - output[1])) * 0.99; /* to avoid overruns */
+    }
+
+    if (o > 32767) {
+	o = 32767;
+    } else if (o < -32768) {
+	o = -32768;
+    }
+
+    return o;
+}
+
+static void check_sound_buffers (void)
+{
+    if (uade_reboot)
+	return;
+    assert(uade_read_size > 0);
+    intptr_t bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
+    if (uade_audio_output) {
+	if (bytes == 2048 || bytes == uade_read_size) {
+	    uade_check_sound_buffers(uade_read_size > 2048 ? 2048 : uade_read_size);
+	    sndbufpt = sndbuffer;
+	}
+    } else {
+	uade_audio_skip += bytes;
+	/* if sound core doesn't report audio output start in 3 seconds from
+	   the reboot, begin audio output anyway */
+	if (uade_audio_skip >= (sound_bytes_per_second * 3)) {
+	    fprintf(stderr, "involuntary audio output start\n");
+	    uade_audio_output = 1;
+	}
+	sndbufpt = sndbuffer;
+    }
 }
 
 static inline void sample_backend(int left, int right)
 {
+    /* samples are in range -16384 (-128*64*2) and 16256 (127*64*2) */
+    left <<= 16 - 14 - 1;
+    right <<= 16 - 14 - 1;
+    /* [-32768, 32512] */
+
     if (sound_use_filter) {
-      left = filter(left, sound_left_input, sound_left_output, -128 * 64 * 2, 127 * 64 * 2);
-      right = filter(right, sound_right_input, sound_right_output, -128 * 64 * 2, 127 * 64 * 2);
+	left = filter(left, sound_left_input, sound_left_output);
+	right = filter(right, sound_right_input, sound_right_output);
     }
 
-    left <<= 16 - 14 - 1;
-    PUT_SOUND_WORD_RIGHT (left);
+    *(sndbufpt++) = left;
+    *(sndbufpt++) = right;
 
-    right <<= 16 - 14 - 1;
-    PUT_SOUND_WORD_LEFT (right);
-    
-    check_sound_buffers ();
+    check_sound_buffers();
 }
 
 
 void sample16s_handler (void)
 {
     int datas[4];
-    int data0, data1;
     int i;
-    for (i = 0; i < 4; i++) {
-      datas[i] = audio_channel[i].current_sample;
 
-      datas[i] *= audio_channel[i].vol;
-      datas[i] &= audio_channel[i].adk_mask;
+    for (i = 0; i < 4; i++) {
+	datas[i] = audio_channel[i].current_sample * audio_channel[i].vol;
+	datas[i] &= audio_channel[i].adk_mask;
     }
 
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
@@ -134,7 +159,6 @@ void sample16si_crux_handler (void)
 {
     int i;
     int datas[4];
-    int data0, data1;
 
     for (i = 0; i < 4; i += 1) {
         int ratio1 = audio_channel[i].per - audio_channel[i].evtime;
@@ -144,7 +168,7 @@ void sample16si_crux_handler (void)
 	    ratio = 4096;
 #undef INTERVAL
 	datas[i] = ((       ratio) * audio_channel[i].current_sample
-                  + (4096 - ratio) * audio_channel[i].last_sample[0]) >> 12;
+		    + (4096 - ratio) * audio_channel[i].last_sample[0]) >> 12;
 	datas[i] *= audio_channel[i].vol;
         datas[i] &= audio_channel[i].adk_mask;
     }
@@ -156,7 +180,6 @@ void sample16si_linear_handler (void)
 {
     int i;
     int datas[4];
-    int data0, data1;
 
     for (i = 0; i < 4; i += 1) {
         int period = audio_channel[i].per;
@@ -194,7 +217,6 @@ void sample16si_cspline_handler (void)
 {
     int i;
     int datas[4];
-    int data0, data1;
 
     for (i = 0; i < 4; i += 1) {
         int period = audio_channel[i].per;
@@ -531,25 +553,25 @@ void AUDxLCL (int nr, uae_u16 v)
 
 void AUDxPER (int nr, uae_u16 v)
 {
-  static int audperhack = 0;
-  update_audio ();
+    static int audperhack = 0;
+    update_audio ();
 
-  if (v == 0)
-    v = 65535;
+    if (v == 0)
+	v = 65535;
 
-  if (v < 16) {
-    /* with the risk of breaking super-cool players (that i'm not aware of)
-       we limit the value to 16 to save cpu time on not so powerful
-       machines. robocop customs use low values for example. */
-    if (!audperhack) {
-      audperhack = 1;
-      fprintf(stderr, "uade: eagleplayer probably used audperhack (inserted %d into aud%dper)\n", v, nr);
+    if (v < 16) {
+	/* with the risk of breaking super-cool players (that i'm not aware of)
+	   we limit the value to 16 to save cpu time on not so powerful
+	   machines. robocop customs use low values for example. */
+	if (!audperhack) {
+	    audperhack = 1;
+	    fprintf(stderr, "uade: eagleplayer probably used audperhack (inserted %d into aud%dper)\n", v, nr);
+	}
+	v = 16;
     }
-    v = 16;
-  }
-  if (v < maxhpos/2 && currprefs.produce_sound < 3)
-    v = maxhpos/2;
-  audio_channel[nr].per = v;
+    if (v < maxhpos/2 && currprefs.produce_sound < 3)
+	v = maxhpos/2;
+    audio_channel[nr].per = v;
 }
 
 void AUDxLEN (int nr, uae_u16 v)

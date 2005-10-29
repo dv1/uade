@@ -34,7 +34,6 @@ enum {
 extern struct ev eventtab[ev_max];
 
 static __inline__ void events_schedule (void) {
-  int i;
   unsigned long int mintime = ~0L;
   unsigned long int eventtime;
   /* HSYNC */

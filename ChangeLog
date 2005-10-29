@@ -1,3 +1,9 @@
+2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
+	- Beautified audio.c and sd-sound-generic.h.
+	- Antti S. Lankila fixed a bug that caused 1 bit precision loss
+	  in audio output. Sample data was multiplied after filtering,
+	  but it should have been multiplied before.
+	
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.
 	- Fixed rh and crux interpolators. Thanks to Antti S. Lankiala.
