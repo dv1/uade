@@ -14,6 +14,7 @@
 
 #include "config.h"
 #include "uade123.h"
+#include "postprocessing.h"
 
 
 static char *config_filename = NULL;

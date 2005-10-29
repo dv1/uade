@@ -35,12 +35,11 @@
 
 #include "uade123.h"
 #include "playlist.h"
-#include "effects.h"
 #include "playloop.h"
 #include "audio.h"
 #include "config.h"
 #include "terminal.h"
-
+#include "postprocessing.h"
 
 int uade_debug_trigger;
 int uade_force_filter;
@@ -53,15 +52,12 @@ int uade_no_output;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
-float uade_panning_value;
 struct playlist uade_playlist;
 int uade_recursivemode;
 int uade_terminated;
 FILE *uade_terminal_file;
 int uade_terminal_mode = 1;
 int uade_use_filter = FILTER_MODEL_A1200;
-int uade_use_headphones;
-int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
 int uade_subsong_timeout = 512;
@@ -508,15 +504,7 @@ int main(int argc, char *argv[])
   if (!audio_init())
     goto cleanup;
 
-  uade_effect_disable_all();
-
-  if (uade_use_headphones)
-    uade_effect_enable(UADE_EFFECT_HEADPHONES);
-
-  if (uade_use_panning) {
-    uade_effect_pan_set_amount(uade_panning_value);
-    uade_effect_enable(UADE_EFFECT_PAN);
-  }
+  uade_postprocessing_setup(1);
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
@@ -777,7 +765,7 @@ void print_action_keys(void)
   tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
   tprintf(" 'h'           Print this list.\n");
   tprintf(" RETURN, 'n'   Next song.\n");
-  tprintf(" 'p'           Toggle headphone effect.\n");
+  tprintf(" 'p'           Toggle postprocessing effects.\n");
   tprintf(" 'q'           Quit.\n");
   tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
   tprintf(" 'x'           Restart current subsong.\n");

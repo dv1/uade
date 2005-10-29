@@ -4,52 +4,56 @@ CFLAGS = -Wall -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
 	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o \
-	playloop.o audio.o config.o terminal.o
+	playloop.o audio.o config.o terminal.o postprocessing.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h
-	$(CC) $(CFLAGS) -c $<
+clean:	
+	rm -f uade123 *.o
 
-strlrep.o:	../../strlrep.c ../../include/strlrep.h
-	$(CC) $(CFLAGS) -c $<
-
-unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
-	$(CC) $(CFLAGS) -c $<
-
-uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
-	$(CC) $(CFLAGS) -c $<
 
 amifilemagic.o:	../../amifilemagic.c ../../include/amifilemagic.h
-	$(CC) $(CFLAGS) -c $<
-
-uadeformats.o:	../../uadeformats.c ../../include/uadeformats.h
-	$(CC) $(CFLAGS) -c $<
-
-chrarray.o:	chrarray.c chrarray.h
-	$(CC) $(CFLAGS) -c $<
-
-playlist.o:	playlist.c playlist.h uade123.h
-	$(CC) $(CFLAGS) -c $<
-
-unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
-	$(CC) $(CFLAGS) -c $<
-
-effects.o:	../common/effects.c ../common/effects.h
-	$(CC) $(CFLAGS) -c $<
-
-playloop.o:	playloop.c playloop.h uade123.h
 	$(CC) $(CFLAGS) -c $<
 
 audio.o:	audio.c audio.h
 	$(CC) $(CFLAGS) -c $<
 
+chrarray.o:	chrarray.c chrarray.h
+	$(CC) $(CFLAGS) -c $<
+
 config.o:	config.c config.h
+	$(CC) $(CFLAGS) -c $<
+
+effects.o:	../common/effects.c ../common/effects.h
+	$(CC) $(CFLAGS) -c $<
+
+playlist.o:	playlist.c playlist.h uade123.h
+	$(CC) $(CFLAGS) -c $<
+
+playloop.o:	playloop.c playloop.h uade123.h
+	$(CC) $(CFLAGS) -c $<
+
+postprocessing.o:	postprocessing.c postprocessing.h ../common/effects.h
+	$(CC) $(CFLAGS) -c $<
+
+strlrep.o:	../../strlrep.c ../../include/strlrep.h
 	$(CC) $(CFLAGS) -c $<
 
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-clean:	
-	rm -f uade123 *.o
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h
+	$(CC) $(CFLAGS) -c $<
+
+uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
+	$(CC) $(CFLAGS) -c $<
+
+uadeformats.o:	../../uadeformats.c ../../include/uadeformats.h
+	$(CC) $(CFLAGS) -c $<
+
+unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
+	$(CC) $(CFLAGS) -c $<
+
+unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
+	$(CC) $(CFLAGS) -c $<

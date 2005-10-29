@@ -18,6 +18,7 @@
 
 #include "uade123.h"
 #include "effects.h"
+#include "postprocessing.h"
 #include "audio.h"
 #include "terminal.h"
 #include "playlist.h"
@@ -153,13 +154,8 @@ int play_loop(void)
 	  uade_song_end_trigger = 1;
 	  break;
 	case 'p':
-	  uade_use_headphones ^= 1;
-	  tprintf("\nHeadphone effect %s\n", uade_use_headphones ? "ON" : "OFF");
-	  uade_effect_disable(UADE_EFFECT_HEADPHONES);
-	  if (uade_use_headphones) {
-	    uade_effect_reset_internals();
-	    uade_effect_enable(UADE_EFFECT_HEADPHONES);
-	  }
+	  uade_postprocessing_setup(-1);
+	  tprintf("\nPostprocessing effects %s\n", uade_use_postprocessing ? "ON" : "OFF");
 	  break;
 	case 'q':
 	  tprintf("\n");
