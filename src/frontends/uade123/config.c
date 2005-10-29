@@ -143,6 +143,8 @@ int load_config(const char *filename)
     } else if (strncmp(key, "force_led_off", 10) == 0) {
       uade_force_filter = 1;
       uade_filter_state = 0;
+    } else if (strncmp(key, "headphones", 4) == 0) {
+      uade_use_headphones = 1;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
       uade_ignore_player_check = 1;
     } else if (strncmp(key, "interpolator", 5) == 0) {

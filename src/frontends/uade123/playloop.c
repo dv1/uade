@@ -89,6 +89,8 @@ int play_loop(void)
   int old_force_filter = uade_force_filter;
   int old_filter_state = uade_filter_state;
 
+  uade_effect_reset_internals();
+
   /* skip bytes must be a multiple of audio frame size, which is 4 from the
      simulator */
   skip_bytes = uade_jump_pos * 4 * 44100;
@@ -304,8 +306,7 @@ int play_loop(void)
 	  }
 	}
 
-	if (uade_use_panning)
-	  uade_effect_pan(um->data, playbytes, uade_bytes_per_sample, uade_panning_value);
+	uade_effect_run((int16_t *) um->data, playbytes / 4);
 
 	if (!audio_play(um->data, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");

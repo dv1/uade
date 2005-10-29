@@ -18,6 +18,9 @@
 	- Fixed a bug in uade123/playloop.c. If one subsong ended because of
 	  silence, all the rest subsongs would end because of silence too.
 	  I forgot to reset the silence counter to zero..
+	- Antti S. Lankila <alankila@bel.fi> provided us with a headphone
+	  postprocessing effect, and an effect framework for different
+	  uade frontends. Try --headphone.
 
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.

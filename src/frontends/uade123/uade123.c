@@ -60,13 +60,13 @@ int uade_terminated;
 FILE *uade_terminal_file;
 int uade_terminal_mode = 1;
 int uade_use_filter = FILTER_MODEL_A1200;
+int uade_use_headphones;
 int uade_use_panning;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
 int uade_subsong_timeout = 512;
 int uade_timeout = -1;
 int uade_verbose_mode;
-
 
 static char basedir[PATH_MAX];
 static int debug_mode;
@@ -253,7 +253,8 @@ int main(int argc, char *argv[])
     OPT_STDERR,
     OPT_NO_SONG_END,
     OPT_SPEED_HACK,
-    OPT_BASEDIR
+    OPT_BASEDIR,
+    OPT_HEADPHONES
   };
 
   struct option long_options[] = {
@@ -262,6 +263,7 @@ int main(int argc, char *argv[])
     {"get-info", 0, NULL, 'g'},
     {"filter", 2, NULL, OPT_FILTER},
     {"force-led", 1, NULL, OPT_FORCE_LED},
+    {"headphones", 0, NULL, OPT_HEADPHONES},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
     {"interpolator", 1, NULL, OPT_INTERPOLATOR},
@@ -437,6 +439,9 @@ int main(int argc, char *argv[])
     case OPT_BASEDIR:
       GET_OPT_STRING(basedir);
       break;
+    case OPT_HEADPHONES:
+      uade_use_headphones = 1;
+      break;
     default:
       fprintf(stderr, "impossible option\n");
       exit(-1);
@@ -502,6 +507,16 @@ int main(int argc, char *argv[])
 
   if (!audio_init())
     goto cleanup;
+
+  uade_effect_disable_all();
+
+  if (uade_use_headphones)
+    uade_effect_enable(UADE_EFFECT_HEADPHONES);
+
+  if (uade_use_panning) {
+    uade_effect_pan_set_amount(uade_panning_value);
+    uade_effect_enable(UADE_EFFECT_PAN);
+  }
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
@@ -720,6 +735,7 @@ static void print_help(void)
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");
+  printf(" --headphone,        Enable headphone postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
   printf(" --interpolator=x    Set interpolator to x, where x = default, rh, crux or\n");
   printf("                     cspline.\n");
