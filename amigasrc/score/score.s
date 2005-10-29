@@ -96,6 +96,12 @@ start	* set super stack and user stack
 	move	#$7fff,dmacon+custom
 	move.b	#3,$bfe201
 	move.b	#2,$bfe001		* filter off
+	move.b	#$82,$bfed01		* CIAA
+	move.b	#$00,$bfef01		* TOD counter rolling on vsync
+	move.b	#$00,$bfe801		* order of these is important
+	move.b	#$82,$bfdd00		* CIAB
+	move.b	#$00,$bfdf00		* TOD counter rolling on hsync
+	move.b	#$00,$bfd800		* order of these is important
 	move	#$200,bplcon0+custom
 	move	#$00ff,adkcon+custom
 
@@ -1359,33 +1365,7 @@ setciabhwtimervalue
 
 modulechangemsg	dc.b	'epg_modulechange: patched the player', 0
 findauthormsg	dc.b	'epg_findauthor notice', 0
-specialpatch1	dc.b	'epg_modulechange: special patch 1 applied',0
 	even
-
-* a0 on pointer to code to be patched
-* a2 on pointer to the patch
-testspecialpatch1
-	push	all
-	lea	specialpatch1code(pc),a1
-	moveq	#(specialpatch1codee-specialpatch1code)/2-1,d0
-sp1tl	cmpm	(a1)+,(a2)+
-	bne.b	nospecialpatch1
-	dbf	d0,sp1tl
-	lea	wait_audio_dma(pc),a1
-	move	jsrcom(pc),(a0)+
-	move.l	a1,(a0)+
-	lea	specialpatch1(pc),a0
-	bsr	put_string
-nospecialpatch1	pull	all
-	rts
-specialpatch1code
-	moveq	#9,d0
-sp1l1	move.b	$bfd800,d1
-sp1l2	cmp.b	$bfd800,d1
-	beq.b	sp1l2
-	dbf	d0,sp1l1
-	rts
-specialpatch1codee
 
 epg_modulechange	push	all
 	move.l	modulechange_disabled(pc),d0
@@ -1422,7 +1402,6 @@ mc_pl_3_nop	move	#$4e71,(a2)+		* put nops to old code
 	add	d4,a2			* patch code address
 	move	jsrcom(pc),(a0)		* put jump to patch code
 	move.l	a2,2(a0)
-	bsr	testspecialpatch1
 	addq.l	#1,d7			* number of patches applied
 	move	d3,d5
 	ext.l	d5
@@ -1753,6 +1732,11 @@ relocator	cmp.l	#$000003f3,(a0)+
 	bne	hunkerror
 	lea	nhunks(pc),a1
 	move.l	(a0)+,(a1)		* take number of hunks
+	* we could clear upper word of number of hunks, because original
+	* implementation only uses 16 bits. it's an undocumented feature.
+	* however, i'm sporty and want to see a player/custom that abuses
+	* this feature. bring it on. the next cmp command will catch the
+	* error.
 	cmp.l	#100,(a1)
 	bhi	hunkerror
 	addq.l	#8,a0			* skip hunk load infos
@@ -1766,6 +1750,10 @@ hunkcheckloop	move.l	(a0)+,d1
 	and.l	#$3fffffff,d1
 	lsl.l	#2,d1
 	move.l	d1,(a1)+		* save hunk size (in bytes)
+	* Harry Sintonen pointed out there is a possibility of extra long
+	* memattr here (another long word) if MEMF_CHIP and MEMF_FAST flags
+	* are both set, but i'm not testing for that work-around unless
+	* it really happens with some player/custom we know of.
 	and.l	#$40000000,d2
 	move.l	d2,(a1)+		* save hunk mem type
 	move.l	(a2),d0			* take relocpoint

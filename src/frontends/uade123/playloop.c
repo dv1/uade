@@ -400,7 +400,16 @@ int play_loop(void)
 	min_sub = u32ptr[0];
 	max_sub = u32ptr[1];
 	cur_sub = u32ptr[2];
-	assert(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub);
+	if (!(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub)) {
+	  int tempmin = min_sub, tempmax = max_sub;
+	  fprintf(stderr, "\nThe player is broken. Subsong info does not match.\n");
+	  min_sub = tempmin <= tempmax ? tempmin : tempmax;
+	  max_sub = tempmax >= tempmin ? tempmax : tempmin;
+	  if (cur_sub > max_sub)
+	    max_sub = cur_sub;
+	  else if (cur_sub < min_sub)
+	    min_sub = cur_sub;
+	}
 	if ((max_sub - min_sub) != 0)
 	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
 	have_subsong_info = 1;

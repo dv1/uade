@@ -6,7 +6,16 @@
 	- cust.Bubble_Bobble gives wrong subsong information. Added a logic
 	  into uade123 that determines subsong ranges if default subsong
 	  is outside the reported range.
-	
+	- Changed score's CIA setup so that both CIA-A and CIA-B time of day
+	  counters run continously. Some players, such as Oktalyzer and
+	  sean connolly depend on this. As a consequence it was possible to
+	  remove a work around from score that patched the sean connolly
+	  player not to use CIA TOD. However, any player using CIA TOD is at
+	  risk of not functioning properly, but I have only seen two cases
+	  so far (those which I mentioned).
+	- Removed score from uade source root, now it's only located at
+	  amigasrc/score/ directory.
+
 2005-10-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Radical cleaned up in audio.c.
 	- Fixed rh and crux interpolators. Thanks to Antti S. Lankiala.

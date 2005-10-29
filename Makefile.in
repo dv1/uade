@@ -30,7 +30,7 @@ soundcheck:
 	@ echo ""
 	@ echo "### UADE should be playing now 'AHX.Cruisin'"
 	@ echo ""
-	src/frontends/uade123/uade123 -b . -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
+	src/frontends/uade123/uade123 -b . -S amigasrc/score/score -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
 
 uninstall:	
 	rm -f "$(FINALBINDIR)/uadecore"
@@ -49,7 +49,7 @@ install:	all
 	mkdir -p "$(MANDIR)"
 
 	test -e "$(DATADIR)/uade.conf" || cp -f uade.conf "$(DATADIR)/"
-	cp -f score uaerc uadeformats "$(DATADIR)/"
+	cp -f amigasrc/score/score uaerc uadeformats "$(DATADIR)/"
 	cp -rf players "$(DATADIR)/" || true
 	chmod -R og+rX "$(DATADIR)"
 

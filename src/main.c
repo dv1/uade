@@ -257,13 +257,6 @@ void uae_quit (void)
   quit_program = 1;
 }
 
-#ifndef DONT_PARSE_CMDLINE
-void usage (void)
-{
-}
-#endif
-
-
 void write_log_standard (const char *fmt, ...)
 {
     va_list ap;
