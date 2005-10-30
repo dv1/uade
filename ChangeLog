@@ -5,6 +5,7 @@
 	  otherwise with command line option or in uade.conf.
 	- Added forgotten -O2 optimization flag to uade123 Makefile
 	- Cleaned audio.c. Removed some debug #defines.
+	- Imported amiga player sources from uade1 project to amigasrc/players/
 
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'
