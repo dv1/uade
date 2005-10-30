@@ -22,17 +22,16 @@
 
 #include "uade.h"
 
-/* #define AUDIO_HW_DEBUG */
-
 
 struct audio_channel_data audio_channel[4];
-int sound_available = 0;
+int sound_available;
 void (*sample_handler) (void);
-static unsigned long last_cycles, next_sample_evtime;
-
 unsigned long sample_evtime;
 
 int sound_use_filter = FILTER_MODEL_A1200;
+
+static unsigned long last_cycles, next_sample_evtime;
+static int audperhack;
 
 static float sound_left_input[4];
 static float sound_left_output[4];
@@ -370,6 +369,8 @@ void audio_reset (void)
     last_cycles = 0;
     next_sample_evtime = sample_evtime;
 
+    audperhack = 0;
+
     memset(sound_left_input, 0, sizeof(sound_left_input));
     memset(sound_right_input, 0, sizeof(sound_right_input));
     memset(sound_left_output, 0, sizeof(sound_left_output));
@@ -507,14 +508,6 @@ void AUDxDAT (int nr, uae_u16 v)
 	/* data_written = 2 ???? */
 	cdp->evtime = cdp->per;
     }
-
-#ifdef AUDIO_HW_DEBUG
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      printf("AUD%dDAT: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
-    }
-#endif
 }
 
 void AUDxLCH (int nr, uae_u16 v)
@@ -522,14 +515,6 @@ void AUDxLCH (int nr, uae_u16 v)
     update_audio ();
 
     audio_channel[nr].lc = (audio_channel[nr].lc & 0xffff) | ((uae_u32)v << 16);
-
-#ifdef AUDIO_HW_DEBUG
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      printf("AUD%dLCH: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
-    }
-#endif
 }
 
 void AUDxLCL (int nr, uae_u16 v)
@@ -537,31 +522,21 @@ void AUDxLCL (int nr, uae_u16 v)
     update_audio ();
 
     audio_channel[nr].lc = (audio_channel[nr].lc & ~0xffff) | (v & 0xFFFE);
-
-#ifdef AUDIO_HW_DEBUG
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      printf("AUD%dLCL: %d %.6d\n", nr, tv.tv_sec, tv.tv_usec);
-    }
-#endif
 }
 
 void AUDxPER (int nr, uae_u16 v)
 {
-    static int audperhack = 0;
     update_audio ();
 
     if (v == 0)
 	v = 65535;
-
-    if (v < 16) {
-	/* with the risk of breaking super-cool players (that i'm not aware of)
+    else if (v < 16) {
+	/* With the risk of breaking super-cool players,
 	   we limit the value to 16 to save cpu time on not so powerful
 	   machines. robocop customs use low values for example. */
 	if (!audperhack) {
 	    audperhack = 1;
-	    fprintf(stderr, "uade: eagleplayer probably used audperhack (inserted %d into aud%dper)\n", v, nr);
+	    fprintf(stderr, "uade: eagleplayer inserted %d into aud%dper\n", v, nr);
 	}
 	v = 16;
     }
@@ -584,12 +559,4 @@ void AUDxVOL (int nr, uae_u16 v)
     update_audio ();
 
     audio_channel[nr].vol = v2;
-
-#ifdef AUDIO_HW_DEBUG
-    {
-      struct timeval tv;
-      gettimeofday(&tv, 0);
-      printf("AUD%dVOL: %d @ %d %.6d\n", nr, v, tv.tv_sec, tv.tv_usec);
-    }
-#endif
 }
