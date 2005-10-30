@@ -1,3 +1,9 @@
+2005-10-31  Heikki Orsila <heikki.orsila@iki.fi>
+	- Did highly experimental changes to sound core's timing interrupt
+	  system. I tested the change with all known players, and only the
+	  Thomas Hermann broke out, but it was broken already, so no big
+	  loss there.
+
 2005-10-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modified headphones effect. (alankila)
 	- Added 'H' action key to toggle headphones effect, and 'P' to toggle
@@ -6,7 +12,7 @@
 	- Added forgotten -O2 optimization flag to uade123 Makefile
 	- Cleaned audio.c. Removed some debug #defines.
 	- Imported amiga player sources from uade1 project to amigasrc/players/
-
+	
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'
 	  in ChangeLog from now.

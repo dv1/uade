@@ -96,12 +96,13 @@ start	* set super stack and user stack
 	move	#$7fff,dmacon+custom
 	move.b	#3,$bfe201
 	move.b	#2,$bfe001		* filter off
-	move.b	#$82,$bfed01		* CIAA
+
+	move.b	#$1f,$bfdd00		* ciab ICR (disable all timers)
 	move.b	#$00,$bfef01		* TOD counter rolling on vsync
 	move.b	#$00,$bfe801		* order of these is important
-	move.b	#$82,$bfdd00		* CIAB
 	move.b	#$00,$bfdf00		* TOD counter rolling on hsync
 	move.b	#$00,$bfd800		* order of these is important
+
 	move	#$200,bplcon0+custom
 	move	#$00ff,adkcon+custom
 
@@ -398,6 +399,7 @@ is_pal	move	d1,beamcon0+custom
 	* set default subsong to zero
 	lea	eaglebase(pc),a5
 	move	#0,dtg_SndNum(a5)
+	move	#$376b,dtg_Timer(a5)	* 709379 / 50
 
 	bsr	call_init_player
 
@@ -438,42 +440,15 @@ call_init_volume
 	move.l	d0,a0
 	jsr	(a0)
 novolfunc
-	* timer hacks
-	moveq	#0,d1
-	lea	eaglebase(pc),a5
-	move	dtg_Timer(a5),d0
-	bne.b	timernonzero
-	move.l	settimercalled(pc),d0
-	bne.b	timernonzero
-	move	#$376b,dtg_Timer(a5)	* 709379 / 50
-	moveq	#-1,d1
-timernonzero
-	pushr	d1
 	* call initsound
 	bsr	call_init_sound
-	pullr	d1
 
-	* timer hack continues
-	tst.l	d1
-	beq.b	notimerhack
-	move.l	settimercalled(pc),d0
-	bne.b	notimerhack
-	lea	eaglebase(pc),a5
-	cmp	#$376b,dtg_Timer(a5)
-	bne.b	notimerhack
-	clr	dtg_Timer(a5)
-notimerhack
 	* tell the simulator that audio output should start now
 	move.l	#UADE_START_OUTPUT,d0
 	bsr	put_message_by_value
 
 	move.l	startintfunc(pc),d0
 	bne.b	timernotset
-	* if dtg_Timer was set non-zero in initsound routine,
-	* use ciabplayer
-	lea	eaglebase(pc),a5
-	tst	dtg_Timer(a5)
-	beq.b	timernotset
 	bsr	settimer
 	bsr	setciabplayer
 timernotset
@@ -1334,7 +1309,7 @@ setciabplayer	push	all
 	or.l	#2,(a0)
 	lea	tempciabtimerstruct(pc),a1
 	move.l	intfunc(pc),$12(a1)
-	moveq	#1,d0
+	moveq	#0,d0
 	bsr	ciab_addint
 setonlyhwtimervalue
 	bsr	setciabhwtimervalue
@@ -1355,10 +1330,9 @@ setciabhwtimervalue
 	lea	eaglebase(pc),a0
 	move	dtg_Timer(a0),d0
 	lea	$bfd000,a0
-	move.b	d0,$600(a0)
+	move.b	d0,$400(a0)
 	ror	#8,d0
-	move.b	d0,$700(a0)
-	move.b	#$82,$d00(a0)
+	move.b	d0,$500(a0)
 	pull	d0/a0
 	rts
 
@@ -2748,7 +2722,6 @@ ciaa_addint	moveq	#-1,d0
 * SHOULD WE READ deliciabdata from interrupt structure every time we do the
 * interrupt?
 ciab_addint	push	all
-	move.l	d0,d6
 	lea	ciabint(pc),a4
 	move.l	a4,$78.w
 	lea	deliciabdata(pc),a2
@@ -2756,22 +2729,22 @@ ciab_addint	push	all
 	lea	deliciabint(pc),a2
 	move.l	$12(a1),(a2)
 
-	move.b	#$0a,$bfd400		* 50 Hz A Timer
-	move.b	#$37,$bfd500
-	move.b	#$0a,$bfd600		* 50 Hz B Timer
-	move.b	#$37,$bfd700
-
-	move.b	#$1f,$bfdd00		* ciab ICR (reset all ints
+	lea	eaglebase(pc),a5
+	move	dtg_Timer(a5),d1
 
 	btst	#0,d0
 	bne.b	bit0one
-	move.b	#$81,$bfdd00		* set timer A
-	move.b	#$81,$bfde00		* A timer on
-	move.b	#$80,$bfdf00		* B timer off
+	move.b	d1,$bfd400		* Set A Timer value
+	rol	#8,d1
+	move.b	d1,$bfd500
+	move.b	#$81,$bfdd00		* set timer A ON
+	move.b	#$11,$bfde00		* A timer on
 	bra.b	bit0zero
-bit0one	move.b	#$82,$bfdd00		* set timer B
-	move.b	#$80,$bfde00		* A timer off
-	move.b	#$81,$bfdf00		* B timer on
+bit0one	move.b	d1,$bfd600		* Set B Timer value
+	rol	#8,d1
+	move.b	d1,$bfd700
+	move.b	#$82,$bfdd00		* set timer B ON
+	move.b	#$11,$bfdf00		* B timer on
 bit0zero
 	move	#$a000,intena+custom	* enable ciab interrupt
 	pull	all
@@ -3268,17 +3241,19 @@ mylevel4	push	all
 mylevel4_dismsg	dc.b	'audio interrupt taken but interrupts enabled.. hmm.. '
 	dc.b	'please report this!',0
 	even
+
 mylevel4_ints_enabled
 	lea	irqlines(pc),a3
 	lea	isdatapointers(pc),a4
-mylevel4_beg	move.l	#$0780,d2
-	and	intenar(a2),d2
+mylevel4_begin	moveq	#0,d2
+	move	intenar(a2),d2
 	and	intreqr(a2),d2
 	moveq	#0,d7
 mylevel4_loop	move	mylevel4_int_seq(pc,d7),d6	* aud0int bit
-	bmi.b	endmylevel4
+	bmi.b	mylevel4_end_loop
+	addq	#2,d7
 	btst	d6,d2
-	beq.b	mylevel4_no_int
+	beq.b	mylevel4_loop
 	move.l	d6,d1
 	lsl	#2,d1
 	move.l	(a3,d1),d0
@@ -3288,52 +3263,32 @@ mylevel4_loop	move	mylevel4_int_seq(pc,d7),d6	* aud0int bit
 	move.l	a2,a0			* a0 = $dff000
 	move.l	d2,d1			* d1 = intena & intreq
 	move.l	4.w,a6			* a6 = exec base
-	bsr	mylevel4regc
-	pushr	d0
 	jsr	(a5)
-	pullr	d1
-	bsr	mylevel4regc
-	cmp.l	d0,d1
-	beq.b	mylevel4_not_fail
-	lea	mylevel4_msg(pc),a0
-	bsr	put_string
-mylevel4_not_fail
-	bra.b	mylevel4_beg
+mylevel4_end_loop
+	move	intenar(a2),d0
+	and	intreqr(a2),d0
+	and	#$0780,d0
+	bne.b	mylevel4_begin
+endmylevel4	pull	all
+	rte
+
 mylevel4_no_int_handler
 	moveq	#0,d0
 	bset	d6,d0
 	move	d0,intreq(a2)
 	lea	virginaudioints(pc),a0
 	tst.l	(a0)
-	bne.b	mylevel4_beg
+	bne.b	mylevel4_end_loop
 	st	(a0)
-	lea	mylevel4_msg_2(pc),a0
+	lea	mylevel4_msg(pc),a0
 	bsr	put_string
-	bra.b	mylevel4_beg
-mylevel4_no_int	addq	#2,d7
-	bra.b	mylevel4_loop
-endmylevel4	pull	all
-	rte
+	bra.b	mylevel4_end_loop
 
 mylevel4_int_seq
 	dc	8, 10, 7, 9, -1	* order of audio interrupt execution
 
-mylevel4_msg	dc.b	'audio interrupt checksum failure: '
-	dc.b	'please report this!',0
+mylevel4_msg	dc.b	'audio interrupt not handled',0
 	even
-mylevel4_msg_2	dc.b	'audio interrupt not handled',0
-	even
-
-mylevel4regc	move.l	d2,d0
-	add.l	d3,d0
-	add.l	d4,d0
-	add.l	d5,d0
-	add.l	d6,d0
-	add.l	d7,d0
-	add.l	a2,d0
-	add.l	a3,d0
-	add.l	a4,d0
-	rts
 
 
 mylevel5	move	#$1800,intreq+custom
