@@ -1,6 +1,6 @@
 /* Effect module for UADE2 frontends.
 
-   Copyright 2005 (C) Antti S. Lankiala <alankila@bel.fi>
+   Copyright 2005 (C) Antti S. Lankila <alankila@bel.fi>
 
    This module is licensed under the GNU LGPL.
 */
@@ -70,18 +70,19 @@ void uade_effect_pan_set_amount(float amount)
 static void uade_effect_pan(int16_t *sm, int frames)
 {
   int i, l, r, m;
-  int mixpar = uade_effect_pan_amount;
   for (i = 0; i < frames; i += 1) {
     l = sm[0];
     r = sm[1];
-    m = (r - l) * mixpar;
+    m = (r - l) * uade_effect_pan_amount;
     sm[0] = ( ((l << 8) + m) >> 8 );
     sm[1] = ( ((r << 8) - m) >> 8 );
     sm += 2;
   }
 }
 
-/* all-pass delay, general purpose */
+/* All-pass delay. Its purpose is to confuse the phase of the sound a bit
+ * and also provide some delay to locate the source outside the head. This
+ * seems to work better than a pure delay line. */
 static float uade_effect_headphones_allpass_delay(float in, float *state)
 {
     int i;
@@ -98,30 +99,23 @@ static float uade_effect_headphones_allpass_delay(float in, float *state)
     return output;
 }
 
-/* LPF designed for 2.5 kHz cutoff and 2 octave bw, 12 dB/oct */
+/* -6 dB/oct curve to approximate the audio filtering for the other ear */
 static float uade_effect_headphones_lpf(float in, float *state)
 {
-    float out = in * 0.0247498 + state[0] * 0.0494997 + state[1] * 0.0247498;
-    out -= -1.4782345 * state[2] + 0.5772338 * state[3];
+    float out = in * 0.43;
+    out += 0.57 * state[0];
+    state[0] = out;
 
-    state[1] = state[0];
-    state[0] = in;
-
-    state[3] = state[2];
-    state[2] = out;
-
-    return out * 0.99; /* avoid overflow */
+    return out;
 }
 
+/* A real implementation would simply perform FIR with recorded HRTF data. */
 static void uade_effect_headphones(int16_t *sm, int frames)
 {
     int i;
     for (i = 0; i < frames; i += 1) {
-	float l = sm[0];
-	float r = sm[1];
-
-	l = uade_effect_headphones_allpass_delay(l, uade_effect_headphones_ap_l);
-	r = uade_effect_headphones_allpass_delay(r, uade_effect_headphones_ap_r);
+	float l = uade_effect_headphones_allpass_delay(sm[0], uade_effect_headphones_ap_l);
+	float r = uade_effect_headphones_allpass_delay(sm[1], uade_effect_headphones_ap_r);
 
 	l = uade_effect_headphones_lpf(l, uade_effect_headphones_bq_l);
 	r = uade_effect_headphones_lpf(r, uade_effect_headphones_bq_r);

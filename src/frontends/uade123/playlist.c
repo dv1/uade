@@ -131,7 +131,7 @@ static void *recursive_func(const char *file, enum uade_wtype wtype, void *pl)
 
 int playlist_add(struct playlist *pl, const char *name, int recursive)
 {
-  int ret;
+  int ret = 0;
   struct stat st;
 
   if (!pl->valid)

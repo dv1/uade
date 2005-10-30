@@ -19,7 +19,7 @@ void uade_effect_reset_internals(void);
 void uade_effect_run(int16_t *sample, int frames);
 
 #define UADE_EFFECT_HEADPHONES_DELAY_LENGTH 31
-#define UADE_EFFECT_HEADPHONES_DELAY_DIRECT 0.28
-#define UADE_EFFECT_HEADPHONES_CROSSMIX_VOL 0.85
+#define UADE_EFFECT_HEADPHONES_DELAY_DIRECT 0.3
+#define UADE_EFFECT_HEADPHONES_CROSSMIX_VOL 0.75
 
 #endif

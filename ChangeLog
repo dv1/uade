@@ -1,3 +1,6 @@
+2005-10-30  Heikki Orsila <heikki.orsila@iki.fi>
+	- Slight modifications to the headphones effect (alankila)
+
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Beautified audio.c and sd-sound-generic.h.
 	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'

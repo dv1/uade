@@ -1,6 +1,6 @@
 
 CC = {CC}
-CFLAGS = -Wall -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
+CFLAGS = -Wall -O2 -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
 	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o \
