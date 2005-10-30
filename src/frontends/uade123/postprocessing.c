@@ -5,28 +5,40 @@
 #include "effects.h"
 #include "postprocessing.h"
 
+float uade_panning_value = 0.7;
 int uade_use_headphones;
 int uade_use_panning;
-float uade_panning_value;
 int uade_use_postprocessing;
 
-/* set == 1  => enable
-   set == 0  => disable
-   set == -1 => toggle
-*/
-void uade_postprocessing_setup(int set)
+
+void uade_postprocessing_setup(enum uade_postprocessing_op op)
 {
   uade_effect_disable_all();
 
-  if (set == 1) {
+  switch (op) {
+  case UADE_POSTPROCESSING_ENABLE:
     if (uade_use_postprocessing == 0)
       uade_effect_reset_internals();
     uade_use_postprocessing = 1;
-  } else if (set == 0) {
-    uade_use_postprocessing = 0;
-  } else if (set == -1) {
+    break;
+  case UADE_POSTPROCESSING_TOGGLE:
+    if (uade_use_postprocessing == 0)
+      uade_effect_reset_internals();
     uade_use_postprocessing ^= 1;
-  } else {
+    break;
+  case UADE_PANNING_ENABLE:
+    uade_use_panning = 1;
+    break;
+  case UADE_PANNING_TOGGLE:
+    uade_use_panning ^= 1;
+    break;
+  case UADE_HEADPHONES_ENABLE:
+    uade_use_headphones = 1;
+    break;
+  case UADE_HEADPHONES_TOGGLE:
+    uade_use_headphones ^= 1;
+    break;
+  default:
     fprintf(stderr, "Illegal postprocessing set parameter.\n");
     exit(-1);
   }

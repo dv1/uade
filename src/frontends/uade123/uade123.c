@@ -368,6 +368,7 @@ int main(int argc, char *argv[])
       break;
     case 'p':
       config_set_panning(optarg);
+      uade_postprocessing_setup(UADE_PANNING_ENABLE);
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -436,7 +437,7 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(basedir);
       break;
     case OPT_HEADPHONES:
-      uade_use_headphones = 1;
+      uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
       break;
     default:
       fprintf(stderr, "impossible option\n");
@@ -504,7 +505,7 @@ int main(int argc, char *argv[])
   if (!audio_init())
     goto cleanup;
 
-  uade_postprocessing_setup(1);
+  uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
     fprintf(stderr, "can not send config name\n");
@@ -734,7 +735,8 @@ static void print_help(void)
   printf(" -m filename,        Set module name\n");
   printf(" -n, --no-filter     No filter emulation.\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
-  printf(" -p x, --panning x,  Set panning value in range [0, 2] (0 = normal, 1 = mono)\n");
+  printf(" -p x, --panning x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
+  printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");
   printf(" -P filename,        Set player name\n");
   printf(" -r/--recursive,     Recursive directory scan\n");
   printf(" -s x, --subsong x,  Set subsong 'x'\n");
@@ -759,13 +761,16 @@ static void print_help(void)
 void print_action_keys(void)
 {
   tprintf("Action keys for interactive mode:\n");
+  tprintf(" [0-9]         Change subsong.\n");
   tprintf(" '.'           Skip 10 seconds forward.\n");
   tprintf(" SPACE, 'b'    Go to next subsong.\n");
   tprintf(" 'c'           Pause.\n");
   tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
   tprintf(" 'h'           Print this list.\n");
+  tprintf(" 'H'           Toggle headphones effect.\n");
   tprintf(" RETURN, 'n'   Next song.\n");
   tprintf(" 'p'           Toggle postprocessing effects.\n");
+  tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");
   tprintf(" 'q'           Quit.\n");
   tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
   tprintf(" 'x'           Restart current subsong.\n");

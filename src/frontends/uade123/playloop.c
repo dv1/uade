@@ -149,13 +149,21 @@ int play_loop(void)
 	  print_action_keys();
 	  tprintf("\n");
 	  break;
+	case 'H':
+	  uade_postprocessing_setup(UADE_HEADPHONES_TOGGLE);
+	  tprintf("\nHeadphones effect %s %s\n", uade_use_headphones ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_headphones == 1 ? "(Remember to turn ON postprocessing!)" : "");
+	  break;
 	case '\n':
 	case 'n':
 	  uade_song_end_trigger = 1;
 	  break;
 	case 'p':
-	  uade_postprocessing_setup(-1);
+	  uade_postprocessing_setup(UADE_POSTPROCESSING_TOGGLE);
 	  tprintf("\nPostprocessing effects %s\n", uade_use_postprocessing ? "ON" : "OFF");
+	  break;
+	case 'P':
+	  uade_postprocessing_setup(UADE_PANNING_TOGGLE);
+	  tprintf("\nPanning effect %s %s\n", uade_use_panning ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_panning == 1 ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'q':
 	  tprintf("\n");

@@ -1,10 +1,13 @@
 2005-10-30  Heikki Orsila <heikki.orsila@iki.fi>
-	- Slight modifications to the headphones effect (alankila)
+	- Modified headphones effect. (alankila)
+	- Added 'H' action key to toggle headphones effect, and 'P' to toggle
+	  panning effect. Default panning value is 0.7, unless specified
+	  otherwise with command line option or in uade.conf.
 
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
-	- Beautified audio.c and sd-sound-generic.h.
 	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'
 	  in ChangeLog from now.
+	- Beautified and cleaned up audio.c and sd-sound-generic.h.
 	- Fixed a bug that caused 1 bit precision loss in audio output.
 	  Sample data was multiplied after filtering, but it should have been
 	  multiplied before. (alankila)

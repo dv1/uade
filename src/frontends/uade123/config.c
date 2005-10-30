@@ -32,7 +32,6 @@ void config_set_panning(const char *value)
     fprintf(stderr, "uade123: illegal panning value: %f\n", uade_panning_value);
     exit(-1);
   }
-  uade_use_panning = 1;
 }
 
 
@@ -145,7 +144,7 @@ int load_config(const char *filename)
       uade_force_filter = 1;
       uade_filter_state = 0;
     } else if (strncmp(key, "headphones", 4) == 0) {
-      uade_use_headphones = 1;
+      uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
       uade_ignore_player_check = 1;
     } else if (strncmp(key, "interpolator", 5) == 0) {
@@ -156,6 +155,7 @@ int load_config(const char *filename)
       uade_one_subsong_per_file = 1;
     } else if (strncmp(key, "panning_value", 3) == 0) {
       config_set_panning(value);
+      uade_postprocessing_setup(UADE_PANNING_ENABLE);
     } else if (strncmp(key, "random_play", 6) == 0) {
       playlist_random(&uade_playlist, 1);
     } else if (strncmp(key, "recursive_mode", 9) == 0) {
