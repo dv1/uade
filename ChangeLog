@@ -2,7 +2,19 @@
 	- Did highly experimental changes to sound core's timing interrupt
 	  system. I tested the change with all known players, and only the
 	  Thomas Hermann broke out, but it was broken already, so no big
-	  loss there.
+	  loss there. Of course I only tested each format with a few songs,
+	  so it's very possible that if the new system doesn't work,
+	  then I couldn't catch the problems. Nevertheless, I spent over an
+	  hour listening to different samples. Testing this change would be
+	  appreciated. One should especially pay attention to tempo, because
+	  that may have gone wrong. The changes I technically made were:
+	  - Made default interrupt timer to be CIA B timer A. Took away all
+	    the hacks to use VBI when ever possible to be the default timer.
+	  - While turning on any CIA B timer (A or B), it does not turn off
+	    the other CIA B timer.
+	  - Fixed CIA B timer initialization. Setting a timer (A or B) gets
+	    the timer value from dtg_Timer(eaglebase).
+	  - Cleaned up audio interrupt server.
 
 2005-10-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modified headphones effect. (alankila)
