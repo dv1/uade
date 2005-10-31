@@ -15,7 +15,9 @@
 	  - Fixed CIA B timer initialization. Setting a timer (A or B) gets
 	    the timer value from dtg_Timer(eaglebase).
 	  - Cleaned up audio interrupt server.
-	- fixed tiny bug in uade123 file extension detection (mld)
+	- Fixed tiny bug in uade123 file extension detection (mld)
+	- Moved amifilemagic, uadeformats, and unixwalkdir modules to
+	  frontends/common/ where they belong.
 
 2005-10-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modified headphones effect. (alankila)

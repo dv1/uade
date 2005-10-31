@@ -49,11 +49,11 @@ uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.
 uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
 	$(CC) $(CFLAGS) -c $<
 
-uadeformats.o:	../../uadeformats.c ../../include/uadeformats.h
+uadeformats.o:	../common/uadeformats.c ../common/uadeformats.h
 	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -c $<
 
-unixwalkdir.o:	../../unixwalkdir.c ../../include/unixwalkdir.h
+unixwalkdir.o:	../common/unixwalkdir.c ../common/unixwalkdir.h
 	$(CC) $(CFLAGS) -c $<
