@@ -13,7 +13,7 @@ clean:
 	rm -f uade123 *.o
 
 
-amifilemagic.o:	../../amifilemagic.c ../../include/amifilemagic.h
+amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
 audio.o:	audio.c audio.h

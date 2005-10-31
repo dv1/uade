@@ -162,7 +162,7 @@ static char *fileformat_detection(const char *modulename)
 
   /* prefix didn't match anything. trying postfix */
   t = strrchr(t, '.');
-  if (strlcpy(extension, t+1, sizeof(extension)) >= sizeof(extension)) {
+  if (strlcpy(extension, t + 1, sizeof(extension)) >= sizeof(extension)) {
     /* too long to be an extension */
     fprintf(stderr, "unknown format: %s\n", modulename);
     return NULL;
