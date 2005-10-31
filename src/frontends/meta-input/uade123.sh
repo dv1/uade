@@ -8,7 +8,6 @@
 ##
 UADEPREFIX="$HOME/.uade2"
 
-
 # strip "file:" URL tag from path
 fname=`echo $2| sed -e s/["file:"]*//`
 
