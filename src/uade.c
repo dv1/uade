@@ -800,8 +800,6 @@ void uade_reset(void)
     bytesread = 0;
   }
 
-  uade_player_attribute_check(song.modulename, song.playername, (unsigned char *) get_real_address(modaddr), bytesread);
-
   /* load sound core (score) */
   if ((file = fopen(song.scorename, "r"))) {
     bytesread = uade_safe_load(scoreaddr, file, uade_highmem - scoreaddr);

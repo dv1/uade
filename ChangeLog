@@ -1,6 +1,10 @@
 2005-11-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Removed src/effects.c. It was accidently left there from uade 1
 	  (alankila)
+	- Removed unnecessary functionality from src/players.c. Black listing
+	  Protracker modules to be VBI timed should be in frontend logic
+	  rather than emulator logic.
+
 2005-10-31  Heikki Orsila <heikki.orsila@iki.fi>
 	- Did highly experimental changes to sound core's timing interrupt
 	  system. I tested the change with all known players, and only the
