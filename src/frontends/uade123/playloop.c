@@ -414,9 +414,9 @@ int play_loop(void)
 	}
 	u32ptr = (uint32_t *) um->data;
 	debug("\nsubsong: %d from range [%d, %d]\n", u32ptr[2], u32ptr[0], u32ptr[1]);
-	min_sub = u32ptr[0];
-	max_sub = u32ptr[1];
-	cur_sub = u32ptr[2];
+	min_sub = ntohl(u32ptr[0]);
+	max_sub = ntohl(u32ptr[1]);
+	cur_sub = ntohl(u32ptr[2]);
 	if (!(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub)) {
 	  int tempmin = min_sub, tempmax = max_sub;
 	  fprintf(stderr, "\nThe player is broken. Subsong info does not match.\n");

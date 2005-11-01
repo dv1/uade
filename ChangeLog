@@ -4,6 +4,8 @@
 	    foo();
 	    bar();
 	  Duh. Why did I forgot {}??
+	- Network byte orderized (this wasn't a source of bug yet) subsong
+	  info transmission between uadecore and frontend.
 
 2005-11-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Removed src/effects.c. It was accidently left there from uade 1

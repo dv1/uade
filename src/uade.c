@@ -241,9 +241,9 @@ void uade_get_amiga_message(void)
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
     u32ptr = (uint32_t *) um->data;
-    u32ptr[0] = mins;
-    u32ptr[1] = maxs;
-    u32ptr[2] = curs;
+    u32ptr[0] = htonl(mins);
+    u32ptr[1] = htonl(maxs);
+    u32ptr[2] = htonl(curs);
     if (uade_send_message(um)) {
       fprintf(stderr, "uadecore: Could not send subsong info message.\n");
       exit(-1);
