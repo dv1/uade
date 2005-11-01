@@ -54,7 +54,6 @@ const char *offset_0000_patterns[] = {
   "SMOD", "FC13",		/* FC 1.3 */
   "FC14", "FC14",		/* FC 1.4 */
   "MMDC", "MMDC",		/* Med packer */
-  "MCMD", "MCMD",		/* Med packer */
   "MSOB", "MSO",		/* Medley */
   "MODU", "NTP",		/* Novotrade */
   "COSO", "HIPC",		/* Hippel Coso */
