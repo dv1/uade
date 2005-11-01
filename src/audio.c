@@ -536,7 +536,7 @@ void AUDxPER (int nr, uae_u16 v)
 	   machines. robocop customs use low values for example. */
 	if (!audperhack) {
 	    audperhack = 1;
-	    fprintf(stderr, "uade: eagleplayer inserted %d into aud%dper\n", v, nr);
+	    uade_send_debug("Eagleplayer inserted %d into aud%dper.", v, nr);
 	}
 	v = 16;
     }

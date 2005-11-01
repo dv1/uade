@@ -45,18 +45,6 @@ enum print_help {
 };
 
 
-/* This macro sends debug messages back to uade frontend, which either prints
-   the message for user or not. "-v" option can be used in uade123 to see all
-   these messages. */
-#define uade_send_debug(fmt, args...) do { \
-  char dmsg[256]; \
-  snprintf(dmsg, sizeof(dmsg), fmt, ## args); \
-  if (uade_send_string(UADE_REPLY_MSG, dmsg)) { \
-    fprintf(stderr, "uadecore %s:%d: Could not send debug message.\n", __FILE__, __LINE__); \
-  } \
-} while (0)
-
-
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_u32(int addr);
 static void uade_print_help(enum print_help problemcode, char *progname);
@@ -194,6 +182,21 @@ void uade_check_sound_buffers(int bytes)
       exit(-1);
     }
     uade_handle_r_state();
+  }
+}
+
+
+/* Send debug messages back to uade frontend, which either prints
+   the message for user or not. "-v" option can be used in uade123 to see all
+   these messages. */
+void uade_send_debug(const char *fmt, ...)
+{
+  char dmsg[256];
+  va_list ap;
+  va_start (ap, fmt);
+  vsnprintf(dmsg, sizeof(dmsg), fmt, ap);
+  if (uade_send_string(UADE_REPLY_MSG, dmsg)) {
+    fprintf(stderr, "uadecore %s:%d: Could not send debug message.\n", __FILE__, __LINE__);
   }
 }
 

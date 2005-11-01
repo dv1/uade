@@ -16,6 +16,7 @@ struct uade_song {
 
 void uade_change_subsong(int subs);
 void uade_check_sound_buffers(int bytes);
+void uade_send_debug(const char *fmt, ...);
 void uade_get_amiga_message(void);
 void uade_handle_r_state(void);
 void uade_option(int, char**); /* handles command line parameters */
