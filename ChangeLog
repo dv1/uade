@@ -4,6 +4,7 @@
 	- Removed unnecessary functionality from src/players.c. Black listing
 	  Protracker modules to be VBI timed should be in frontend logic
 	  rather than emulator logic.
+	- Cleaned up text messages all over the place.
 
 2005-10-31  Heikki Orsila <heikki.orsila@iki.fi>
 	- Did highly experimental changes to sound core's timing interrupt

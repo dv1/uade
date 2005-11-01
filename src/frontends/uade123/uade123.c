@@ -95,11 +95,11 @@ static char *fileformat_detection(const char *modulename)
   static int warnings = 1;
 
   if ((f = fopen(modulename, "r")) == NULL) {
-    fprintf(stderr, "can not open module: %s\n", modulename);
+    fprintf(stderr, "Can not open module: %s\n", modulename);
     return NULL;
   }
   if (fstat(fileno(f), &st)) {
-    fprintf(stderr, "very weird stat error: %s (%s)\n", modulename, strerror(errno));
+    fprintf(stderr, "Very weird stat error: %s (%s)\n", modulename, strerror(errno));
     exit(-1);
   }
   readed = fread(fileformat_buf, 1, sizeof(fileformat_buf), f);
@@ -117,7 +117,7 @@ static char *fileformat_detection(const char *modulename)
     snprintf(formatsfile, sizeof(formatsfile), "%s/uadeformats", basedir);
     if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL) {
       if (warnings)
-	fprintf(stderr, "tried to load uadeformats file from %s, but failed\n", formatsfile);
+	fprintf(stderr, "Tried to load uadeformats file from %s, but failed\n", formatsfile);
       warnings = 0;
       return NULL;
     }
@@ -133,7 +133,7 @@ static char *fileformat_detection(const char *modulename)
     candidates = uade_get_playername(extension, format_ds, format_ds_size);
     if (candidates)
       return candidates;
-    fprintf(stderr, "interesting. a deduced file extension is not on the uadeformats list\n");
+    fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
   }
 
   /* magic wasn't able to deduce the format, so we'll try prefix and postfix
@@ -148,7 +148,7 @@ static char *fileformat_detection(const char *modulename)
   /* try prefix first */
   tn = strchr(t, '.');
   if (tn == NULL) {
-    fprintf(stderr, "unknown format: %s\n", modulename);
+    fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
   len = ((intptr_t) tn) - ((intptr_t) t);
@@ -164,7 +164,7 @@ static char *fileformat_detection(const char *modulename)
   t = strrchr(t, '.');
   if (strlcpy(extension, t + 1, sizeof(extension)) >= sizeof(extension)) {
     /* too long to be an extension */
-    fprintf(stderr, "unknown format: %s\n", modulename);
+    fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
   return uade_get_playername(extension, format_ds, format_ds_size);
@@ -178,13 +178,13 @@ static void fork_exec_uade(void)
   char url[64];
 
   if (pipe(forwardfds) != 0 || pipe(backwardfds) != 0) {
-    fprintf(stderr, "can not create pipes: %s\n", strerror(errno));
+    fprintf(stderr, "Can not create pipes: %s\n", strerror(errno));
     exit(-1);
   }
  
   uadepid = fork();
   if (uadepid < 0) {
-    fprintf(stderr, "fork failed: %s\n", strerror(errno));
+    fprintf(stderr, "Fork failed: %s\n", strerror(errno));
     exit(-1);
   }
   if (uadepid == 0) {
@@ -203,13 +203,13 @@ static void fork_exec_uade(void)
     } else {
       execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
     }
-    fprintf(stderr, "execlp failed: %s\n", strerror(errno));
+    fprintf(stderr, "Execlp failed: %s\n", strerror(errno));
     abort();
   }
 
   /* close fd that uade reads from and writes to */
   if (atomic_close(forwardfds[0]) < 0 || atomic_close(backwardfds[1]) < 0) {
-    fprintf(stderr, "could not close uade fds: %s\n", strerror(errno));
+    fprintf(stderr, "Could not close uade fds: %s\n", strerror(errno));
     trivial_cleanup();
     exit(-1);
   }
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
   };
 
   if (!playlist_init(&uade_playlist)) {
-    fprintf(stderr, "can not initialize playlist\n");
+    fprintf(stderr, "Can not initialize playlist.\n");
     exit(-1);
   }
 
@@ -296,10 +296,10 @@ int main(int argc, char *argv[])
   if (config_loaded == 0)
     config_loaded = load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
   if (config_loaded == 0)
-    fprintf(stderr, "Not able to load uade.conf from ~/.uade2/uade.conf or %s/uade.conf\n", UADE_CONFIG_BASE_DIR);
+    fprintf(stderr, "Not able to load uade.conf from ~/.uade2/uade.conf or %s/uade.conf.\n", UADE_CONFIG_BASE_DIR);
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
-	fprintf(stderr, "too long a string for option %c\n", ret); \
+	fprintf(stderr, "Too long a string for option %c.\n", ret); \
          exit(-1); \
       }
 
@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
       do {
 	FILE *listfile = fopen(optarg, "r");
 	if (listfile == NULL) {
-	  fprintf(stderr, "can not open list file: %s\n", optarg);
+	  fprintf(stderr, "Can not open list file: %s\n", optarg);
 	  exit(-1);
 	}
 	while ((fgets(tmpstr, sizeof(tmpstr), listfile)) != NULL) {
@@ -350,7 +350,7 @@ int main(int argc, char *argv[])
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
       if (*endptr != 0 || uade_jump_pos < 0.0) {
-	fprintf(stderr, "uade123: illegal jump position: %s\n", optarg);
+	fprintf(stderr, "Invalid jump position: %s\n", optarg);
 	exit(-1);
       }
       break;
@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
     case 's':
       subsong = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || subsong < 0 || subsong > 255) {
-	fprintf(stderr, "uade123: illegal subsong string: %s\n", optarg);
+	fprintf(stderr, "Invalid subsong string: %s\n", optarg);
 	exit(-1);
       }
       break;
@@ -417,7 +417,7 @@ int main(int argc, char *argv[])
       uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
-	fprintf(stderr, "uade123: illegal filter state: %s (must 0 or 1)\n", optarg);
+	fprintf(stderr, "Invalid filter state: %s (must 0 or 1)\n", optarg);
 	exit(-1);
       }
       break;
@@ -440,7 +440,7 @@ int main(int argc, char *argv[])
       uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
       break;
     default:
-      fprintf(stderr, "impossible option\n");
+      fprintf(stderr, "Impossible option.\n");
       exit(-1);
     }
   }
@@ -465,12 +465,12 @@ int main(int argc, char *argv[])
   if (basedir[0] == 0)
     strlcpy(basedir, UADE_CONFIG_BASE_DIR, sizeof(basedir));
 
-#define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "must have %s\n", (y)); exit(-1); } } while (0)
+#define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "Must have %s\n", (y)); exit(-1); } } while (0)
 
   if (basedir[0]) {
     DIR *bd;
     if ((bd = opendir(basedir)) == NULL) {
-      fprintf(stderr, "could not access dir %s: %s\n", basedir, strerror(errno));
+      fprintf(stderr, "Could not access dir %s: %s\n", basedir, strerror(errno));
       exit(-1);
     }
     closedir(bd);
@@ -486,15 +486,15 @@ int main(int argc, char *argv[])
   }
 
   if (access(configname, R_OK)) {
-    fprintf(stderr, "could not read %s: %s\n", configname, strerror(errno));
+    fprintf(stderr, "Could not read %s: %s\n", configname, strerror(errno));
     exit(-1);
   }
   if (access(scorename, R_OK)) {
-    fprintf(stderr, "could not read %s: %s\n", scorename, strerror(errno));
+    fprintf(stderr, "Could not read %s: %s\n", scorename, strerror(errno));
     exit(-1);
   }
   if (access(uadename, X_OK)) {
-    fprintf(stderr, "could not execute %s: %s\n", uadename, strerror(errno));
+    fprintf(stderr, "Could not execute %s: %s\n", uadename, strerror(errno));
     exit(-1);
   }
 
@@ -508,7 +508,7 @@ int main(int argc, char *argv[])
   uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
-    fprintf(stderr, "can not send config name\n");
+    fprintf(stderr, "Can not send config name.\n");
     goto cleanup;
   }
 
@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
     ssize_t filesize;
 
     if (access(modulename, R_OK)) {
-      fprintf(stderr, "can not read %s: %s\n", modulename, strerror(errno));
+      fprintf(stderr, "Can not read %s: %s\n", modulename, strerror(errno));
       goto nextsong;
     }
 
@@ -533,10 +533,10 @@ int main(int argc, char *argv[])
       candidates = fileformat_detection(modulename);
 
       if (candidates == NULL) {
-	fprintf(stderr, "unknown format: %s\n", modulename);
+	fprintf(stderr, "Unknown format: %s\n", modulename);
 	goto nextsong;
       }
-      debug("player candidates: %s\n", candidates);
+      debug("Player candidates: %s\n", candidates);
 
       nplayers = 1;
       t = candidates;
@@ -557,7 +557,7 @@ int main(int argc, char *argv[])
 	}
 	playernames[i] = malloc(len + 1);
 	if (playernames[i] == NULL) {
-	  fprintf(stderr, "out of memory.. damn it\n");
+	  fprintf(stderr, "Out of memory.\n");
 	  exit(-1);
 	}
 	memcpy(playernames[i], t, len);
@@ -566,12 +566,12 @@ int main(int argc, char *argv[])
       }
 
       if (nplayers > 1) {
-	fprintf(stderr, "multiple players not supported yet\n");
+	fprintf(stderr, "Multiple players not supported.\n");
 	exit(-1);
       }
 
       if (nplayers < 1) {
-	fprintf(stderr, "skipping file with unknown format: %s\n", modulename);
+	fprintf(stderr, "Skipping file with unknown format: %s\n", modulename);
 	goto nextsong;
       }
 
@@ -585,79 +585,79 @@ int main(int argc, char *argv[])
 
     if (playername[0]) {
       if (access(playername, R_OK)) {
-	fprintf(stderr, "can not read %s: %s\n", playername, strerror(errno));
+	fprintf(stderr, "Can not read %s: %s\n", playername, strerror(errno));
 	goto nextsong;
       }
     }
 
     if ((filesize = stat_file_size(playername)) < 0) {
-      fprintf(stderr, "can not stat player: %s\n", playername);
+      fprintf(stderr, "Can not stat player: %s\n", playername);
       goto nextsong;
     }
     if (uade_verbose_mode || modulename[0] == 0)
       fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
     if (modulename[0] != 0) {
       if ((filesize = stat_file_size(modulename)) < 0) {
-	fprintf(stderr, "can not stat module: %s\n", modulename);
+	fprintf(stderr, "Can not stat module: %s\n", modulename);
 	goto nextsong;
       }
       fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
     }
 
     if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
-      fprintf(stderr, "can not send score name\n");
+      fprintf(stderr, "Can not send score name.\n");
       goto cleanup;
     }
 
     if (uade_send_string(UADE_COMMAND_PLAYER, playername)) {
-      fprintf(stderr, "can not send player name\n");
+      fprintf(stderr, "Can not send player name.\n");
       goto cleanup;
     }
 
     if (uade_send_string(UADE_COMMAND_MODULE, modulename)) {
-      fprintf(stderr, "can not send module name\n");
+      fprintf(stderr, "Can not send module name.\n");
       goto cleanup;
     }
 
     if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-      fprintf(stderr, "can not send token after module\n");
+      fprintf(stderr, "Can not send token after module.\n");
       goto cleanup;
     }
 
     if (uade_receive_message(um, sizeof(space)) <= 0) {
-      fprintf(stderr, "can not receive acknowledgement from uade\n");
+      fprintf(stderr, "Can not receive acknowledgement.\n");
       goto cleanup;
     }
 
     if (um->msgtype == UADE_REPLY_CANT_PLAY) {
-      debug("uade refuses to play the song\n");
+      debug("Uadecore refuses to play the song.\n");
       if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
-	fprintf(stderr, "uade123: can not receive token in main loop\n");
+	fprintf(stderr, "Can not receive token in main loop.\n");
 	exit(-1);
       }
       goto nextsong;
     }
 
     if (um->msgtype != UADE_REPLY_CAN_PLAY) {
-      fprintf(stderr, "unexpected reply from uade: %d\n", um->msgtype);
+      fprintf(stderr, "Unexpected reply from uade: %d\n", um->msgtype);
       goto cleanup;
     }
 
     if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
-      fprintf(stderr, "uade123: can not receive token after play ack\n");
+      fprintf(stderr, "Can not receive token after play ack.\n");
       goto cleanup;
     }
 
     if (uade_ignore_player_check) {
       if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
-	fprintf(stderr, "uade123: can not send ignore check message\n");
+	fprintf(stderr, "Can not send ignore check message.\n");
 	exit(-1);
       }
     }
 
     if (uade_no_song_end) {
       if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
-	fprintf(stderr, "uade123: can not send 'song end not possible'\n");
+	fprintf(stderr, "Can not send 'song end not possible'.\n");
 	exit(-1);
       }
     }
@@ -670,7 +670,7 @@ int main(int argc, char *argv[])
 
     if (speedhack) {
       if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
-	fprintf(stderr, "uade123: Can not send speed hack command.\n");
+	fprintf(stderr, "Can not send speed hack command.\n");
 	exit(-1);
       }
     }
@@ -687,7 +687,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  debug("killing child (%d)\n", uadepid);
+  debug("Killing child (%d).\n", uadepid);
   trivial_cleanup();
   return 0;
 
@@ -788,7 +788,7 @@ void send_filter_command(void)
     ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
   }
   if (uade_send_message(&um)) {
-    fprintf(stderr, "uade123: Can not setup filters.\n");
+    fprintf(stderr, "Can not setup filters.\n");
     exit(-1);
   }
 }
@@ -798,11 +798,11 @@ static void send_interpolation_command(void)
 {
   if (uade_interpolation_mode != NULL) {
     if (strlen(uade_interpolation_mode) == 0) {
-      fprintf(stderr, "uade123: Interpolation mode may not be empty.\n");
+      fprintf(stderr, "Interpolation mode may not be empty.\n");
       exit(-1);
     }
     if (uade_send_string(UADE_COMMAND_SET_INTERPOLATION_MODE, uade_interpolation_mode)) {
-      fprintf(stderr, "uade123: Can not set interpolation mode.\n");
+      fprintf(stderr, "Can not set interpolation mode.\n");
       exit(-1);
     }
   }
@@ -936,7 +936,7 @@ static void trivial_sigchld(int sig)
     return;
   if (process == uadepid) {
     successful = (WEXITSTATUS(status) == 0);
-    debug("uade exited %ssuccessfully\n", successful == 1 ? "" : "un");
+    debug("Uadecore exited %ssuccessfully\n", successful == 1 ? "" : "un");
     uadepid = 0;
     uade_terminated = 1;
   }
@@ -958,7 +958,7 @@ static void trivial_sigint(int sig)
   /* counts number of milliseconds between ctrl-c pushes, and terminates the
      prog if they are less than 100 msecs apart. */ 
   if (gettimeofday(&tv, 0)) {
-    fprintf(stderr, "uade123: gettimeofday() does not work\n");
+    fprintf(stderr, "Gettimeofday() does not work.\n");
     return;
   }
   msecs = 0;

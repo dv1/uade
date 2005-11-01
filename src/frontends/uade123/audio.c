@@ -44,7 +44,7 @@ int audio_init(void)
   if (uade_output_file_name[0]) {
     driver = ao_driver_id(uade_output_file_format[0] ? uade_output_file_format : "wav");
     if (driver < 0) {
-      fprintf(stderr, "illegal libao driver\n");
+      fprintf(stderr, "Invalid libao driver\n");
       return 0;
     }
     libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
@@ -53,7 +53,7 @@ int audio_init(void)
     libao_device = ao_open_live(driver, &format, NULL);
   }
   if (libao_device == NULL) {
-    fprintf(stderr, "error opening device: errno %d\n", errno);
+    fprintf(stderr, "Error opening device: errno %d\n", errno);
     return 0;
   }
   return 1;

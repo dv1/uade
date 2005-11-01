@@ -383,7 +383,7 @@ int play_loop(void)
 
       case UADE_REPLY_SONG_END:
 	if (um->size < 9) {
-	  fprintf(stderr, "\nillegal song end reply\n");
+	  fprintf(stderr, "\nInvalid song end reply\n");
 	  exit(-1);
 	}
 	tailbytes = ntohl(((uint32_t *) um->data)[0]);
@@ -435,7 +435,7 @@ int play_loop(void)
 	break;
 	
       default:
-	fprintf(stderr, "\nuade123: expected sound data. got %d.\n", um->msgtype);
+	fprintf(stderr, "\nExpected sound data. got %d.\n", um->msgtype);
 	return 0;
       }
     }
@@ -444,11 +444,11 @@ int play_loop(void)
   do {
     ret = uade_receive_message(um, sizeof(space));
     if (ret < 0) {
-      fprintf(stderr, "\nuade123: can not receive events (TOKEN) from uade\n");
+      fprintf(stderr, "\nCan not receive events (TOKEN) from uade.\n");
       return 0;
     }
     if (ret == 0) {
-      fprintf(stderr, "\nuade123: end of input after reboot\n");
+      fprintf(stderr, "\nEnd of input after reboot.\n");
       return 0;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);

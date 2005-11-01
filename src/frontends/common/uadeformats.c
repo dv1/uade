@@ -142,13 +142,13 @@ void *uade_read_uadeformats(int *nformats, char *filename)
       line[len - 1] = 0;
     pos = skip_ws(line, 0);
     if (pos < 0) {
-      fprintf(stderr, "illegal line in format file: %s\n", line);
+      fprintf(stderr, "Invalid line in format file: %s\n", line);
       continue;
     }
     /* get extension name */
     next = skip_nws(line, pos);
     if (next < 0) {
-      fprintf(stderr, "illegal line in format file: %s\n", line);
+      fprintf(stderr, "Invalid line in format file: %s\n", line);
       continue;
     }
     line[next] = 0;
@@ -160,7 +160,7 @@ void *uade_read_uadeformats(int *nformats, char *filename)
 
     pos = skip_ws(line, pos);
     if (pos < 0) {
-      fprintf(stderr, "illegal line in format file: %s\n", line);
+      fprintf(stderr, "Invalid line in format file: %s\n", line);
       continue;
     }
 

@@ -24,12 +24,12 @@ void config_set_panning(const char *value)
 {
   char *endptr;
   if (value == NULL) {
-    fprintf(stderr, "must have a parameter value for panning value in config file %s\n", config_filename);
+    fprintf(stderr, "Must have a parameter value for panning value in config file %s\n", config_filename);
     exit(-1);
   }
   uade_panning_value = strtod(value, &endptr);
   if (*endptr != 0 || uade_panning_value < 0.0 || uade_panning_value > 2.0) {
-    fprintf(stderr, "uade123: illegal panning value: %f\n", uade_panning_value);
+    fprintf(stderr, "Invalid panning value: %f\n", uade_panning_value);
     exit(-1);
   }
 }
@@ -39,12 +39,12 @@ void config_set_silence_timeout(const char *value)
 {
   char *endptr;
   if (value == NULL || value[0] == 0) {
-    fprintf(stderr, "must have a parameter value for silence timeout in config file %s\n", config_filename);
+    fprintf(stderr, "Must have a parameter value for silence timeout in config file %s\n", config_filename);
     exit(-1);
   }
   uade_silence_timeout = strtol(value, &endptr, 10);
   if (*endptr != 0 || uade_silence_timeout < -1) {
-    fprintf(stderr, "uade123: illegal silence timeout value: %s\n", value);
+    fprintf(stderr, "Invalid silence timeout value: %s\n", value);
     exit(-1);
   }
 }
@@ -54,12 +54,12 @@ void config_set_subsong_timeout(const char *value)
 {
   char *endptr;
   if (value == NULL || value[0] == 0) {
-    fprintf(stderr, "must have a parameter value for subsong timeout in config file %s\n", config_filename);
+    fprintf(stderr, "Must have a parameter value for subsong timeout in config file %s\n", config_filename);
     exit(-1);
   }
   uade_subsong_timeout = strtol(value, &endptr, 10);
   if (*endptr != 0 || uade_subsong_timeout < -1) {
-    fprintf(stderr, "uade123: illegal subsong timeout value: %s\n", value);
+    fprintf(stderr, "Invalid subsong timeout value: %s\n", value);
     exit(-1);
   }
 }
@@ -69,12 +69,12 @@ void config_set_timeout(const char *value)
 {
   char *endptr;
   if (value == NULL) {
-    fprintf(stderr, "must have a parameter value for timeout value in config file %s\n", config_filename);
+    fprintf(stderr, "Must have a parameter value for timeout value in config file %s\n", config_filename);
     exit(-1);
   }
   uade_timeout = strtol(value, &endptr, 10);
   if (*endptr != 0 || uade_timeout < -1) {
-    fprintf(stderr, "uade123: illegal timeout value: %s\n", value);
+    fprintf(stderr, "Invalid timeout value: %s\n", value);
     exit(-1);
   }
 }
@@ -167,7 +167,7 @@ int load_config(const char *filename)
     } else if (strncmp(key, "timeout_value", 7) == 0) {
       config_set_timeout(value);
     } else {
-      fprintf(stderr, "unknown config key in %s on line %d: %s\n", filename, linenumber, key);
+      fprintf(stderr, "Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
     }
   }
 

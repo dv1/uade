@@ -45,6 +45,18 @@ enum print_help {
 };
 
 
+/* This macro sends debug messages back to uade frontend, which either prints
+   the message for user or not. "-v" option can be used in uade123 to see all
+   these messages. */
+#define uade_send_debug(fmt, args...) do { \
+  char dmsg[256]; \
+  snprintf(dmsg, sizeof(dmsg), fmt, ## args); \
+  if (uade_send_string(UADE_REPLY_MSG, dmsg)) { \
+    fprintf(stderr, "uadecore %s:%d: Could not send debug message.\n", __FILE__, __LINE__); \
+  } \
+} while (0)
+
+
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_u32(int addr);
 static void uade_print_help(enum print_help problemcode, char *progname);
@@ -141,7 +153,6 @@ static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
 void uade_change_subsong(int subsong)
 {
   song.cur_subsong = subsong;
-  /* fprintf(stderr, "uade: current subsong %d\n", subsong); */
   uade_put_long(SCORE_SUBSONG, subsong);
   uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
   flush_sound();
@@ -161,20 +172,15 @@ void uade_check_sound_buffers(int bytes)
   /* LED state changes are reported here because we are in send state and
      this place is heavily rate limited. */
   if (old_ledstate != gui_ledstate) {
-    char msg[32];
     old_ledstate = gui_ledstate;
-    snprintf(msg, sizeof(msg), "LED is %s", gui_ledstate ? "ON" : "OFF");
-    if (uade_send_string(UADE_REPLY_MSG, msg)) {
-      fprintf(stderr, "uade: Can not send message.\n");
-      exit(-1);
-    }
+    uade_send_debug("LED is %s", gui_ledstate ? "ON" : "OFF");
   }
 
   um->msgtype = UADE_REPLY_DATA;
   um->size = bytes;
   memcpy(um->data, sndbuffer, bytes);
   if (uade_send_message(um)) {
-    fprintf(stderr, "uade: could not send data\n");
+    fprintf(stderr, "uadecore: Could not send sample data.\n");
     exit(-1);
   }
 
@@ -184,7 +190,7 @@ void uade_check_sound_buffers(int bytes)
   if (uade_read_size == 0) {
     /* if all requested data has been sent, move to S state */
     if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-      fprintf(stderr, "uade: could not send token\n");
+      fprintf(stderr, "uadecore: Could not send token (after samples).\n");
       exit(-1);
     }
     uade_handle_r_state();
@@ -198,7 +204,7 @@ void uade_get_amiga_message(void)
   uae_u8 *nameptr;
   FILE *file;
   int x;
-  int mins, maxs, curs;
+  unsigned int mins, maxs, curs;
   int status;
   int src, dst, off, len;
   char tmpstr[256];
@@ -219,10 +225,15 @@ void uade_get_amiga_message(void)
     mins = uade_get_u32(SCORE_MIN_SUBSONG);
     maxs = uade_get_u32(SCORE_MAX_SUBSONG);
     curs = uade_get_u32(SCORE_CUR_SUBSONG);
-    /* brain damage in TFMX BC Kid Despair */
-    if (maxs < mins)
+    /* Brain damage in TFMX BC Kid Despair */
+    if (maxs < mins) {
+      uade_send_debug("Odd subsongs. Eagleplayer reported (min, cur, max) == (%u, %u, %u)", mins, curs, maxs);
       maxs = mins;
-    /* fprintf(stderr, "uade: subsong info: minimum: %d maximum: %d current: %d\n", mins, maxs, curs); */
+    }
+    /* Brain damage in Bubble bobble custom */
+    if (curs > maxs)
+      uade_send_debug("Odd subsongs. Eagleplayer reported (min, cur, max) == (%u, %u, %u)", mins, curs, maxs);
+      maxs = curs;
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
     u32ptr = (uint32_t *) um->data;
@@ -230,31 +241,28 @@ void uade_get_amiga_message(void)
     u32ptr[1] = maxs;
     u32ptr[2] = curs;
     if (uade_send_message(um)) {
-      fprintf(stderr, "could not send subsong info message\n");
+      fprintf(stderr, "uadecore: Could not send subsong info message.\n");
       exit(-1);
     }
     break;
 
   case AMIGAMSG_PLAYERNAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    /* fprintf(stderr,"uade: playername: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr);
     break;
 
   case AMIGAMSG_MODULENAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    /* fprintf(stderr,"uade: modulename: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_MODULENAME, tmpstr);
     break;
 
   case AMIGAMSG_FORMATNAME:
     strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
-    /* fprintf(stderr,"uade: formatname: %s\n", tmpstr); */
     uade_send_string(UADE_REPLY_FORMATNAME, tmpstr);
     break;
 
   case AMIGAMSG_GENERALMSG:
-    uade_send_string(UADE_REPLY_MSG, get_real_address(0x204));
+    uade_send_debug(get_real_address(0x204));
     break;
 
   case AMIGAMSG_CHECKERROR:
@@ -263,7 +271,7 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_SCORECRASH:
     if (uade_debug) {
-      fprintf(stderr,"uade: failure: score crashed\n");
+      fprintf(stderr, "uadecore: Score crashed.\n");
       activate_debugger();
       break;
     }
@@ -272,7 +280,7 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_SCOREDEAD:
      if (uade_debug) {
-      fprintf(stderr,"uade: score is dead\n"); 
+      fprintf(stderr, "uadecore: Score is dead.\n"); 
       activate_debugger();
       break;
     }
@@ -284,7 +292,7 @@ void uade_get_amiga_message(void)
        0x208 and insert the length to 0x20C */
     src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
-      fprintf(stderr, "uade: load: name in invalid address range\n");
+      fprintf(stderr, "uadecore: Load name in invalid address range.\n");
       break;
     }
     nameptr = get_real_address(src);
@@ -293,21 +301,21 @@ void uade_get_amiga_message(void)
       len = uade_safe_load(dst, file, uade_highmem - dst);
       fclose(file); file = 0;
       uade_put_long(0x20C, len);
-      /* fprintf(stderr, "uade: load: %s: ptr = 0x%x size = 0x%x\n", nameptr, dst, len); */
+      /* fprintf(stderr, "uadecore: load: %s: ptr = 0x%x size = 0x%x\n", nameptr, dst, len); */
     }
     break;
 
   case AMIGAMSG_READ:
     src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
-      fprintf(stderr, "uade: read: name in invalid address range\n");
+      fprintf(stderr, "uadecore: Read name in invalid address range.\n");
       break;
     }
     nameptr = get_real_address(src);
     dst = uade_get_u32(0x208);
     off = uade_get_u32(0x20C);
     len = uade_get_u32(0x210);
-    /* fprintf(stderr,"uade: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
+    /* fprintf(stderr,"uadecore: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
     if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
       if (fseek(file, off, SEEK_SET)) {
 	perror("can not fseek to position");
@@ -320,7 +328,7 @@ void uade_get_amiga_message(void)
       fclose(file);
       uade_put_long(0x214, x);
     } else {
-      fprintf(stderr, "uade: read: error when reading '%s'\n", nameptr);
+      fprintf(stderr, "uadecore: Read error with '%s'\n", nameptr);
       uade_put_long(0x214, 0);
     }
     break;
@@ -328,7 +336,7 @@ void uade_get_amiga_message(void)
   case AMIGAMSG_FILESIZE:
     src = uade_get_u32(0x204);
     if (!uade_valid_string(src)) {
-      fprintf(stderr, "uade: filesize: name in invalid address range\n");
+      fprintf(stderr, "uadecore: Filesize name in invalid address range.\n");
       break;
     }
     nameptr = get_real_address(src);
@@ -336,11 +344,10 @@ void uade_get_amiga_message(void)
       fseek(file, 0, SEEK_END);
       len = ftell(file);
       fclose(file);
-      /* fprintf(stderr, "uade: size: 0x%x '%s'\n", len, nameptr); */
       uade_put_long(0x208, len);
       uade_put_long(0x20C, -1);
     } else {
-      fprintf(stderr, "uade: can't get file size for '%s'\n", nameptr);
+      fprintf(stderr, "uadecore: Can not get file size for '%s'\n", nameptr);
       uade_put_long(0x208, 0);
       uade_put_long(0x20C, 0);
     }
@@ -359,7 +366,7 @@ void uade_get_amiga_message(void)
     dst = uade_get_u32(0x208);
     len = uade_get_u32(0x20C);
     if (!uade_valid_string(src) || !uade_valid_string(dst)) {
-      fprintf(stderr, "uade: invalid address from 0x%x or 0x%x\n", src, dst);
+      fprintf(stderr, "uadecore: Invalid address from 0x%x or 0x%x\n", src, dst);
       break;
     }
     len = uade_get_info(get_real_address(dst), get_real_address(src), len);
@@ -368,15 +375,11 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_START_OUTPUT:
     uade_audio_output = 1;
-    snprintf(tmpstr, sizeof(tmpstr), "starting audio output at %d", uade_audio_skip);
-    if (uade_send_string(UADE_REPLY_MSG, tmpstr)) {
-      fprintf(stderr, "can not send audio output start string\n");
-      exit(-1);
-    }
+    uade_send_debug("Starting audio output at %d", uade_audio_skip);
     break;
 
   default:
-    fprintf(stderr,"uade: unknown message from score (%d)\n", x);
+    fprintf(stderr,"uadecore: Unknown message from score (%d)\n", x);
     break;
   }
 }
@@ -393,10 +396,10 @@ void uade_handle_r_state(void)
 
     ret = uade_receive_message(um, sizeof(space));
     if (ret == 0) {
-      fprintf(stderr, "no more input. exiting succesfully.\n");
+      fprintf(stderr, "uadecore: No more input. Exiting succesfully.\n");
       exit(0);
     } else if (ret < 0) {
-      fprintf(stderr, "error on input. exiting with error\n");
+      fprintf(stderr, "uadecore: Error on input. Exiting with error.\n");
       exit(-1);
     }
 
@@ -406,14 +409,14 @@ void uade_handle_r_state(void)
     switch (um->msgtype) {
 
     case UADE_COMMAND_ACTIVATE_DEBUGGER:
-      fprintf(stderr, "received activate debugger message\n");
+      fprintf(stderr, "uadecore: Received activate debugger message.\n");
       activate_debugger();
       uade_debug = 1;
       break;
 
     case UADE_COMMAND_CHANGE_SUBSONG:
       if (um->size != 4) {
-	fprintf(stderr, "illegal size with change subsong\n");
+	fprintf(stderr, "uadecore: Invalid size with change subsong.\n");
 	exit(-1);
       }
       x = ntohl(* (uint32_t *) um->data);
@@ -422,7 +425,7 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_FILTER:
       if (um->size != 8) {
-	fprintf(stderr, "illegal size with filter command\n");
+	fprintf(stderr, "uadecore: Invalid size with filter command\n");
 	exit(-1);
       }
       do {
@@ -456,16 +459,16 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_READ:
       if (uade_read_size != 0) {
-	fprintf(stderr, "read not allowed when uade_read_size > 0\n");
+	fprintf(stderr, "uadecore: Read not allowed when uade_read_size > 0.\n");
 	exit(-1);
       }
       if (um->size != 4) {
-	fprintf(stderr, "illegal size on read command\n");
+	fprintf(stderr, "uadecore: Invalid size on read command.\n");
 	exit(-1);
       }
       uade_read_size = ntohl(* (uint32_t *) um->data);
       if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
-	fprintf(stderr, "illegal read size: %d\n", uade_read_size);
+	fprintf(stderr, "uadecore: Invalid read size: %d\n", uade_read_size);
 	exit(-1);
       }
       break;
@@ -475,7 +478,7 @@ void uade_handle_r_state(void)
       break;
 
     case UADE_COMMAND_SET_NTSC:
-      fprintf(stderr, "changing to NTSC mode\n");
+      fprintf(stderr, "uadecore: Changing to NTSC mode.\n");
       uade_set_ntsc(1);
       break;
 
@@ -485,7 +488,7 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_SET_SUBSONG:
       if (um->size != 4) {
-	fprintf(stderr, "illegal size on set subsong command\n");
+	fprintf(stderr, "uadecore: Invalid size on set subsong command.\n");
 	exit(-1);
       }
       uade_put_long(SCORE_SET_SUBSONG, 1);
@@ -493,7 +496,7 @@ void uade_handle_r_state(void)
       break;
 
     default:
-      fprintf(stderr, "error: received command %d\n", um->msgtype);
+      fprintf(stderr, "uadecore: Received invalid command %d\n", um->msgtype);
       exit(-1);
     }
   }
@@ -518,7 +521,7 @@ void uade_option(int argc, char **argv)
 
   s_argv = malloc(sizeof(argv[0]) * (argc + 1));
   if (!s_argv) {
-    fprintf (stderr, "uade: out of memory for command line parsing\n");
+    fprintf (stderr, "uadecore: Out of memory for command line parsing.\n");
     exit(-1);
   }
   s_argc = 0;
@@ -539,7 +542,7 @@ void uade_option(int argc, char **argv)
 
       } else if (!strcmp(argv[i], "-i")) {
 	if ((i + 1) >= argc) {
-	  fprintf(stderr, "%s parameter missing\n", argv[i]);
+	  fprintf(stderr, "uadecore: %s parameter missing\n", argv[i]);
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
@@ -548,7 +551,7 @@ void uade_option(int argc, char **argv)
 
       } else if (!strcmp(argv[i], "-o")) {
 	if ((i + 1) >= argc) {
-	  fprintf(stderr, "%s parameter missing\n", argv[i]);
+	  fprintf(stderr, "uadecore: %s parameter missing\n", argv[i]);
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
@@ -571,10 +574,10 @@ void uade_option(int argc, char **argv)
 
   ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
   if (ret == 0) {
-    fprintf(stderr, "no config file passed as a message\n");
+    fprintf(stderr, "uadecore: No config file passed as a message.\n");
     exit(-1);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input (expected a config file)\n");
+    fprintf(stderr, "uadecore: Invalid input. Eexpected a config file.\n");
     exit(-1);
   }
 
@@ -582,7 +585,7 @@ void uade_option(int argc, char **argv)
      was not given */
   if (!cfg_loaded) {
     if (cfgfile_load (&currprefs, optionsfile) == 0) {
-      fprintf(stderr, "couldn't load uaerc (%s)!\n", optionsfile);
+      fprintf(stderr, "uadecore: Could not load uaerc (%s).\n", optionsfile);
       exit(-1);
     }
   }
@@ -602,13 +605,13 @@ static void uade_print_help(enum print_help problemcode, char *progname)
     /* just for printing help */
     break;
   case OPTION_ILLEGAL_PARAMETERS:
-    fprintf(stderr, "Illegal parameters\n\n");
+    fprintf(stderr, "uadecore: Invalid parameters.\n\n");
     break;
   case OPTION_NO_SONGS:
-    fprintf(stderr, "No songs given as parameters\n\n");
+    fprintf(stderr, "uadecore: No songs given as parameters.\n\n");
     break;
   default:
-    fprintf(stderr, "Unknown error\n");
+    fprintf(stderr, "uadecore: Unknown error.\n");
     break;
   }
   fprintf(stderr, "UADE usage:\n");
@@ -631,7 +634,7 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
   FILE *file;
   file = fopen(name, "r");
   if (!file) {
-    fprintf(stderr,"uade: couldn't load %s %s\n", expl, name);
+    fprintf(stderr, "uadecore: Could not load %s %s.\n", expl, name);
     return 0;
   }
   bytesread = uade_safe_load(vaddr, file, maxlen);
@@ -675,11 +678,11 @@ void uade_reset(void)
     uade_highmem += 0x10000;
   }
   if (uade_highmem < 0x80000) {
-    fprintf(stderr, "fatal error: there must be at least 512 KiB of amiga memory (%d bytes found)\n", uade_highmem);
+    fprintf(stderr, "uadecore: There must be at least 512 KiB of amiga memory (%d bytes found).\n", uade_highmem);
     exit(-1);
   }
   if (uade_highmem < 0x200000) {
-    fprintf(stderr, ": warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
+    fprintf(stderr, "uadecore: Warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
   }
   memset(get_real_address(0), 0, uade_highmem);
 
@@ -687,33 +690,33 @@ void uade_reset(void)
 
   ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
   if (ret == 0) {
-    fprintf(stderr,"uade: no more songs to play\n");
+    fprintf(stderr, "uadecore: No more songs to play.\n");
     exit(0);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input (expected score name)\n");
+    fprintf(stderr, "uadecore: Invalid input. Expected score name.\n");
     exit(-1);
   }
 
   ret = uade_receive_string(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
   if (ret == 0) {
-    fprintf(stderr,"expected player name. got nothing.\n");
+    fprintf(stderr, "uadecore: Expected player name. Got nothing.\n");
     exit(-1);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input (expected player name)\n");
+    fprintf(stderr, "uadecore: Invalid input. Expected player name.\n");
     exit(-1);
   }
 
   if (uade_dirname(uade_player_dir, song.playername, sizeof(uade_player_dir)) == NULL) {
-    fprintf(stderr, "illegal dirname with player: %s\n", song.playername);
+    fprintf(stderr, "uadecore: Invalid dirname with player: %s\n", song.playername);
     exit(-1);
   }
 
   ret = uade_receive_message(um, maxcommand);
   if (ret == 0) {
-    fprintf(stderr,"expected module name. got nothing.\n");
+    fprintf(stderr,"uadecore: Expected module name. Got nothing.\n");
     exit(-1);
   } else if (ret < 0) {
-    fprintf(stderr, "illegal input (expected module name)\n");
+    fprintf(stderr, "uadecore: Invalid input. Expected module name.\n");
     exit(-1);
   }
   if (um->msgtype != UADE_COMMAND_MODULE)
@@ -735,21 +738,21 @@ void uade_reset(void)
   bytesread = uade_safe_load_name(playeraddr, song.playername, "player", uade_highmem - playeraddr);
 
   if (bytesread > (uade_highmem - playeraddr)) {
-    fprintf (stderr, "uade: player %s too big a file (%d bytes)\n", song.playername, bytesread);
+    fprintf (stderr, "uadecore: Player %s too big a file (%d bytes).\n", song.playername, bytesread);
     goto skiptonextsong;
   }
   if (bytesread == 0) {
     goto skiptonextsong;
   }
 
-  /* fprintf(stderr, "uade: player '%s' (%d bytes)\n", song.playername, bytesread); */
+  /* fprintf(stderr, "uadecore: player '%s' (%d bytes)\n", song.playername, bytesread); */
 
   /* set player executable address for relocator */
   uade_put_long(SCORE_PLAYER_ADDR, playeraddr);
   len = uade_calc_reloc_size((uae_u32 *) get_real_address(playeraddr),
 			     (uae_u32 *) get_real_address(playeraddr + bytesread));
   if (!len) {
-    fprintf(stderr, "uade: problem with reloc calculation\n");
+    fprintf(stderr, "uadecore: Problem with reloc calculation.\n");
     goto skiptonextsong;
   }
   relocaddr  = ((playeraddr + bytesread) & 0x7FFFF000) + 0x4000;
@@ -758,7 +761,7 @@ void uade_reset(void)
 
   if (modaddr <= relocaddr) {
     /* this is very bad because sound core memory allocation will fail */
-    fprintf(stderr, "uade: this is a very bad: modaddr <= relocaddr: 0x%x <= 0x%x\n", modaddr, relocaddr);
+    fprintf(stderr, "uadecore: Warning: modaddr <= relocaddr: 0x%x <= 0x%x\n", modaddr, relocaddr);
   }
 
   uade_put_long(SCORE_RELOC_ADDR, relocaddr);  /*address for relocated player*/
@@ -770,17 +773,17 @@ void uade_reset(void)
   if (song.modulename[0]) {
     bytesread = uade_safe_load_name(modaddr, song.modulename, "module", uade_highmem - modaddr);
     if (bytesread > (uade_highmem - playeraddr)) {
-      fprintf (stderr, "uade: module %s too big a file (%d bytes)\n", song.modulename, bytesread);
+      fprintf (stderr, "uadecore: Module %s too big a file (%d bytes).\n", song.modulename, bytesread);
       goto skiptonextsong;
     }
     if (bytesread == 0) {
       goto skiptonextsong;
     }
-    /* fprintf(stderr, "uade: module '%s' (%d bytes)\n", song.modulename, bytesread); */
+
     uade_put_long(SCORE_MODULE_LEN, bytesread);
 
     if (!valid_address(modnameaddr, strlen(song.modulename) + 1)) {
-      fprintf(stderr, "uade: invalid address for modulename\n");
+      fprintf(stderr, "uadecore: Invalid address for modulename.\n");
       goto skiptonextsong;
     }
 
@@ -790,7 +793,7 @@ void uade_reset(void)
   } else {
 
     if (!valid_address(modnameaddr, strlen(song.playername) + 1)) {
-      fprintf(stderr, "uade: invalid address for playername\n");
+      fprintf(stderr, "uadecore: Invalid address for playername.\n");
       goto skiptonextsong;
     }
 
@@ -805,7 +808,7 @@ void uade_reset(void)
     bytesread = uade_safe_load(scoreaddr, file, uade_highmem - scoreaddr);
     fclose(file);
   } else {
-    fprintf (stderr, "uade: can't load score (%s)\n", song.scorename);
+    fprintf (stderr, "uadecore: Can not load score (%s).\n", song.scorename);
     goto skiptonextsong;
   }
 
@@ -829,7 +832,7 @@ void uade_reset(void)
   /* no message for score */
   uade_put_long(SCORE_OUTPUT_MSG, 0);
   if ((userstack - (scoreaddr + bytesread)) < 0x1000)
-    fprintf(stderr, "uade: amiga stack overrun warning!\n");
+    fprintf(stderr, "uadecore: Amiga stack overrun warning.\n");
 
   flush_sound();
 
@@ -848,34 +851,34 @@ void uade_reset(void)
   old_ledstate = gui_ledstate;
 
   if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
-    fprintf(stderr, "uade: can not receive token in uade_reset()\n");
+    fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
     exit(-1);
   }
 
   if (uade_send_short_message(UADE_REPLY_CAN_PLAY)) {
-    fprintf(stderr, "uade: can not send 'CAN_PLAY' reply\n");
+    fprintf(stderr, "uadecore: Can not send 'CAN_PLAY' reply.\n");
     exit(-1);
   }
   if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-    fprintf(stderr, "uade: can not send token from uade_reset()\n");
+    fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
     exit(-1);
   }
   return;
 
  skiptonextsong:
-  fprintf(stderr, "uade: can't play. reboot.\n");
+  fprintf(stderr, "uadecore: Can not play. Reboot.\n");
 
   if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
-    fprintf(stderr, "uade: can not receive token in uade_reset()\n");
+    fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
     exit(-1);
   }
 
   if (uade_send_short_message(UADE_REPLY_CANT_PLAY)) {
-    fprintf(stderr, "uade: can not send 'CANT_PLAY' reply\n");
+    fprintf(stderr, "uadecore: Can not send 'CANT_PLAY' reply.\n");
     exit(-1);
   }
   if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-    fprintf(stderr, "uade: can not send token from uade_reset()\n");
+    fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
     exit(-1);
   }
   goto nextsong;
@@ -886,7 +889,7 @@ static void uade_put_long(int addr, int val)
 {
   uae_u32 *p;
   if (!valid_address(addr, 4)) {
-    fprintf(stderr, "uade: invalid uade_put_long (0x%x)\n", addr);
+    fprintf(stderr, "uadecore: Invalid uade_put_long (0x%x).\n", addr);
     return;
   }
   p = (uae_u32 *) get_real_address(addr);
@@ -899,7 +902,7 @@ static int uade_get_u32(int addr)
   uae_u32 *ptr;
   int x;
   if (!valid_address(addr, 4)) {
-    fprintf(stderr, "uade: invalid uade_get_u32 (0x%x)\n", addr);
+    fprintf(stderr, "uadecore: Invalid uade_get_u32 (0x%x).\n", addr);
     return 0;
   }
   ptr = (uae_u32 *) get_real_address(addr);
@@ -923,7 +926,7 @@ static int uade_safe_load(int dst, FILE *file, int maxlen)
     if (!nbytes)
       break;
     if (!valid_address(dst + off, nbytes)) {
-      fprintf(stderr, "uade: illegal load range [%x,%x)\n", dst + off, dst + off + nbytes);
+      fprintf(stderr, "uadecore: Invalid load range [%x,%x).\n", dst + off, dst + off + nbytes);
       break;
     }
     memcpy(get_real_address(dst + off), buf, nbytes);
@@ -940,13 +943,11 @@ static int uade_safe_load(int dst, FILE *file, int maxlen)
 static void uade_safe_get_string(char *dst, int src, int maxlen)
 {
   int i = 0;
-  while(1) {
-    if (i >= maxlen) {
-      fprintf(stderr, "uade: safe_get_string: i over maxlen\n");
+  while (1) {
+    if (i >= maxlen)
       break;
-    }
     if (!valid_address(src + i, 1)) {
-      fprintf(stderr, "uade: safe_get_string: invalid memory range\n");
+      fprintf(stderr, "uadecore: Invalid memory range in safe_get_string.\n");
       break;
     }
     dst[i] = * (char *) get_real_address(src + i);
@@ -956,7 +957,7 @@ static void uade_safe_get_string(char *dst, int src, int maxlen)
     if (i < maxlen) {
       dst[i] = 0;
     } else { 
-      fprintf(stderr, "uade: safe_get_string: null termination warning!\n");
+      fprintf(stderr, "uadecore: Warning: string truncated.\n");
       dst[maxlen - 1] = 0;
     }
   }
@@ -987,14 +988,13 @@ void uade_song_end(char *reason, int kill_it)
 {
   uint8_t space[sizeof(struct uade_msg) + 4 + 256];
   struct uade_msg *um = (struct uade_msg *) space;
-  /* fprintf(stderr, "uade: song end (%s)\n", reason); */
   um->msgtype = UADE_REPLY_SONG_END;
   ((uint32_t *) um->data)[0] = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
   ((uint32_t *) um->data)[1] = htonl(kill_it);
   strlcpy(((uint8_t *) um->data) + 8, reason, 256);
   um->size = 8 + strlen(reason) + 1;
   if (uade_send_message(um)) {
-    fprintf(stderr, "uade: could not send song end message\n");
+    fprintf(stderr, "uadecore: Could not send song end message.\n");
     exit(-1);
   }
   /* if audio_output is zero (and thus the client is waiting for the first
@@ -1028,6 +1028,6 @@ static int uade_valid_string(uae_u32 address)
       return 1;
     address++;
   }
-  fprintf(stderr, "uade: invalid string at 0x%x\n", address);
+  fprintf(stderr, "uadecore: Invalid string at 0x%x.\n", address);
   return 0;
 }
