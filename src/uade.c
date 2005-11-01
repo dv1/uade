@@ -234,9 +234,10 @@ void uade_get_amiga_message(void)
       maxs = mins;
     }
     /* Brain damage in Bubble bobble custom */
-    if (curs > maxs)
+    if (curs > maxs) {
       uade_send_debug("Odd subsongs. Eagleplayer reported (min, cur, max) == (%u, %u, %u)", mins, curs, maxs);
       maxs = curs;
+    }
     um->msgtype = UADE_REPLY_SUBSONG_INFO;
     um->size = 12;
     u32ptr = (uint32_t *) um->data;

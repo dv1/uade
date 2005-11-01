@@ -1,3 +1,10 @@
+2005-11-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed a very stupid bug I introduced yesterday to src/uade.c.
+	  if (curs > maxs)
+	    foo();
+	    bar();
+	  Duh. Why did I forgot {}??
+
 2005-11-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Removed src/effects.c. It was accidently left there from uade 1
 	  (alankila)
