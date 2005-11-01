@@ -243,8 +243,10 @@ sjs	SoundPlayer
 skt	PTK-Prowiz
 skyt	PTK-Prowiz
 sm	SoundMaster
+smpro	SoundMaster
 sm1	SoundMaster
 sm2	SoundMaster
+sm3	SoundMaster
 smn	SIDMon1.0
 smus	SonixMusicDriver
 sndmon	SoundMon
