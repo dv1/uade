@@ -172,6 +172,10 @@ int play_loop(void)
 	  playlist_random(&uade_playlist, -1);
 	  tprintf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
 	  break;
+	case 'v':
+	  uade_verbose_mode ^= 1;
+	  tprintf("\nVerbose mode %s\n", uade_verbose_mode ? "ON" : "OFF");
+	  break;
 	case 'x':
 	  cur_sub--;
 	  subsong_end = 1;

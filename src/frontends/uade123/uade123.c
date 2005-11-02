@@ -773,6 +773,7 @@ void print_action_keys(void)
   tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");
   tprintf(" 'q'           Quit.\n");
   tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
+  tprintf(" 'v'           Toggle verbose mode.\n");
   tprintf(" 'x'           Restart current subsong.\n");
   tprintf(" 'z'           Previous subsong.\n");
 }
