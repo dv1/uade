@@ -1,3 +1,16 @@
+2005-11-03  Heikki Orsila <heikki.orsila@iki.fi>
+	UADE 1.50-pre8
+	- Many bug fixes and cleanups.
+	- Headphones postprocessing effect.
+	- Improved A1200 filter emulation.
+	- Added A500 filter emulation. Use --filter=a500.
+	- Cleaned up sound cores timer code.
+	- Fixed CIA timer initialization.
+	- Improved uade123 user interface. Press 'h' in uade123 or list
+	  action keys with uade123 --help.
+	- New sample interpolation code (--interpolator=cspline).
+	- --stderr can be used to pipe sound data to stdout.
+
 2005-11-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a very stupid bug I introduced yesterday to src/uade.c.
 	  if (curs > maxs)
