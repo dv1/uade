@@ -1,3 +1,12 @@
+2005-11-04  Heikki Orsila <heikki.orsila@iki.fi>
+	- Separated CIA B timer A and timer B interrupts finally. Some
+	  Forgotten World songs started to work, but not all. Thomas 
+	  Herman BlueAngel69 swent back to its earlier buggy state. Our
+	  recent interrupt handler change broke Thomas Hermann completely.
+	  This change fixes our original design fault that only one CIA 
+	  timer interrupt may be used, but not both. This patch takes us
+	  much closer to full CIA interrupt handler support.
+
 2005-11-03  Heikki Orsila <heikki.orsila@iki.fi>
 	UADE 1.50-pre8
 	- Many bug fixes and cleanups.

@@ -450,7 +450,7 @@ novolfunc
 	move.l	startintfunc(pc),d0
 	bne.b	timernotset
 	bsr	settimer
-	bsr	setciabplayer
+	bsr	set_player_interrupt
 timernotset
 	* call startint (player initializes own interrupts here)
 	bsr	call_start_int
@@ -518,7 +518,7 @@ adjacentsub
 	move.l	useciabplayer(pc),d0
 	beq.b	dontresetciabplayer
 	bsr	settimer
-	bsr	setciabplayer
+	bsr	set_player_interrupt
 dontresetciabplayer
 	move	#$c000,intena+custom
 dontchangesubs
@@ -558,7 +558,7 @@ dont_check_start_int
 	clr.l	(a0)
 	move.l	settimercalled(pc),d0
 	beq.b	dontcallintfunc
-	bsr	setciabplayer
+	bsr	set_player_interrupt
 dontcallintfunc
 
 	bra	playloop			* loop back
@@ -1294,12 +1294,15 @@ settimer	push	all
 	move.l	(a0),d0
 	btst	#1,d0
 	beq.b	ininterrupt
-	bsr	setciabhwtimervalue
+	moveq	#1,d0			* CIA B timer A
+	moveq	#0,d1
+	bsr	set_cia_timer_value
 ininterrupt	pull	all
 	rts
 
 
-setciabplayer	push	all
+set_player_interrupt
+	push	all
 	move.l	useciabplayer(pc),d0
 	beq.b	dontsetciabplayer
 	lea	useciabplayer(pc),a0
@@ -1310,9 +1313,11 @@ setciabplayer	push	all
 	lea	tempciabtimerstruct(pc),a1
 	move.l	intfunc(pc),$12(a1)
 	moveq	#0,d0
-	bsr	ciab_addint
+	bsr	add_ciab_interrupt
 setonlyhwtimervalue
-	bsr	setciabhwtimervalue
+	moveq	#1,d0			* CIA B timer A
+	moveq	#0,d1
+	bsr	set_cia_timer_value
 dontsetciabplayer
 	pull	all
 	rts
@@ -1324,16 +1329,25 @@ ciabwarn	dc.l	UADE_GENERALMSG
 	dc.b	'setciabplayer warning',0
 ciabwarne	even
 
-
-setciabhwtimervalue
-	push	d0/a0
-	lea	eaglebase(pc),a0
-	move	dtg_Timer(a0),d0
-	lea	$bfd000,a0
+* D0 CIA A or CIA B: 0 = CIA A, 1 = CIA B
+* D1 Timer A or timer B: 0 = Timer A, 1 = Timer B
+set_cia_timer_value
+	push	d0-d1/a0-a1
+	btst	#0,d0
+	bne.b	set_ciab_timer
+	lea	$bfe001,a0
+	bra.b	set_ciaa_timer
+set_ciab_timer	lea	$bfd000,a0
+set_ciaa_timer	and	#1,d1
+	lsl	#8,d1
+	add	d1,d1
+	add	d1,a0
+	lea	eaglebase(pc),a1
+	move	dtg_Timer(a1),d0
 	move.b	d0,$400(a0)
 	ror	#8,d0
 	move.b	d0,$500(a0)
-	pull	d0/a0
+	pull	d0-d1/a0-a1
 	rts
 
 
@@ -2653,10 +2667,10 @@ ciaaresjmptabl	move.l	a1,2(a0)
 	addq.l	#6,a0
 	dbf	d0,ciaaresjmptabl
 	lea	ciaaresource(pc),a0
-	lea	ciaa_addint(pc),a1
+	lea	sys_add_ciaa_interrupt(pc),a1
 	move.l	a1,_LVOAddICRVector+2(a0)
-	lea	ciaawarnmsg(pc),a0
-	bsr	put_string
+	lea	ciaa_remint(pc),a1
+	move.l	a1,_LVORemICRVector+2(a0)
 	lea	ciaaresource(pc),a0
 	move.l	a0,d0
 	rts
@@ -2668,10 +2682,10 @@ ciabresjmptabl	move.l	a1,2(a0)
 	addq.l	#6,a0
 	dbf	d0,ciabresjmptabl
 	lea	ciabresource(pc),a0
-	lea	ciab_addint(pc),a1
-	move.l	a1,_LVOAddICRVector+2(a0)	* some addicrvector
+	lea	add_ciab_interrupt(pc),a1
+	move.l	a1,_LVOAddICRVector+2(a0)
 	lea	ciab_remint(pc),a1
-	move.l	a1,_LVORemICRVector+2(a0)	* some remicrvector
+	move.l	a1,_LVORemICRVector+2(a0)
 	lea	ciab_seticr(pc),a1
 	move.l	a1,_LVOSetICR+2(a0)
 	lea	ciab_ableicr(pc),a1
@@ -2711,43 +2725,66 @@ ciabresjmptab	rept	10
 	endr
 ciabresource
 
-ciaa_addint	moveq	#-1,d0
-	rts
-
-* AddICRVector() for ciab.resource
+* AddICRVector() for ciaa.resource and ciab.resource
 * sets hw int vector, cia registers, and enables a ciab interrupt
 *
 * deliciabdata is passed in a1 to deliciabint function
 *
 * SHOULD WE READ deliciabdata from interrupt structure every time we do the
 * interrupt?
-ciab_addint	push	all
-	lea	ciabint(pc),a4
-	move.l	a4,$78.w
-	lea	deliciabdata(pc),a2
-	move.l	$e(a1),(a2)
-	lea	deliciabint(pc),a2
-	move.l	$12(a1),(a2)
+add_ciab_interrupt
+	push	all
+	lea	ciabdatas(pc),a2
+	lea	ciabints(pc),a3
+	lea	$bfd000,a4
+	move	#$2000,d2
+	bra.b	add_cia_interrupt
+sys_add_ciaa_interrupt
+	moveq	#-1,d0
+	rts
+add_ciaa_interrupt
+	push	all
+	lea	ciaadatas(pc),a2
+	lea	ciaaints(pc),a3
+	lea	$bfe001,a4
+	move	#$0008,d2
+add_cia_interrupt
+	lea	ciabint(pc),a5
+	move.l	a5,$78.w
+
+	moveq	#1,d1
+	and.l	d0,d1
+	lsl	#2,d1
+	move.l	$e(a1),(a2,d1)
+	move.l	$12(a1),(a3,d1)
 
 	lea	eaglebase(pc),a5
 	move	dtg_Timer(a5),d1
 
 	btst	#0,d0
 	bne.b	bit0one
-	move.b	d1,$bfd400		* Set A Timer value
+	move.b	d1,$400(a4)		* Set A Timer value
 	rol	#8,d1
-	move.b	d1,$bfd500
-	move.b	#$81,$bfdd00		* set timer A ON
-	move.b	#$11,$bfde00		* A timer on
+	move.b	d1,$500(a4)
+	move.b	#$81,$d00(a4)		* set timer A ON
+	move.b	#$11,$e00(a4)		* A timer on
 	bra.b	bit0zero
-bit0one	move.b	d1,$bfd600		* Set B Timer value
+bit0one	move.b	d1,$600(a4)		* Set B Timer value
 	rol	#8,d1
-	move.b	d1,$bfd700
-	move.b	#$82,$bfdd00		* set timer B ON
-	move.b	#$11,$bfdf00		* B timer on
+	move.b	d1,$700(a4)
+	move.b	#$82,$d00(a4)		* set timer B ON
+	move.b	#$11,$f00(a4)		* B timer on
 bit0zero
-	move	#$a000,intena+custom	* enable ciab interrupt
+	or	#$8000,d2
+	move	d2,intena+custom	* enable cia interrupt
 	pull	all
+	moveq	#0,d0
+	rts
+
+ciaa_remint	lea	mylevel2(pc),a0
+	move.l	a0,$68.w
+	move	#$0008,intena+custom
+	move	#$0008,intreq+custom
 	moveq	#0,d0
 	rts
 
@@ -2763,12 +2800,27 @@ ciab_remint	lea	mylevel6(pc),a0
 * a6 = exec base
 * IS THIS RIGHT? Should we hit intreq+custom after the interrupt is executed?
 ciabint	push	all
-	move.b	$bfdd00,d0	* quit int (reading should do it)
 	move	#$2000,intreq+custom * quit the int to be sure
-	move.l	deliciabint(pc),a0
-	move.l	deliciabdata(pc),a1
+	move.b	$bfdd00,d0	* quit int (reading should do it)
+	and	#3,d0
+	btst	#0,d0
+	beq.b	ciab_not_timer_a
+	move.l	ciabints(pc),a0
+	move.l	ciabdatas(pc),a1
 	move.l	4.w,a6
+	move.l	d0,-(a7)
 	jsr	(a0)
+	move.l	(a7)+,d0
+ciab_not_timer_a
+	btst	#1,d0
+	beq.b	ciab_not_timer_b
+	move.l	ciabints+4(pc),a0
+	move.l	ciabdatas+4(pc),a1
+	move.l	4.w,a6
+	move.l	d0,-(a7)
+	jsr	(a0)
+	move.l	(a7)+,d0
+ciab_not_timer_b
 	pull	all
 	rte
 
@@ -3350,8 +3402,10 @@ initfunc	dc.l	0
 initsoundfunc	dc.l	0
 endfunc	dc.l	0
 volumefunc	dc.l	0
-deliciabdata	dc.l	0		* passed in a1 to deliciabint func
-deliciabint	dc.l	0
+ciaadatas	dcb.l	2,0		* data pointers for CIA A timer A and B
+ciaaints	dcb.l	2,0		* interrupt vectors for CIA A timers
+ciabdatas	dcb.l	2,0		* data pointers for CIA B timer A and B
+ciabints	dcb.l	2,0		* interrupt vectors for CIA B timers
 configfunc	dc.l	0
 
 * must be called before init player
