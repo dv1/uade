@@ -10,6 +10,8 @@
 	  support of the MusiclineEditor player from Eagleplayer 2.02.
 	  You still have to use --speedhack to give it enough
 	  cpu cycles, though. (mld)
+	- forgot to add detection bug fix of the two different MCMD formats
+	  in amifilemagic to changelog *grin* (mld)
 
 2005-11-03  Heikki Orsila <heikki.orsila@iki.fi>
 	UADE 1.50-pre8
