@@ -6,6 +6,10 @@
 	  This change fixes our original design fault that only one CIA 
 	  timer interrupt may be used, but not both. This patch takes us
 	  much closer to full CIA interrupt handler support.
+	- Heikki's CIABA and CIABB seperation in soundcore gave full us
+	  support of the MusiclineEditor player from Eagleplayer 2.02.
+	  You still have to use --speedhack to give it enough
+	  cpu cycles, though. (mld)
 
 2005-11-03  Heikki Orsila <heikki.orsila@iki.fi>
 	UADE 1.50-pre8
