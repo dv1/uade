@@ -390,20 +390,22 @@ is_pal	move	d1,beamcon0+custom
 
 	bsr	call_extload
 
-	* initialize interrupts concerning Timing
+	* initialize interrupt vectors
 	bsr	init_interrupts
 
 	* initialize noteplayer (after configfunc)
 	bsr	np_init
 
-	* set default subsong to zero
+	* Set default subsong to zero
 	lea	eaglebase(pc),a5
 	move	#0,dtg_SndNum(a5)
+
+	* Set default timer value
 	move	#$376b,dtg_Timer(a5)	* 709379 / 50
 
 	bsr	call_init_player
 
-	* initialize amplifier
+	* Initialize amplifier
 	bsr	call_amplifier_init
 
 	bsr	getplayerinfo
@@ -447,21 +449,14 @@ novolfunc
 	move.l	#UADE_START_OUTPUT,d0
 	bsr	put_message_by_value
 
-	move.l	startintfunc(pc),d0
-	bne.b	timernotset
-	bsr	settimer
+	* CIA/VBI is initialized here, or start_int is called, if
+	* necessary
 	bsr	set_player_interrupt
-timernotset
-	* call startint (player initializes own interrupts here)
-	bsr	call_start_int
 
 playloop	* this is for debugging only
 	bsr	volumetest
 
 	bsr	waittrap		* wait for next frame
-
-	lea	maincount(pc),a0	* useless
-	addq.l	#1,(a0)
 
 	* check input message
 	tst.l 	$300.w
@@ -472,9 +467,6 @@ noinputmsgs
 	tst	(a0)
 	beq	dontchangesubs
 	clr	(a0)
-
-	lea	maincount(pc),a0	* useless
-	clr.l	(a0)
 
 	move	#$4000,intena+custom
 	* kill timer device *
@@ -497,11 +489,6 @@ noinputmsgs
 	lea	virginaudioints(pc),a0	* audio ints are virgins again
 	clr.l	(a0)
 
-	lea	useciabplayer(pc),a0	* interrupt vector is set next
-	move.l	(a0),d0			* time when setciabplayer is
-	bclr	#1,d0			* visited
-	move.l	d0,(a0)
-
 	* call nextsongfunc or prevsongfunc if necessary
 	move.l	adjacentsubfunc(pc),d0
 	beq.b	notadjacentsub
@@ -513,14 +500,10 @@ noinputmsgs
 	move	dtg_SndNum(a5),(a0)
 	bra.b	adjacentsub
 notadjacentsub	bsr	call_init_sound
+	* Calling start_int is very dubious, because we haven't called
+	* stop_int. However, it has worked for a long time.
 	bsr	call_start_int
-adjacentsub
-	move.l	useciabplayer(pc),d0
-	beq.b	dontresetciabplayer
-	bsr	settimer
-	bsr	set_player_interrupt
-dontresetciabplayer
-	move	#$c000,intena+custom
+adjacentsub	move	#$c000,intena+custom
 dontchangesubs
 
 	btst	#6,$bfe001
@@ -533,9 +516,10 @@ dontchangesubs
 	bne.b	end_song
 nosongendcheck
 
-               * call dtp_interrupt if dtp_startint function hasn't been inited
+	* call dtp_interrupt if dtp_startint function hasn't been inited
 	move.l	useciabplayer(pc),d0
 	bne.b	dontcallintfunc
+
 	move.l	intfunc(pc),d0
 	bne.b	dont_check_start_int
 	move.l	startintfunc(pc),d1
@@ -543,10 +527,6 @@ nosongendcheck
 	bsr	HandleTimerDevice
 	bra.b	dontcallintfunc
 dont_check_start_int
-	lea	callinginterrupt(pc),a0
-	st	(a0)
-	lea	settimercalled(pc),a0
-	clr.l	(a0)
 	* call dtp_interrupt with trap (some require superstate)
 	move.l	d0,a0
 	move	#$2000,d0
@@ -554,14 +534,7 @@ dont_check_start_int
 	move.l	a1,TRAP_VECTOR_3
 	lea	eaglebase(pc),a5
 	trap	#3
-	lea	callinginterrupt(pc),a0
-	clr.l	(a0)
-	move.l	settimercalled(pc),d0
-	beq.b	dontcallintfunc
-	bsr	set_player_interrupt
-dontcallintfunc
-
-	bra	playloop			* loop back
+dontcallintfunc	bra	playloop			* loop back
 
 end_song	* FIRST: report that song has ended
 	bsr	report_song_end
@@ -785,8 +758,7 @@ notimerdevevent	lea	vblanktimercount(pc),a1
 	tst.l	(a1)
 	beq.b	notimerdevcount
 	subq.l	#1,(a1)
-notimerdevcount
-	rts
+notimerdevcount	rts
 
 
 * this function calls startint function if it exists and intfunc doesnt exist
@@ -1283,51 +1255,35 @@ wad_nowait	pull	d0-d1
 
 
 settimer	push	all
-	lea	useciabplayer(pc),a0	* we are using ciab, not vbi,
-	or.l	#1,(a0)			* for playing
-
-	lea	settimercalled(pc),a1
-	st	(a1)
-
-	* if settimer is called from dtp_interrupt, don't set ciab hw
-	* timer value yet.. just return
-	move.l	(a0),d0
-	btst	#1,d0
-	beq.b	ininterrupt
-	moveq	#1,d0			* CIA B timer A
-	moveq	#0,d1
+	move.l	cia_chip_sel(pc),d0
+	move.l	cia_timer_sel(pc),d1
 	bsr	set_cia_timer_value
-ininterrupt	pull	all
+	pull	all
 	rts
 
 
 set_player_interrupt
 	push	all
-	move.l	useciabplayer(pc),d0
-	beq.b	dontsetciabplayer
-	lea	useciabplayer(pc),a0
-	move.l	(a0),d0
-	btst	#1,d0
-	bne.b	setonlyhwtimervalue
-	or.l	#2,(a0)
-	lea	tempciabtimerstruct(pc),a1
-	move.l	intfunc(pc),$12(a1)
-	moveq	#0,d0
-	bsr	add_ciab_interrupt
-setonlyhwtimervalue
-	moveq	#1,d0			* CIA B timer A
-	moveq	#0,d1
-	bsr	set_cia_timer_value
-dontsetciabplayer
+	move.l	startintfunc(pc),d0
+	beq.b	no_start_int
+	* call startint (player initializes own interrupts here)
+	bsr	call_start_int
 	pull	all
 	rts
+no_start_int	lea	useciabplayer(pc),a0
+	st	(a0)
+	lea	add_ciaa_interrupt(pc),a0
+	move.l	cia_chip_sel(pc),d0
+	beq.b	its_ciaa
+	lea	add_ciab_interrupt(pc),a0
+its_ciaa	lea	tempciabtimerstruct(pc),a1
+	move.l	intfunc(pc),$12(a1)
+	move.l	cia_timer_sel(pc),d0
+	jsr	(a0)
+	pull	all
+	rts
+
 tempciabtimerstruct	dcb.b	$20,0
-settimerwarn	dc.l	UADE_GENERALMSG
-	dc.b	'settimer warning',0
-settimerwarne	even
-ciabwarn	dc.l	UADE_GENERALMSG
-	dc.b	'setciabplayer warning',0
-ciabwarne	even
 
 * D0 CIA A or CIA B: 0 = CIA A, 1 = CIA B
 * D1 Timer A or timer B: 0 = Timer A, 1 = Timer B
@@ -2738,6 +2694,8 @@ add_ciab_interrupt
 	lea	ciabints(pc),a3
 	lea	$bfd000,a4
 	move	#$2000,d2
+	lea	ciab_interrupt(pc),a5
+	move.l	a5,$78.w
 	bra.b	add_cia_interrupt
 sys_add_ciaa_interrupt
 	moveq	#-1,d0
@@ -2748,10 +2706,9 @@ add_ciaa_interrupt
 	lea	ciaaints(pc),a3
 	lea	$bfe001,a4
 	move	#$0008,d2
+	lea	ciaa_interrupt(pc),a5
+	move.l	a5,$68.w
 add_cia_interrupt
-	lea	ciabint(pc),a5
-	move.l	a5,$78.w
-
 	moveq	#1,d1
 	and.l	d0,d1
 	lsl	#2,d1
@@ -2799,7 +2756,33 @@ ciab_remint	lea	mylevel6(pc),a0
 * a1 = ciab interrupt data pointer
 * a6 = exec base
 * IS THIS RIGHT? Should we hit intreq+custom after the interrupt is executed?
-ciabint	push	all
+
+ciaa_interrupt	push	all
+	move	#$0008,intreq+custom * quit the int to be sure
+	move.b	$bfed01,d0	* quit int (reading should do it)
+	and	#3,d0
+	btst	#0,d0
+	beq.b	ciaa_not_timer_a
+	move.l	ciaaints(pc),a0
+	move.l	ciaadatas(pc),a1
+	move.l	4.w,a6
+	move.l	d0,-(a7)
+	jsr	(a0)
+	move.l	(a7)+,d0
+ciaa_not_timer_a
+	btst	#1,d0
+	beq.b	ciaa_not_timer_b
+	move.l	ciaaints+4(pc),a0
+	move.l	ciaadatas+4(pc),a1
+	move.l	4.w,a6
+	move.l	d0,-(a7)
+	jsr	(a0)
+	move.l	(a7)+,d0
+ciaa_not_timer_b
+	pull	all
+	rte
+
+ciab_interrupt	push	all
 	move	#$2000,intreq+custom * quit the int to be sure
 	move.b	$bfdd00,d0	* quit int (reading should do it)
 	and	#3,d0
@@ -3152,12 +3135,14 @@ np_not_active_2	move.l	(a0),d0
 
 
 init_interrupts	push	all
+	lea	mylevel2(pc),a0		* set CIAA int vector
+	move.l	a0,$68.w
 	lea	mylevel3(pc),a0		* set VBI vector
 	move.l	a0,$6c.w
 	lea	mylevel6(pc),a0		* set CIAB int vector
 	move.l	a0,$78.w
 	move	#$c000,d0
-	or	#$2020,d0		* enable CIAB and VBI
+	or	#$0020,d0		* enable CIAA, CIAB and VBI
 	move	d0,intena+custom
 
 	lea	handlertab(pc),a0
@@ -3255,10 +3240,10 @@ mylevel1	move	#$0007,intreq+custom
 
 
 mylevel2	move	#$0008,intreq+custom
+	pushr	d0
+	move.b	$bfed01,d0
+	pullr	d0
 	rte
-
-level3_warning	dc.b	'level 3 interrupt server didnt clear z-flag!',0
-	even
 
 mylevel3	btst	#5,intreqr+custom+1
 	beq.b	is_not_vbi
@@ -3387,7 +3372,6 @@ modulesize	dc.l	0
 * number of raster lines to wait for dma by default
 dmawaitconstant	dc.l	10
 
-maincount	dc.l	0
 framecount	dc.l	0
 songendbit	dc.l	0
 
@@ -3402,6 +3386,10 @@ initfunc	dc.l	0
 initsoundfunc	dc.l	0
 endfunc	dc.l	0
 volumefunc	dc.l	0
+cia_chip_sel	dc.l	0		* 0 = CIA A, 1 = CIA B
+cia_timer_sel	dc.l	1		* 0 = Timer A, 1 = Timer B
+ciabase	dc.l	0		* CIA base pointer: bfe001 or bfd000
+ciatimerbase	dc.l	0		* Pointer to low byte of CIA timer
 ciaadatas	dcb.l	2,0		* data pointers for CIA A timer A and B
 ciaaints	dcb.l	2,0		* interrupt vectors for CIA A timers
 ciabdatas	dcb.l	2,0		* data pointers for CIA B timer A and B
@@ -3440,9 +3428,6 @@ timerioptr	dc.l	0
 vbi_hz	dc	50	* PAL 50Hz is default
 
 useciabplayer	dc.l	0
-
-callinginterrupt	dc.l	0
-settimercalled	dc.l	0
 
 voltestbit	dc.l	0
 modulechange_disabled	dc.l	0
@@ -3511,7 +3496,9 @@ debug_info	debuginfo	'uade debug info', debug_info
 	debuginfo	'relocator', relocator
 	debuginfo	'load file', loadfile
 	debuginfo	'audio int', mylevel4
-	debuginfo	'ciab int', ciabint
+	debuginfo	'ciaa int', ciaa_interrupt
+	debuginfo	'ciab int', ciab_interrupt
+	debuginfo	'set player interrupt', set_player_interrupt
 	debuginfo	'superstate', exec_superstate
 	dc.l	0
 

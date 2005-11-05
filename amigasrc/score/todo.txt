@@ -1,4 +1,19 @@
-UNDONE:
+UNDONE
+======
+
+2005-11-05: Things to do for interrupts:
+	   - Timer.device support should use ciaa.resource or vblank server,
+	     but this is a low priority change because afaik only
+	     Defender of the Crown depends on this, and it works already.
+	   - Make player interrupt selectable from frontend: CIA-A, CIA-B or
+	     VBI. After this frontends can add workarounds for black listed
+	     songs.
+	   - Move vblank player interrupt calls to a real VBI.
+	   - Check subsong change interrupt handling.
+	   - Remove or fix CIA interrupt remove functions. 'DTP_Stop_Int'
+	     depends on this.
+
+older:
         - implement epg_GetModuleInfo() (some tfmx player used it)
 
 	- check AllocVec() (med player calls it many times)
@@ -28,16 +43,7 @@ UNDONE:
 
 	- fix dtg_FileArrayPTR & dtg_PathArrayPTR (MaxTrax, Mline)
 
-	- prepare audio interrupt system for unexpected interrupts:
-	  intena + intreq are set but int vector is not set
-
 	- see turrican2 song 4 (factory): gives audio int that is not handled
-
-        - CIA-A / CIA-B unified solution
-	- try to make all interrupt systems as same as possible
-	  - ciab_addint is stupid:
-	    after it is called only the other cia-b timer is on, but we may
-	    want to have both timers on.. see cust.blueangel69
 
 	- exec_openlibrary and perhaps other functions:
 		cmp.l #'dos.',(a1) may fail on 68000
@@ -66,7 +72,8 @@ UNDONE:
 	  also be handled, not just the microseconds field. Also, timing
 	  computations on NTSC lead to wrong results. (shd)
 
-DONE:
+DONE
+====
 	- Eagleplayer function: Modulechange
 Songend can probl. get a boost when ep_modulechange  would work. I know e.g.
 that David Whittaker replayer is supporting songend by patching the actual DW
@@ -93,3 +100,14 @@ music internally to support songend.
 		- DTP_ExtLoad() should be called before DTP_Check() according
 		  to MusicMaker8.a
 	  (shd)
+
+	- prepare audio interrupt system for unexpected interrupts:
+	  intena + intreq are set but int vector is not set
+
+2005-11-05:
+        - CIA-A / CIA-B unified solution
+	- try to make all interrupt systems as same as possible
+	  - ciab_addint is stupid:
+	    after it is called only the other cia-b timer is on, but we may
+	    want to have both timers on.. see cust.blueangel69
+

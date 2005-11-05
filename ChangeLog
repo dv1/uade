@@ -1,3 +1,11 @@
+2005-11-05  Heikki Orsila <heikki.orsila@iki.fi>
+	- Player interrupt is now a CIA A interrupt by default. As a
+	  consequence CUST.Loom works (it requires that player interrupt
+	  runs at a lower priority level than audio interrupts).
+	  THM.BlueAngel69 might play better now - a good comparison is needed.
+	  There are still a few things to do in the sound core's interrupt
+	  system, see amigasrc/score/todo.txt.
+
 2005-11-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Separated CIA B timer A and timer B interrupts finally. Some
 	  Forgotten World songs started to work, but not all. Thomas 
@@ -6,7 +14,7 @@
 	  This change fixes our original design fault that only one CIA 
 	  timer interrupt may be used, but not both. This patch takes us
 	  much closer to full CIA interrupt handler support.
-	- Heikki's CIABA and CIABB seperation in soundcore gave full us
+	- Heikki's CIAB-A and CIAB-B separation in soundcore gave us full
 	  support of the MusiclineEditor player from Eagleplayer 2.02.
 	  You still have to use --speedhack to give it enough
 	  cpu cycles, though. (mld)
