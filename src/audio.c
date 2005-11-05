@@ -374,7 +374,7 @@ void audio_reset (void)
     memset(sound_left_input, 0, sizeof(sound_left_input));
     memset(sound_right_input, 0, sizeof(sound_right_input));
     memset(sound_left_output, 0, sizeof(sound_left_output));
-    memset(sound_left_output, 0, sizeof(sound_left_output));
+    memset(sound_right_output, 0, sizeof(sound_right_output));
 }
 
 static int sound_prefs_changed (void)
