@@ -822,6 +822,10 @@ void set_filter_on(const char *model)
     uade_use_filter = FILTER_MODEL_A500;
   } else if (strcasecmp(model, "a1200") == 0) {
     uade_use_filter = FILTER_MODEL_A1200;
+  } else if (strcasecmp(model, "a500e") == 0) {
+    uade_use_filter = FILTER_MODEL_A500E;
+  } else if (strcasecmp(model, "a1200e") == 0) {
+    uade_use_filter = FILTER_MODEL_A1200E;
   } else {
     fprintf(stderr, "Unknown filter model: %s\n", model);
     exit(-1);

@@ -17,8 +17,10 @@ extern struct audio_channel_data {
     uae_u16 dat, nextdat, per, len;    
 } audio_channel[4];
 
-#define FILTER_MODEL_A500  1
-#define FILTER_MODEL_A1200 2
+#define FILTER_MODEL_A500   1
+#define FILTER_MODEL_A1200  2
+#define FILTER_MODEL_A500E  3
+#define FILTER_MODEL_A1200E 4
 
 extern void AUDxDAT (int nr, uae_u16 value);
 extern void AUDxVOL (int nr, uae_u16 value);

@@ -19,8 +19,8 @@ static int uade_effect_pan_amount = 0;
 
 static float uade_effect_headphones_ap_l[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float uade_effect_headphones_ap_r[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
-static float uade_effect_headphones_bq_l[4];
-static float uade_effect_headphones_bq_r[4];
+static float uade_effect_headphones_rc_l[4];
+static float uade_effect_headphones_rc_r[4];
 
 static void uade_effect_pan(int16_t *sm, int frames);
 static void uade_effect_headphones(int16_t *sm, int frames);
@@ -32,8 +32,8 @@ void uade_effect_reset_internals(void)
 {
     memset(uade_effect_headphones_ap_l, 0, sizeof(uade_effect_headphones_ap_l));
     memset(uade_effect_headphones_ap_r, 0, sizeof(uade_effect_headphones_ap_r));
-    memset(uade_effect_headphones_bq_l, 0, sizeof(uade_effect_headphones_bq_l));
-    memset(uade_effect_headphones_bq_r, 0, sizeof(uade_effect_headphones_bq_r));
+    memset(uade_effect_headphones_rc_l, 0, sizeof(uade_effect_headphones_rc_l));
+    memset(uade_effect_headphones_rc_r, 0, sizeof(uade_effect_headphones_rc_r));
 }
 
 void uade_effect_disable_all(void)
@@ -114,14 +114,25 @@ static void uade_effect_headphones(int16_t *sm, int frames)
 {
     int i;
     for (i = 0; i < frames; i += 1) {
-	float l = uade_effect_headphones_allpass_delay(sm[0], uade_effect_headphones_ap_l);
-	float r = uade_effect_headphones_allpass_delay(sm[1], uade_effect_headphones_ap_r);
+	float ld = uade_effect_headphones_allpass_delay(sm[0], uade_effect_headphones_ap_l);
+	float rd = uade_effect_headphones_allpass_delay(sm[1], uade_effect_headphones_ap_r);
+	ld = uade_effect_headphones_lpf(ld, uade_effect_headphones_rc_l);
+	rd = uade_effect_headphones_lpf(rd, uade_effect_headphones_rc_r);
 
-	l = uade_effect_headphones_lpf(l, uade_effect_headphones_bq_l);
-	r = uade_effect_headphones_lpf(r, uade_effect_headphones_bq_r);
+	int l_final = (sm[0] + rd * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
+	int r_final = (sm[1] + ld * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
 
-	sm[0] = (sm[0] + r * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / (1 + UADE_EFFECT_HEADPHONES_CROSSMIX_VOL);
-	sm[1] = (sm[1] + l * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / (1 + UADE_EFFECT_HEADPHONES_CROSSMIX_VOL);
+        if (l_final > 32767)
+            l_final = 32767;
+        if (l_final < -32768)
+            l_final = -32768;
+        if (r_final > 32767)
+            r_final = 32767;
+        if (r_final < -32768)
+            r_final = -32768;
+        sm[0] = l_final;
+        sm[1] = r_final;
+        
 	sm += 2;
     }
 }
