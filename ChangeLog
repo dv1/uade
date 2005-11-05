@@ -6,6 +6,8 @@
 	  There are still a few things to do in the sound core's interrupt
 	  system, see amigasrc/score/todo.txt.
 	- Headphones effect clipping fix (alankila)
+	- Merged new filter emulation code for testing. Use --filter=a500e
+	  or a1200e to test the new filters. (alankila)
 
 2005-11-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Separated CIA B timer A and timer B interrupts finally. Some
