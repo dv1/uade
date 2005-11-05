@@ -43,7 +43,7 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h
 	$(CC) $(CFLAGS) -c $<
 
 uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h

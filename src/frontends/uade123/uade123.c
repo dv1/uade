@@ -40,6 +40,7 @@
 #include "config.h"
 #include "terminal.h"
 #include "postprocessing.h"
+#include "amigafilter.h"
 
 int uade_debug_trigger;
 int uade_force_filter;

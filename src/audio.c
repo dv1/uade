@@ -19,9 +19,8 @@
 #include "events.h"
 #include "cia.h"
 #include "audio.h"
-
+#include "amigafilter.h"
 #include "uade.h"
-
 
 struct audio_channel_data audio_channel[4];
 int sound_available;
