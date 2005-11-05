@@ -22,20 +22,26 @@
 #include "amigafilter.h"
 #include "uade.h"
 
+struct biquad_state {
+    float x[2];
+    float y[2];
+};
+
 struct audio_channel_data audio_channel[4];
-int sound_available;
 void (*sample_handler) (void);
 unsigned long sample_evtime;
+int sound_available;
 
 int sound_use_filter = FILTER_MODEL_A1200;
 
 static unsigned long last_cycles, next_sample_evtime;
 static int audperhack;
 
-static float sound_left_input[4];
-static float sound_left_output[4];
-static float sound_right_input[4];
-static float sound_right_output[4];
+static struct filter_state {
+    float rc1, rc2, rc3;
+    struct biquad_state bq1;
+    struct biquad_state bq2;
+} sound_filter_state[2];
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
  * on A500 and the LED filter. This code emulates both.
@@ -53,37 +59,98 @@ static float sound_right_output[4];
  * and to 1 dB with the filter off.
 */
 
-static int filter(int data, float *input, float *output)
+static int filter(int input, struct filter_state *fs)
 {
     int o;
-    float s;
+    float tmp, normal_output, led_output;
 
-    if (sound_use_filter == FILTER_MODEL_A500) {
-	s  = 0.36 * data;
-	s += 0.64 * output[2];
-	output[2] = s;
-    } else if (sound_use_filter == FILTER_MODEL_A1200) {
-	output[2] = data;
-    } else {
+    /* white noise generator for filter debugging
+    data = 65535 * (drand48() - 0.5);
+    */
+    switch (sound_use_filter) {
+        
+    case FILTER_MODEL_A500: 
+	tmp  = 0.36 * input;
+	tmp += 0.64 * fs->rc1;
+	fs->rc1 = tmp;
+        normal_output = fs->rc1;
+    
+        /* lowpass */
+        tmp  = 0.33 * normal_output;
+        tmp += 0.67 * fs->rc2;
+        fs->rc2 = tmp;
+
+        /* highboost */
+        tmp  = 1.35 * fs->rc2;
+        tmp -= 0.35 * fs->rc3;
+        fs->rc3 = tmp;
+        led_output = fs->rc3 * 0.98;
+        break;
+        
+    case FILTER_MODEL_A1200:
+        normal_output = input;
+        
+        /* lowpass */
+        tmp  = 0.33 * normal_output;
+        tmp += 0.67 * fs->rc2;
+        fs->rc2 = tmp;
+
+        /* highboost */
+        tmp  = 1.35 * fs->rc2;
+        tmp -= 0.35 * fs->rc3;
+        fs->rc3 = tmp;
+        led_output = fs->rc3 * 0.98;
+        break;
+        
+    case FILTER_MODEL_A500E:
+        fs->rc1 = 0.40 * input + 0.60 * fs->rc1;
+        normal_output = fs->rc1;
+
+        /* RC lowpass with -3 dB at 22 kHz */
+        fs->rc2 = 0.70 * normal_output + 0.30 * fs->rc2;
+
+        /* Peaking band equalizer, 9.5 kHz, 2.0 oct bw, -8.5 dB */
+        tmp = 0.600607 * fs->rc2 - 0.155260 * fs->bq1.x[0] + 0.119621 * fs->bq1.x[1]
+                                 + 0.155260 * fs->bq1.y[0] + 0.279772 * fs->bq1.y[1];
+        fs->bq1.x[1] = fs->bq1.x[0];
+        fs->bq1.x[0] = fs->rc2;
+        fs->bq1.y[1] = fs->bq1.y[0];
+        fs->bq1.y[0] = tmp;
+        led_output = fs->bq1.y[0];
+        break;
+        
+    case FILTER_MODEL_A1200E:
+        /* very slow roll-off, -2 dB around 13 kHz */
+        fs->rc1 = 0.844 * input + 0.156 * fs->rc1;
+        normal_output = fs->rc1;
+
+        /* RC lowpass with -3 dB at 5.5 kHz */
+        fs->rc2 = 0.439 * normal_output + 0.561 * fs->rc2;
+
+        /* Peaking band equalizer, 12 kHz, 1.8 oct bw, -7.5 dB */
+        tmp = 0.615832 * fs->rc2 + 0.092967 * fs->bq1.x[0] + 0.055565 * fs->bq1.x[1]
+                                 - 0.092967 * fs->bq1.y[0] + 0.328602 * fs->bq1.y[1];
+        fs->bq1.x[1] = fs->bq1.x[0];
+        fs->bq1.x[0] = fs->rc2;
+        fs->bq1.y[1] = fs->bq1.y[0];
+        fs->bq1.y[0] = tmp;
+
+        /* Peaking band equalizer, 4 kHz, 3.0 oct bw, +1.0 dB */
+        tmp = 1.049337 * fs->bq1.y[0] - 1.003031 * fs->bq2.x[0] + 0.141977 * fs->bq2.x[1]
+                                      + 1.003031 * fs->bq2.y[0] - 0.191315 * fs->bq2.y[1];
+        fs->bq2.x[1] = fs->bq2.x[0];
+        fs->bq2.x[0] = fs->bq1.y[0];
+        fs->bq2.y[1] = fs->bq2.y[0];
+        fs->bq2.y[0] = tmp;
+        led_output = fs->bq2.y[0];
+        break;
+
+    default:
 	fprintf(stderr, "Unknown filter mode\n");
 	exit(-1);
     }
 
-    /* output[0] is output[2] through lowpass */
-    s  = 0.33 * output[2];
-    s += 0.67 * output[0];
-    output[0] = s;
-
-    /* output[1] is output[2] with slight highboost */
-    s  = 1.35 * output[0];
-    s -= 0.35 * output[1];
-    output[1] = s;
-
-    if (!gui_ledstate) {
-	o = output[2];
-    } else {
-	o = output[1] * 0.98; /* to avoid overruns */
-    }
+    o = gui_ledstate ? led_output : normal_output;
 
     if (o > 32767) {
 	o = 32767;
@@ -125,8 +192,8 @@ static inline void sample_backend(int left, int right)
     /* [-32768, 32512] */
 
     if (sound_use_filter) {
-	left = filter(left, sound_left_input, sound_left_output);
-	right = filter(right, sound_right_input, sound_right_output);
+	left = filter(left, &sound_filter_state[0]);
+	right = filter(right, &sound_filter_state[1]);
     }
 
     *(sndbufpt++) = left;
@@ -370,10 +437,7 @@ void audio_reset (void)
 
     audperhack = 0;
 
-    memset(sound_left_input, 0, sizeof(sound_left_input));
-    memset(sound_right_input, 0, sizeof(sound_right_input));
-    memset(sound_left_output, 0, sizeof(sound_left_output));
-    memset(sound_right_output, 0, sizeof(sound_right_output));
+    memset(sound_filter_state, 0, sizeof(sound_filter_state));
 }
 
 static int sound_prefs_changed (void)
