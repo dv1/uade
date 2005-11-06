@@ -6,6 +6,7 @@
 	  A format can be marked as ending always, which means that timeout
 	  values are not used (except silence timeout). There are other options
 	  too, and all of them are specified in doc/eagleplayer.conf.
+	  uadeformats is no longer used, so it's deleted from CVS.
 
 2005-11-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Player interrupt is now a CIA A interrupt by default. As a
