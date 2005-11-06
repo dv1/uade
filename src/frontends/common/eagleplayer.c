@@ -121,15 +121,19 @@ static char **split_line(int *nitems, size_t *lineno, FILE *f)
     i = skip_nws(line, begin);
     if (i < 0) {
       items[pos] = strdup(&line[begin]);
+      if (items[pos] == NULL) {
+	fprintf(stderr, "No memory for an nws item.\n");
+	exit(-1);
+      }
     } else {
       size_t len = i - begin;
       items[pos] = malloc(len + 1);
-      memcpy(&items[pos], &line[begin], len);
+      if (items[pos] == NULL) {
+	fprintf(stderr, "No memory for an nws item.\n");
+	exit(-1);
+      }
+      memcpy(items[pos], &line[begin], len);
       items[pos][len] = 0;
-    }
-    if (items[pos] == NULL) {
-      fprintf(stderr, "No memory for an nws item.\n");
-      exit(-1);
     }
 
     pos++;
@@ -144,11 +148,11 @@ static char **split_line(int *nitems, size_t *lineno, FILE *f)
   return items;
 }
 
+
 /* Read eagleplayer.conf. */
-struct eagleplayerstore *uade_read_uadeformats(const char *filename)
+struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 {
   FILE *f;
-  struct eagleplayer *players = NULL;
   struct eagleplayer *p;
   size_t allocated;
   char **items;
@@ -167,9 +171,8 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
     eperror("No memory for ps.");
 
   allocated = 16;
-  ps->players = malloc(allocated * sizeof(players[0]));
-  players = ps->players;
-  if (players == NULL)
+  ps->players = malloc(allocated * sizeof(ps->players[0]));
+  if (ps->players == NULL)
     eperror("No memory for eagleplayer.conf file.\n");
 
   while (1) {
@@ -182,14 +185,12 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 
     if (ps->nplayers == allocated) {
       allocated *= 2;
-      players = realloc(players, allocated * sizeof(players[0]));
-      if (players == NULL) {
-	fprintf(stderr, "No memory for players.\n");
-	exit(-1);
-      }
+      ps->players = realloc(ps->players, allocated * sizeof(ps->players[0]));
+      if (ps->players == NULL)
+	eperror("No memory for players.");
     }
 
-    p = players + (ps->nplayers);
+    p = &ps->players[ps->nplayers];
     ps->nplayers++;
 
     memset(p, 0, sizeof p[0]);
@@ -209,20 +210,24 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 	assert(p->nextensions == 0 && p->extensions == NULL);
 
 	j = 0;
+	if (s[j] == 0)
+	  continue;
+
+	p->nextensions = 1;
+
 	while (s[j] != 0) {
-	  if (s[j] == ',')
+	  if (s[j] == ',') {
+	    if (s[j + 1] == ',' || s[j + 1] == 0)
+	      eperror("Premature line end or two consecutive , chars.");
 	    p->nextensions++;
+	  }
 	  j++;
 	}
 
-	if (p->extensions == 0)
-	  continue;
-
 	p->extensions = malloc(p->nextensions * sizeof p->extensions[0]);
-	if (p->extensions == NULL) {
-	  fprintf(stderr, "No memory for extensions.\n");
-	  exit(-1);
-	}
+	if (p->extensions == NULL)
+	  eperror("No memory for extensions.");
+
 	j = 0;
 	n = 0;
 	while (1) {
@@ -247,10 +252,10 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 	  extname[len] = 0;
 	  n++;
 
-	  j++;
-
 	  if (s[j] == 0)
 	    break;
+
+	  j++;
 	}
 
       } else if (strcasecmp(items[i], "a500") == 0) {
@@ -259,6 +264,8 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 	p->attributes |= EP_A1200;
       } else if (strcasecmp(items[i], "always_ends") == 0) {
 	p->attributes |= EP_ALWAYS_ENDS;
+      } else if (strcasecmp(items[i], "content_detection") == 0) {
+	p->attributes |= EP_CONTENT_DETECTION;
       } else if (strcasecmp(items[i], "speed_hack") == 0) {
 	p->attributes |= EP_SPEED_HACK;
       } else if (strncasecmp(items[i], "comment:", 8) == 0) {
@@ -267,25 +274,31 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 	fprintf(stderr, "Unrecognized option: %s\n", items[i]);
       }
     }
+
+    free(items);
   }
 
   fclose(f);
 
   if (ps->nplayers == 0) {
+    free(ps->players);
     free(ps);
-    free(players);
     return NULL;
   }
 
   for (i = 0; i < ps->nplayers; i++)
-    ps->nextensions += ps->players->nextensions;
+    ps->nextensions += ps->players[i].nextensions;
 
   ps->map = malloc(sizeof(ps->map[0]) * ps->nextensions);
   if (ps->map == NULL)
-    goto error;
+    eperror("No memory for extension map.");
 
   exti = 0;
   for (i = 0; i < ps->nplayers; i++) {
+    if (exti >= ps->nextensions) {
+      fprintf(stderr, "pname %s\n", ps->players[i].playername);
+      fflush(stderr);
+    }
     assert(exti < ps->nextensions);
     p = &ps->players[i];
     for (j = 0; j < p->nextensions; j++) {
@@ -302,8 +315,8 @@ struct eagleplayerstore *uade_read_uadeformats(const char *filename)
   return ps;
 
  error:
+  free(ps->players);
   free(ps);
-  free(players);
   if (f != NULL)
     fclose(f);
   return NULL;

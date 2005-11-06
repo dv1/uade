@@ -3,7 +3,7 @@ CC = {CC}
 CFLAGS = -Wall -O2 -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
-	chrarray.o playlist.o uadeformats.o unixwalkdir.o effects.o \
+	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
 	playloop.o audio.o config.o terminal.o postprocessing.o
 
 uade123:	$(MODULES)
@@ -25,6 +25,9 @@ chrarray.o:	chrarray.c chrarray.h
 config.o:	config.c config.h
 	$(CC) $(CFLAGS) -c $<
 
+eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
+	$(CC) $(CFLAGS) -c $<
+
 effects.o:	../common/effects.c ../common/effects.h
 	$(CC) $(CFLAGS) -c $<
 
@@ -43,13 +46,10 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
 uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
-	$(CC) $(CFLAGS) -c $<
-
-uadeformats.o:	../common/uadeformats.c ../common/uadeformats.h
 	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h

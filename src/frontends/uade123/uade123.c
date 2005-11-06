@@ -31,7 +31,7 @@
 #include <unixatomic.h>
 #include <uadeconfig.h>
 #include <amifilemagic.h>
-#include <uadeformats.h>
+#include <eagleplayer.h>
 
 #include "uade123.h"
 #include "playlist.h"
@@ -50,6 +50,7 @@ int uade_info_mode;
 char *uade_interpolation_mode;
 double uade_jump_pos = 0.0;
 int uade_no_output;
+int uade_no_timeouts;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
@@ -68,8 +69,7 @@ int uade_verbose_mode;
 static char basedir[PATH_MAX];
 static int debug_mode;
 static uint8_t fileformat_buf[5122];
-static void *format_ds = NULL;
-static int format_ds_size;
+static struct eagleplayerstore *playerstore;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
 
@@ -84,13 +84,13 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static char *fileformat_detection(const char *modulename)
+static struct eagleplayer *fileformat_detection(const char *modulename)
 {
   struct stat st;
   char extension[11];
   FILE *f;
   size_t readed;
-  char *candidates;
+  struct eagleplayer *candidate;
   char *t, *tn;
   int len;
   static int warnings = 1;
@@ -113,10 +113,10 @@ static char *fileformat_detection(const char *modulename)
 
   debug("%s: deduced extension: %s\n", modulename, extension);
 
-  if (format_ds == NULL) {
+  if (playerstore == NULL) {
     char formatsfile[PATH_MAX];
-    snprintf(formatsfile, sizeof(formatsfile), "%s/uadeformats", basedir);
-    if ((format_ds = uade_read_uadeformats(&format_ds_size, formatsfile)) == NULL) {
+    snprintf(formatsfile, sizeof(formatsfile), "%s/eagleplayer.conf", basedir);
+    if ((playerstore = uade_read_eagleplayer_conf(formatsfile)) == NULL) {
       if (warnings)
 	fprintf(stderr, "Tried to load uadeformats file from %s, but failed\n", formatsfile);
       warnings = 0;
@@ -129,11 +129,9 @@ static char *fileformat_detection(const char *modulename)
      pre- and postfixes from the modulename */
 
   if (extension[0]) {
-    /* get a ',' separated list of player plugin candidates for this
-       extension */
-    candidates = uade_get_playername(extension, format_ds, format_ds_size);
-    if (candidates)
-      return candidates;
+    candidate = uade_get_eagleplayer(extension, playerstore);
+    if (candidate)
+      return candidate;
     fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
   }
 
@@ -156,9 +154,9 @@ static char *fileformat_detection(const char *modulename)
   if (len < sizeof(extension)) {
     memcpy(extension, t, len);
     extension[len] = 0;
-    candidates = uade_get_playername(extension, format_ds, format_ds_size);
-    if (candidates)
-      return candidates;
+    candidate = uade_get_eagleplayer(extension, playerstore);
+    if (candidate && (candidate->attributes & EP_CONTENT_DETECTION) == 0)
+      return candidate;
   }
 
   /* prefix didn't match anything. trying postfix */
@@ -168,7 +166,12 @@ static char *fileformat_detection(const char *modulename)
     fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
-  return uade_get_playername(extension, format_ds, format_ds_size);
+
+  candidate = uade_get_eagleplayer(extension, playerstore);
+  if (candidate && (candidate->attributes & EP_CONTENT_DETECTION) == 0)
+    return candidate;
+
+  return NULL;
 }
 
 
@@ -241,7 +244,7 @@ int main(int argc, char *argv[])
   char *endptr;
   int uade_no_song_end = 0;
   int config_loaded;
-  int speedhack = 0;
+  int speed_hack = 0;
 
   enum {
     OPT_FILTER = 0x100,
@@ -275,7 +278,7 @@ int main(int argc, char *argv[])
     {"recursive", 0, NULL, 'r'},
     {"shuffle", 0, NULL, 'z'},
     {"silence-timeout", 1, NULL, 'y'},
-    {"speedhack", 0, NULL, OPT_SPEED_HACK},
+    {"speed-hack", 0, NULL, OPT_SPEED_HACK},
     {"stderr", 0, NULL, OPT_STDERR},
     {"subsong", 1, NULL, 's'},
     {"subsong-timeout", 1, NULL, 'w'},
@@ -432,7 +435,7 @@ int main(int argc, char *argv[])
       uade_no_song_end = 1;
       break;
     case OPT_SPEED_HACK:
-      speedhack = 1;
+      speed_hack = 1;
       break;
     case OPT_BASEDIR:
       GET_OPT_STRING(basedir);
@@ -514,93 +517,64 @@ int main(int argc, char *argv[])
   }
 
   while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
-    char **playernames = NULL;
     int nplayers;
     ssize_t filesize;
+    int speed_hack_override = 0;
+
+    uade_no_timeouts = 0;
 
     if (access(modulename, R_OK)) {
       fprintf(stderr, "Can not read %s: %s\n", modulename, strerror(errno));
-      goto nextsong;
+      continue;
     }
 
     nplayers = 1;
     if (playernamegiven == 0) {
-      char *t, *tn;
-      char *candidates;
-      size_t len;
+      struct eagleplayer *candidate;
 
       debug("\n");
 
-      candidates = fileformat_detection(modulename);
+      candidate = fileformat_detection(modulename);
 
-      if (candidates == NULL) {
+      if (candidate == NULL) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
-	goto nextsong;
+	continue;
       }
-      debug("Player candidates: %s\n", candidates);
+      debug("Player candidate: %s\n", candidate->playername);
 
-      nplayers = 1;
-      t = candidates;
-      while ((t = strchr(t, (int) ','))) {
-	nplayers++;
-	t++;
-      }
+      speed_hack_override = (candidate->attributes & EP_SPEED_HACK) ? 1 : 0;
+      if (speed_hack_override)
+	debug("eagleplayer.conf specifies speed hack.\n");
 
-      playernames = malloc(sizeof(playernames[0]) * nplayers);
-      
-      t = candidates;
-      for (i = 0; i < nplayers; i++) {
-	tn = strchr(t, (int) ',');
-	if (tn == NULL) {
-	  len = strlen(t);
-	} else {
-	  len = ((intptr_t) tn) - ((intptr_t) t);
-	}
-	playernames[i] = malloc(len + 1);
-	if (playernames[i] == NULL) {
-	  fprintf(stderr, "Out of memory.\n");
-	  exit(-1);
-	}
-	memcpy(playernames[i], t, len);
-	playernames[i][len] = 0;
-	t = tn;
-      }
+      uade_no_timeouts = (candidate->attributes & EP_ALWAYS_ENDS) ? 1 : 0;
+      if (uade_no_timeouts)
+	debug("eagleplayer.conf specifies always ends.\n");
 
-      if (nplayers > 1) {
-	fprintf(stderr, "Multiple players not supported.\n");
-	exit(-1);
-      }
-
-      if (nplayers < 1) {
-	fprintf(stderr, "Skipping file with unknown format: %s\n", modulename);
-	goto nextsong;
-      }
-
-      if (strcmp(playernames[0], "custom") == 0) {
+      if (strcmp(candidate->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof(playername));
 	modulename[0] = 0;
       } else {
-	snprintf(playername, sizeof(playername), "%s/players/%s", basedir, playernames[0]);
+	snprintf(playername, sizeof(playername), "%s/players/%s", basedir, candidate->playername);
       }
     }
 
     if (playername[0]) {
       if (access(playername, R_OK)) {
 	fprintf(stderr, "Can not read %s: %s\n", playername, strerror(errno));
-	goto nextsong;
+	continue;
       }
     }
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not stat player: %s\n", playername);
-      goto nextsong;
+      continue;
     }
     if (uade_verbose_mode || modulename[0] == 0)
       fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
     if (modulename[0] != 0) {
       if ((filesize = stat_file_size(modulename)) < 0) {
 	fprintf(stderr, "Can not stat module: %s\n", modulename);
-	goto nextsong;
+	continue;
       }
       fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
     }
@@ -636,7 +610,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Can not receive token in main loop.\n");
 	exit(-1);
       }
-      goto nextsong;
+      continue;
     }
 
     if (um->msgtype != UADE_REPLY_CAN_PLAY) {
@@ -669,7 +643,7 @@ int main(int argc, char *argv[])
     send_filter_command();
     send_interpolation_command();
 
-    if (speedhack) {
+    if (speed_hack || speed_hack_override) {
       if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
 	fprintf(stderr, "Can not send speed hack command.\n");
 	exit(-1);
@@ -678,14 +652,6 @@ int main(int argc, char *argv[])
 
     if (!play_loop())
       goto cleanup;
-
-  nextsong:
-
-    if (playernames != NULL) {
-      for (i = 0; i < nplayers; i++)
-	free(playernames[i]);
-      free(playernames);
-    }
   }
 
   debug("Killing child (%d).\n", uadepid);
@@ -741,7 +707,7 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r/--recursive,     Recursive directory scan\n");
   printf(" -s x, --subsong x,  Set subsong 'x'\n");
-  printf(" --speedhack,        Set speed hack on. This gives more virtual CPU power.\n");
+  printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");
   printf(" --stderr,           Print messages on stderr.\n");
   printf(" -t x, --timeout x,  Set song timeout in seconds. -1 is infinite.\n");
   printf("                     Default is infinite.\n");

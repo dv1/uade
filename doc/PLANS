@@ -1,5 +1,6 @@
 Ideas of things to do for UADE 2:
 
+2005-11-06: System call book keeping for sound core (shd)
 2005-10-10: Volume level normalization based on the database (grue)
 2005-07-31: Song length database format. Contains following information:
 		* subsong lengths and volume levels
