@@ -1,3 +1,12 @@
+2005-11-06  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added an experimental support for eagleplayer.conf, which is
+	  specified at doc/eagleplayer.conf. The new system allows eagleplayer
+	  specific settings, such as speed_hack and always_ends. Speed hack
+	  can be turned on for a specific format by editing eagleplayer.conf.
+	  A format can be marked as ending always, which means that timeout
+	  values are not used (except silence timeout). There are other options
+	  too, and all of them are specified in doc/eagleplayer.conf.
+
 2005-11-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Player interrupt is now a CIA A interrupt by default. As a
 	  consequence CUST.Loom works (it requires that player interrupt

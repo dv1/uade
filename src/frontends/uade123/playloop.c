@@ -330,7 +330,7 @@ int play_loop(void)
 	  return 0;
 	}
 
-	if (uade_timeout != -1) {
+	if (uade_timeout != -1 && uade_no_timeouts == 0) {
 	  if (uade_song_end_trigger == 0) {
 	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
 	      fprintf(stderr, "\nSong end (timeout %ds)\n", uade_timeout);
@@ -339,7 +339,7 @@ int play_loop(void)
 	  }
 	}
 
-	if (uade_subsong_timeout != -1) {
+	if (uade_subsong_timeout != -1 && uade_no_timeouts == 0) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
 	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uade_subsong_timeout);

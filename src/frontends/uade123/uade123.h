@@ -18,6 +18,7 @@ extern int uade_info_mode;
 extern char *uade_interpolation_mode;
 extern double uade_jump_pos;
 extern int uade_no_output;
+extern int uade_no_timeouts;
 extern int uade_one_subsong_per_file;
 extern char uade_output_file_format[16];
 extern char uade_output_file_name[PATH_MAX];
