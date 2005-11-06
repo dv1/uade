@@ -1,0 +1,31 @@
+#ifndef _UADE_EAGLEPLAYER_H_
+#define _UADE_EAGLEPLAYER_H_
+
+#define EP_A500        (1 << 0)
+#define EP_A1200       (1 << 1)
+#define EP_ALWAYS_ENDS (1 << 2)
+#define EP_SPEED_HACK  (1 << 3)
+
+struct eagleplayer {
+  char *playername;
+  int nextensions;
+  char **extensions;
+  int attributes;
+};
+
+struct eagleplayermap {
+  char *extension;
+  struct eagleplayer *player;
+};
+
+struct eagleplayerstore {
+  size_t nplayers;
+  struct eagleplayer *players;
+  size_t nextensions;
+  struct eagleplayermap *map;
+};
+
+struct eagleplayer *uade_get_playername(const char *extension,  struct eagleplayerstore *playerstore);
+struct playerstore *uade_read_eagleplayer_conf(const char *filename);
+
+#endif
