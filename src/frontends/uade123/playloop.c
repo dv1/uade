@@ -142,7 +142,7 @@ int play_loop(void)
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");
-	  send_filter_command();
+	  send_filter_command(uade_use_filter);
 	  break;
 	case 'h':
 	  tprintf("\n\n");

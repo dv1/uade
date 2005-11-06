@@ -520,6 +520,7 @@ int main(int argc, char *argv[])
     int nplayers;
     ssize_t filesize;
     int speed_hack_override = 0;
+    int filter_override = 0;
 
     uade_no_timeouts = 0;
 
@@ -549,6 +550,13 @@ int main(int argc, char *argv[])
       uade_no_timeouts = (candidate->attributes & EP_ALWAYS_ENDS) ? 1 : 0;
       if (uade_no_timeouts)
 	debug("eagleplayer.conf specifies always ends.\n");
+
+      if (candidate->attributes & EP_A500)
+	filter_override = FILTER_MODEL_A500;
+      if (candidate->attributes & EP_A1200)
+	filter_override = FILTER_MODEL_A1200;
+      if (filter_override)
+	debug("eagleplayer.conf specifies filter model %d\n", filter_override);
 
       if (strcmp(candidate->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof(playername));
@@ -640,7 +648,7 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       set_subsong(um, subsong);
 
-    send_filter_command();
+    send_filter_command(filter_override ? filter_override : uade_use_filter);
     send_interpolation_command();
 
     if (speed_hack || speed_hack_override) {
@@ -746,10 +754,10 @@ void print_action_keys(void)
 }
 
 
-void send_filter_command(void)
+void send_filter_command(int filter_type)
 {
   struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
-  ((uint32_t *) um.data)[0] = htonl(uade_use_filter);
+  ((uint32_t *) um.data)[0] = htonl(filter_type);
   if (uade_force_filter == 0) {
     ((uint32_t *) um.data)[1] = htonl(0);
   } else {
