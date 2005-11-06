@@ -20,8 +20,8 @@
 
 #include <eagleplayer.h>
 
-#define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
+#define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
 
 static int ufcompare(const void *a, const void *b);
@@ -51,19 +51,18 @@ static int skip_nws(const char *s, int pos)
 }
 
 
-#if 0
-char *uade_get_playername(const char *extension, void *formats, int nformats)
+struct eagleplayer *uade_get_eagleplayer(const char *extension, struct eagleplayerstore *ps)
 {
-  struct uadeformat *uf = formats;
-  struct uadeformat *f;
-  struct uadeformat key = {.extension = (char *) extension};
+  struct eagleplayermap *uf = ps->map;
+  struct eagleplayermap *f;
+  struct eagleplayermap key = {.extension = (char *) extension};
 
-  f = bsearch(&key, uf, nformats, sizeof(uf[0]), ufcompare);
+  f = bsearch(&key, uf, ps->nextensions, sizeof(uf[0]), ufcompare);
   if (f == NULL)
     return NULL;
-  return f->playername;
+
+  return f->player;
 }
-#endif
 
 
 /* Split line with respect to white space. */
@@ -145,18 +144,7 @@ static char **split_line(int *nitems, size_t *lineno, FILE *f)
   return items;
 }
 
-/* Reads uadeformats file line by line. collect following data from each line:
-
-   - extension string
-   - playername string (matches the filename in players/ dir)
-   - possible attribute words (properties of players)
-
-   All the data is put into an 'struct uadeformat' array, and the array
-   is sorted. Don't bitch me about worst case complexity of O(n^2). Where
-   is that guaranteed O(n*log(n)) sort in C library???
-
-   Later the sorted array is used to search extension strings rapidly with
-   binary search (C libs bsearch). */
+/* Read eagleplayer.conf. */
 struct eagleplayerstore *uade_read_uadeformats(const char *filename)
 {
   FILE *f;
