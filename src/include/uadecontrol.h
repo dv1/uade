@@ -8,8 +8,8 @@
 
 enum uade_control_state {
   UADE_INITIAL_STATE = 0,
-  UADE_R_STATE = 1,
-  UADE_S_STATE = 2
+  UADE_R_STATE,
+  UADE_S_STATE
 };
 
 
