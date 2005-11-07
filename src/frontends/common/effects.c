@@ -99,11 +99,10 @@ static float uade_effect_headphones_allpass_delay(float in, float *state)
     return output;
 }
 
-/* -6 dB/oct curve to approximate the audio filtering for the other ear */
 static float uade_effect_headphones_lpf(float in, float *state)
 {
-    float out = in * 0.43;
-    out += 0.57 * state[0];
+    float out = in * 0.53;
+    out += 0.47 * state[0];
     state[0] = out;
 
     return out;
