@@ -18,21 +18,22 @@ PlayerTagArray
 	dc.l	DTP_PlayerName,PName
 	dc.l	DTP_Creator,CName
 	dc.l	DTP_DeliBase,delibase
-	dc.l	DTP_Interrupt,aon8_playcia
+	;dc.l	DTP_Interrupt,aon8_playcia
 	dc.l	DTP_Check2,Chk
-	;dc.l	DTP_StartInt,ALLOCCIAB
-	;dc.l	DTP_StopInt,FREECIAB
+	dc.l	DTP_StartInt,ALLOCCIAB
+	dc.l	DTP_StopInt,FREECIAB
 	dc.l	DTP_InitPlayer,InitPlay
 	dc.l	DTP_EndPlayer,EndPlay
 	dc.l	DTP_InitSound,InitSnd
 	dc.l	DTP_EndSound,EndSnd
+	dc.l	DTP_Flags, PLYF_SONGEND
 	dc.l	TAG_DONE
 
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
 
-PName	dc.b 'ArtOfNoise (8ch)',0
+PName	dc.b 'ArtOfNoise (8ch) V2005-11-07',0
 CName	dc.b 'by Bastian Spiegel (Twice/Lego)',10
 	dc.b 'adapted for UADE by mld',0
 uadename	dc.b	'uade.library',0
@@ -45,6 +46,7 @@ delibase	dc.l 0
 ; Testet auf Modul
 
 Chk						; AON8 ?
+	move.l	a5,delibase
 	move.l	dtg_ChkData(a5),a0
 	moveq	#-1,d0				; no (default)
 	cmp.l	#"AON8",(a0)
@@ -69,7 +71,6 @@ InitPlay
 	moveq	#-1,d0
 	jsr	-6(a6)				; "all you cpu belong to us!"
 nouadelib:
-	move.l	a5,delibase
 	move.l	dtg_AudioAlloc(a5),a0		; Function
 	jsr	(a0)				; returncode is already set !
 	rts
@@ -92,7 +93,7 @@ InitSnd
 	move.l	mod,a0
 	lea	buffers,a1			
 	moveq	#0,d0				;start Pos
-	move	#220,d1				;Mixrate
+	move	#250,d1				;Mixrate
 	bsr	AON_init			;init Aon Player
 	move.b	#1,playbit
 
@@ -101,6 +102,18 @@ InitSnd
 	;bsr	aon_setspeed
 
 	rts
+*-----------------------------------------------------------------------*
+;
+; SongEnd
+
+AON_Songend
+    movem.l d0-a6/a0-a6,-(a7)
+    move.l delibase,a5
+    move.l dtg_Songend(a5),a0
+    jsr (a0)
+    movem.l (a7)+,d0-a6/a0-a6
+    rts
+
 
 *-----------------------------------------------------------------------*
 ;
@@ -128,7 +141,7 @@ PLAYERSTART
 			bra	aon_init
 
 
-mix_buflen		= 512
+mix_buflen		= 128
 ;768
 
 aon_timerval		= 1773447		PAL!!
@@ -1329,6 +1342,7 @@ aon_dofx_settempo
 aon_dofx_vbireplay
 			rts
 aon_dofx_replayend	clr.b	aon_speed(a6)
+			bsr	AON_Songend
 aon_resettimer		move.b	#125,aon_tempo(a6)
 
 			move.l	#aon_timerval,d0
@@ -2796,6 +2810,7 @@ aon8_breakpat
 			cmp.b	aon_pos(a6),d0	; End of song ??
 			bhi	aon8_playcurrent2
 			move.b	aon.songinfo_respos(a3),aon_pos(a6) ; Get restart pos!
+			bsr	AON_SongEnd
 aon8_playcurrent2	tst.b	aon_patcnt(a6)
 			beq.b	aon8_playcurrent_nonewposX
 			clr.b	aon_patcnt(a6)
