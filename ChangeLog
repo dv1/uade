@@ -1,5 +1,13 @@
 2005-11-08  Heikki Orsila <heikki.orsila@iki.fi>
-	- Improved cspline interpolator. (alankila)
+	- Added slight noise reduction into CSpline code to reduce
+	  noise due to interpolation errors, and snapping sounds from
+	  sudden volume changes. (alankila)
+	- Updated headphone filtering parameters to place virtual
+	  sound sources closer to head and reduced the associated treble
+	  filtering to make the sound at the same time brighter and more
+	  forward placed. The sources still appear slightly behind and
+	  perhaps elevated, so the illusion will be further improved.
+	  (alankila)
 
 2005-11-07  Michael Doering <mldoering@gmx.net>
 	- Removed dupes from new eagleplayer.conf
