@@ -28,6 +28,7 @@ struct biquad_state {
 };
 
 struct audio_channel_data audio_channel[4];
+static int cspline_old_samples[4];
 void (*sample_handler) (void);
 unsigned long sample_evtime;
 int sound_available;
@@ -276,7 +277,7 @@ int sample16si_cspline_interpolate_one(int *last, int current, float x)
 
 void sample16si_cspline_handler (void)
 {
-    int i;
+    int i, tmp;
     int datas[4];
 
     for (i = 0; i < 4; i += 1) {
@@ -289,7 +290,16 @@ void sample16si_cspline_handler (void)
 	datas[i] *= audio_channel[i].vol;
         datas[i] &= audio_channel[i].adk_mask;
     }
-
+    
+    /* Simple lowpass FIR for reducing sudden discontinuities
+     * caused by sample starts/stops, volume changes and noise in treble
+     * due to interpolation inaccuracies. */
+    for (i = 0; i < 4; i += 1) {
+        tmp = datas[i];
+        datas[i] = (cspline_old_samples[i] + datas[i]) / 2;
+        datas[i] = tmp;
+    }
+    
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
@@ -437,7 +447,8 @@ void audio_reset (void)
 
     audperhack = 0;
 
-    memset(sound_filter_state, 0, sizeof(sound_filter_state));
+    memset(sound_filter_state, 0, sizeof sound_filter_state);
+    memset(cspline_old_samples, 0, sizeof cspline_old_samples);
 }
 
 static int sound_prefs_changed (void)
