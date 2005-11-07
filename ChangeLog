@@ -1,10 +1,10 @@
 2005-11-08  Heikki Orsila <heikki.orsila@iki.fi>
-	- Improved cspline interpolator (alankila)
+	- Improved cspline interpolator. (alankila)
 
 2005-11-07  Michael Doering <mldoering@gmx.net>
 	- Removed dupes from new eagleplayer.conf
-	- Added new player: MusiclineEditor
-	- Fixed(?) ArtOfNoise8 Timingbug, added Songend
+	- Added new player: Musicline Editor
+	- Broke ArtOfNoise8 timing, and added song end detection.
 
 2005-11-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added an experimental support for eagleplayer.conf, which is
