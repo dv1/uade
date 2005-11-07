@@ -1,3 +1,6 @@
+2005-11-07 Michael Doering <mldoering@gmx.net>
+	- removed dupes from new eagleplayer.conf
+
 2005-11-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added an experimental support for eagleplayer.conf, which is
 	  specified at doc/eagleplayer.conf. The new system allows eagleplayer
