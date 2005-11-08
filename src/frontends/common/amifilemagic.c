@@ -76,6 +76,7 @@ const char *offset_0000_patterns[] = {
   "STP3", "STP3",		/* Soundtracker Pro 2 */
   "MTM", "MTM",			/* Multitracker */
   "Extended Module:", "XM",	/* Fasttracker2 */
+  "MLEDMODL", "ML",		/* Musicline Editor */
   NULL, NULL
 };
 
@@ -438,7 +439,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
 	  && buf[0x43b] == 'A') || (buf[0x438] == 'C' && buf[0x439] == 'D'
 				    && buf[0x43a] == '8'
 				    && buf[0x43b] == '1')) {
-    strcpy(pre, "MOD_PC");	/*Multichannel Tracker */
+    strcpy(pre, "MOD_XCHN");	/*Multichannel Tracker */
     
   } else if (buf[0x2c] == 'S' && buf[0x2d] == 'C' && buf[0x2e] == 'R'
 	     && buf[0x2f] == 'M') {

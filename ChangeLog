@@ -9,6 +9,7 @@
 	  perhaps elevated, so the illusion will be further improved.
 	  (alankila)
 	- fixed AON8 timing now for real *grin* (mld)
+	- added Musicline Editor to amifilemagic (mld)
 
 2005-11-07  Michael Doering <mldoering@gmx.net>
 	- Removed dupes from new eagleplayer.conf (mld)
