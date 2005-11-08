@@ -8,11 +8,12 @@
 	  forward placed. The sources still appear slightly behind and
 	  perhaps elevated, so the illusion will be further improved.
 	  (alankila)
+	- fixed AON8 timing now for real *grin* (mld)
 
 2005-11-07  Michael Doering <mldoering@gmx.net>
-	- Removed dupes from new eagleplayer.conf
-	- Added new player: Musicline Editor
-	- Broke ArtOfNoise8 timing, and added song end detection.
+	- Removed dupes from new eagleplayer.conf (mld)
+	- Added new player: Musicline Editor (mld)
+	- Broke ArtOfNoise8 timing, and added song end detection. (mld)
 
 2005-11-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added an experimental support for eagleplayer.conf, which is

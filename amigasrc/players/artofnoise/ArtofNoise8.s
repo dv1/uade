@@ -18,10 +18,10 @@ PlayerTagArray
 	dc.l	DTP_PlayerName,PName
 	dc.l	DTP_Creator,CName
 	dc.l	DTP_DeliBase,delibase
-	;dc.l	DTP_Interrupt,aon8_playcia
+	dc.l	DTP_Interrupt,aon8_playcia
 	dc.l	DTP_Check2,Chk
-	dc.l	DTP_StartInt,ALLOCCIAB
-	dc.l	DTP_StopInt,FREECIAB
+	;dc.l	DTP_StartInt,ALLOCCIAB
+	;dc.l	DTP_StopInt,FREECIAB
 	dc.l	DTP_InitPlayer,InitPlay
 	dc.l	DTP_EndPlayer,EndPlay
 	dc.l	DTP_InitSound,InitSnd
@@ -33,7 +33,7 @@ PlayerTagArray
 ;
 ; Player/Creatorname und lokale Daten
 
-PName	dc.b 'ArtOfNoise (8ch) V2005-11-07',0
+PName	dc.b 'ArtOfNoise (8ch) V2005-11-08',0
 CName	dc.b 'by Bastian Spiegel (Twice/Lego)',10
 	dc.b 'adapted for UADE by mld',0
 uadename	dc.b	'uade.library',0
@@ -107,11 +107,11 @@ InitSnd
 ; SongEnd
 
 AON_Songend
-    movem.l d0-a6/a0-a6,-(a7)
+    movem.l d0-a6,-(a7)
     move.l delibase,a5
     move.l dtg_Songend(a5),a0
     jsr (a0)
-    movem.l (a7)+,d0-a6/a0-a6
+    movem.l (a7)+,d0-a6
     rts
 
 
@@ -120,7 +120,7 @@ AON_Songend
 ; Clean up Module
 
 EndSnd
-	jsr	playerstart+4		;End
+	bsr	aon_end
 	rts
 
 aon_setspeed:
@@ -142,8 +142,6 @@ PLAYERSTART
 
 
 mix_buflen		= 128
-;768
-
 aon_timerval		= 1773447		PAL!!
 
 ; ## AON-INCLUDES ##
@@ -194,61 +192,6 @@ instr_Aend		rs.b	1	; Vol_endlevel
 instr_Asub		rs.b	1	; Zeit bis endlevel
 
 playbit			dc.b	0
-			even
-
-;--------------------------------------------------------------------
-;--------------------------------------------------------------------
-; CIA B allokieren
-ALLOCCIAB
-			movem.l	d1-a6,-(sp)
-			lea	TimerIntServerB+10(pc),a0
-			lea	TimerIntNameB(pc),a1
-			move.l	a1,(a0)
-
-			move.l	4,a6
-			moveq	#0,d0
-			lea	ciaBname(pc),a1
-			jsr	-498(a6)	; openresource
-			lea	ciaBbase(pc),a1
-			move.l	d0,(a1)
-			beq	ciaErrorB	; Resource geöffnet?!
-
-			move.l	d0,a6
-
-			lea	TimerIntServerB(pc),a1
-			lea	aon8_playcia(pc),a0
-			move.l	a0,18(a1)
-			moveq	#1,d0			; bit 1: timer b
-			jsr	-6(a6)		; Timer-Interrupt dazu
-			tst.l	d0
-			bne	CiaErrorB	; Installiert?!?!?!
-
-			move.b	#$6c,$bfd600
-			move.b	#$37,$bfd700
-			bset	#0,$bfdf00	; Timer Start
-			movem.l	(sp)+,d1-a6
-			rts
-;--------------------------------------------------------------------
-FREECIAB		movem.l	d1-a6,-(sp)
-			bclr	#0,$bfdf00		; Timer B STOP
-			move.l	CiaBBase(pc),a6
-			lea	TimerIntServerB(pc),a1
-			moveq	#1,d0			; Timer-B
-			jsr	-12(a6)			; freigeben
-			movem.l	(sp)+,d1-a6
-			moveq	#0,d0
-			rts
-CiaErrorB		moveq	#-1,d0
-			movem.l	(sp)+,d1-a6
-			rts
-CiaBName		dc.b	"ciab.resource",0
-CiaBBase		dc.l	0
-			even
-TimerIntServerB		dc.l	0,0
-			dc.b	2,99 ; type, priority
-			dc.l	0		;TimerIntnameB
-			dc.l	0,0
-TimerIntnameB		dc.b	"ArtOfNoise-8ch-player",0
 			even
 
 
