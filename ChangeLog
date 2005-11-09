@@ -1,3 +1,8 @@
+2005-11-09  Michael Doering <mldoering@gmx.net>
+	- fixed missing hipc,soc prefixes in eagleplayer.conf
+	- associated #chn, ##ch mods to PS3M again. (note: s3m, xm or mtm
+	  are still omitted by uade)
+
 2005-11-08  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added slight noise reduction into CSpline code to reduce
 	  noise due to interpolation errors, and snapping sounds from
@@ -9,7 +14,7 @@
 	  perhaps elevated, so the illusion will be further improved.
 	  (alankila)
 	- fixed AON8 timing now for real *grin* (mld)
-	- added Musicline Editor to amifilemagic (mld)
+	- added Musicline Editor to be detected by amifilemagic (mld)
 
 2005-11-07  Michael Doering <mldoering@gmx.net>
 	- Removed dupes from new eagleplayer.conf (mld)
