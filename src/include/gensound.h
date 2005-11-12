@@ -24,8 +24,9 @@ extern void flush_sound (void);
 extern void close_sound (void);
 
 extern void sample16s_handler (void);
-extern void sample16si_handler (void);
+extern void sample16si_anti_handler(void);
 extern void sample16si_crux_handler (void);
-extern void sample16si_linear_handler (void);
 extern void sample16si_cspline_handler (void);
 extern int sample16si_cspline_interpolate_one (int *, int, float);
+extern void sample16si_handler (void);
+extern void sample16si_linear_handler (void);

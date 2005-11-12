@@ -307,7 +307,7 @@ void sample16si_cspline_handler (void)
  * voltage and computes the average of Paula's output */
 void sample16si_anti_handler (void)
 {
-    int i, tmp;
+    int i;
     int datas[4];
 
     for (i = 0; i < 4; i += 1) {

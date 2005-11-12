@@ -1,6 +1,12 @@
+2005-11-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Add new antialiasing interpolation mode, which corrects for noisy
+	  treble especially audible in the A1200 filter model. It does its
+	  work by computing the average value of Paula's output pins between
+	  samples.
+
 2005-11-09  Michael Doering <mldoering@gmx.net>
-	- fixed missing hipc,soc prefixes in eagleplayer.conf
-	- associated #chn, ##ch mods to PS3M again. (note: s3m, xm or mtm
+	- Fixed missing hipc and soc prefixes in eagleplayer.conf.
+	- Associated #chn, ##ch mods to PS3M again. (note: s3m, xm or mtm
 	  are still omitted by uade)
 
 2005-11-08  Heikki Orsila <heikki.orsila@iki.fi>
