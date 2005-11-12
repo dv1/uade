@@ -107,38 +107,38 @@ static int filter(int input, struct filter_state *fs)
         fs->rc1 = 0.40 * input + 0.60 * fs->rc1;
         normal_output = fs->rc1;
 
-        /* RC lowpass with -3 dB at 22 kHz */
-        fs->rc2 = 0.70 * normal_output + 0.30 * fs->rc2;
+        fs->rc2 = 0.810 * normal_output + 0.190 * fs->rc2;
 
-        /* Peaking band equalizer, 9.5 kHz, 2.0 oct bw, -8.5 dB */
-        tmp = 0.600607 * fs->rc2 - 0.155260 * fs->bq1.x[0] + 0.119621 * fs->bq1.x[1]
-                                 + 0.155260 * fs->bq1.y[0] + 0.279772 * fs->bq1.y[1];
+        tmp = 0.510611 * fs->rc2 - 0.146176 * fs->bq1.x[0] + 0.057950 * fs->bq1.x[1]
+                                 + 0.146176 * fs->bq1.y[0] + 0.431440 * fs->bq1.y[1];
         fs->bq1.x[1] = fs->bq1.x[0];
         fs->bq1.x[0] = fs->rc2;
         fs->bq1.y[1] = fs->bq1.y[0];
         fs->bq1.y[0] = tmp;
-        led_output = fs->bq1.y[0];
+        
+        tmp = 1.057758 * fs->bq1.y[0] - 1.414072 * fs->bq2.x[0] + 0.496108 * fs->bq2.x[1]
+                                      + 1.414072 * fs->bq2.y[0] - 0.553866 * fs->bq2.y[1];
+        fs->bq2.x[1] = fs->bq2.x[0];
+        fs->bq2.x[0] = fs->bq1.y[0];
+        fs->bq2.y[1] = fs->bq2.y[0];
+        fs->bq2.y[0] = tmp;
+        led_output = fs->bq2.y[0];
         break;
         
     case FILTER_MODEL_A1200E:
-        /* very slow roll-off, -2 dB around 13 kHz */
-        fs->rc1 = 0.844 * input + 0.156 * fs->rc1;
-        normal_output = fs->rc1;
+        normal_output = input;
 
-        /* RC lowpass with -3 dB at 5.5 kHz */
-        fs->rc2 = 0.439 * normal_output + 0.561 * fs->rc2;
+        fs->rc2 = 0.363 * normal_output + 0.637 * fs->rc2;
 
-        /* Peaking band equalizer, 12 kHz, 1.8 oct bw, -7.5 dB */
-        tmp = 0.615832 * fs->rc2 + 0.092967 * fs->bq1.x[0] + 0.055565 * fs->bq1.x[1]
-                                 - 0.092967 * fs->bq1.y[0] + 0.328602 * fs->bq1.y[1];
+        tmp = 0.666114 * fs->rc2 + 0.101430 * fs->bq1.x[0] + 0.066404 * fs->bq1.x[1]
+                                 - 0.101430 * fs->bq1.y[0] + 0.267482 * fs->bq1.y[1];
         fs->bq1.x[1] = fs->bq1.x[0];
         fs->bq1.x[0] = fs->rc2;
         fs->bq1.y[1] = fs->bq1.y[0];
         fs->bq1.y[0] = tmp;
 
-        /* Peaking band equalizer, 4 kHz, 3.0 oct bw, +1.0 dB */
-        tmp = 1.049337 * fs->bq1.y[0] - 1.003031 * fs->bq2.x[0] + 0.141977 * fs->bq2.x[1]
-                                      + 1.003031 * fs->bq2.y[0] - 0.191315 * fs->bq2.y[1];
+        tmp = 1.059494 * fs->bq1.y[0] - 1.007695 * fs->bq2.x[0] + 0.137360 * fs->bq2.x[1]
+                                      + 1.007695 * fs->bq2.y[0] - 0.196854 * fs->bq2.y[1];
         fs->bq2.x[1] = fs->bq2.x[0];
         fs->bq2.x[0] = fs->bq1.y[0];
         fs->bq2.y[1] = fs->bq2.y[0];
@@ -303,6 +303,36 @@ void sample16si_cspline_handler (void)
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
+/* This interpolator examines sample points when Paula switches the output
+ * voltage and computes the average of Paula's output */
+void sample16si_anti_handler (void)
+{
+    int i, tmp;
+    int datas[4];
+
+    for (i = 0; i < 4; i += 1) {
+        int oldval = audio_channel[i].last_sample[0];
+        int curval = audio_channel[i].current_sample;
+
+        oldval *= audio_channel[i].vol;
+        curval *= audio_channel[i].vol;
+        
+        int interpoint = audio_channel[i].evtime + sample_evtime;
+        if (interpoint > audio_channel[i].per) {
+            /* interpoint now becomes the count of evtimes that Paula's
+             * output should have been the previous value */
+            interpoint -= audio_channel[i].per;
+            float oldvalfrac = interpoint / (float) sample_evtime;
+
+            datas[i] = oldvalfrac * oldval + (1 - oldvalfrac) * curval;
+        } else {
+            datas[i] = curval;
+        }
+        datas[i] &= audio_channel[i].adk_mask;
+    }
+    
+    sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
+}
 
 static void audio_handler (int nr)
 {
@@ -516,6 +546,8 @@ void select_audio_interpolator(char *name)
       sample_handler = sample16si_crux_handler;
     } else if (strcmp(name, "cspline") == 0) {
       sample_handler = sample16si_cspline_handler;
+    } else if (strcmp(name, "anti") == 0) {
+      sample_handler = sample16si_anti_handler;
     } else {
       fprintf(stderr, "\nUnknown interpolation mode: %s\n", name);
       exit(-1);
