@@ -104,7 +104,7 @@ static int filter(int input, struct filter_state *fs)
         break;
         
     case FILTER_MODEL_A500E:
-        fs->rc1 = 0.40 * input + 0.60 * fs->rc1;
+	fs->rc1 = 0.48 * input + 0.52 * fs->rc1;
         normal_output = fs->rc1;
 
         fs->rc2 = 0.810 * normal_output + 0.190 * fs->rc2;
