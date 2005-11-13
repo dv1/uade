@@ -408,7 +408,7 @@ is_pal	move	d1,beamcon0+custom
 	* Initialize amplifier
 	bsr	call_amplifier_init
 
-	bsr	getplayerinfo
+	bsr	get_player_info
 
 	bsr	call_check_subsongs
 
@@ -992,18 +992,18 @@ endtagloop
 	rts
 
 
-getplayerinfo	move.l	binbase(pc),a0
+get_player_info	move.l	binbase(pc),a0
 	move.l	paskaend-paska-4(a0),a0
 infoloop	move.l	(a0),d0
 	tst.l	d0
 	beq	endinfoloop
 	cmp.l	#DTP_ModuleName,d0
 	bne.b	nodtpmodulename
-	push	all
-	move.l	4(a0),a0
-	move.l	(a0),d0
+	move.l	4(a0),a1
+	move.l	(a1),d1
 	beq.b	nodtpmodulename
-	move.l	d0,a0
+	push	all
+	move.l	d1,a0
 	lea	modulename+4(pc),a1
 	move.l	#250,d0
 	bsr	strlcpy
@@ -1028,11 +1028,11 @@ nodtpmodulename	cmp.l	#DTP_PlayerName,d0
 	bra	nextinfoiter
 nodtpplayername	cmp.l	#DTP_FormatName,d0
 	bne.b	nodtpformatname
-	push	all
-	move.l	4(a0),a0
-	move.l	(a0),d0
+	move.l	4(a0),a1
+	move.l	(a1),d1
 	beq.b	nodtpformatname
-	move.l	d0,a0
+	push	all
+	move.l	d1,a0
 	lea	formatname+4(pc),a1
 	move.l	#250,d0
 	bsr	strlcpy

@@ -6,6 +6,15 @@
 	- Fixed a bug that if eagleplayers.conf specifies always_ends for
 	  an eagleplayer then forcing timeout from command line with -t
 	  didn't work.
+	- Fixed a dirty bug in score that made score crash if an eagleplayer
+	  gave a NULL pointer as module name. This happened with Frontier
+	  custom. Closer inspection revealed that Frontier custom is also
+	  buggy because it sets module name in InitSound() but the
+	  specification says module name is evaluated after InitPlayer()
+	  which is before InitSound(). This looks like a design bug in
+	  the interface, or a typo in the documentation, because setting
+	  module separately for each subsong is useful, and that is what
+	  Frontier actually does.
 
 2005-11-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Add new antialiasing interpolation mode, which corrects for noisy
