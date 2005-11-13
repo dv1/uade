@@ -3,6 +3,9 @@
 	  skip_nws(), and loops that used them, and replaced those with
 	  shorted loops that use strsep(). Changed index variables to use
 	  size_t instead of int to be more robust against bad input.
+	- Fixed a bug that if eagleplayers.conf specifies always_ends for
+	  an eagleplayer then forcing timeout from command line with -t
+	  didn't work.
 
 2005-11-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Add new antialiasing interpolation mode, which corrects for noisy

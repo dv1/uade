@@ -245,6 +245,7 @@ int main(int argc, char *argv[])
   int uade_no_song_end = 0;
   int config_loaded;
   int speed_hack = 0;
+  int timeout_forced = 0;
 
   enum {
     OPT_FILTER = 0x100,
@@ -393,6 +394,7 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(scorename);
       break;
     case 't':
+      timeout_forced = 1;
       config_set_timeout(optarg);
       break;
     case 'u':
@@ -402,6 +404,7 @@ int main(int argc, char *argv[])
       uade_verbose_mode = 1;
       break;
     case 'w':
+      timeout_forced = 1;
       config_set_subsong_timeout(optarg);
       break;
     case 'y':
@@ -550,6 +553,8 @@ int main(int argc, char *argv[])
       uade_no_timeouts = (candidate->attributes & EP_ALWAYS_ENDS) ? 1 : 0;
       if (uade_no_timeouts)
 	debug("eagleplayer.conf specifies always ends.\n");
+      if (timeout_forced)
+	uade_no_timeouts = 0;
 
       if (candidate->attributes & EP_A500)
 	filter_override = FILTER_MODEL_A500;
