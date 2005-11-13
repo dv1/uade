@@ -1,3 +1,9 @@
+2005-11-13  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cleaned up src/frontends/common/eagleplayer.c. Removed skip_ws(),
+	  skip_nws(), and loops that used them, and replaced those with
+	  shorted loops that use strsep(). Changed index variables to use
+	  size_t instead of int to be more robust against bad input.
+
 2005-11-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Add new antialiasing interpolation mode, which corrects for noisy
 	  treble especially audible in the A1200 filter model. It does its

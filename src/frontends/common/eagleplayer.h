@@ -1,6 +1,8 @@
 #ifndef _UADE_EAGLEPLAYER_H_
 #define _UADE_EAGLEPLAYER_H_
 
+#include <stdio.h>
+
 #define EP_A500              (1 << 0)
 #define EP_A1200             (1 << 1)
 #define EP_ALWAYS_ENDS       (1 << 2)
@@ -9,7 +11,7 @@
 
 struct eagleplayer {
   char *playername;
-  int nextensions;
+  size_t nextensions;
   char **extensions;
   int attributes;
 };
