@@ -22,7 +22,7 @@ void pause_terminal(void)
   char c;
   int ret;
   tprintf("\nPaused. Press any key to continue...\n");
-  while (1) {
+  while (uade_terminated == 0) {
     ret = poll(&pfd, 1, -1);
     if (ret < 0) {
       if (errno == EINTR)

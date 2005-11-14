@@ -306,6 +306,7 @@ int play_loop(void)
 
 	time_bytes += playbytes;
 
+	/* FIX ME */
 	if (uade_timeout != -1)
 	  total_bytes += playbytes;
 
@@ -330,6 +331,7 @@ int play_loop(void)
 	  return 0;
 	}
 
+	/* FIX ME */
 	if (uade_timeout != -1 && uade_no_timeouts == 0) {
 	  if (uade_song_end_trigger == 0) {
 	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
