@@ -1,0 +1,253 @@
+.\" Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.\" Please adjust this date whenever revising the manpage.
+.\" 
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.TH "UADE" "1" "2005-11-16" "shd/uade team" ""
+.SH "NAME"
+UADE \- the Unix Amiga Delitracker Emulator
+
+.SH "SYNOPSIS"
+.TP 
+.B uade123
+[\fIoptions\fR] \fIfile1\fR ...
+.TP 
+
+.SH "DESCRIPTION"
+uade123 plays old amiga music formats by emulating Amiga hardware. The system
+reimplements Eagleplayer API and some AmigaOS to use existing Motorol 68000
+binary plugins.
+
+.SH "COMMAND LINE OPTIONS"
+
+.TP
+\fB\-1, \-\-one\fR
+Play at most one subsong per file.
+
+.TP
+\fB\-d\fR
+Turn debug mode on. Experts only.
+
+.TP
+\fB\-e\fR format
+Set output file format. Use with
+.BR -f .
+
+.TP
+\fB\-f\fR filename
+Output sound data to filename.
+
+.TP
+\fB\-\-filter\fR
+Enable filter emulation. Default is ON.
+
+.TP
+\fB\-\-filter=\fRx
+Set filter emulation mode to x. x is one of following: a500, a500e, a1200,
+or a1200e. The default is a1200.
+
+.TP 
+\fB\-i,	\-\-ignore\fR
+Force eagleplayer to play the song.
+
+.TP 
+\fB\-\-no\-song\-end\fR
+Play music ad infinitum by ignoring songend.
+
+.TP 
+\fB\-P\fR playerfile
+Set filename of the eagleplayer.
+
+.TP 
+\fB\-s\fR n\fB, \-\-subsong=\fRn
+Choose subsong n.
+
+.TP 
+\fB\-S\fR scorefile
+Set filename of sound core. Experts only.
+
+ometimes it's neccessary to "persuade" the eagleplayers to play a certain
+song.
+To force module checks to always valid, use
+this switch and all modules are accepted and
+the eagleplayer tries to play it anyway.
+(Warning! You overide the sanity checks of the replays
+with this switch. this may crash the virtual amiga 
+when used. Use it when you are really sure what you
+are doing)
+
+.TP 
+\fB\-one\fR
+play subsong and end, instead of playing
+all subsongs sequentially. Useful for recording
+one subsong at a time.
+
+.TP 
+\fB\-rp, \-repeat\fR
+repeat all files at the end of the filequeue
+
+.TP 
+\fB\-p, \-pan\fR n
+panning (aka channel mixing aka stereo seperation).
+with n being any value between 0=full stereo and 
+1=full mono.
+
+.TP 
+\fB\-t\fR n
+sets the overall playtime in seconds to play a song
+and all its subsongs.
+(useful for recording "endless" songs)
+
+.TP 
+\fB\-st\fR n
+works like a "scan" feature to be found on cd
+players. Switch to next subsong after 'n' seconds of playing
+(useful for recording "endless songs)
+
+.TP 
+\fB\-sit\fR n
+sets the "silence timeout", the time uade waits during
+silence to decide the songs is over, to n secs.
+
+.TP 
+\fB\-r, \-rand\fR
+Play songs in random order
+
+.TP 
+\fB\-d\fR
+enter UAE debugger. Useful for ...er... well
+debugging and maybe for doing memory dumps for
+finding converted/unpacked music in the virtual
+amiga memory.
+.TP 
+\fB\-sh\fR
+enable speedhack. Emulate all instructions to be executed
+in one m68k cycle. Some players, such as EMS v6, take too
+many m68k cycles to be real\-time. This option gives them
+enough m68k cycles. Notice that you do _not_ need to use this
+switch with EMS v6 or Octamed, because it is automatically enabled for
+that format. The replayer knows to ask for speedhack.
+.TP 
+\fB\-no\-sh\fR
+disable speedhack (even if the replayer tries to use
+it)
+.TP 
+\fB\-fi, \-filter\fR
+toggle lowpass filter
+.TP 
+\fB\-swap\-bytes\fR
+Swaps output sample bytes (use only with 16\-bit samples), ie
+changes the endianess of the output samples. By default UADE
+outputs native endian samples.
+.TP 
+\fB\-i\fR
+interactive command line shell: 
+e.g.:
+.br 
+			h + <enter>	\-> help
+.br 
+			n + <enter>	\-> next song
+.br 
+			1 + <enter>	\-> jump to subsong 1
+.br 
+			5 + <enter>	\-> jump to subsong 5
+.br 
+			etc.
+.SH "SUPPORTED FORMATS"
+Many... among them are e.g. CUST, MOD, MED, TFMX, DW, HIPPEL, VECTORDEAN...
+(see uade\-docs/formats.txt for a more complete list)
+.SH "FILES"
+.TP 
+$UADEDIR/uade						uade console player
+.TP 
+$UADEDIR/score						uade soundcore
+.TP 
+$XMMSDIR/Plugins/Input/libuade.so		uade xmms plugin
+.TP 
+$XMMSDIR/config					[UADE] Section in xmms config
+.TP 
+$UADEDIR/pwrap.pl					uade perl frontend
+.TP 
+$UADEDIR/players					Amiga m68k replayer binaries
+.TP 
+$UADEDIR/players/uadeformats			Fileextension<\->player configs
+.TP 
+$UADEDIR/db\-content					md5 content playtime database
+.TP 
+$UADEDIR/db\-name					md5	filename playtime db
+.TP 
+$UADEDIR/uade\-x.yz					uade docs and readmes
+
+.br 
+UADEDIR=path where uade was installed
+.br 
+XMMSDIR=path where xmms was installed
+
+.SH "EXAMPLES"
+.TP 
+\fBuade \-P players/ArtOfNoise \-M music/AON.big_deal\fR
+.br 
+plays the musicfile AON.big_deal in music/ with the the ArtOfNoise replayer binary on players/
+.TP 
+\fBuade \-P players/ArtOfNoise \-M music/AON.big_deal \-force\fR
+.br 
+plays the musicfile AON.big_deal in music/ with the
+the ArtOfNoise replayer binary in players/, even if the
+player would reject the file as a valid music file for it.
+.TP 
+\fBuade \-P CUST.MyFavouriteCustomSong\fR
+.br 
+causes uade to play the custom tune that was
+passed to score with the \-P switch
+.TP 
+\fBuade \-P CUST.MyFavouriteCustomSong \-sub 2\fR
+.br 
+causes uade to play the 2nd subsong of the 
+custom tune that was passed to score with the \-P switch
+.TP 
+\fBuade \-P CUST.MyFavouriteCustomSong \-ntsc\fR
+.br 
+causes uade to play the music in NTSC speed
+(only if the player or in this case the Custom song
+supports it;) 
+.LP 
+\fB>Redirecting the output:\fR
+.br 
+The console tool also provides the possibility to redirect the UAE audio
+output to either save it to disk for further use, like converting it
+to a wavefile or encoding it as mp3 or ogg, or to pipe the it directly
+to other applications, that can read their input from stdin/stdout.
+.br 
+E.g. dumping audio stream to stdout and converting it to wav and ogg vorbis
+formats:
+.IP 
+\fBuade \-P players/FC1.3 \-M songs/future_composer/fc13.smod7 \-outpipe 1 >./music.raw
+sox \-t raw \-r 44100 \-c 2 \-s \-w ./music.raw ./music.wav
+oggenc music.wav\fR
+.LP 
+on \fBAmigaOS/MorphOS\fR you might want to do:
+.IP 
+\fBuade \-P players/FC1.3 \-M songs/future_composer/fc13.smod7\-outpipe 1 > "AUDIO:B=16 F=44100 C=2"\fR
+.LP 
+Another example:
+.IP 
+\fBfor i in `seq 1 3` ; do uade songfile \-pan 1 \-one \-sub $i \-outpipe 1 > sub.$i.raw ; sox \-t raw \-r 44100 \-c 2 \-s \-w sub.$i.raw sub.$i.wav ; rm sub.$i.raw ; done\fR
+.LP 
+will record subsongs 1\-3 into separate wav files, with panning = 1
+(mono). You may want to make a shell script out of this
+.SH "AUTHOR"
+\fBUADE\fP was started by Heikki Orsila <heikki.orsila@iki.fi>
+Later there have been other contributors such as Michael 'mld' Doering, Harry 'Piru' Sintonen (MorphOS port) and others.
+.B http://uade.ton.tut.fi /
+for more information.
