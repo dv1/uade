@@ -21,13 +21,13 @@ if test -n "$LDFLAGS"; then
     echo "Adding $ARCHLIBS to ARCHLIBS"
 fi
 
-user="yes"
+user="no"
 packageprefix=""
 mymods="\$ENV{HOME}"
-usexmms="auto"
-usebmp="auto"
-xmmsplugindir="auto"
-bmpplugindir="auto"
+usexmms="no"
+usebmp="no"
+xmmsplugindir="no"
+bmpplugindir="no"
 FORCEDAUDIOTARGET="AO"
 disablealsa="no"
 disableoss="no"
@@ -167,28 +167,6 @@ for opt in "$@" ; do
 		echo " --mandir=dir           Install man page to this directory"
 		echo " --libdir=dir           Add this dircetory to linking path"
 		echo " --sharedir=dir         Install UADE data files into this directory"
-		echo
-		echo "Plugin control:"
-		echo " --with-xmms            Compile XMMS plugin"
-		echo " --without-xmms         Don't compile XMMS plugin"
-		echo " --xmms-plugin-dir=dir  The XMMS input plugin is installed into this directory"
-		echo " --with-bmp             Compile BeepMP plugin"
-		echo " --without-bmp          Don't compile BeepMP plugin"
-		echo " --bmp-plugin-dir=dir   The BeepMP input plugin is installed into this directory"
-		echo
-		echo "Pwrap control:"
-		echo " --mymods=path        The default module directory for pwrap tk interface"
-		echo "                      users. Default directory is the homedir."
-		echo "Sound target control:"
-		echo " --with-alsa          Use ALSA sound output"
-		echo " --without-alsa       Do not use ALSA sound output"
-		echo " --with-null          No sound output (just for testing)"
-		echo " --with-oss           Use OSS sound output"
-		echo " --without-oss        Do not use OSS sound output"
-		echo " --with-ao            Use libao sound output"
-		echo " --without-ao         Do not use libao sound output"
-		echo " --with-sdl           Use SDL sound output"
-		echo " --without-sdl        Do not use SDL sound output"
 		echo
 		echo "Library control:"
 		echo " --glib-config=exe    Use 'exe' as glib-config executable"
@@ -427,12 +405,6 @@ if test "$user" = "no"; then
     if test -z "$bindir"; then
 	bindir="$prefix/bin"
     fi
-    if test "$usexmms" = "yes"; then
-	xmmsplugin=`$XMMS_CONFIG --input-plugin-dir`
-    fi
-    if test "$usebmp" = "yes"; then
-	bmpplugin=`$PKG_CONFIG bmp --variable=input_plugin_dir`
-    fi
     if test -z "$docdir"; then
 	docdir="$prefix/share/doc/uade-$VERSION"
     fi
@@ -502,6 +474,16 @@ if test "$?" != "0" ; then
 fi
 cd ..
 
+AOFLAGS="`pkg-config --cflags ao`"
+if test "$?" != "0"; then
+    echo ""
+    echo "Configure error:"
+    echo "Please install libao (including development kit)."
+    exit -1
+fi
+AOLIBS="`pkg-config --libs ao`"
+
+
 echo "UADE and frontends will be installed to : $bindir"
 echo "Data directory will be                  : $uadedatadir"
 echo "Documentation directory will be         : $docdir"
@@ -510,10 +492,6 @@ echo "Installer that will be used             : $INSTALLTEST"
 echo "Make that will be used during the build : $MAKE"
 echo "Sound output with                       : $AUDIOTARGET"
 echo
-
-AOFLAGS="`pkg-config --cflags ao`"
-AOLIBS="`pkg-config --libs ao`"
-
 
 cat > src/ossupport.c <<EOF
 #include "unixsupport.c"
@@ -539,8 +517,7 @@ sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{BINDIR}|$bindir|" \
     -e "s|{DOCDIR}|$docdir|" \
     -e "s|{MANDIR}|$mandir|" \
-    -e "s|{WITH_XMMS}|$usexmms|" \
-    -e "s|{WITH_BEEP}|$usebmp|" \
+    -e "s|{LIBDIR}|$uadelibdir|" \
     -e "s|{PACKAGEPREFIX}|$packageprefix|" \
     -e "s|{UADE123NAME}|$UADE123NAME|" \
     Makefile.in > Makefile
