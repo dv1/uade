@@ -31,7 +31,7 @@ eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
 effects.o:	../common/effects.c ../common/effects.h
 	$(CC) $(CFLAGS) -c $<
 
-playlist.o:	playlist.c playlist.h uade123.h
+playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<
 
 playloop.o:	playloop.c playloop.h uade123.h

@@ -1,3 +1,8 @@
+2005-11-16  Heikki Orsila <heikki.orsila@iki.fi>
+	- Made install to a standard path by default. That is /usr/local.
+	  Use ./configure --prefix to override. configure --user will install
+	  to users home directory as in the past.
+
 2005-11-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up src/frontends/common/eagleplayer.c. Removed skip_ws(),
 	  skip_nws(), and loops that used them, and replaced those with

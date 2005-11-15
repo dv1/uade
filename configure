@@ -180,8 +180,7 @@ for opt in "$@" ; do
 	--x-includes=*)
 		;;
 	*)
-		echo "illegal option $opt"
-		exit
+		echo "ignoring option $opt"
 		;;
 	esac
 done
