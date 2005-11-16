@@ -5,7 +5,7 @@
 	- Committed initial version of man page for uade123.
 	- added a first uade-only mod15_Mastertracker player (mld)
 	- improved (?) mod15 type checks in amifilemagic (mld)
-	- started to work on mmore complete mod type check in amifilemagic
+	- started to work on more complete mod type check in amifilemagic
 	  (mld)
 
 2005-11-13  Heikki Orsila <heikki.orsila@iki.fi>
