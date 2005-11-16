@@ -2,6 +2,7 @@
 	- Made install to a standard path by default. That is /usr/local.
 	  Use ./configure --prefix to override. configure --user will install
 	  to users home directory as in the past.
+	- Committed initial version of man page for uade123.
 
 2005-11-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up src/frontends/common/eagleplayer.c. Removed skip_ws(),

@@ -63,6 +63,9 @@ install:	all
 	cp -f src/frontends/uade123/{UADE123NAME} "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/{UADE123NAME}"
 
+	cp doc/uade123.1 "$(MANDIR)"/
+	chmod og+r "$(MANDIR)"/uade123.1
+
 clean:	
 	$(MAKE) -C src clean
 	$(MAKE) -C src/frontends/uade123 clean
