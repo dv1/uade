@@ -31,11 +31,6 @@
 static int chk_id_offset(unsigned char *buf, int bufsize,
 			 const char *patterns[], int offset, char *pre);
 
-/* mod patterns at file offset 0x438 */
-const char *mod_patterns[] = { "M.K.", "N.T.", "M!K!", "M&K!", ".M.K", 0 };
-
-/* startrekker patterns at file offset 0x438 */
-const char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
 
 /* Do not use '\0'. They won't work in patterns */
 const char *offset_0000_patterns[] = {
@@ -265,7 +260,7 @@ static int modlentest(unsigned char *buf, int filesize, char *pre)
 
   if (buf[43] + no_of_instr * 30 > filesize)
     return 0;			/* no mod */
-  if (buf[43] + no_of_instr * 30 > 5122)
+  if (buf[43] + no_of_instr * 30 > 104508)
     return 0;			/* not enough data in buffer */
 
   for (i = 0; i < no_of_instr; i++) {
@@ -284,86 +279,254 @@ static int modlentest(unsigned char *buf, int filesize, char *pre)
   return ret;
 }
 
+static int mod32check(unsigned char *buf, int bufsize)
+/* returns:	 0 for undefined                            */
+/* 		 1 for a Soundtracker 32instr.		    */
+/*		 2 for a Noisetracker 1.0		    */
+/*		 3 for a Noisetracker 2.0		    */
+/*		 4 for a Startrekker 4ch		    */
+/*		 5 for a Startrekker 8ch		    */
+/*		 6 for Audiosculpture 4 ch/fm		    */
+/*		 7 for Audiosculpture 8 ch/fm		    */
+/*		 8 for a Protracker 			    */
+/*		 9 for a Fasttracker			    */
+/*		 10 for a Noisetracker (M&K!)		    */
+{
+/* todo: port and enhance ptk-prowiz detection to amifilemagic */
+
+    /* mod patterns at file offset 0x438 */
+    char *mod_patterns[] = { "M.K.", ".M.K", 0 };
+    /* startrekker patterns at file offset 0x438 */
+    char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
+
+    int i,j,t,ret;
+
+
+    /* Special cases first */
+    if (patterntest(buf, "M&K!", 0x438, 4, bufsize)) {
+      return 10;	/* Noisetracker (M&K!) */
+      }
+
+    if (patterntest(buf, "M!K!", 0x438, 4, bufsize)) {
+      return 8;		/* Protracker (100 patterns) */
+      }
+
+    if (patterntest(buf, "N.T.", 0x438, 4, bufsize)) {
+      return 3;		/* Noisetracker2.x */
+      }
+
+    for (i = 0; startrekker_patterns[i]; i++) {
+     if (patterntest(buf, startrekker_patterns[i], 0x438, 4, bufsize)) {
+      t = 0;
+      for (j = 0; j < 30 * 0x1e; j = j + 0x1e) {
+	if (buf[0x2a + j] == 0 && buf[0x2b + j] == 0 && buf[0x2d + j] != 0) {
+	  t = t + 1;		/* no of AM instr. */
+	}
+      }
+      if (t > 0) {
+	if (buf[0x43b] == '4'){
+		ret=6;			/* Startrekker 4 AM / ADSC */
+	    } else { 		
+		ret=7;			/* Startrekker 8 AM / ADSC */	
+	    }
+      } else {
+	if (buf[0x43b] == '4'){
+		ret=4;			/* Startrekker 4ch */
+	    } else { 		
+		ret=5;			/* Startrekker 8ch */	
+	    }
+	}
+      return ret;
+      }
+    }
+
+    for (i = 0; mod_patterns[i]; i++) {
+     if (patterntest(buf, mod_patterns[i], 0x438, 4, bufsize)) {
+	/* seems to be a generic M.K. MOD                              */
+	/* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
+	/*       and Fasttracker checking                               */
+        return 8;
+      }
+    }
+return 0;
+}
+
+
+static int mod15check(unsigned char *buf, int bufsize)
+/* pattern parsing based on Sylvain 'Asle' Chipaux'	*/
+/* Modinfo-V2						*/
+/*							*/
 /* returns:	 0 for an undefined mod 		*/
 /* 		 1 for a DOC Soundtracker mod		*/
 /*		 2 for a Ultimate ST mod		*/
-/*		 3 for a SoundtrackerV2.0 -V4.0 (todo)	*/
-static int mod15check(unsigned char *buf, int bufsize)
+/*		 3 for a Mastersoundtracker		*/
+/*		 4 for a SoundtrackerV2.0 -V4.0		*/
 {
-  int i = 0;
+  int i = 0, j = 0;
   int slen = 0;
   int srep = 0;
   int sreplen = 0;
   int vol = 0;
   int ret = 0;
 
+  int noof_slen_zero_sreplen_zero=0;
+  int noof_slen_zero_sreplen_nonzero=0;
+  int noof_slen_zero_vol_zero=0;
+  int srep_bigger_slen=0;
+  int srep_bigger_ffff=0;
+  int st_xy=0;
+  
+  int offset, fx, max_pattern=1;
+  unsigned char fxarg;
+  int pfx[32];
+
+  /* sanity check */
   if (bufsize < 0x1f3)
     return 0;			/* file too small */
   if (bufsize < 49 + 15 * 30)
     return 0;			/* file too small */
 
+ /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x78 && buf[0x1f3] != 1) {
-    for (i = 0; i < 128; i++) {	/* pattern step table: 128 posbl. entries */
-      if (buf[600 - 130 + 2 + i] > 63)
-	return 0;		/*can be 0 -63 */
+    for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
+      max_pattern=(buf[600 - 130 + 2 + i] > max_pattern) ? buf[600 - 130 + 2 + i] : max_pattern;
     }
+    if (max_pattern > 63)
+    return 0;		/* pattern number can only be  0 <-> 63 */
+  }
+//  fprintf (stderr, "maxpattern: %d\n",max_pattern);
 
+ /* parse instruments */
     for (i = 0; i < 15; i++) {
       vol = buf[45 + i * 30];
       slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
       srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
-      if ((vol > 0x40) || (sreplen + srep > slen && slen != 0) ||
-	  //(slen == 0 && vol != 0) ||
-	  (slen == 0 && sreplen > 2))
-	return 0;
-    }
-    ret = 1;			/* mod15 */
-    fprintf(stderr,
-	    "*** INFO *** if it sounds broken or isn't played it could also be an Ultimate-ST file: use -p and -m parameters to overide autodetection\n");
-  }
+//      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
-
-  if (ret == 1 && buf[0x1d7] != 00) {	/* could be ust */
-    for (i = 0; i < 15; i++) {
-      if ((((buf[20 + i * 30] << 24) + (buf[21 + i * 30] << 16) +	/* no empty  */
-	    (buf[22 + i * 30] << 8) + buf[23 + i * 30]) != 0)) {	/* smpl name */
-
+      if (slen == 0) {
+       if  (vol == 0 )
+        {  noof_slen_zero_vol_zero++;} 
+       if  (sreplen == 0 ) {
+          noof_slen_zero_sreplen_zero++;
+	} else {
+	  noof_slen_zero_sreplen_nonzero++;}
+       } else {
+            if ((srep+sreplen) > slen)
+	    srep_bigger_slen++;
+       }
+       	
 	/* slen < 9999 */
 	slen = (buf[42 + i * 30] << 8) + buf[43 + i * 30];
 	if (slen <= 9999) {
-	  /* repeat offset + repeat size*2 <0xffff */
+	  /* repeat offset + repeat size*2 < word size */
 	  srep = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2 +
 	      ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
 	  if (srep > 0xffff)
-	    return ret;
-
-	} else {
-	  return ret;		/* seems to be a plain mod15 */
-	}
-      }
+	    srep_bigger_ffff++;
+        }
+	if  (buf[25+i*30] ==':' && buf [22+i*30] == '-' &&
+	   ((buf[20+i*30] =='S' && buf [21+i*30] == 'T') ||
+	    (buf[20+i*30] =='s' && buf [21+i*30] == 't'))) st_xy++;
     }
 
-    if (buf[0x1d7] != 0x78)
-      ret = 2;
-    /* check smpl names */
-    if (ret == 1) {
-      for (i = 0; i < 15; i++) {
-	if ((((buf[20 + i * 30] << 24) + (buf[21 + i * 30] << 16) +	/* no empty  */
-	      (buf[22 + i * 30] << 8) + buf[23 + i * 30]) != 0)) {	/* smpl name  */
+/* parse pattern data */
+    memset (pfx,0,sizeof (pfx));
 
-	  if (buf[25 + i * 30] == ':' && buf[22 + i * 30] == '-' &&
-	      ((buf[20 + i * 30] == 'S' && buf[21 + i * 30] == 'T') ||
-	       (buf[20 + i * 30] == 's' && buf[21 + i * 30] == 't')))
-	    return ret;
-	}
-      }
-      /* TODO: checks for the two UST effects  0+1 */
-      //ret = 2;
+    if (max_pattern > 1) max_pattern++;
+    for ( i=0; i< max_pattern; i++ )
+    {
+     for (j=0; j<256; j++ )
+     {
+     offset = 600+j*4+i*1024;
+     fx = buf[offset+2] & 0x0f;
+     fxarg = buf[offset+3];
+
+     switch (fx)
+     { 
+        case 0:
+	  if (fxarg != 0 )
+	   pfx[fx] += 1;
+           break;
+         case 1:
+         case 2:
+         case 3:
+         case 4:
+         case 5:
+         case 6:
+         case 7:
+         case 8:
+         case 9:
+         case 10:
+         case 11:
+         case 12:
+         case 13:
+          pfx[fx] +=1;
+          break;
+         case 14: // 0x0e Extended Commands//
+          pfx[((fxarg>>4)&0x0f) + 16] +=1;
+          break;
+         case 15: //0x0f set Tempo/Set Speed
+          if (fxarg > 0x1f)
+           pfx[14] +=1;
+          else
+           pfx[15] +=1;
+           break;
+	  }
+     } 
     }
-  }
-  return ret;
+/* print fx list for debugging */
+/*   for (j=0; j<32; j++ )
+     {
+      fprintf (stderr, "effects: %d\t%d\n",j, pfx[j]);
+     }
+*/
+
+/* and now for let's see if we can spot the mod */
+
+/* FX used:					*/
+/* Ultimate ST:			0,1,2		*/
+/* MasterSoundtracker:		0,1,2,  c,  e,f	*/
+/* DOC-Soundtracker V2.0:	0,1,2,b,c,d,e,f */
+/* Soundtracker II-IV		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
+
+
+/* Check for instruments used between 0x3 <-> 0xb */
+   for (j=3; j<0xc; j++ )
+     {
+      if (pfx[j] !=0)
+       { return 4; /* Most likely one of those weird ST II-IV mods*/ }
+     }
+
+   for (j=0xb; j<0x10; j++)
+     {
+     if (pfx[j] != 0) 
+      {
+       ret=1; /* most likely  a DOC ST or MasterSoundtracker */
+       break;
+      }
+     }
+
+    if (ret == 1)
+     {
+     if (pfx[0x0d] > max_pattern)
+	 {
+          return 4; /* Most likely one of those weird ST II-IV mods*/
+	  }
+      if ((pfx[0x0b] == 0 || pfx[0x0d] == 0) && (noof_slen_zero_sreplen_zero !=0 && noof_slen_zero_sreplen_nonzero ==0 && st_xy==0))
+        {
+        return 3;	/* Master ST */
+      } else {
+        return 1;	/* DOC ST */
+      }
+    }
+       
+    if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 && pfx[0x00] ==0 &&
+        ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
+    {
+     return 2;		/* can savely be played as Ultimate ST */
+    }
+  return 0;
 }
 
 
@@ -384,46 +547,64 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
      have to do at the moment :)
    */
 
-  int i, j, t;
-  const int bufsize = 5122;
+  int i, t;
+  const int bufsize = 104510;
 
-  for (i = 0; mod_patterns[i]; i++) {
-    if (patterntest(buf, mod_patterns[i], 0x438, 4, bufsize)) {
-      /* generic protracker or clone */
-      strcpy(pre, "MOD");
-      if (modlentest(buf, realfilesize, pre) < 0) {
-	/* modlen broken, but we'll just accept it anyway.. */
-      }
-      return;
+  t = mod32check(buf, bufsize);
+    if (t >0)
+    {
+     switch (t)
+     { 
+         case 1:
+    	    strcpy(pre, "MOD_DOC");	/* Soundtracker 32instrument*/
+	    break;
+         case 2:
+    	    strcpy(pre, "MOD_NTK1");	/* Noisetracker 1.x*/
+	    break;
+         case 3:
+    	    strcpy(pre, "MOD_NTK2");	/* Noisetracker 2.x*/
+	    break;
+         case 4:
+    	    strcpy(pre, "MOD_FLT4");	/* Startrekker 4ch*/
+	    break;
+         case 5:
+    	    strcpy(pre, "MOD_FLT8");	/* Startrekker 8ch*/
+	    break;
+         case 6:
+    	    strcpy(pre, "MOD_ADSC4");	/* Audiosculpture 4ch AM*/
+	    break;
+         case 7:
+    	    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
+	    break;
+         case 9:
+    	    strcpy(pre, "MOD_FT1");	/* Fasttracker 4 ch*/
+	    break;
+         case 8:
+    	    strcpy(pre, "MOD");		/* Protracker*/
+	    break;
+         case 10:
+    	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
+	    break;
+	  }
+        if (modlentest(buf, realfilesize, pre) < 0) 
+        { strcpy(pre, ""); }
+	return;
     }
-  }
-
-  for (i = 0; startrekker_patterns[i]; i++) {
-    if (patterntest(buf, startrekker_patterns[i], 0x438, 4, bufsize)) {
-      t = 0;
-      for (j = 0; j < 30 * 0x1e; j = j + 0x1e) {
-	if (buf[0x2a + j] == 0 && buf[0x2b + j] == 0 && buf[0x2d + j] != 0) {
-	  t = t + 1;		/* no of AM instr. */
-	}
-      }
-      if (t > 0) {
-	strcpy(pre, "ADSC");	/* Startrekker 4 AM / ADSC */
-      } else {
-	strcpy(pre, "MOD");	/* generic Startrekker MOD */
-	if (modlentest(buf, realfilesize, pre) < 0) {
-	  /* modlen broken, but we'll just accept it anyway.. */
-	}
-      }
-      return;
-    }
-  }
-
+  
+  
   t = mod15check(buf, bufsize);
   if (t > 0) {
-    strcpy(pre, "MOD15");	/*normal Soundtracker 15 */
+    strcpy(pre, "MOD15");	/* normal Soundtracker 15 */
     if (t == 2) {
-      strcpy(pre, "MOD_UST");	/*Ultimate ST */
+      strcpy(pre, "MOD15_UST");	/* Ultimate ST */
     }
+    if (t == 3) {
+      strcpy(pre, "MOD15_MST");	/* Mastersoundtracker */
+    }
+    if (t == 4) {
+      strcpy(pre, "MOD15_ST-IV");	/* Soundtracker iV */
+    }
+
     if (modlentest(buf, realfilesize, pre) < 0) {
       strcpy(pre, "");
     }
