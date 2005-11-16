@@ -231,26 +231,26 @@ static int tfmxtest(unsigned char *buf, int bufsize, char *pre)
 /* returns:	 -1 for a mod with bad length 		*/
 /* 		 0 for no mod or not checked		*/
 /*		 1 for a mod with good length		*/
-static int modlentest(unsigned char *buf, int filesize, char *pre)
+static int modlentest(unsigned char *buf, int filesize, int header)
 {
   int ret = 0;
   int i = 0;
-  int no_of_instr = 15;
+  int no_of_instr;
   int smpl = 0;
-  int header = 600;
-  int plist = 600 - 130;
+  int plist;
   int maxpattern = 0;
 
-  if (strcasecmp(pre, "MOD") == 0) {
-    no_of_instr = 31;
+  if (header == 600)   {
+    no_of_instr = 15;
+    plist = header - 130;
+    } else {
     header = 1084;
-    plist = 1084 - 4 - 130;
-  } else if ((strcasecmp(pre, "MOD15") != 0) ||
-	     (strcasecmp(pre, "MOD_UST") != 0))
-    return 0;
-
+    no_of_instr = 31;
+    plist = header -4 - 130 ;
+    }
+    
   if (header > filesize)
-    return 0;			/* no mod */
+    return 0;			/* safety check */
   for (i = 0; i < 128; i++) {
     if (buf[plist + 2 + i] > maxpattern)
       maxpattern = buf[plist + 2 + i];
@@ -270,7 +270,7 @@ static int modlentest(unsigned char *buf, int filesize, char *pre)
   if ((filesize < (header + (maxpattern + 1) * 1024 + smpl * 2)) ||
       (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2) + 1024)) {
     fprintf(stderr,
-	    "uade: *** WARNING *** calculated length %d doesn't match the file length %d\n",
+	    "*** WARNING *** calculated mod length %d doesn't match the file length %d!\n",
 	    header + (maxpattern + 1) * 1024 + smpl * 2, filesize);
     ret = -1;
   } else {
@@ -586,8 +586,8 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
     	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
 	    break;
 	  }
-        if (modlentest(buf, realfilesize, pre) < 0) 
-        { strcpy(pre, ""); }
+        if (modlentest(buf, realfilesize, 1084) < 0) 
+          { strcpy(pre, ""); }
 	return;
     }
   
@@ -604,8 +604,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
     if (t == 4) {
       strcpy(pre, "MOD15_ST-IV");	/* Soundtracker iV */
     }
-
-    if (modlentest(buf, realfilesize, pre) < 0) {
+    if (modlentest(buf, realfilesize, 600) < 0) {
       strcpy(pre, "");
     }
   }
