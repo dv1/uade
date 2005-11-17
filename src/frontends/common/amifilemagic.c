@@ -40,6 +40,9 @@ const char *offset_0000_patterns[] = {
   "SYNTRACKER", "SYNMOD",	/* Syntracker */
   "OBISYNTHPACK", "OSP",	/* Synthpack */
   "SOARV1.0", "SA",		/* Sonic Arranger */
+  "AON4", "AON4",              /* Art Of Noise (4ch) */
+  "AON8", "AON8",              /* Art Of Noise (8ch) */
+  "ARP.", "MTP2",       	/* HolyNoise / Major Tom */
   "AmBk", "ABK",		/* Amos ABK */
   "FUCO", "BSI",		/* FutureComposer BSI */
   "MMU2", "DSS",		/* DSS */
@@ -72,6 +75,7 @@ const char *offset_0000_patterns[] = {
   "MTM", "MTM",			/* Multitracker */
   "Extended Module:", "XM",	/* Fasttracker2 */
   "MLEDMODL", "ML",		/* Musicline Editor */
+  "YM!", "",                   /* stplay -- intentionally sabotaged */
   NULL, NULL
 };
 
@@ -788,13 +792,6 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   } else if (tfmxtest(buf, bufsize, pre)) {
     /* is TFMX, nothing to do here ('pre' set in tfmxtest() */
 
-  } else if (buf[0] == 'A' && buf[1] == 'O' && buf[2] == 'N') {
-    if (buf[3] == '4') {
-      strcpy(pre, "AON4");	/* Art Of Noise */
-    } else {
-      strcpy(pre, "AON8");
-    }
-
   } else if (buf[0] == 'T' && buf[1] == 'H' && buf[2] == 'X') {
     if ((buf[3] == 0x00) || (buf[3] == 0x01)) {
       strcpy(pre, "AHX");	/* AHX */
@@ -808,9 +805,6 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
     } else {
       strcpy(pre, "MUG");	/* Digimugi */
     }
-
-  } else if (buf[0] == 'A' && buf[1] == 'R' && buf[2] == 'P' && buf[3] == 0x2e) {
-    strcpy(pre, "MTP2");	/* HolyNoise / Major Tom */
 
   } else if (buf[0] == 'L' && buf[1] == 'M' && buf[2] == 'E' && buf[3] == 0x00) {
     strcpy(pre, "LME");		/* LegLess */
@@ -826,9 +820,6 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   } else if (buf[0xbc6] == '.' && buf[0xbc7] == 'F' && buf[0xbc8] == 'N'
 	     && buf[0xbc9] == 'L') {
     strcpy(pre, "DM2");		/* Delta 2.0 */
-
-  } else if (buf[0] == 'Y' && buf[1] == 'M' && buf[3] == '!') {
-    strcpy(pre, "");		/* don't play stplay files */
 
   } else if (buf[0] == 'R' && buf[1] == 'J' && buf[2] == 'P') {
 
