@@ -2,7 +2,10 @@
 	- lowered the filebuffer to 16000 to reduce overhead with xmms
 	  plugin or similar check_my_file... Unfortunatly mods with
 	  a header and pattern data beyond that buffer size can't be
-	  detected properly and get played as plain mod15...  
+	  detected properly and get played as plain mod15...
+	- improved mod15 check. It should produce now less false positives 
+	- added a smarter(?) way of the mod  check for larger files that
+	  don't fit into the check buffer completely.
 
 2005-11-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made install to a standard path by default. That is /usr/local.
