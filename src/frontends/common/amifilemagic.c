@@ -233,11 +233,10 @@ static int tfmxtest(unsigned char *buf, int bufsize, char *pre)
 }
 
 /* returns:	 -1 for a mod with bad length 		*/
-/* 		 0 for no mod or not checked		*/
+/* 		 0  for no mod				*/
 /*		 1 for a mod with good length		*/
 static int modlentest(unsigned char *buf, int filesize, int header)
 {
-  int ret = 0;
   int i = 0;
   int no_of_instr;
   int smpl = 0;
@@ -254,36 +253,107 @@ static int modlentest(unsigned char *buf, int filesize, int header)
     }
     
   if (header > filesize)
-    return 0;			/* safety check */
+    return 0;			/* no mod */
+
+  if (buf[43] + no_of_instr * 30 > filesize)
+    return 0;			/* no mod */
+
   for (i = 0; i < 128; i++) {
     if (buf[plist + 2 + i] > maxpattern)
       maxpattern = buf[plist + 2 + i];
   }
-  if (maxpattern > 100)
-    return 0;
 
-  if (buf[43] + no_of_instr * 30 > filesize)
-    return 0;			/* no mod */
-  if (buf[43] + no_of_instr * 30 > 16000)
-    return 0;			/* not enough data in buffer */
+  if (maxpattern > 100) return 0;
 
   for (i = 0; i < no_of_instr; i++) {
     smpl = smpl + (buf[42 + i * 30] << 8) + buf[43 + i * 30];	/* smpl len  */
   }
-
-  if ((filesize < (header + (maxpattern + 1) * 1024 + smpl * 2)) ||
-      (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2) + 1024)) {
-    fprintf(stderr,
-	    "*** WARNING *** calculated mod length %d doesn't match the file length %d!\n",
-	    header + (maxpattern + 1) * 1024 + smpl * 2, filesize);
-    ret = -1;
+ 
+  if (filesize < (header + (maxpattern + 1) * 1024 + smpl * 2)){
+    return -1; 			/*size  error */
   } else {
-    ret = 1;			/*size ok, sort of */
+    return 1;			/*size ok, sort of */
   }
-  return ret;
+
+  if (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2) + 1024) {
+    return -1;			/*size error */
+  } else {
+    return 1;			/*size ok, sort of */
+  }
+  return 0;
 }
 
-static int mod32check(unsigned char *buf, int bufsize)
+static void modparsing(unsigned char *buf, int bufsize, int header, int max_pattern, int pfx[])
+{
+
+    int offset=0;
+    int i,j,fx;
+    unsigned char fxarg;
+    
+
+    if ((header+256*4+(max_pattern)*1024 > bufsize)) {
+	fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine\n");
+	fprintf (stderr, "              buffer too small for checking the whole music data: %d/%d\n",600+256*4+(max_pattern+1)*1024,bufsize);
+	fprintf (stderr, "              overide replayer with -P <replayer> if neccessary!\n");
+        max_pattern=(bufsize-header-256*4)/1024;
+	fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
+    }
+
+    for ( i=0; i<= max_pattern; i++ )
+    {
+     for (j=0; j<256; j++ )
+     {
+     offset = header+j*4+i*1024;
+     
+     fx = buf[offset+2] & 0x0f;
+     fxarg = buf[offset+3];
+
+     switch (fx)
+     { 
+        case 0:
+	  if (fxarg != 0 )
+	   pfx[fx] += 1;
+           break;
+         case 1:
+         case 2:
+         case 3:
+         case 4:
+         case 5:
+         case 6:
+         case 7:
+         case 8:
+         case 9:
+         case 10:
+         case 11:
+         case 12:
+         case 13:
+          pfx[fx] +=1;
+          break;
+         case 14: // 0x0e Extended Commands//
+          pfx[((fxarg>>4)&0x0f) + 16] +=1;
+          break;
+         case 15: //0x0f set Tempo/Set Speed
+          if (fxarg > 0x1f)
+           pfx[14] +=1;
+          else
+           pfx[15] +=1;
+           break;
+	  }
+     } 
+    }
+/* print fx list for debugging */
+/*
+    for (j=0; j<32; j++ )
+     {
+      fprintf (stderr, "effects: %d\t%d\n",j, pfx[j]);
+     }
+*/
+
+return;
+}
+
+
+static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 /* returns:	 0 for undefined                            */
 /* 		 1 for a Soundtracker 32instr.		    */
 /*		 2 for a Noisetracker 1.0		    */
@@ -303,7 +373,9 @@ static int mod32check(unsigned char *buf, int bufsize)
     /* startrekker patterns at file offset 0x438 */
     char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
 
+    int max_pattern=0;
     int i,j,t,ret;
+    int pfx[32];
 
 
     /* Special cases first */
@@ -349,14 +421,33 @@ static int mod32check(unsigned char *buf, int bufsize)
 	/* seems to be a generic M.K. MOD                              */
 	/* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
 	/*       and Fasttracker checking                               */
-        return 8;
+
+	if (modlentest(buf, realfilesize, 1084) <1 ) return 0; /* modlentest failed */
+
+	for (i = 0; i < 128; i++) {
+    	     max_pattern=(buf[1080 - 130 + 2 + i] > max_pattern) ? buf[1080 - 130 + 2 + i] : max_pattern;
+	    }
+
+	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
+
+	memset (pfx,0,sizeof (pfx));
+	modparsing(buf, bufsize, 1084-4, max_pattern, pfx);
+	
+	for (j=17; j<=31; j++)
+    	 {
+    	   if (pfx[j] != 0) 
+    	  	{
+    		return 8; /* Definetely Pro or Fastracker - extended effects used*/
+    		}
+    	 }
+    	//return 3; // noisetracker
       }
     }
 return 0;
 }
 
 
-static int mod15check(unsigned char *buf, int bufsize)
+static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 /* pattern parsing based on Sylvain 'Asle' Chipaux'	*/
 /* Modinfo-V2						*/
 /*							*/
@@ -380,31 +471,27 @@ static int mod15check(unsigned char *buf, int bufsize)
   int srep_bigger_ffff=0;
   int st_xy=0;
   
-  int offset, fx, max_pattern=1;
-  unsigned char fxarg;
+  int max_pattern=1;
   int pfx[32];
 
-  /* sanity check */
+  /* sanity checks */
   if (bufsize < 0x1f3)
     return 0;			/* file too small */
-  if (bufsize < 49 + 15 * 30)
-    return 0;			/* file too small */
+  if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
+    return 0;
 
+  if (modlentest(buf, realfilesize, 600) < 1) return 0; /* modlentest failed */
 
  /* check for 15 instruments */
-  if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x78 && buf[0x1f3] != 1) {
+  if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x7f) {
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
       max_pattern=(buf[600 - 130 + 2 + i] > max_pattern) ? buf[600 - 130 + 2 + i] : max_pattern;
     }
-    if (max_pattern > 63)
-    return 0;		/* pattern number can only be  0 <-> 63 */
+    if (max_pattern > 63) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
+  } else {
+    return 0;
   }
 
-    if ((600+256*4+(max_pattern+1)*1024 > bufsize)) {
-	fprintf (stderr, "***Warning*** buffer too small for amifilemagic mod15 check: %d/%d\n",600+256*4+(max_pattern+1)*1024,bufsize);
-	fprintf (stderr, "              overide replayer with -P <replayer>!\n\n");
-	return 0; // buffer overflow
-    }
  /* parse instruments */
     for (i = 0; i < 15; i++) {
       vol = buf[45 + i * 30];
@@ -431,65 +518,17 @@ static int mod15check(unsigned char *buf, int bufsize)
 	  /* repeat offset + repeat size*2 < word size */
 	  srep = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2 +
 	      ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
-	  if (srep > 0xffff)
-	    srep_bigger_ffff++;
+	  if (srep > 0xffff) srep_bigger_ffff++;
         }
+
 	if  (buf[25+i*30] ==':' && buf [22+i*30] == '-' &&
 	   ((buf[20+i*30] =='S' && buf [21+i*30] == 'T') ||
 	    (buf[20+i*30] =='s' && buf [21+i*30] == 't'))) st_xy++;
     }
 
-/* parse pattern data */
+/* parse pattern data -> fill pfx[] with number of times fx being used*/
     memset (pfx,0,sizeof (pfx));
-
-    if (max_pattern > 1) max_pattern++;
-    for ( i=0; i< max_pattern; i++ )
-    {
-     for (j=0; j<256; j++ )
-     {
-     offset = 600+j*4+i*1024;
-     fx = buf[offset+2] & 0x0f;
-     fxarg = buf[offset+3];
-
-     switch (fx)
-     { 
-        case 0:
-	  if (fxarg != 0 )
-	   pfx[fx] += 1;
-           break;
-         case 1:
-         case 2:
-         case 3:
-         case 4:
-         case 5:
-         case 6:
-         case 7:
-         case 8:
-         case 9:
-         case 10:
-         case 11:
-         case 12:
-         case 13:
-          pfx[fx] +=1;
-          break;
-         case 14: // 0x0e Extended Commands//
-          pfx[((fxarg>>4)&0x0f) + 16] +=1;
-          break;
-         case 15: //0x0f set Tempo/Set Speed
-          if (fxarg > 0x1f)
-           pfx[14] +=1;
-          else
-           pfx[15] +=1;
-           break;
-	  }
-     } 
-    }
-/* print fx list for debugging */
-/*   for (j=0; j<32; j++ )
-     {
-      fprintf (stderr, "effects: %d\t%d\n",j, pfx[j]);
-     }
-*/
+    modparsing(buf, bufsize, 600, max_pattern, pfx);
 
 /* and now for let's see if we can spot the mod */
 
@@ -556,10 +595,10 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
      have to do at the moment :)
    */
 
-  int i, t;
-  const int bufsize = 16000;
+  int i,t;
+  const int bufsize = 8192;
 
-  t = mod32check(buf, bufsize);
+  t = mod32check(buf, bufsize, realfilesize);
     if (t >0)
     {
      switch (t)
@@ -595,28 +634,25 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
     	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
 	    break;
 	  }
-        if (modlentest(buf, realfilesize, 1084) < 0) 
-          { strcpy(pre, ""); }
 	return;
     }
   
   
-  t = mod15check(buf, bufsize);
+  t = mod15check(buf, bufsize, realfilesize);
   if (t > 0) {
-    strcpy(pre, "MOD15");	/* normal Soundtracker 15 */
-    if (t == 2) {
+     strcpy(pre, "MOD15");	/* normal Soundtracker 15 */
+     if (t == 2) {
       strcpy(pre, "MOD15_UST");	/* Ultimate ST */
-    }
-    if (t == 3) {
+     }
+     if (t == 3) {
       strcpy(pre, "MOD15_MST");	/* Mastersoundtracker */
-    }
-    if (t == 4) {
+     }
+     if (t == 4) {
       strcpy(pre, "MOD15_ST-IV");	/* Soundtracker iV */
+     }
+     return;
     }
-    if (modlentest(buf, realfilesize, 600) < 0) {
-      strcpy(pre, "");
-    }
-  }
+ 
 
   if (((buf[0x438] >= '1' && buf[0x438] <= '3')
        && (buf[0x439] >= '0' && buf[0x439] <= '9') && buf[0x43a] == 'C'

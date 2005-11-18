@@ -68,7 +68,7 @@ int uade_verbose_mode;
 
 static char basedir[PATH_MAX];
 static int debug_mode;
-static uint8_t fileformat_buf[16000];
+static uint8_t fileformat_buf[8192];
 static struct eagleplayerstore *playerstore;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
