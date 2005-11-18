@@ -264,7 +264,7 @@ static int modlentest(unsigned char *buf, int filesize, int header)
 
   if (buf[43] + no_of_instr * 30 > filesize)
     return 0;			/* no mod */
-  if (buf[43] + no_of_instr * 30 > 104508)
+  if (buf[43] + no_of_instr * 30 > 16000)
     return 0;			/* not enough data in buffer */
 
   for (i = 0; i < no_of_instr; i++) {
@@ -390,6 +390,7 @@ static int mod15check(unsigned char *buf, int bufsize)
   if (bufsize < 49 + 15 * 30)
     return 0;			/* file too small */
 
+
  /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x78 && buf[0x1f3] != 1) {
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
@@ -398,8 +399,12 @@ static int mod15check(unsigned char *buf, int bufsize)
     if (max_pattern > 63)
     return 0;		/* pattern number can only be  0 <-> 63 */
   }
-//  fprintf (stderr, "maxpattern: %d\n",max_pattern);
 
+    if ((600+256*4+(max_pattern+1)*1024 > bufsize)) {
+	fprintf (stderr, "***Warning*** buffer too small for amifilemagic mod15 check: %d/%d\n",600+256*4+(max_pattern+1)*1024,bufsize);
+	fprintf (stderr, "              overide replayer with -P <replayer>!\n\n");
+	return 0; // buffer overflow
+    }
  /* parse instruments */
     for (i = 0; i < 15; i++) {
       vol = buf[45 + i * 30];
@@ -552,7 +557,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
    */
 
   int i, t;
-  const int bufsize = 104510;
+  const int bufsize = 16000;
 
   t = mod32check(buf, bufsize);
     if (t >0)

@@ -68,7 +68,7 @@ int uade_verbose_mode;
 
 static char basedir[PATH_MAX];
 static int debug_mode;
-static uint8_t fileformat_buf[104510]; /* Protracker 100 pattern maximal size*/
+static uint8_t fileformat_buf[16000];
 static struct eagleplayerstore *playerstore;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
