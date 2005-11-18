@@ -283,7 +283,7 @@ static int modlentest(unsigned char *buf, int filesize, int header)
   return 0;
 }
 
-static void modparsing(unsigned char *buf, int bufsize, int header, int max_pattern, int pfx[])
+static void modparsing(unsigned char *buf, int bufsize, int header, int max_pattern, int pfx[], int pfxarg[])
 {
 
     int offset=0;
@@ -313,6 +313,7 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
         case 0:
 	  if (fxarg != 0 )
 	   pfx[fx] += 1;
+	   pfxarg[fx]=(pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
            break;
          case 1:
          case 2:
@@ -328,6 +329,7 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
          case 12:
          case 13:
           pfx[fx] +=1;
+	  pfxarg[fx]=(pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
           break;
          case 14: // 0x0e Extended Commands//
           pfx[((fxarg>>4)&0x0f) + 16] +=1;
@@ -335,8 +337,9 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
          case 15: //0x0f set Tempo/Set Speed
           if (fxarg > 0x1f)
            pfx[14] +=1;
-          else
+           else
            pfx[15] +=1;
+	   pfxarg[15]=(pfxarg[15] > fxarg) ? pfxarg[15] : fxarg;
            break;
 	  }
      } 
@@ -345,7 +348,7 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
 /*
     for (j=0; j<32; j++ )
      {
-      fprintf (stderr, "effects: %d\t%d\n",j, pfx[j]);
+      fprintf (stderr, "effects: %d\t%d\t%d\n",j, pfx[j], pfxarg[j]);
      }
 */
 
@@ -376,6 +379,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
     int max_pattern=0;
     int i,j,t,ret;
     int pfx[32];
+    int pfxarg[32];
 
 
     /* Special cases first */
@@ -431,8 +435,9 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
 
 	memset (pfx,0,sizeof (pfx));
-	modparsing(buf, bufsize, 1084-4, max_pattern, pfx);
-	
+	memset (pfxarg,0,sizeof (pfxarg));
+	modparsing(buf, bufsize, 1084-4, max_pattern, pfx, pfxarg);
+
 	for (j=17; j<=31; j++)
     	 {
     	   if (pfx[j] != 0) 
@@ -473,6 +478,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
   
   int max_pattern=1;
   int pfx[32];
+  int pfxarg[32];
 
   /* sanity checks */
   if (bufsize < 0x1f3)
@@ -528,7 +534,8 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
 /* parse pattern data -> fill pfx[] with number of times fx being used*/
     memset (pfx,0,sizeof (pfx));
-    modparsing(buf, bufsize, 600, max_pattern, pfx);
+    memset (pfxarg,0,sizeof (pfxarg));
+    modparsing(buf, bufsize, 600, max_pattern, pfx, pfxarg);
 
 /* and now for let's see if we can spot the mod */
 
@@ -537,6 +544,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 /* MasterSoundtracker:		0,1,2,  c,  e,f	*/
 /* DOC-Soundtracker V2.0:	0,1,2,b,c,d,e,f */
 /* Soundtracker II-IV		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
+
 
 
 /* Check for instruments used between 0x3 <-> 0xb */
@@ -568,6 +576,9 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
         return 1;	/* DOC ST */
       }
     }
+/* pitchbend out of range ? */
+
+    if (pfxarg[1] > 0x1f || pfxarg[2] > 0x1f) return 2; // Ultimate ST
        
     if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 && pfx[0x00] ==0 &&
         ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
