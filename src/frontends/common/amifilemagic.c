@@ -268,14 +268,14 @@ static int modlentest(unsigned char *buf, int filesize, int header)
   for (i = 0; i < no_of_instr; i++) {
     smpl = smpl + (buf[42 + i * 30] << 8) + buf[43 + i * 30];	/* smpl len  */
   }
+
+  //fprintf (stderr, "%d\n",(header + (maxpattern + 1) * 1024 + smpl * 2));
  
   if (filesize < (header + (maxpattern + 1) * 1024 + smpl * 2)){
     return -1; 			/*size  error */
-  } else {
-    return 1;			/*size ok, sort of */
   }
-
-  if (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2) + 1024) {
+  
+  if (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2)+1024) {
     return -1;			/*size error */
   } else {
     return 1;			/*size ok, sort of */
@@ -434,6 +434,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 
 	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
 
+	
 	memset (pfx,0,sizeof (pfx));
 	memset (pfxarg,0,sizeof (pfxarg));
 	modparsing(buf, bufsize, 1084-4, max_pattern, pfx, pfxarg);
@@ -445,7 +446,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
     		return 8; /* Definetely Pro or Fastracker - extended effects used*/
     		}
     	 }
-    	//return 3; // noisetracker
+    	return 8; // return protracker for now
       }
     }
 return 0;
@@ -610,59 +611,64 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
   const int bufsize = 8192;
 
   t = mod32check(buf, bufsize, realfilesize);
-    if (t >0)
-    {
      switch (t)
      { 
+	 case 0:
+	     strcpy(pre, "");	/* don't accept file*/
+	     break;
          case 1:
     	    strcpy(pre, "MOD_DOC");	/* Soundtracker 32instrument*/
-	    break;
+	    return;
          case 2:
     	    strcpy(pre, "MOD_NTK1");	/* Noisetracker 1.x*/
-	    break;
+	    return;
          case 3:
     	    strcpy(pre, "MOD_NTK2");	/* Noisetracker 2.x*/
-	    break;
+	    return;
          case 4:
     	    strcpy(pre, "MOD_FLT4");	/* Startrekker 4ch*/
-	    break;
+	    return;
          case 5:
     	    strcpy(pre, "MOD_FLT8");	/* Startrekker 8ch*/
-	    break;
+	    return;
          case 6:
     	    strcpy(pre, "MOD_ADSC4");	/* Audiosculpture 4ch AM*/
-	    break;
+	    return;
          case 7:
     	    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
-	    break;
+	    return;
          case 9:
-    	    strcpy(pre, "MOD_FT1");	/* Fasttracker 4 ch*/
-	    break;
+    	    strcpy(pre, "MOD_PC");	/* Fasttracker 4 ch*/
+	    return;
          case 8:
     	    strcpy(pre, "MOD");		/* Protracker*/
-	    break;
+	    return;
          case 10:
     	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
-	    break;
+	    return;
 	  }
-	return;
-    }
   
   
   t = mod15check(buf, bufsize, realfilesize);
-  if (t > 0) {
-     strcpy(pre, "MOD15");	/* normal Soundtracker 15 */
-     if (t == 2) {
-      strcpy(pre, "MOD15_UST");	/* Ultimate ST */
-     }
-     if (t == 3) {
-      strcpy(pre, "MOD15_MST");	/* Mastersoundtracker */
-     }
-     if (t == 4) {
-      strcpy(pre, "MOD15_ST-IV");	/* Soundtracker iV */
-     }
-     return;
-    }
+     switch (t)
+     { 
+	 case 0:
+	     strcpy(pre, "");	/* don't accept file*/
+	     break;
+         case 1:
+    	    strcpy(pre, "MOD15");
+	    return;
+         case 2:
+    	    strcpy(pre, "MOD15_UST");
+	    return;
+         case 3:
+    	    strcpy(pre, "MOD15_MST");
+	    return;
+         case 4:
+    	    strcpy(pre, "MOD_ST-IV");
+	    return;
+	}
+
  
 
   if (((buf[0x438] >= '1' && buf[0x438] <= '3')
@@ -675,7 +681,7 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
 	  && buf[0x43b] == 'A') || (buf[0x438] == 'C' && buf[0x439] == 'D'
 				    && buf[0x43a] == '8'
 				    && buf[0x43b] == '1')) {
-    strcpy(pre, "MOD_XCHN");	/*Multichannel Tracker */
+    strcpy(pre, "MOD_PC");	/*Multichannel Tracker */
     
   } else if (buf[0x2c] == 'S' && buf[0x2d] == 'C' && buf[0x2e] == 'R'
 	     && buf[0x2f] == 'M') {
