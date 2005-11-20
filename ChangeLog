@@ -12,6 +12,9 @@
 	  size.
 	- Made amifilemagic tables static (only visible inside the module)
 	  (shd)
+	- Name prefix conflict between Future Player and PTK-Prowiz was
+	  resolved in favor of Future Player. The name prefix/extension is
+	  'fp'. (shd)
 
 2005-11-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made install to a standard path by default. That is /usr/local.
