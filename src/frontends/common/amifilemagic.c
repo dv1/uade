@@ -33,7 +33,7 @@ static int chk_id_offset(unsigned char *buf, int bufsize,
 
 
 /* Do not use '\0'. They won't work in patterns */
-const char *offset_0000_patterns[] = {
+static const char *offset_0000_patterns[] = {
   /* ID: Prefix: Desc: */
   "DIGI Booster", "DIGI",	/* Digibooster */
   "OKTASONG", "OKT",		/* Oktalyzer */
@@ -79,7 +79,7 @@ const char *offset_0000_patterns[] = {
   NULL, NULL
 };
 
-const char *offset_0024_patterns[] = {
+static const char *offset_0024_patterns[] = {
   /* ID: Prefix: Desc: */
   "UNCLEART", "DL",		/* Dave Lowe WT */
   "DAVELOWE", "DL_deli",	/* Dave Lowe Deli */
@@ -590,7 +590,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 }
 
 
-void filemagic(unsigned char *buf, char *pre, int realfilesize)
+void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t bufsize)
 {
   /* char filemagic():
      detects formats like e.g.: tfmx1.5, hip, hipc, fc13, fc1.4      
@@ -608,7 +608,6 @@ void filemagic(unsigned char *buf, char *pre, int realfilesize)
    */
 
   int i,t;
-  const int bufsize = 8192;
 
   t = mod32check(buf, bufsize, realfilesize);
      switch (t)

@@ -108,8 +108,7 @@ static struct eagleplayer *fileformat_detection(const char *modulename)
   if (readed == 0)
     return NULL;
   memset(&fileformat_buf[readed], 0, sizeof(fileformat_buf) - readed);
-  extension[0] = 0;
-  filemagic(fileformat_buf, extension, st.st_size);
+  uade_filemagic(fileformat_buf, extension, st.st_size, sizeof(fileformat_buf));
 
   debug("%s: deduced extension: %s\n", modulename, extension);
 

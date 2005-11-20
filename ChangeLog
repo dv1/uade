@@ -1,11 +1,17 @@
 2005-11-18  Michael Doering <mldoering@gmx.net>
-	- lowered the filebuffer to 16000 to reduce overhead with xmms
-	  plugin or similar check_my_file... Unfortunatly mods with
-	  a header and pattern data beyond that buffer size can't be
-	  detected properly and get played as plain mod15...
-	- improved mod15 check. It should produce now less false positives 
-	- added a smarter(?) way of the mod  check for larger files that
+	- Lowered the file buffer size to 8192 bytes to reduce overhead with
+	  xmms plugin scans. Unfortunately mods with a header and pattern data
+	  beyond that buffer size can't be detected properly and get played
+	  as plain mod15.
+	- Improved mod15 check. It should produce now less false positives.
+	- Added a smarter(?) way of the mod  check for larger files that
 	  don't fit into the check buffer completely.
+	- Renamed filemagic() to uade_filemagic() (shd)
+	- Filemagic buffer size (8192) is now passed as an argument to
+	  uade_filemagic(). Previously both the caller and callee knew the
+	  size.
+	- Made amifilemagic tables static (only visible inside the module)
+	  (shd)
 
 2005-11-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made install to a standard path by default. That is /usr/local.
