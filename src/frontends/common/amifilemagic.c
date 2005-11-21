@@ -358,8 +358,8 @@ return;
 
 static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 /* returns:	 0 for undefined                            */
-/* 		 1 for a Soundtracker 32instr.		    */
-/*		 2 for a Noisetracker 1.0		    */
+/* 		 1 for a Soundtracker2.5/Noisetracker 1.0   */
+/*		 2 for a Noisetracker 1.2		    */
 /*		 3 for a Noisetracker 2.0		    */
 /*		 4 for a Startrekker 4ch		    */
 /*		 5 for a Startrekker 8ch		    */
@@ -368,6 +368,8 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 /*		 8 for a Protracker 			    */
 /*		 9 for a Fasttracker			    */
 /*		 10 for a Noisetracker (M&K!)		    */
+/*		 11 for a PTK Compatible		    */
+
 {
 /* todo: port and enhance ptk-prowiz detection to amifilemagic */
 
@@ -380,6 +382,18 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
     int i,j,t,ret;
     int pfx[32];
     int pfxarg[32];
+
+    /* instrument var */
+    int vol, slen, srep, sreplen;
+
+    int has_slen_sreplen_zero= 0; /* sreplen empty of non looping instrument */
+    int no_slen_sreplen_zero= 0; /* sreplen */
+
+    int has_slen_sreplen_one=0;
+    int no_slen_sreplen_one= 0;
+
+    int no_slen_has_volume= 0;
+    int finetune_used= 0;
 
 
     /* Special cases first */
@@ -420,13 +434,47 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
       }
     }
 
+   if (modlentest(buf, realfilesize, 1084) <1 ) return 0; /* modlentest failed */
+
+
+ /* parse instruments */
+    for (i = 0; i < 31; i++) {
+      vol = buf[45 + i * 30];
+      slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
+      srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
+      sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
+      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+
+      if (slen > 0 && (srep+sreplen) > slen) return 1; /* Old Noisetracker /Soundtracker with repeat offset in bytes */
+
+      if (buf[44+i*30] != 0) finetune_used++;
+
+
+      if (srep==0) {
+        if (slen >0) {
+    	    if (sreplen>0){
+        	 has_slen_sreplen_one++;
+    		} else {
+    		 has_slen_sreplen_zero++;
+		}
+	} else {
+    	    if (sreplen>0){
+        	 no_slen_sreplen_one++;
+    		} else {
+    		 no_slen_sreplen_zero++;
+		}
+	    if (vol >0) no_slen_has_volume++;
+	}    
+       }
+      }
+
+
     for (i = 0; mod_patterns[i]; i++) {
      if (patterntest(buf, mod_patterns[i], 0x438, 4, bufsize)) {
 	/* seems to be a generic M.K. MOD                              */
 	/* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
 	/*       and Fasttracker checking                               */
 
-	if (modlentest(buf, realfilesize, 1084) <1 ) return 0; /* modlentest failed */
 
 	for (i = 0; i < 128; i++) {
     	     max_pattern=(buf[1080 - 130 + 2 + i] > max_pattern) ? buf[1080 - 130 + 2 + i] : max_pattern;
@@ -441,12 +489,43 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 
 	for (j=17; j<=31; j++)
     	 {
-    	   if (pfx[j] != 0) 
+    	   if (pfx[j] != 0 || finetune_used >0) /* Extended fx used */
     	  	{
-    		return 8; /* Definetely Pro or Fastracker - extended effects used*/
+		if (buf[0x3b7] != 0x7f && buf[0x3b7] != 0x78){
+    		return 9; /* Definetely Fasttracker*/
+		} else {
+		return 8; /* Protracker*/
     		}
     	 }
-    	return 8; // return protracker for now
+	}
+
+	if ((buf[0x3b7] == 0x7f) && 
+	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	    (no_slen_sreplen_zero <=no_slen_sreplen_one))    
+		return 8; // Protracker
+
+	if ((buf[0x3b7] >0 && buf[0x3b7] <max_pattern) && 
+	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	    (no_slen_sreplen_zero == 1) &&
+	    (no_slen_sreplen_zero <= no_slen_sreplen_one))    
+		return 2; // Noisetracker 1.2
+	
+	if ((buf[0x3b7] <0x80) && 
+	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	    (no_slen_sreplen_zero <=no_slen_sreplen_one))    
+		return 3; // Noisetracker 2.x
+
+	if ((buf[0x3b7] <0x80) && 
+	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	    (no_slen_sreplen_zero >=no_slen_sreplen_one))    
+		return 2; // Noisetracker 1.x
+
+	if ((buf[0x3b7] == 0) && 
+	    (has_slen_sreplen_zero >  has_slen_sreplen_one) &&
+	    (no_slen_sreplen_zero > no_slen_sreplen_one))    
+		return 9; // PC Mod I guess
+
+    	return 11; // Protracker compatible
       }
     }
 return 0;
@@ -636,14 +715,17 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
          case 7:
     	    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
 	    return;
-         case 9:
-    	    strcpy(pre, "MOD_PC");	/* Fasttracker 4 ch*/
-	    return;
          case 8:
     	    strcpy(pre, "MOD");		/* Protracker*/
 	    return;
+         case 9:
+    	    strcpy(pre, "MOD_PC");	/* Fasttracker 4 ch*/
+	    return;
          case 10:
     	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
+	    return;
+         case 11:
+    	    strcpy(pre, "MOD_PTKCOMP");	/* PTKCOMP*/
 	    return;
 	  }
   
@@ -664,7 +746,7 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
     	    strcpy(pre, "MOD15_MST");
 	    return;
          case 4:
-    	    strcpy(pre, "MOD_ST-IV");
+    	    strcpy(pre, "MOD15_ST-IV");
 	    return;
 	}
 
