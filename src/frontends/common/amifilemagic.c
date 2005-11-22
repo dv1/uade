@@ -443,7 +443,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
       slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
       srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
       if (slen > 0 && (srep+sreplen) > slen) return 1; /* Old Noisetracker /Soundtracker with repeat offset in bytes */
 
@@ -584,7 +584,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
       slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
       srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-//      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
       if (slen == 0) {
        if  (vol == 0 )
@@ -627,7 +627,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
 
 
-/* Check for instruments used between 0x3 <-> 0xb */
+/* Check for fx used between 0x3 <-> 0xb */
    for (j=3; j<0xc; j++ )
      {
       if (pfx[j] !=0)
@@ -660,12 +660,14 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
     if (pfxarg[1] > 0x1f || pfxarg[2] > 0x1f) return 2; // Ultimate ST
        
-    if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 && pfx[0x00] ==0 &&
+    if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
         ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
     {
      return 2;		/* can savely be played as Ultimate ST */
     }
-  return 0;
+    if (pfxarg[1] > 0 || pfxarg[2] > 0 || pfx[0] >0 || st_xy !=0) return 3; // Some compatible
+
+return 0;
 }
 
 
