@@ -292,7 +292,7 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
     
 
     if ((header+256*4+(max_pattern)*1024 > bufsize)) {
-	fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine\n");
+	fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine.\n");
 	fprintf (stderr, "              buffer too small for checking the whole music data: %d/%d\n",600+256*4+(max_pattern+1)*1024,bufsize);
 	fprintf (stderr, "              overide replayer with -P <replayer> if neccessary!\n");
         max_pattern=(bufsize-header-256*4)/1024;
@@ -658,14 +658,15 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
     }
 /* pitchbend out of range ? */
 
-    if (pfxarg[1] > 0x1f || pfxarg[2] > 0x1f) return 2; // Ultimate ST
-       
+    if ((pfxarg[1] > 0 && pfxarg[1] <0x1f) ||
+         (pfxarg[2] > 0 && pfxarg [2] <0x1f) ||
+	  pfx [0] >2) return 3; // compatible //fix for a mod.sll8
+
     if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
         ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
     {
      return 2;		/* can savely be played as Ultimate ST */
     }
-    if (pfxarg[1] > 0 || pfxarg[2] > 0 || pfx[0] >0 || st_xy !=0) return 3; // Some compatible
 
 return 0;
 }

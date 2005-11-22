@@ -3,6 +3,8 @@
 	  10 different mod types. (BTW. 4 ch Fastracker mods and similar
 	  now default to mod_pc and get played by the Multichannel PS3M player)
 	- Some more work on the mod15 check in amifilemagic again.
+	- Started to update the mod15 replayers with better checks... 
+	  Currently breaking support for other players like EP or DT.
 
 2005-11-18  Michael Doering <mldoering@gmx.net>
 	- Lowered the file buffer size to 8192 bytes to reduce overhead with
