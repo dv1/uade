@@ -47,10 +47,17 @@ CName		dc.b "87/88 by Karsten Obarski",10
 Chk						; UST ?
 	move.w	#-1,d0
 	move.l	dtg_ChkData(a5),a0
-	;move.l	dtg_chksize(a5),d2		; File len
+	move.l	dtg_chksize(a5),d1		; File len
 	move.l	a0,ustsong
-	move.l	d2,ustsize
+	move.l	d1,ustsize
 	bsr.w	mcheck_moduledata		; returns -1 for no mod.
+	cmp.l	#"M15.",d0
+	bne	.Chk_fail
+
+.Chk_ok: moveq	#0,d0
+	 rts
+.Chk_fail:
+	moveq	#-1,d0
 	rts
 
 

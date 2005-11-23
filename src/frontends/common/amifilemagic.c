@@ -75,6 +75,8 @@ static const char *offset_0000_patterns[] = {
   "MTM", "MTM",			/* Multitracker */
   "Extended Module:", "XM",	/* Fasttracker2 */
   "MLEDMODL", "ML",		/* Musicline Editor */
+  "FTM", "FTM",			/* Face The Music */
+  "MXTX", "MXTX",		/* Maxtrax*/
   "YM!", "",                   /* stplay -- intentionally sabotaged */
   NULL, NULL
 };
@@ -895,8 +897,8 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
 	     && buf[63] == 'G') {
     strcpy(pre, "SFX13");	/* Sfx 1.3-1.8 */
 
-  } else if (buf[124] == 'S' && buf[125] == 'O' && buf[126] == 'N'
-	     && buf[127] == 'G') {
+  } else if (buf[124] == 'S' && buf[125] == 'O' && buf[126] == '3'
+	     && buf[127] == '1') {
     strcpy(pre, "SFX20");	/* Sfx 2.0 */
 
   } else if (buf[0x1a] == 'E' && buf[0x1b] == 'X' && buf[0x1c] == 'I'

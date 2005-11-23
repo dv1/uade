@@ -1,10 +1,18 @@
+2005-11-23  Michael Doering <mldoering@gmx.net>
+	- Master-ST and Ultimate-ST replayers now check for a valid file 
+	  length, thus badly ripped mod15 songs won't get played anymore with
+	  UADE. No exceptions.
+	  FYI this will also be future for all other Sound and Protracker
+	  derivates, so for anyone having bad rips - get some valid files! :)
+
 2005-11-22  Michael Doering <mldoering@gmx.net>
 	- Improved amifilemagic: mod32 check now tries to distinguish
-	  10 different mod types. (BTW. 4 ch Fastracker mods and similar
+	  10 different mod types. (BTW. 4ch Fastracker mods and similar
 	  now default to mod_pc and get played by the Multichannel PS3M player)
 	- Some more work on the mod15 check in amifilemagic again.
-	- Started to update the mod15 replayers with better checks... 
-	  Currently breaking support for other players like EP or DT.
+	- Started to update the amiga mod15 replayers (Ultimate-ST and
+	  Master-ST with better checks, resulting in breaking support for other
+	  players like EP or DT atm.
 
 2005-11-18  Michael Doering <mldoering@gmx.net>
 	- Lowered the file buffer size to 8192 bytes to reduce overhead with

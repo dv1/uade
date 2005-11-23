@@ -49,10 +49,16 @@ delibase	dc.l	0
 Chk						; UST ?
 	move.w	#-1,d0
 	move.l	dtg_ChkData(a5),a0
+	move.l	dtg_ChkSize(a5),d1
 	move.l	a0,song
+	bsr.w	mcheck_moduledata		; currently -1 for no mod
+	cmp.l	#"M15.",d0
+	bne	.Chk_fail
+.Chk_ok: moveq	#0,d0
+	rts
 
-	bsr.w	mcheck_moduledata		; currently returns 0 or -1
-
+.Chk_fail:	
+	moveq	#-1,d0
 	rts
 
 *-----------------------------------------------------------------------*
