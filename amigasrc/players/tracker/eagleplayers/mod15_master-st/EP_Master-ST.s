@@ -25,13 +25,15 @@ PlayerTagArray
 	dc.l	DTP_InitSound,InitSnd
 	dc.l	DTP_EndSound,RemSnd
 	dc.l	DTP_Flags,PLYF_SONGEND
+	dc.l	DTP_FormatName,Formatpointer
 	dc.l	TAG_DONE
 	
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
 
-PName	dc.b 'MasterSoundtracker 1.0',0
+PName	dc.b 'MasterSoundtracker',0
+FName	dc.b 'MasterSoundtracker or compatible',0
 CName	dc.b "'88 by DOC & TIP/The New Masters",10
 	dc.b 'adapted for UADE by mld',10
 	dc.b '-----------------------',10
@@ -39,6 +41,7 @@ CName	dc.b "'88 by DOC & TIP/The New Masters",10
 	
 songendflag	dc.b 0
 	even
+Formatpointer	dc.l	FName
 delibase	dc.l	0
 
 

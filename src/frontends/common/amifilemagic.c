@@ -301,7 +301,7 @@ static void modparsing(unsigned char *buf, int bufsize, int header, int max_patt
 	fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
     }
 
-    for ( i=0; i<= max_pattern; i++ )
+    for ( i=0; i< max_pattern; i++ )
     {
      for (j=0; j<256; j++ )
      {
@@ -445,7 +445,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
       slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
       srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+//      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
       if (slen > 0 && (srep+sreplen) > slen) return 1; /* Old Noisetracker /Soundtracker with repeat offset in bytes */
 
@@ -454,9 +454,10 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 
       if (srep==0) {
         if (slen >0) {
-    	    if (sreplen>0){
+    	    if (sreplen==1){
         	 has_slen_sreplen_one++;
-    		} else {
+    		}
+	    if (sreplen==0){
     		 has_slen_sreplen_zero++;
 		}
 	} else {
@@ -484,10 +485,12 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 
 	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
 
+
 	
 	memset (pfx,0,sizeof (pfx));
 	memset (pfxarg,0,sizeof (pfxarg));
 	modparsing(buf, bufsize, 1084-4, max_pattern, pfx, pfxarg);
+
 
 	for (j=17; j<=31; j++)
     	 {
@@ -500,32 +503,45 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
     		}
     	 }
 	}
-
+/*
+	fprintf (stderr, "has_slen_sreplen_zero: %d\n",has_slen_sreplen_zero);
+	fprintf (stderr, "has_slen_sreplen_one: %d\n",has_slen_sreplen_one);
+	fprintf (stderr, "no_slen_sreplen_zero: %d\n",no_slen_sreplen_zero);
+	fprintf (stderr, "no_slen_sreplen_one: %d\n\n",no_slen_sreplen_one);
+*/
 	if ((buf[0x3b7] == 0x7f) && 
 	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero <=no_slen_sreplen_one))    
+	    (no_slen_sreplen_zero <=no_slen_sreplen_one))
 		return 8; // Protracker
 
-	if ((buf[0x3b7] >0 && buf[0x3b7] <max_pattern) && 
-	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero == 1) &&
-	    (no_slen_sreplen_zero <= no_slen_sreplen_one))    
-		return 2; // Noisetracker 1.2
-	
-	if ((buf[0x3b7] <0x80) && 
-	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero <=no_slen_sreplen_one))    
-		return 3; // Noisetracker 2.x
-
-	if ((buf[0x3b7] <0x80) && 
-	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero >=no_slen_sreplen_one))    
-		return 2; // Noisetracker 1.x
+	if (buf[0x3b7] >0x7f) return 11; // Protracker compatible
 
 	if ((buf[0x3b7] == 0) && 
 	    (has_slen_sreplen_zero >  has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero > no_slen_sreplen_one))    
-		return 9; // PC Mod I guess
+	    (no_slen_sreplen_zero > no_slen_sreplen_one)){
+		if (pfx[0x10] ==0) {
+		    return 11; // probl. Fastracker or Protracker compatible
+		} else {
+		    return 8; // probl. Protracker
+		}
+	    }
+
+	if ((buf[0x3b7] >0 && buf[0x3b7] <= buf[0x3b6]) && 
+	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	        (no_slen_sreplen_zero == 1) &&
+	        (no_slen_sreplen_zero <= no_slen_sreplen_one))    
+	    	    return 2; // Noisetracker 1.2
+
+	if ((buf[0x3b7] <0x80) && 
+	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	        (no_slen_sreplen_zero <=no_slen_sreplen_one))    
+			return 3; // Noisetracker 2.x
+
+	if ((buf[0x3b7] <0x80) && 
+	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	        (no_slen_sreplen_zero >=no_slen_sreplen_one))    
+			return 2; // Noisetracker 1.x
+
 
     	return 11; // Protracker compatible
       }
@@ -571,7 +587,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
   if (modlentest(buf, realfilesize, 600) < 1) return 0; /* modlentest failed */
 
  /* check for 15 instruments */
-  if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x7f) {
+  if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x81 && buf[0x1f3] !=1) {
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
       max_pattern=(buf[600 - 130 + 2 + i] > max_pattern) ? buf[600 - 130 + 2 + i] : max_pattern;
     }
@@ -593,9 +609,8 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
         {  noof_slen_zero_vol_zero++;} 
        if  (sreplen == 0 ) {
           noof_slen_zero_sreplen_zero++;
-	} else {
-	  noof_slen_zero_sreplen_nonzero++;}
-       } else {
+	  }
+        } else {
             if ((srep+sreplen) > slen)
 	    srep_bigger_slen++;
        }
@@ -629,48 +644,57 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
 
 
+
+
 /* Check for fx used between 0x3 <-> 0xb */
-   for (j=3; j<0xc; j++ )
+   for (j=3; j<0xb; j++ )
      {
       if (pfx[j] !=0)
-       { return 4; /* Most likely one of those weird ST II-IV mods*/ }
+       { 
+       return 4; /* Most likely one of those weird ST II-IV mods*/ 
+       }
      }
 
-   for (j=0xb; j<0x10; j++)
-     {
-     if (pfx[j] != 0) 
-      {
-       ret=1; /* most likely  a DOC ST or MasterSoundtracker */
-       break;
-      }
-     }
 
-    if (ret == 1)
-     {
-     if (pfx[0x0d] > max_pattern)
-	 {
-          return 4; /* Most likely one of those weird ST II-IV mods*/
-	  }
-      if ((pfx[0x0b] == 0 || pfx[0x0d] == 0) && (noof_slen_zero_sreplen_zero !=0 && noof_slen_zero_sreplen_nonzero ==0 && st_xy==0))
-        {
-        return 3;	/* Master ST */
-      } else {
-        return 1;	/* DOC ST */
-      }
-    }
+     for (j=0xb; j<0x10; j++)
+    	 {
+    	    if (pfx[j] != 0)
+    		{
+		 if (pfx[0x0d] >max_pattern) return 4 ; /* ST II-IV */
+		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0) {
+    		    return 1;	/* DOC ST */
+    		} else {
+    		    return 3;	/* Master ST */
+    		}
+    	    }
+    	}
+
+   
 /* pitchbend out of range ? */
 
     if ((pfxarg[1] > 0 && pfxarg[1] <0x1f) ||
          (pfxarg[2] > 0 && pfxarg [2] <0x1f) ||
-	  pfx [0] >2) return 3; // compatible //fix for a mod.sll8
+	  pfx [0] >2) return 3; // MST style Arpeggio, Pitchbends ???
+
+    if (pfx[1] >0  || pfx[2] >0 ) return 2; // nope UST like fx
+
+
+/* the rest of the files has no fx. so check instruments */
+
+    if (st_xy!=0 && noof_slen_zero_vol_zero== 0 &&
+        noof_slen_zero_sreplen_zero == 0 && buf[0x1d7]==120)
+	return 3;
+
+
+/* no fx, no loops... let's simply guess :)*/
 
     if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
         ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
     {
-     return 2;		/* can savely be played as Ultimate ST */
+     return 2;
     }
 
-return 0;
+return 3; // anything is played as normal soundtracker
 }
 
 
@@ -724,7 +748,7 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
     	    strcpy(pre, "MOD");		/* Protracker*/
 	    return;
          case 9:
-    	    strcpy(pre, "MOD_PC");	/* Fasttracker 4 ch*/
+    	    strcpy(pre, "MOD_PTKCOMP");	/* Fasttracker 4 ch*/
 	    return;
          case 10:
     	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/

@@ -24,17 +24,20 @@ PlayerTagArray
 	dc.l	DTP_EndPlayer,EndPlay
 	dc.l	DTP_InitSound,InitSnd
 	dc.l	DTP_EndSound,RemSnd
+	dc.l	DTP_FormatName,Formatpointer
 	dc.l	DTP_Flags,PLYF_SONGEND
 	dc.l	TAG_DONE
 	
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
+Formatpointer	dc.l	FName
 delibase	dc.l	0
 ustsong		dc.l	0
 ustsize		dc.l	0
 
-PName		dc.b 'The Ultimate Soundtracker',0
+PName		dc.b 'Ultimate Soundtracker',0
+FName		dc.b 'Ultimate-Soundtracker or compatible',0
 CName		dc.b "87/88 by Karsten Obarski",10
 		dc.b 'adapted for UADE by mld',0
 

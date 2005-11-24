@@ -1,3 +1,6 @@
+2005-11-24  Michael Doering <mldoering@gmx.net>
+	- amifilemagic: improved mod32 and mod15 checks a bit
+
 2005-11-23  Michael Doering <mldoering@gmx.net>
 	- Master-ST and Ultimate-ST replayers now check for a valid file 
 	  length, thus badly ripped mod15 songs won't get played anymore with
