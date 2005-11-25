@@ -1,5 +1,9 @@
 2005-11-24  Michael Doering <mldoering@gmx.net>
 	- amifilemagic: improved mod32 and mod15 checks a bit
+	- ha! found pitchbend incompatibility bewteen
+	  Master-ST and DOC Soundtracker II in amifilemagic. Now
+	  Mods using the pitchbends bigger than 0xf are played as
+	  DOC Soundtracker II:)
 
 2005-11-23  Michael Doering <mldoering@gmx.net>
 	- Master-ST and Ultimate-ST replayers now check for a valid file 

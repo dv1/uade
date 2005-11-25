@@ -664,7 +664,8 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0) {
     		    return 1;	/* DOC ST */
     		} else {
-    		    return 3;	/* Master ST */
+    		    if (pfxarg[1] > 0xf || pfxarg[2] > 0xf) return 1;	/*DOC ST */
+		    return 3;	/* Master ST */
     		}
     	    }
     	}
@@ -674,7 +675,7 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
     if ((pfxarg[1] > 0 && pfxarg[1] <0x1f) ||
          (pfxarg[2] > 0 && pfxarg [2] <0x1f) ||
-	  pfx [0] >2) return 3; // MST style Arpeggio, Pitchbends ???
+	  pfx [0] >2) return 1; // ST style Arpeggio, Pitchbends ???
 
     if (pfx[1] >0  || pfx[2] >0 ) return 2; // nope UST like fx
 
