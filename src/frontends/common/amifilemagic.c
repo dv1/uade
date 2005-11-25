@@ -28,6 +28,14 @@
 
 #include <amifilemagic.h>
 
+#define FILEMAGIC_DEBUG 0
+
+#if FILEMAGIC_DEBUG
+#define amifiledebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
+#else
+#define amifiledebug(fmt, args...) 
+#endif
+
 static int chk_id_offset(unsigned char *buf, int bufsize,
 			 const char *patterns[], int offset, char *pre);
 
@@ -105,31 +113,43 @@ static const char *offset_0024_patterns[] = {
 static int patterntest(const char *buf, const char *pattern,
 		       int offset, int bytes, int maxlen)
 {
-  if ((offset + bytes) <= maxlen) {
-    return memcmp(buf + offset, pattern, bytes) ? 0 : 1;
-  }
+  if ((offset + bytes) <= maxlen)
+    return (memcmp(buf + offset, pattern, bytes) == 0) ? 1 : 0;
+
   fprintf(stderr,
 	  "uade: warning: would have searched filemagic outside of range\n");
   return 0;
 }
 
-static int tronictest(unsigned char *buf, int bufsize)
+static inline uint16_t read_be_u16(void *buf)
 {
-  int a = 0;
+  uint8_t *ptr = buf;
+  return (((uint16_t) ptr[0]) << 8) + ptr[1];
+}
 
-  a = ((buf[0x02] << 8) + buf[0x03]) + ((buf[0x06] << 8) + buf[0x07]) +
-      ((buf[0x0a] << 8) + buf[0x0b]) + ((buf[0x0e] << 8) + buf[0x0f]) + 0x10;
+static inline uint32_t read_be_u32(void *buf)
+{
+  uint8_t *ptr = buf;
+  return (((uint32_t) ptr[0]) << 24) + (ptr[1] << 16) + (ptr[2] << 8) + ptr[3];
+}
 
-  if ((a + 1 > bufsize) || (a & 1 << 0))
+
+static int tronictest(unsigned char *buf, size_t bufsize)
+{
+  size_t a = read_be_u16(&buf[0x02]) + read_be_u16(&buf[0x06]) +
+             read_be_u16(&buf[0x0a]) + read_be_u16(&buf[0x0e]) + 0x10;
+
+  if (((a + 2) >= bufsize) || (a & 1))
     return 0;			/* size  & btst #0, d1; */
 
-  a = ((buf[a] << 8) + buf[a + 1]) + a;
-  if ((a + 7 > bufsize) || (a & 1 << 0))
+  a = read_be_u16(&buf[a]) + a;
+  if (((a + 8) >= bufsize) || (a & 1))
     return 0;			/*size & btst #0,d1 */
 
-  if ((((buf[a + 4] << 24) + (buf[a + 5] << 16) +
-	(buf[a + 6] << 8) + buf[a + 7]) != 0x5800b0))
+  if (read_be_u32(&buf[a + 4]) != 0x5800b0)
     return 0;
+
+  amifiledebug("tronic recognized\n");
 
   return 1;
 }
@@ -565,10 +585,8 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
   int srep = 0;
   int sreplen = 0;
   int vol = 0;
-  int ret = 0;
 
   int noof_slen_zero_sreplen_zero=0;
-  int noof_slen_zero_sreplen_nonzero=0;
   int noof_slen_zero_vol_zero=0;
   int srep_bigger_slen=0;
   int srep_bigger_ffff=0;
