@@ -2,7 +2,8 @@
 	- Cleaned up and fixed tronictest check in amifilemagic. Added
 	  read_be_u16() and read_be_u32() to help parsing amiga formats.
 	- Cleaned up tfmxtest in amifilemagic.
-
+	- Cleaned up modparsing in amifilemagic.
+	
 2005-11-24  Michael Doering <mldoering@gmx.net>
 	- amifilemagic: improved mod32 and mod15 checks a bit
 	- ha! found pitchbend incompatibility bewteen

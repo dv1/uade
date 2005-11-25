@@ -249,7 +249,7 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
 /* returns:	 -1 for a mod with bad length 		*/
 /* 		 0  for no mod				*/
 /*		 1 for a mod with good length		*/
-static int modlentest(unsigned char *buf, int filesize, int header)
+static int modlentest(unsigned char *buf, size_t filesize, int header)
 {
   int i = 0;
   int no_of_instr;
@@ -297,76 +297,51 @@ static int modlentest(unsigned char *buf, int filesize, int header)
   return 0;
 }
 
-static void modparsing(unsigned char *buf, int bufsize, int header, int max_pattern, int pfx[], int pfxarg[])
+static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int max_pattern, int pfx[], int pfxarg[])
 {
+  int offset;
+  int i, j, fx;
+  unsigned char fxarg;
+  
+  if ((header + 256 * 4 + max_pattern * 1024 > bufsize)) {
+    fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine.\n");
+    fprintf (stderr, "              buffer too small for checking the whole music data: %d/%zd\n",600+256*4+(max_pattern+1)*1024,bufsize);
+    fprintf (stderr, "              overide replayer with -P <replayer> if neccessary!\n");
+    max_pattern=(bufsize-header-256*4)/1024;
+    fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
+  }
+  
+  for (i = 0; i < max_pattern; i++) {
+    for (j = 0; j < 256; j++) {
+      offset = header + i * 1024 + j * 4;
 
-    int offset=0;
-    int i,j,fx;
-    unsigned char fxarg;
-    
+      if ((offset + 4) > bufsize)
+	return;
 
-    if ((header+256*4+(max_pattern)*1024 > bufsize)) {
-	fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine.\n");
-	fprintf (stderr, "              buffer too small for checking the whole music data: %d/%d\n",600+256*4+(max_pattern+1)*1024,bufsize);
-	fprintf (stderr, "              overide replayer with -P <replayer> if neccessary!\n");
-        max_pattern=(bufsize-header-256*4)/1024;
-	fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
+      fx = buf[offset + 2] & 0x0f;
+      fxarg = buf[offset + 3];
+      
+      if (fx == 0) {
+	if (fxarg != 0 )
+	  pfx[fx] += 1;
+	pfxarg[fx] = (pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
+
+      } else if (1 <= fx && fx <= 13) {
+	pfx[fx] +=1;
+	pfxarg[fx] = (pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
+
+      } else if (fx == 14) {
+	pfx[((fxarg >> 4) & 0x0f) + 16] +=1;
+
+      } else if (fx == 15) {
+	if (fxarg > 0x1f)
+	  pfx[14] +=1;
+	else
+	  pfx[15] +=1;
+	pfxarg[15] = (pfxarg[15] > fxarg) ? pfxarg[15] : fxarg;
+      }
     }
-
-    for ( i=0; i< max_pattern; i++ )
-    {
-     for (j=0; j<256; j++ )
-     {
-     offset = header+j*4+i*1024;
-     
-     fx = buf[offset+2] & 0x0f;
-     fxarg = buf[offset+3];
-
-     switch (fx)
-     { 
-        case 0:
-	  if (fxarg != 0 )
-	   pfx[fx] += 1;
-	   pfxarg[fx]=(pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
-           break;
-         case 1:
-         case 2:
-         case 3:
-         case 4:
-         case 5:
-         case 6:
-         case 7:
-         case 8:
-         case 9:
-         case 10:
-         case 11:
-         case 12:
-         case 13:
-          pfx[fx] +=1;
-	  pfxarg[fx]=(pfxarg[fx] > fxarg) ? pfxarg[fx] : fxarg;
-          break;
-         case 14: // 0x0e Extended Commands//
-          pfx[((fxarg>>4)&0x0f) + 16] +=1;
-          break;
-         case 15: //0x0f set Tempo/Set Speed
-          if (fxarg > 0x1f)
-           pfx[14] +=1;
-           else
-           pfx[15] +=1;
-	   pfxarg[15]=(pfxarg[15] > fxarg) ? pfxarg[15] : fxarg;
-           break;
-	  }
-     } 
-    }
-/* print fx list for debugging */
-/*
-    for (j=0; j<32; j++ )
-     {
-      fprintf (stderr, "effects: %d\t%d\t%d\n",j, pfx[j], pfxarg[j]);
-     }
-*/
-
-return;
+  }
 }
 
 
