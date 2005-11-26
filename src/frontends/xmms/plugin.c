@@ -26,6 +26,8 @@
 
 #include "plugin.h"
 
+#include <eagleplayer.h>
+#include <uadeconfig.h>
 
 #define PLUGIN_DEBUG 1
 
@@ -87,8 +89,7 @@ static void uade_cleanup(void)
 /* xmms calls this function to check song */
 static int uade_is_our_file(char *filename)
 {
-  plugindebug("\n");
-  return check_file(filename);
+  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? 1 : 0;
 }
 
 /* play_file() and is_our_file() call this function to check song */

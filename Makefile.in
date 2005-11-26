@@ -14,13 +14,16 @@ DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 
-all:	src/include/uadeconfig.h uadecore uade123
+all:	src/include/uadeconfig.h uadecore uade123 {XMMSPLUGIN}
 
 uadecore:	
 	$(MAKE) -C src
 
 uade123:	
 	$(MAKE) -C src/frontends/uade123
+
+xmmsplugin:	
+	$(MAKE) -C src/frontends/xmms
 
 src/include/uadeconfig.h:	
 	@echo ""

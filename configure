@@ -511,6 +511,11 @@ echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
 echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> "$conffile"
 test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 
+xmmspluginrule=""
+if test "$usexmms" = "yes" ; then
+    xmmspluginrule="xmmsplugin"
+fi
+
 sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{DATADIR}|$uadedatadir|" \
     -e "s|{BINDIR}|$bindir|" \
@@ -519,6 +524,7 @@ sed -e "s|{MAKE}|$MAKE|" \
     -e "s|{LIBDIR}|$uadelibdir|" \
     -e "s|{PACKAGEPREFIX}|$packageprefix|" \
     -e "s|{UADE123NAME}|$UADE123NAME|" \
+    -e "s|{XMMSPLUGIN}|$xmmspluginrule|" \
     Makefile.in > Makefile
 
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do
