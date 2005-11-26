@@ -1,3 +1,9 @@
+2005-11-26  Heikki Orsila <heikki.orsila@iki.fi>
+	- Continuing modularization of uade frontends. Renamed
+	  src/uadecontrol.c to be src/uadeipc.c, and added
+	  src/frontends/common/uadecontrol.c which contains a set of
+	  helper functions to control and spawn uadecore.
+
 2005-11-25  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up and fixed tronictest check in amifilemagic. Added
 	  read_be_u16() and read_be_u32() to help parsing amiga formats.

@@ -19,7 +19,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 
-#include <uadecontrol.h>
+#include <uadeipc.h>
 #include <strlrep.h>
 #include <unixatomic.h>
 

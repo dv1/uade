@@ -34,7 +34,7 @@
 #include "amigamsg.h"
 #include "strlrep.h"
 #include "players.h"
-#include "uadecontrol.h"
+#include "uadeipc.h"
 #include "ossupport.h"
 
 

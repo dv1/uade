@@ -1,5 +1,5 @@
-#ifndef _UADEIPC_H_
-#define _UADEIPC_H_
+#ifndef _UADEMSG_H_
+#define _UADEMSG_H_
 
 #include <stdint.h>
 

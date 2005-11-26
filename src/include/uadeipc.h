@@ -1,5 +1,5 @@
-#ifndef _UADECONTROL_H_
-#define _UADECONTROL_H_
+#ifndef _UADEIPC_H_
+#define _UADEIPC_H_
 
 #include <stdlib.h>
 

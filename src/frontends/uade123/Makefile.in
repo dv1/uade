@@ -2,9 +2,10 @@
 CC = {CC}
 CFLAGS = -Wall -O2 -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS} -g
 CLIBS = {ARCHLIBS} {AOLIBS}
-MODULES = uade123.o strlrep.o unixatomic.o uadecontrol.o amifilemagic.o \
+MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
-	playloop.o audio.o config.o terminal.o postprocessing.o
+	playloop.o audio.o config.o terminal.o postprocessing.o \
+	uadecontrol.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -49,7 +50,10 @@ terminal.o:	terminal.c terminal.h
 uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
-uadecontrol.o:	../../uadecontrol.c ../../include/uadecontrol.h ../../include/uademsg.h
+uadecontrol.o:	../common/uadecontrol.c ../common/uadecontrol.h
+	$(CC) $(CFLAGS) -c $<
+
+uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
 	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h

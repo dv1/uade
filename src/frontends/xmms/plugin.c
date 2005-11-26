@@ -27,7 +27,7 @@
 #include "plugin.h"
 
 
-#define PLUGIN_DEBUG 0
+#define PLUGIN_DEBUG 1
 
 #if PLUGIN_DEBUG
 #define plugindebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
@@ -75,32 +75,32 @@ InputPlugin *get_iplugin_info(void) {
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
-  plugindebug("");
+  plugindebug("\n");
 }
 
 static void uade_cleanup(void)
 {
-  plugindebug("");
+  plugindebug("\n");
 }
 
 
 /* xmms calls this function to check song */
 static int uade_is_our_file(char *filename)
 {
-  plugindebug("");
+  plugindebug("\n");
   return check_file(filename);
 }
 
 /* play_file() and is_our_file() call this function to check song */
 static int check_file(char *filename)
 {
-  plugindebug("");
+  plugindebug("\n");
   return FALSE;
 }
 
 static void *play_loop(void *arg)
 {
-  plugindebug("");
+  plugindebug("\n");
   pthread_exit(0);
   return 0;
 }
@@ -108,15 +108,7 @@ static void *play_loop(void *arg)
 
 static void uade_play_file(char *filename)
 {
-  plugindebug("");
-  /* check_file (filename, format, uade_struct->playername); */
-
-  /* Tell song len to XMMS, set XMMS window scroller text */
-  /*
-  snprintf(text, sizeof(text), "%s [%s]", tempname, format);
-  uade_ip.set_info_text(text);
-  uade_ip.set_info(text, playtime, 8 * 4 * uade_frequency, uade_frequency, uade_nchannels);
-  */
+  plugindebug("\n");
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -133,7 +125,7 @@ static void uade_play_file(char *filename)
 
 static void uade_stop(void)
 {
-  plugindebug("");
+  plugindebug("\n");
   if (thread_running)
     pthread_join(decode_thread, 0);
   uade_ip.output->close_audio();
@@ -142,7 +134,7 @@ static void uade_stop(void)
 
 int uade_is_paused(void)
 {
-  plugindebug("");
+  plugindebug("\n");
   return FALSE;
 }
 
@@ -150,25 +142,25 @@ int uade_is_paused(void)
 /* function that xmms calls when pausing or unpausing */
 static void uade_pause(short paused)
 {
-  plugindebug("");
+  plugindebug("\n");
   uade_ip.output->pause(paused);
 }
 
 
 static void uade_seek(int time)
 {
-  plugindebug("");
+  plugindebug("\n");
 }
 
 
 static int uade_get_time(void)
 {
-  plugindebug("");
+  plugindebug("\n");
   return 0;
 }
 
 
 static void uade_get_song_info(char *filename, char **title, int *length)
 {
-  plugindebug("");
+  plugindebug("\n");
 }

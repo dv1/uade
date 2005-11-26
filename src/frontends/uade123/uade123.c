@@ -27,8 +27,8 @@
 #include <getopt.h>
 
 #include <uadecontrol.h>
+#include <uadeipc.h>
 #include <strlrep.h>
-#include <unixatomic.h>
 #include <uadeconfig.h>
 #include <amifilemagic.h>
 #include <eagleplayer.h>
@@ -76,7 +76,7 @@ static char uadename[PATH_MAX];
 
 static void print_help(void);
 static void send_interpolation_command(void);
-static void set_subsong(struct uade_msg *um, int subsong);
+static void set_subsong(int subsong);
 static void setup_sighandlers(void);
 ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
@@ -174,63 +174,9 @@ static struct eagleplayer *fileformat_detection(const char *modulename)
 }
 
 
-static void fork_exec_uade(void)
-{
-  int forwardfds[2];
-  int backwardfds[2];
-  char url[64];
-
-  if (pipe(forwardfds) != 0 || pipe(backwardfds) != 0) {
-    fprintf(stderr, "Can not create pipes: %s\n", strerror(errno));
-    exit(-1);
-  }
- 
-  uadepid = fork();
-  if (uadepid < 0) {
-    fprintf(stderr, "Fork failed: %s\n", strerror(errno));
-    exit(-1);
-  }
-  if (uadepid == 0) {
-    int fd;
-    char instr[32], outstr[32];
-    /* close everything else but stdin, stdout, stderr, and in/out fds */
-    for (fd = 3; fd < 64; fd++) {
-      if (fd != forwardfds[0] && fd != backwardfds[1])
-	atomic_close(fd);
-    }
-    /* give in/out fds as command line parameters to the uade process */
-    snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
-    snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
-    if (debug_mode) {
-      execlp(uadename, uadename, "-d", "-i", instr, "-o", outstr, NULL);
-    } else {
-      execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
-    }
-    fprintf(stderr, "Execlp failed: %s\n", strerror(errno));
-    abort();
-  }
-
-  /* close fd that uade reads from and writes to */
-  if (atomic_close(forwardfds[0]) < 0 || atomic_close(backwardfds[1]) < 0) {
-    fprintf(stderr, "Could not close uade fds: %s\n", strerror(errno));
-    trivial_cleanup();
-    exit(-1);
-  }
-
-  /* write destination */
-  snprintf(url, sizeof(url), "fd://%d", forwardfds[1]);
-  uade_set_output_destination(url);
-  /* read source */
-  snprintf(url, sizeof(url), "fd://%d", backwardfds[0]);
-  uade_set_input_source(url);
-}
-
-
 int main(int argc, char *argv[])
 {
   int i;
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
   char configname[PATH_MAX] = "";
   char modulename[PATH_MAX] = "";
   char playername[PATH_MAX] = "";
@@ -506,7 +452,7 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  fork_exec_uade();
+  uade_spawn(&uadepid, uadename, debug_mode);
 
   if (!audio_init())
     goto cleanup;
@@ -591,48 +537,15 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
     }
 
-    if (uade_send_string(UADE_COMMAND_SCORE, scorename)) {
-      fprintf(stderr, "Can not send score name.\n");
-      goto cleanup;
-    }
-
-    if (uade_send_string(UADE_COMMAND_PLAYER, playername)) {
-      fprintf(stderr, "Can not send player name.\n");
-      goto cleanup;
-    }
-
-    if (uade_send_string(UADE_COMMAND_MODULE, modulename)) {
-      fprintf(stderr, "Can not send module name.\n");
-      goto cleanup;
-    }
-
-    if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-      fprintf(stderr, "Can not send token after module.\n");
-      goto cleanup;
-    }
-
-    if (uade_receive_message(um, sizeof(space)) <= 0) {
-      fprintf(stderr, "Can not receive acknowledgement.\n");
-      goto cleanup;
-    }
-
-    if (um->msgtype == UADE_REPLY_CANT_PLAY) {
-      debug("Uadecore refuses to play the song.\n");
-      if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
-	fprintf(stderr, "Can not receive token in main loop.\n");
-	exit(-1);
+    if ((ret = uade_song_initialization(scorename, playername, modulename))) {
+      if (ret == UADECORE_INIT_ERROR) {
+	goto cleanup;
+      } else if (ret == UADECORE_CANT_PLAY) {
+	debug("Uadecore refuses to play the song.\n");
+	continue;
       }
-      continue;
-    }
-
-    if (um->msgtype != UADE_REPLY_CAN_PLAY) {
-      fprintf(stderr, "Unexpected reply from uade: %d\n", um->msgtype);
-      goto cleanup;
-    }
-
-    if (uade_receive_short_message(UADE_COMMAND_TOKEN) < 0) {
-      fprintf(stderr, "Can not receive token after play ack.\n");
-      goto cleanup;
+      fprintf(stderr, "Unknown error from uade_song_initialization()\n");
+      exit(-1);
     }
 
     if (uade_ignore_player_check) {
@@ -650,7 +563,7 @@ int main(int argc, char *argv[])
     }
 
     if (subsong >= 0)
-      set_subsong(um, subsong);
+      set_subsong(subsong);
 
     send_filter_command(filter_override ? filter_override : uade_use_filter);
     send_interpolation_command();
@@ -825,9 +738,13 @@ void set_interpolation_mode(const char *value)
 }
 
 
-static void set_subsong(struct uade_msg *um, int subsong)
+static void set_subsong(int subsong)
 {
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+
   assert(subsong >= 0 && subsong < 256);
+
   *um = (struct uade_msg) {.msgtype = UADE_COMMAND_SET_SUBSONG, .size = 4};
   * (uint32_t *) um->data = htonl(subsong);
   if (uade_send_message(um) < 0) {

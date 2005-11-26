@@ -14,7 +14,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <uadecontrol.h>
+#include <uadeipc.h>
 
 #include "uade123.h"
 #include "effects.h"

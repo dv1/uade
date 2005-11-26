@@ -24,7 +24,7 @@
 #include "cia.h"
 
 #include "uade.h"
-#include "uadecontrol.h"
+#include "uadeipc.h"
 
 
 #define EXCEPTION_COUNT 0
