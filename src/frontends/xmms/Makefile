@@ -28,7 +28,3 @@ uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -c $<
-
-install:	uade2.so
-	mkdir -p ~/.xmms/Plugins/Input
-	install uade2.so ~/.xmms/Plugins/Input/

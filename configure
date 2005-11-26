@@ -511,30 +511,36 @@ echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
 echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> "$conffile"
 test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 
+uade123rule="uade123"
 xmmspluginrule=""
 if test "$usexmms" = "yes" ; then
     xmmspluginrule="xmmsplugin"
 fi
 
-sed -e "s|{MAKE}|$MAKE|" \
-    -e "s|{DATADIR}|$uadedatadir|" \
-    -e "s|{BINDIR}|$bindir|" \
-    -e "s|{DOCDIR}|$docdir|" \
-    -e "s|{MANDIR}|$mandir|" \
-    -e "s|{LIBDIR}|$uadelibdir|" \
-    -e "s|{PACKAGEPREFIX}|$packageprefix|" \
-    -e "s|{UADE123NAME}|$UADE123NAME|" \
-    -e "s|{XMMSPLUGIN}|$xmmspluginrule|" \
+sed -e "s|{MAKE}|$MAKE|g" \
+    -e "s|{DATADIR}|$uadedatadir|g" \
+    -e "s|{BINDIR}|$bindir|g" \
+    -e "s|{DOCDIR}|$docdir|g" \
+    -e "s|{MANDIR}|$mandir|g" \
+    -e "s|{LIBDIR}|$uadelibdir|g" \
+    -e "s|{PACKAGEPREFIX}|$packageprefix|g" \
+    -e "s|{UADE123NAME}|$UADE123NAME|g" \
+    -e "s|{UADE123}|$uade123rule|g" \
+    -e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
     Makefile.in > Makefile
 
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
-    sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|" -e "s|{ARCHLIBS}|$ARCHLIBS|" \
-	-e "s|{AUDIOFLAGS}|$AUDIOFLAGS|" -e "s|{AUDIOLIBS}|$AUDIOLIBS|" \
-	-e "s|{AOFLAGS}|$AOFLAGS|" -e "s|{AOLIBS}|$AOLIBS|" \
-	-e "s|{CC}|$CC|" \
-	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|" -e "s|{SOUNDHEADER}|$SOUNDHEADER|" \
-	-e "s|{DEBUGFLAGS}|$debug_flags|" \
-	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|" \
+    sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
+	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
+	-e "s|{AUDIOFLAGS}|$AUDIOFLAGS|g" \
+	-e "s|{AUDIOLIBS}|$AUDIOLIBS|g" \
+	-e "s|{AOFLAGS}|$AOFLAGS|g" \
+	-e "s|{AOLIBS}|$AOLIBS|g" \
+	-e "s|{CC}|$CC|g" \
+	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|g" \
+	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
+	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
+	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
 	"$file" > "$dst"
 done

@@ -3,6 +3,8 @@
 	  src/uadecontrol.c to be src/uadeipc.c, and added
 	  src/frontends/common/uadecontrol.c which contains a set of
 	  helper functions to control and spawn uadecore.
+	- Added --with-xmms to configure script for developing the XMMS
+	  plugin. It does not work yet!
 
 2005-11-25  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up and fixed tronictest check in amifilemagic. Added

@@ -14,7 +14,7 @@ DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 
-all:	src/include/uadeconfig.h uadecore uade123 {XMMSPLUGIN}
+all:	src/include/uadeconfig.h uadecore {UADE123} {XMMSPLUGIN}
 
 uadecore:	
 	$(MAKE) -C src
@@ -22,8 +22,18 @@ uadecore:
 uade123:	
 	$(MAKE) -C src/frontends/uade123
 
+uade123install:	
+	cp -f src/frontends/uade123/{UADE123NAME} "$(BINDIR)/" || true
+	chmod og+rx "$(BINDIR)/{UADE123NAME}"
+	cp doc/uade123.1 "$(MANDIR)"/
+	chmod og+r "$(MANDIR)"/uade123.1
+
 xmmsplugin:	
 	$(MAKE) -C src/frontends/xmms
+
+xmmsplugininstall:	
+	mkdir -p ~/.xmms/Plugins/Input
+	install src/frontends/xmms/uade2.so ~/.xmms/Plugins/Input/
 
 src/include/uadeconfig.h:	
 	@echo ""
@@ -63,14 +73,9 @@ install:	all
 	cp -f src/uadecore "$(LIBDIR)"/
 	chmod og+rx "$(LIBDIR)/uadecore"
 
-	cp -f src/frontends/uade123/{UADE123NAME} "$(BINDIR)/" || true
-	chmod og+rx "$(BINDIR)/{UADE123NAME}"
-
-	cp doc/uade123.1 "$(MANDIR)"/
-	chmod og+r "$(MANDIR)"/uade123.1
+	test -n "{UADE123}" && $(MAKE) uade123install
+	test -n "{XMMSPLUGIN}" && $(MAKE) xmmsplugininstall
 
 clean:	
 	$(MAKE) -C src clean
 	$(MAKE) -C src/frontends/uade123 clean
-
-
