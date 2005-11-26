@@ -28,7 +28,12 @@ struct eagleplayerstore {
   struct eagleplayermap *map;
 };
 
-struct eagleplayer *uade_get_eagleplayer(const char *extension,  struct eagleplayerstore *playerstore);
+struct eagleplayer *uade_analyze_file_format(const char *modulename,
+					     const char *basedir, int verbose);
+
+struct eagleplayer *uade_get_eagleplayer(const char *extension, 
+					 struct eagleplayerstore *playerstore);
+
 struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
 
 #endif
