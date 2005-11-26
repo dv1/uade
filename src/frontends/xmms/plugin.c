@@ -75,9 +75,11 @@ static InputPlugin uade_ip = {
 
 static int abort_playing;
 static pthread_t decode_thread;
+static int plugin_disabled;
 static int thread_running;
 static pid_t uadepid;
-
+static int uade_ignore_player_check;
+static int uade_no_song_end;
 
 /* this function is first called by xmms. returns pointer to plugin table */
 InputPlugin *get_iplugin_info(void) {
@@ -109,6 +111,7 @@ static int initialize_song(char *filename)
 {
   struct eagleplayer *ep;
   int ret;
+  char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
   plugindebug("\n");
@@ -117,13 +120,33 @@ static int initialize_song(char *filename)
   if (ep == NULL)
     return FALSE;
 
+
+  snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
   snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
 
-  ret = uade_song_initialization(scorename, ep->playername, filename);
+  ret = uade_song_initialization(scorename, playername, filename);
   if (ret) {
-    if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR)
+    if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
+      plugin_disabled = 1;
+    }
     return FALSE;
+  }
+
+  if (uade_ignore_player_check) {
+    if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
+      fprintf(stderr, "Can not send ignore check message.\n");
+      plugin_disabled = 1;
+      return FALSE;
+    }
+  }
+
+  if (uade_no_song_end) {
+    if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
+      fprintf(stderr, "Can not send 'song end not possible'.\n");
+      plugin_disabled = 1;
+      return FALSE;
+    }
   }
 
   return TRUE;
@@ -168,17 +191,19 @@ static void uade_play_file(char *filename)
     return;
   }
 
-  if (initialize_song(filename) == FALSE) {
-    /* This will cause uade_get_time() to return -1 for XMMS to notify
-       that playing should be stopped. */
-    abort_playing = 1;
-    return;
+  if (plugin_disabled) {
+    fprintf(stderr, "An error has occured. uade plugin is internally disabled.\n");
+    goto err;
   }
+
+  if (initialize_song(filename) == FALSE)
+    goto err;
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     goto err;
   }
+
   thread_running = 1;
 
   return;
@@ -186,6 +211,7 @@ static void uade_play_file(char *filename)
  err:
   /* close audio that was opened */
   uade_ip.output->close_audio();
+  abort_playing = 1;
 }
 
 static void uade_stop(void)
