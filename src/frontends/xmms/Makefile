@@ -7,4 +7,8 @@ uade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 
 plugin.o:	plugin.c
-	$(CC) $(CFLAGS) $<
+	$(CC) $(CFLAGS) -c $<
+
+install:	uade2.so
+	mkdir -p ~/.xmms/Plugins/Input
+	install uade2.so ~/.xmms/Plugins/Input/

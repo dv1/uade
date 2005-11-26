@@ -26,18 +26,28 @@
 
 #include "plugin.h"
 
-#include <gtk/gtk.h>
+
+#define PLUGIN_DEBUG 0
+
+#if PLUGIN_DEBUG
+#define plugindebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
+#else
+#define plugindebug(fmt, args...) 
+#endif
 
 
+static int check_file(char *filename);
+
+static void uade_cleanup(void);
+static void uade_get_song_info(char *filename, char **title, int *length);
+static int uade_get_time(void);
 static void uade_init(void);
-static int is_our_file(char *filename);
-static void play_file(char *filename);
-static void stop(void);
+static int uade_is_our_file(char *filename);
 static void uade_pause(short paused);
+static void uade_play_file(char *filename);
 static void uade_seek(int time);
-static int get_time(void);
-static void get_song_info(char *filename, char **title, int *length);
-static void clean_up(void);
+static void uade_stop(void);
+
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
@@ -50,10 +60,11 @@ static InputPlugin uade_ip = {
   .pause = uade_pause,
   .seek = uade_seek,
   .get_time = uade_get_time,
-  .clean_up = uade_clean_up,
+  .cleanup = uade_cleanup,
   .get_song_info = uade_get_song_info
 };
 
+int thread_running;
 static pthread_t decode_thread;
 
 /* this function is first called by xmms. returns pointer to plugin table */
@@ -64,35 +75,41 @@ InputPlugin *get_iplugin_info(void) {
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
+  plugindebug("");
 }
 
-static void clean_up(void)
+static void uade_cleanup(void)
 {
+  plugindebug("");
 }
 
 
 /* xmms calls this function to check song */
-static int is_our_file(char *filename)
+static int uade_is_our_file(char *filename)
 {
-  return FALSE;
+  plugindebug("");
+  return check_file(filename);
 }
 
 /* play_file() and is_our_file() call this function to check song */
-static int check_my_file(char *filename, char *format, char *playername)
+static int check_file(char *filename)
 {
+  plugindebug("");
   return FALSE;
 }
 
 static void *play_loop(void *arg)
 {
+  plugindebug("");
   pthread_exit(0);
   return 0;
 }
 
 
-static void play_file(char *filename)
+static void uade_play_file(char *filename)
 {
-  /* check_my_file (filename, format, uade_struct->playername); */
+  plugindebug("");
+  /* check_file (filename, format, uade_struct->playername); */
 
   /* Tell song len to XMMS, set XMMS window scroller text */
   /*
@@ -105,6 +122,7 @@ static void play_file(char *filename)
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     goto err;
   }
+  thread_running = 1;
 
   return;
 
@@ -113,47 +131,44 @@ static void play_file(char *filename)
   uade_ip.output->close_audio();
 }
 
-static void stop(void)
+static void uade_stop(void)
 {
-  pthread_join(decode_thread, 0);
+  plugindebug("");
+  if (thread_running)
+    pthread_join(decode_thread, 0);
   uade_ip.output->close_audio();
 }
 
 
-int is_paused(void)
+int uade_is_paused(void)
 {
+  plugindebug("");
   return FALSE;
-}
-
-
-static void set_paused(short paused)
-{
 }
 
 
 /* function that xmms calls when pausing or unpausing */
 static void uade_pause(short paused)
 {
+  plugindebug("");
   uade_ip.output->pause(paused);
 }
 
 
 static void uade_seek(int time)
 {
+  plugindebug("");
 }
 
 
-static int get_time(void)
+static int uade_get_time(void)
 {
+  plugindebug("");
   return 0;
 }
 
 
-static void get_song_info(char *filename, char **title, int *length)
+static void uade_get_song_info(char *filename, char **title, int *length)
 {
-}
-
-
-static void my_fileinfo(char *filename)
-{
+  plugindebug("");
 }
