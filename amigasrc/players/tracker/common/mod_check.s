@@ -58,7 +58,12 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 ;
 
 mcheck_calc_modlen:
-			movem.l	d1-d7/a0-a6,-(a7)
+			cmp.l	d0,d1
+			bhi.b	.is_higher
+			moveq	#-1,d0
+			rts
+
+.is_higher		movem.l	d1-d7/a0-a6,-(a7)
 
         		move.l	d0,header
 			cmp.l	#1084,d0		;header size

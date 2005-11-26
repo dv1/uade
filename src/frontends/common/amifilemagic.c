@@ -311,7 +311,7 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
     fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
   }
   
-  for (i = 0; i < max_pattern; i++) {
+  for (i = 0; i <= max_pattern; i++) {
     for (j = 0; j < 256; j++) {
       offset = header + i * 1024 + j * 4;
 
