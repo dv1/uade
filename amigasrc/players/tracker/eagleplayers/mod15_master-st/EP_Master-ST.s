@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Master Soundtracker player 20051122',0
+	dc.b '$VER: Master Soundtracker player 2005-11-24',0
 	even
 
 PlayerTagArray
@@ -19,7 +19,6 @@ PlayerTagArray
 	dc.l	DTP_Creator,CName
 	dc.l	DTP_Check2,Chk
 	dc.l	DTP_Interrupt,replay_muzak
-	dc.l	DTP_Config,Config
 	dc.l	DTP_InitPlayer,InitPlay
 	dc.l	DTP_EndPlayer,EndPlay
 	dc.l	DTP_InitSound,InitSnd
@@ -31,6 +30,9 @@ PlayerTagArray
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
+Formatpointer	dc.l	FName
+delibase	dc.l	0
+song		dc.l	0
 
 PName	dc.b 'MasterSoundtracker',0
 FName	dc.b 'MasterSoundtracker or compatible',0
@@ -39,10 +41,7 @@ CName	dc.b "'88 by DOC & TIP/The New Masters",10
 	dc.b '-----------------------',10
 	dc.b 'note: filedetection checks for uade!',0
 	
-songendflag	dc.b 0
 	even
-Formatpointer	dc.l	FName
-delibase	dc.l	0
 
 
 *-----------------------------------------------------------------------*
@@ -64,14 +63,6 @@ Chk						; UST ?
 	moveq	#-1,d0
 	rts
 
-*-----------------------------------------------------------------------*
-;
-; Einmalige Initialisierung des Players
-
-Config
-
-	moveq	#0,d0				; no Error
-	rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -83,7 +74,7 @@ InitPlay
 
 	move.l	dtg_AudioAlloc(a5),a0		; Function
 	jsr	(a0)				; returncode is already set !
-	sf songendflag
+	sf ep_songendflag
 	rts
 
 *-----------------------------------------------------------------------*
@@ -95,13 +86,6 @@ EndPlay
 	jsr	(a0)
 	rts
 
-*-----------------------------------------------------------------------*
-;
-; Init Sound
-
-InitSnd
-	bsr	start_muzak
-	rts
 
 
 *-----------------------------------------------------------------------*
@@ -118,18 +102,9 @@ RemSnd
 	move.w	#$000F,$96(a0)			; End Sound
 	rts
 
-Songend
-	movem.l	d0-d7/a0-a6,-(a7)
-	move.l  delibase(pc),a5
-	move.l	dtg_SongEnd(a5),a1
-	jsr (a1)
-	movem.l	(a7)+,d0-d7/a0-a6
-	rts
 
 *-----------------------------------------------------------------------*
 
-	even
-song	dc.l	0
 ******************************************
 * Master Soundtracker V1.0 replayroutine *
 * based on V9.0 of DOC *******************
@@ -137,16 +112,8 @@ song	dc.l	0
 
 * Improved by TIP of The New Masters in JULY 1988 *
 
-;start:	bsr.s	start_muzak
-;
-;main:	btst	#6,$bfe001
-;	bne.s	main
 
-;	bsr.L	stop_muzak
-;	moveq	#0,d0
-;	rts
-
-start_muzak:
+InitSnd:
 	move.l	song,muzakoffset	;** get offset
 
 init0:	move.l	muzakoffset,a0		;** get highest used pattern
@@ -186,20 +153,6 @@ init5:	clr.w	$dff0a8			;** clear used values
 	clr.l	trkpos
 	clr.l	patpos
 
-init6:
-;	move.l	muzakoffset,a0		;** initialize timer irq
-;	move.b	470(a0),numpat+1	;number of patterns
-;	move.l	$6c.w,lev3save+2
-;	move.l	#lev3interrupt,$6c.w
-	rts
-
-stop_muzak:
-;	move.l	lev3save+2,$6c.w
-;	clr.w	$dff0a8
-;	clr.w	$dff0b8
-;	clr.w	$dff0c8
-;	clr.w	$dff0d8
-;	move.w	#$f,$dff096
 	rts
 
 
@@ -207,9 +160,9 @@ replay_muzak:
 	move.l	muzakoffset,a0		;** initialize timer irq
 	move.b	470(a0),numpat+1	;number of patterns
 
-	tst.b	songendflag
+	tst.b	ep_songendflag
 	beq	replay
-	bsr	Songend
+	bsr	ep_Songend
 replay
 	movem.l	d0-d7/a0-a6,-(a7)
 	addq.w	#1,timpos
@@ -405,7 +358,7 @@ rep5:	add.l	#16,patpos		;next step
 	cmp.l	trkpos,d0		;song finished ?
 	bne.s	rep6
 	clr.l	trkpos
-	move.b	#1,songendflag
+	move.b	#1,ep_songendflag
 rep6:	movem.l	(a7)+,d0-d7/a0-a6
 	rts
 
@@ -460,6 +413,11 @@ chan3:	bsr.L	newrou
 	move.w	18(a6),20(a6)		;volume trigger
 chan4:	rts
 
+	incdir "amiga:work/players/tracker/common/"
+	include	"mod_check.s"
+	include	"ep_misc.s"
+
+
 datach0:	blk.w	11,0
 		dc.w	1
 datach1:	blk.w	11,0
@@ -485,5 +443,3 @@ numpat:		dc.w	0
 enbits:		dc.w	0
 timpos:		dc.w	0
 
-		incdir "amiga:work/players/tracker/common/"
-		include	"mod_check.s"

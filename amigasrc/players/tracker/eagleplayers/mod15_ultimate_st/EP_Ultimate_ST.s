@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Ultimate Soundtracker player (20051122)',0
+	dc.b '$VER: Ultimate Soundtracker player 2005-11-26',0
 	even
 
 PlayerTagArray
@@ -19,7 +19,6 @@ PlayerTagArray
 	dc.l	DTP_Creator,CName
 	dc.l	DTP_Check2,Chk
 	dc.l	DTP_Interrupt,REPLAY_MUZAK
-	dc.l	DTP_Config,Config
 	dc.l	DTP_InitPlayer,InitPlay
 	dc.l	DTP_EndPlayer,EndPlay
 	dc.l	DTP_InitSound,InitSnd
@@ -64,13 +63,6 @@ Chk						; UST ?
 	rts
 
 
-*-----------------------------------------------------------------------*
-;
-; Einmalige Initialisierung des Players
-
-Config
-	moveq	#0,d0				; no Error
-	rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -97,13 +89,6 @@ EndPlay
 	jsr	(a0)
 	rts
 
-*-----------------------------------------------------------------------*
-;
-; Init Sound
-
-InitSnd
-	bsr	START_MUZAK
-	rts
 
 
 *-----------------------------------------------------------------------*
@@ -132,7 +117,7 @@ RemSnd
 ;©                                              ©
 ;©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©
 
-START_MUZAK:
+InitSnd:
 	move.l	ustsong,muzakoffset	;** get offset
 
 init0:	move.l	muzakoffset,a0		;** get highest used pattern
@@ -398,6 +383,10 @@ chan3:	move.w	(a6),16(a6)		;save note for effect
 	move.w	18(a6),20(a6)		;volume trigger
 chan4:	rts
 
+		incdir "amiga:work/players/tracker/common/"
+		include "mod_check.s"
+		include "ep_misc.s"
+
 ;------------------------------------------------
 ; used varibles
 ;------------------------------------------------
@@ -433,8 +422,4 @@ patpos:		dc.l	0
 numpat:		dc.w	0
 enbits:		dc.w	0
 timpos:		dc.w	0
-;data:		blk.b	0,0
 
-		incdir "amiga:work/players/tracker/common/"
-		include "mod_check.s"
-		include "ep_misc.s"
