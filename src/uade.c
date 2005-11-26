@@ -581,7 +581,7 @@ void uade_option(int argc, char **argv)
     fprintf(stderr, "uadecore: No config file passed as a message.\n");
     exit(-1);
   } else if (ret < 0) {
-    fprintf(stderr, "uadecore: Invalid input. Eexpected a config file.\n");
+    fprintf(stderr, "uadecore: Invalid input. Expected a config file.\n");
     exit(-1);
   }
 

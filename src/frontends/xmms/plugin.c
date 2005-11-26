@@ -26,8 +26,14 @@
 
 #include "plugin.h"
 
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <uadeipc.h>
 #include <eagleplayer.h>
 #include <uadeconfig.h>
+#include <uadecontrol.h>
 
 #define PLUGIN_DEBUG 1
 
@@ -38,7 +44,7 @@
 #endif
 
 
-static int check_file(char *filename);
+static int initialize_song(char *filename);
 
 static void uade_cleanup(void);
 static void uade_get_song_info(char *filename, char **title, int *length);
@@ -66,8 +72,12 @@ static InputPlugin uade_ip = {
   .get_song_info = uade_get_song_info
 };
 
-int thread_running;
+
+static int abort_playing;
 static pthread_t decode_thread;
+static int thread_running;
+static pid_t uadepid;
+
 
 /* this function is first called by xmms. returns pointer to plugin table */
 InputPlugin *get_iplugin_info(void) {
@@ -83,25 +93,50 @@ static void uade_init(void)
 static void uade_cleanup(void)
 {
   plugindebug("\n");
+  if (uadepid) {
+    kill(uadepid, SIGTERM);
+  }
 }
 
 
-/* xmms calls this function to check song */
+/* XMMS calls this function to check if filename belongs to this plugin. */
 static int uade_is_our_file(char *filename)
 {
-  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? 1 : 0;
+  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? TRUE : FALSE;
 }
 
-/* play_file() and is_our_file() call this function to check song */
-static int check_file(char *filename)
+static int initialize_song(char *filename)
 {
+  struct eagleplayer *ep;
+  int ret;
+  char scorename[PATH_MAX];
+
   plugindebug("\n");
-  return FALSE;
+
+  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1);
+  if (ep == NULL)
+    return FALSE;
+
+  snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
+
+  ret = uade_song_initialization(scorename, ep->playername, filename);
+  if (ret) {
+    if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR)
+      fprintf(stderr, "Can not initialize song. Unknown error.\n");
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 static void *play_loop(void *arg)
 {
   plugindebug("\n");
+  if (abort_playing) {
+    plugindebug("thread is aborted.\n");
+    pthread_exit(0);
+  }
+
   pthread_exit(0);
   return 0;
 }
@@ -110,6 +145,35 @@ static void *play_loop(void *arg)
 static void uade_play_file(char *filename)
 {
   plugindebug("\n");
+
+  abort_playing = 0;
+
+  if (!uadepid) {
+    char configname[PATH_MAX];
+
+    plugindebug("spawning uadecore\n");
+    uade_spawn(&uadepid, UADE_CONFIG_UADE_CORE, 0);
+    plugindebug("uadecore spawned\n");
+
+    snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
+    if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
+      fprintf(stderr, "Can not send config name.\n");
+      abort_playing = 1;
+      return;
+    }
+  }
+
+  if (!uade_ip.output->open_audio(FMT_S16_NE, 44100, 2)) {
+    abort_playing = 1;
+    return;
+  }
+
+  if (initialize_song(filename) == FALSE) {
+    /* This will cause uade_get_time() to return -1 for XMMS to notify
+       that playing should be stopped. */
+    abort_playing = 1;
+    return;
+  }
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -127,8 +191,10 @@ static void uade_play_file(char *filename)
 static void uade_stop(void)
 {
   plugindebug("\n");
-  if (thread_running)
+  if (thread_running) {
     pthread_join(decode_thread, 0);
+    thread_running = 0;
+  }
   uade_ip.output->close_audio();
 }
 
@@ -156,7 +222,8 @@ static void uade_seek(int time)
 
 static int uade_get_time(void)
 {
-  plugindebug("\n");
+  if (abort_playing)
+    return -1;
   return 0;
 }
 
@@ -164,4 +231,7 @@ static int uade_get_time(void)
 static void uade_get_song_info(char *filename, char **title, int *length)
 {
   plugindebug("\n");
+  if ((*title = strdup(filename)) == NULL)
+    plugindebug("Not enough memory for song info.\n");
+  *length = -1;
 }
