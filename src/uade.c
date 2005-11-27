@@ -1,6 +1,6 @@
 /* UADE - Unix Amiga Delitracker Emulator
  * Copyright 2000-2005, Heikki Orsila <heikki.orsila@iki.fi>
- * See http://uade.ton.tut.fi
+ * See http://zakalwe.virtuaalipalvelin.net/uade
  */
 
 #include <assert.h>

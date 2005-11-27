@@ -15,6 +15,7 @@
 #include <assert.h>
 
 #include <uadeipc.h>
+#include <uadecontrol.h>
 
 #include "uade123.h"
 #include "effects.h"
@@ -142,7 +143,7 @@ int play_loop(void)
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");
-	  send_filter_command(uade_use_filter);
+	  uade_send_filter_command(uade_use_filter, uade_filter_state, uade_force_filter);
 	  break;
 	case 'h':
 	  tprintf("\n\n");
@@ -235,13 +236,7 @@ int play_loop(void)
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 	    time_bytes = 0;
-	    *um = (struct uade_msg) {.msgtype = UADE_COMMAND_CHANGE_SUBSONG,
-				     .size = 4};
-	    * (uint32_t *) um->data = htonl(cur_sub);
-	    if (uade_send_message(um)) {
-	      fprintf(stderr, "\ncould not change subsong\n");
-	      exit(-1);
-	    }
+	    uade_change_subsong(cur_sub);
 	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	  }
 	} else {

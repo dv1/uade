@@ -72,8 +72,6 @@ static char uadename[PATH_MAX];
 
 
 static void print_help(void);
-static void send_interpolation_command(void);
-static void set_subsong(int subsong);
 static void setup_sighandlers(void);
 ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
@@ -359,17 +357,12 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  uade_spawn(&uadepid, uadename, debug_mode);
+  uade_spawn(&uadepid, uadename, configname, debug_mode);
 
   if (!audio_init())
     goto cleanup;
 
   uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
-
-  if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
-    fprintf(stderr, "Can not send config name.\n");
-    goto cleanup;
-  }
 
   while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
     int nplayers;
@@ -470,10 +463,12 @@ int main(int argc, char *argv[])
     }
 
     if (subsong >= 0)
-      set_subsong(subsong);
+      uade_set_subsong(subsong);
 
-    send_filter_command(filter_override ? filter_override : uade_use_filter);
-    send_interpolation_command();
+    uade_send_filter_command(filter_override ?
+			     filter_override : uade_use_filter,
+			     uade_filter_state, uade_force_filter);
+    uade_send_interpolation_command(uade_interpolation_mode);
 
     if (speed_hack || speed_hack_override) {
       if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
@@ -578,37 +573,6 @@ void print_action_keys(void)
 }
 
 
-void send_filter_command(int filter_type)
-{
-  struct uade_msg um = {.msgtype = UADE_COMMAND_FILTER, .size = 8};
-  ((uint32_t *) um.data)[0] = htonl(filter_type);
-  if (uade_force_filter == 0) {
-    ((uint32_t *) um.data)[1] = htonl(0);
-  } else {
-    ((uint32_t *) um.data)[1] = htonl(2 + (uade_filter_state & 1));
-  }
-  if (uade_send_message(&um)) {
-    fprintf(stderr, "Can not setup filters.\n");
-    exit(-1);
-  }
-}
-
-
-static void send_interpolation_command(void)
-{
-  if (uade_interpolation_mode != NULL) {
-    if (strlen(uade_interpolation_mode) == 0) {
-      fprintf(stderr, "Interpolation mode may not be empty.\n");
-      exit(-1);
-    }
-    if (uade_send_string(UADE_COMMAND_SET_INTERPOLATION_MODE, uade_interpolation_mode)) {
-      fprintf(stderr, "Can not set interpolation mode.\n");
-      exit(-1);
-    }
-  }
-}
-
-
 void set_filter_on(const char *model)
 {
   if (uade_use_filter == 0)
@@ -640,22 +604,6 @@ void set_interpolation_mode(const char *value)
   }
   if ((uade_interpolation_mode = strdup(value)) == NULL) {
     fprintf(stderr, "No memory for interpolation mode.\n");
-    exit(-1);
-  }
-}
-
-
-static void set_subsong(int subsong)
-{
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
-
-  assert(subsong >= 0 && subsong < 256);
-
-  *um = (struct uade_msg) {.msgtype = UADE_COMMAND_SET_SUBSONG, .size = 4};
-  * (uint32_t *) um->data = htonl(subsong);
-  if (uade_send_message(um) < 0) {
-    fprintf(stderr, "could not set subsong\n");
     exit(-1);
   }
 }

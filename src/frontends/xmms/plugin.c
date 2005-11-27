@@ -1,27 +1,12 @@
-/* XMMS UADE plugin
+/* UADE2 plugin for XMMS
  *
- * Copyright (C) 2000-2003  Heikki Orsila
- *                          heikki.orsila@iki.fi
- *                          http://uade.ton.tut.fi
+ * Copyright (C) 2005  Heikki Orsila
+ *                     heikki.orsila@iki.fi
+ *                     http://zakalwe.virtuaalipalvelin.net/uade/
  *
- * This plugin is based on xmms 0.9.6 wavplayer input plugin code. Since
- * then all code has been rewritten.
- *
- * Configure and About based on code of the null-plugin by Håvard Kvålen.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ * This source code module is dual licensed under GPL and Public Domain.
+ * Hence you may use _this_ module (not another code module) in any way you
+ * want in your projects.
  */
 
 #include "plugin.h"
