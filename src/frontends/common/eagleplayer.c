@@ -70,7 +70,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   memset(&fileformat_buf[readed], 0, sizeof(fileformat_buf) - readed);
   uade_filemagic(fileformat_buf, extension, st.st_size, sizeof(fileformat_buf));
 
-  if (verbose)
+  if (verbose == 2)
     fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
 
   if (playerstore == NULL) {
@@ -92,7 +92,8 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
     candidate = uade_get_eagleplayer(extension, playerstore);
     if (candidate)
       return candidate;
-    fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
+    if (verbose >= 1)
+      fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
   }
 
   /* magic wasn't able to deduce the format, so we'll try prefix and postfix
@@ -107,7 +108,8 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   /* try prefix first */
   tn = strchr(t, '.');
   if (tn == NULL) {
-    fprintf(stderr, "Unknown format: %s\n", modulename);
+    if (verbose >= 1)
+      fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
   len = ((intptr_t) tn) - ((intptr_t) t);
@@ -123,7 +125,8 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   t = strrchr(t, '.');
   if (strlcpy(extension, t + 1, sizeof(extension)) >= sizeof(extension)) {
     /* too long to be an extension */
-    fprintf(stderr, "Unknown format: %s\n", modulename);
+    if (verbose >= 1)
+      fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
 

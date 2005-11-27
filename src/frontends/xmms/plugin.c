@@ -114,12 +114,10 @@ InputPlugin *get_iplugin_info(void) {
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
-  plugindebug("\n");
 }
 
 static void uade_cleanup(void)
 {
-  plugindebug("\n");
   if (uadepid) {
     kill(uadepid, SIGTERM);
   }
@@ -140,7 +138,7 @@ static int initialize_song(char *filename)
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1);
+  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 0);
   if (ep == NULL)
     return FALSE;
 
@@ -386,15 +384,12 @@ static void *play_loop(void *arg)
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
-  plugindebug("Play loop exitting successfully.\n");
   return NULL;
 }
 
 
 static void uade_play_file(char *filename)
 {
-  plugindebug("Play %s\n", filename);
-
   uade_lock();
   abort_playing = 0;
   song_end_trigger = 0;
@@ -444,7 +439,6 @@ static void uade_play_file(char *filename)
 
 static void uade_stop(void)
 {
-  plugindebug("\n");
   abort_playing = 1;
   if (uade_thread_running) {
     pthread_join(decode_thread, 0);
@@ -458,7 +452,6 @@ static void uade_stop(void)
 /* function that xmms calls when pausing or unpausing */
 static void uade_pause(short paused)
 {
-  plugindebug("Pause argument %d\n", paused);
   uade_lock();
   uade_is_paused = paused;
   uade_unlock();
@@ -496,7 +489,6 @@ static int uade_get_time(void)
 
 static void uade_get_song_info(char *filename, char **title, int *length)
 {
-  plugindebug("\n");
   if ((*title = strdup(filename)) == NULL)
     plugindebug("Not enough memory for song info.\n");
   *length = -1;

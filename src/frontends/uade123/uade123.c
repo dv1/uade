@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(uadename);
       break;
     case 'v':
-      uade_verbose_mode = 1;
+      uade_verbose_mode = 2;
       break;
     case 'w':
       timeout_forced = 1;

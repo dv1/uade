@@ -303,14 +303,6 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
   int i, j, fx;
   unsigned char fxarg;
   
-  if ((header + 256 * 4 + max_pattern * 1024 > bufsize)) {
-    fprintf (stderr, "***Warning*** this your friendly amifilemagic Soundtracker check routine.\n");
-    fprintf (stderr, "              buffer too small for checking the whole music data: %d/%zd\n",600+256*4+(max_pattern+1)*1024,bufsize);
-    fprintf (stderr, "              overide replayer with -P <replayer> if neccessary!\n");
-    max_pattern=(bufsize-header-256*4)/1024;
-    fprintf (stderr, "              just checking %d patterns now...\n\n",max_pattern);	
-  }
-  
   for (i = 0; i <= max_pattern; i++) {
     for (j = 0; j < 256; j++) {
       offset = header + i * 1024 + j * 4;
