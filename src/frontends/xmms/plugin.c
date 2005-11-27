@@ -377,7 +377,7 @@ int uade_is_paused(void)
 /* function that xmms calls when pausing or unpausing */
 static void uade_pause(short paused)
 {
-  plugindebug("\n");
+  plugindebug("Pause argument %d\n", paused);
   uade_ip.output->pause(paused);
 }
 
