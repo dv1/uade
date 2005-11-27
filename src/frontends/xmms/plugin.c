@@ -21,8 +21,11 @@
 #include <uadeconfig.h>
 #include <uadecontrol.h>
 #include <uadeconstants.h>
+#include <strlrep.h>
 
 #include "plugin.h"
+#include "subsongseek.h"
+
 
 #define PLUGIN_DEBUG 1
 
@@ -67,10 +70,11 @@ static int abort_playing;
 static pthread_t decode_thread;
 static int plugin_disabled;
 static int song_end_trigger;
-static int thread_running;
 static pid_t uadepid;
 static int uade_ignore_player_check;
 static int uade_no_song_end;
+
+int uade_thread_running;
 
 #if 0
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
@@ -123,20 +127,26 @@ static int initialize_song(char *filename)
 {
   struct eagleplayer *ep;
   int ret;
+  char modulename[PATH_MAX];
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
-
-  plugindebug("\n");
 
   ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1);
   if (ep == NULL)
     return FALSE;
 
+  strlcpy(modulename, filename, sizeof modulename);
 
-  snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
   snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
 
-  ret = uade_song_initialization(scorename, playername, filename);
+  if (strcmp(ep->playername, "custom") == 0) {
+    strlcpy(playername, modulename, sizeof playername);
+    modulename[0] = 0;
+  } else {
+    snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
+  }
+
+  ret = uade_song_initialization(scorename, playername, modulename);
   if (ret) {
     if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
@@ -259,7 +269,7 @@ static void *play_loop(void *arg)
 	uade_check_fix_string(um, 128);
 	plugindebug("Format name: %s\n", (uint8_t *) um->data);
 	break;
-	
+
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
 	plugindebug("Module name: %s\n", (uint8_t *) um->data);
@@ -394,7 +404,7 @@ static void uade_play_file(char *filename)
     goto err;
   }
 
-  thread_running = 1;
+  uade_thread_running = 1;
 
   return;
 
@@ -408,11 +418,12 @@ static void uade_stop(void)
 {
   plugindebug("\n");
   abort_playing = 1;
-  if (thread_running) {
+  if (uade_thread_running) {
     pthread_join(decode_thread, 0);
-    thread_running = 0;
+    uade_thread_running = 0;
   }
   uade_ip.output->close_audio();
+  uade_gui_close_subsong_win();
 }
 
 
@@ -433,7 +444,7 @@ static void uade_pause(short paused)
 
 static void uade_seek(int time)
 {
-  plugindebug("\n");
+  uade_gui_seek_subsong(time);
 }
 
 

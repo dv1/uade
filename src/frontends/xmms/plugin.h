@@ -1,5 +1,5 @@
-#ifndef XMMS_UADE2_H
-#define XMMS_UADE2_H
+#ifndef _XMMS_UADE2_H
+#define _XMMS_UADE2_H
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -12,5 +12,7 @@
 #include <xmms/util.h>
 
 extern InputPlugin uade_ip;
+
+int uade_thread_running;
 
 #endif
