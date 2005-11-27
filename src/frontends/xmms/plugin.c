@@ -9,8 +9,9 @@
  * want in your projects.
  */
 
-#include "plugin.h"
+#include <assert.h>
 
+#include <netinet/in.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -19,6 +20,8 @@
 #include <eagleplayer.h>
 #include <uadeconfig.h>
 #include <uadecontrol.h>
+
+#include "plugin.h"
 
 #define PLUGIN_DEBUG 1
 
@@ -141,16 +144,29 @@ static void *play_loop(void *arg)
 {
   int next_song = 0;
   enum uade_control_state state = UADE_S_STATE;
-  int left;
+  int ret;
+  int left = 0;
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+  int subsong_end = 0;
+  int song_end_trigger = 0;
+  int min_sub, max_sub, cur_sub;
+  uint16_t *sm;
+  int i;
+  int playbytes, tailbytes;
+  int64_t time_bytes;
+  char *reason;
+  uint32_t *u32ptr;
+  int have_subsong_info = 0;
 
   plugindebug("\n");
-  if (abort_playing) {
-    plugindebug("thread is aborted.\n");
-    pthread_exit(0);
-  }
 
   while (next_song == 0) {
     if (state == UADE_S_STATE) {
+
+      if (abort_playing)
+	break;
+
       left = uade_read_request();
       
       if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
@@ -161,11 +177,134 @@ static void *play_loop(void *arg)
 
     } else {
 
-      xmms_usleep(10000);
+      if (uade_receive_message(um, sizeof(space)) <= 0) {
+	fprintf(stderr, "Can not receive events from uade\n");
+	exit(-1);
+      }
+      
+      switch (um->msgtype) {
+
+      case UADE_COMMAND_TOKEN:
+	state = UADE_S_STATE;
+	break;
+
+      case UADE_REPLY_DATA:
+	sm = (uint16_t *) um->data;
+	for (i = 0; i < um->size; i += 2) {
+	  *sm = ntohs(*sm);
+	  sm++;
+	}
+
+	if (subsong_end) {
+	  playbytes = tailbytes;
+	  tailbytes = 0;
+	} else {
+	  playbytes = um->size;
+	}
+
+	time_bytes += playbytes;
+
+	/*
+	if (!audio_play(um->data, playbytes)) {
+	fprintf(stderr, "\nlibao error detected.\n");
+	return 0;
+	}
+	*/
+
+	assert (left >= um->size);
+	left -= um->size;
+	break;
+	
+      case UADE_REPLY_FORMATNAME:
+	uade_check_fix_string(um, 128);
+	plugindebug("\nFormat name: %s\n", (uint8_t *) um->data);
+	break;
+	
+      case UADE_REPLY_MODULENAME:
+	uade_check_fix_string(um, 128);
+	plugindebug("\nModule name: %s\n", (uint8_t *) um->data);
+	break;
+
+      case UADE_REPLY_MSG:
+	uade_check_fix_string(um, 128);
+	plugindebug("\nMessage: %s\n", (char *) um->data);
+	break;
+
+      case UADE_REPLY_PLAYERNAME:
+	uade_check_fix_string(um, 128);
+	plugindebug("\nPlayer name: %s\n", (uint8_t *) um->data);
+	break;
+
+      case UADE_REPLY_SONG_END:
+	if (um->size < 9) {
+	  fprintf(stderr, "\nInvalid song end reply\n");
+	  exit(-1);
+	}
+	tailbytes = ntohl(((uint32_t *) um->data)[0]);
+	/* next ntohl() is only there for a principle. it is not useful */
+	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
+	  /* normal happy song end. go to next subsong if any */
+	  subsong_end = 1;
+	} else {
+	  /* unhappy song end (error in the 68k side). skip to next song
+	     ignoring possible subsongs */
+	  song_end_trigger = 1;
+	}
+	i = 0;
+	reason = &((uint8_t *) um->data)[8];
+	while (reason[i] && i < (um->size - 8))
+	  i++;
+	if (reason[i] != 0 || (i != (um->size - 9))) {
+	  fprintf(stderr, "Broken reason string with song end notice\n");
+	  exit(-1);
+	}
+	fprintf(stderr, "Song end (%s)\n", reason);
+	break;
+
+      case UADE_REPLY_SUBSONG_INFO:
+	if (um->size != 12) {
+	  fprintf(stderr, "\nsubsong info: too short a message\n");
+	  exit(-1);
+	}
+	u32ptr = (uint32_t *) um->data;
+	min_sub = ntohl(u32ptr[0]);
+	max_sub = ntohl(u32ptr[1]);
+	cur_sub = ntohl(u32ptr[2]);
+	plugindebug("subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
+	if (!(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub)) {
+	  int tempmin = min_sub, tempmax = max_sub;
+	  fprintf(stderr, "The player is broken. Subsong info does not match.\n");
+	  min_sub = tempmin <= tempmax ? tempmin : tempmax;
+	  max_sub = tempmax >= tempmin ? tempmax : tempmin;
+	  if (cur_sub > max_sub)
+	    max_sub = cur_sub;
+	  else if (cur_sub < min_sub)
+	    min_sub = cur_sub;
+	}
+	if ((max_sub - min_sub) != 0)
+	  fprintf(stderr, "There are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
+	have_subsong_info = 1;
+	break;
+	
+      default:
+	fprintf(stderr, "Expected sound data. got %d.\n", um->msgtype);
+	return 0;
+      }
     }
   }
 
-  pthread_exit(0);
+  do {
+    ret = uade_receive_message(um, sizeof(space));
+    if (ret < 0) {
+      fprintf(stderr, "Can not receive events from uade.\n");
+      return 0;
+    }
+    if (ret == 0) {
+      fprintf(stderr, "End of input after reboot.\n");
+      return 0;
+    }
+  } while (um->msgtype != UADE_COMMAND_TOKEN);
+
   return 0;
 }
 
@@ -216,6 +355,7 @@ static void uade_play_file(char *filename)
 static void uade_stop(void)
 {
   plugindebug("\n");
+  abort_playing = 1;
   if (thread_running) {
     pthread_join(decode_thread, 0);
     thread_running = 0;
