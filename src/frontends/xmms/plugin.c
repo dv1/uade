@@ -168,6 +168,8 @@ static void *play_loop(void *arg)
       if (abort_playing)
 	break;
 
+      assert(left == 0);
+
       left = uade_read_request();
       
       if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
@@ -390,7 +392,8 @@ static int uade_get_time(void)
 {
   if (abort_playing)
     return -1;
-  return 0;
+
+  return uade_ip.output->output_time();
 }
 
 
