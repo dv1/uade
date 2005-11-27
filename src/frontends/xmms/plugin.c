@@ -9,6 +9,7 @@
  * want in your projects.
  */
 
+#include <libgen.h>
 #include <assert.h>
 
 #include <netinet/in.h>
@@ -37,7 +38,7 @@
 
 
 static int initialize_song(char *filename);
-
+static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static int uade_get_time(void);
@@ -70,12 +71,14 @@ static int abort_playing;
 static pthread_t decode_thread;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
+static int ignore_player_check;
+static int no_song_end;
 static int plugin_disabled;
+static int silence_timeout = 20;
 static int song_end_trigger;
+static int subsong_timeout = 512;
+static int timeout = -1;
 static pid_t uadepid;
-static int uade_ignore_player_check;
-static int uade_no_song_end;
-
 
 int uade_cur_sub;
 int uade_is_paused;
@@ -162,7 +165,7 @@ static int initialize_song(char *filename)
     return FALSE;
   }
 
-  if (uade_ignore_player_check) {
+  if (ignore_player_check) {
     if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
       fprintf(stderr, "Can not send ignore check message.\n");
       plugin_disabled = 1;
@@ -170,7 +173,7 @@ static int initialize_song(char *filename)
     }
   }
 
-  if (uade_no_song_end) {
+  if (no_song_end) {
     if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
       fprintf(stderr, "Can not send 'song end not possible'.\n");
       plugin_disabled = 1;
@@ -191,7 +194,8 @@ static void *play_loop(void *arg)
   int subsong_end = 0;
   uint16_t *sm;
   int i;
-  int playbytes, tailbytes = 0;
+  unsigned int playbytes, tailbytes = 0;
+  uint64_t subsong_bytes = 0, total_bytes = 0;
   char *reason;
   uint32_t *u32ptr;
   int writable;
@@ -211,6 +215,8 @@ static void *play_loop(void *arg)
 	uade_ip.output->flush(0);
 	uade_select_sub = -1;
 	subsong_end = 0;
+	subsong_bytes = 0;
+	total_bytes = 0;
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uade_cur_sub == -1 || uade_max_sub == -1) {
@@ -223,6 +229,7 @@ static void *play_loop(void *arg)
 	    uade_change_subsong(uade_cur_sub);
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
+	    subsong_bytes = 0;
 	  }
 	}
       }
@@ -266,6 +273,9 @@ static void *play_loop(void *arg)
 	  playbytes = um->size;
 	}
 
+	subsong_bytes += playbytes;
+	total_bytes += playbytes;
+
 	while ((writable = uade_ip.output->buffer_free()) < playbytes) {
 	  if (abort_playing)
 	    goto nowrite;
@@ -277,6 +287,29 @@ static void *play_loop(void *arg)
 	uade_ip.output->write_audio(um->data, playbytes);
 
       nowrite:
+
+	if (timeout != -1) {
+	  if (song_end_trigger == 0) {
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= timeout) {
+	      song_end_trigger = 1;
+	    }
+	  }
+	}
+
+	if (subsong_timeout != -1) {
+	  if (subsong_end == 0 && song_end_trigger == 0) {
+	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= subsong_timeout) {
+	      subsong_end = 1;
+	    }
+	  }
+	}
+
+	if (test_silence(um->data, playbytes)) {
+	  if (subsong_end == 0 && song_end_trigger == 0) {
+	    subsong_end = 1;
+	  }
+	}
+
 	assert (left >= um->size);
 	left -= um->size;
 	break;
@@ -385,8 +418,47 @@ static void *play_loop(void *arg)
 }
 
 
+/* Note that this function has side effects (static int64_t silence_count) */
+static int test_silence(void *buf, size_t size)
+{
+  int i, s, exceptioncounter;
+  int16_t *sm;
+  int nsamples;
+  static int64_t silence_count = 0;
+
+  if (silence_timeout < 0)
+    return 0;
+
+  exceptioncounter = 0;
+  sm = buf;
+  nsamples = size / 2;
+
+  for (i = 0; i < nsamples; i++) {
+    s = (sm[i] >= 0) ? sm[i] : -sm[i];
+    if (s >= (32767 * 1 / 100)) {
+      exceptioncounter++;
+      if (exceptioncounter >= (size * 2 / 100)) {
+	silence_count = 0;
+	break;
+      }
+    }
+  }
+  if (i == nsamples) {
+    silence_count += size;
+    if (silence_count / UADE_BYTES_PER_SECOND >= silence_timeout) {
+      silence_count = 0;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+
 static void uade_play_file(char *filename)
 {
+  char tempname[PATH_MAX];
+  char *t;
+
   uade_lock();
   abort_playing = 0;
   song_end_trigger = 0;
@@ -395,7 +467,11 @@ static void uade_play_file(char *filename)
   uade_select_sub = -1;
   uade_unlock();
 
-  strlcpy(gui_filename, filename, sizeof gui_filename);
+  strlcpy(tempname, filename, sizeof tempname);
+  t = basename(tempname);
+  if (t == NULL)
+    t = filename;
+  strlcpy(gui_filename, t, sizeof gui_filename);
   gui_info_set = 0;
 
   if (!uadepid) {
