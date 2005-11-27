@@ -160,8 +160,6 @@ static void *play_loop(void *arg)
   int have_subsong_info = 0;
   int writable;
 
-  plugindebug("\n");
-
   while (next_song == 0) {
     if (state == UADE_S_STATE) {
 
@@ -173,7 +171,7 @@ static void *play_loop(void *arg)
       left = uade_read_request();
       
       if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-	fprintf(stderr, "\ncan not send token\n");
+	fprintf(stderr, "Can not send token.\n");
 	return 0;
       }
       state = UADE_R_STATE;
@@ -220,27 +218,27 @@ static void *play_loop(void *arg)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("\nFormat name: %s\n", (uint8_t *) um->data);
+	plugindebug("Format name: %s\n", (uint8_t *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("\nModule name: %s\n", (uint8_t *) um->data);
+	plugindebug("Module name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	plugindebug("\nMessage: %s\n", (char *) um->data);
+	plugindebug("Message: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("\nPlayer name: %s\n", (uint8_t *) um->data);
+	plugindebug("Player name: %s\n", (uint8_t *) um->data);
 	break;
 
       case UADE_REPLY_SONG_END:
 	if (um->size < 9) {
-	  fprintf(stderr, "\nInvalid song end reply\n");
+	  fprintf(stderr, "Invalid song end reply\n");
 	  exit(-1);
 	}
 	tailbytes = ntohl(((uint32_t *) um->data)[0]);
@@ -266,7 +264,7 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_SUBSONG_INFO:
 	if (um->size != 12) {
-	  fprintf(stderr, "\nsubsong info: too short a message\n");
+	  fprintf(stderr, "subsong info: too short a message\n");
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
