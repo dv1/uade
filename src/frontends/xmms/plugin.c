@@ -153,11 +153,12 @@ static void *play_loop(void *arg)
   int min_sub, max_sub, cur_sub;
   uint16_t *sm;
   int i;
-  int playbytes, tailbytes;
+  int playbytes, tailbytes = 0;
   int64_t time_bytes;
   char *reason;
   uint32_t *u32ptr;
   int have_subsong_info = 0;
+  int writable;
 
   plugindebug("\n");
 
@@ -204,12 +205,12 @@ static void *play_loop(void *arg)
 
 	time_bytes += playbytes;
 
-	/*
-	if (!audio_play(um->data, playbytes)) {
-	fprintf(stderr, "\nlibao error detected.\n");
-	return 0;
-	}
-	*/
+	while ((writable = uade_ip.output->buffer_free()) < playbytes)
+	  xmms_usleep(10000);
+
+	uade_ip.add_vis_pcm(uade_ip.output->written_time(), FMT_S16_NE, 2, playbytes, um->data);
+
+	uade_ip.output->write_audio(um->data, playbytes);
 
 	assert (left >= um->size);
 	left -= um->size;
