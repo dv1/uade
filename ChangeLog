@@ -1,8 +1,13 @@
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
+	- Modularized loading and parsing on uade.conf options. See
+	  src/frontends/common/uadeconf.[ch].
+	- It is possible that config parsing for uade123 breaks now.
+
+2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added hardcoded timeouts for the XMMS plugin. They are the same
 	  as uade123 defaults. 20 seconds for silence and 512 seconds for
 	  subsong. Reading uade.conf variables is not supported yet.
-
+	
 2005-11-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continuing modularization of uade frontends. Various commands,
 	  such as set subsong, change subsong, set filter type, and set

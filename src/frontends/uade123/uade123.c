@@ -31,6 +31,7 @@
 #include <strlrep.h>
 #include <uadeconfig.h>
 #include <eagleplayer.h>
+#include <uadeconf.h>
 
 #include "uade123.h"
 #include "playlist.h"
@@ -222,7 +223,7 @@ int main(int argc, char *argv[])
       uade_use_filter = 0;
       break;
     case 'p':
-      config_set_panning(optarg);
+      uade_panning_value = uade_get_panning(optarg);
       uade_postprocessing_setup(UADE_PANNING_ENABLE);
       break;
     case 'P':
@@ -245,7 +246,7 @@ int main(int argc, char *argv[])
       break;
     case 't':
       timeout_forced = 1;
-      config_set_timeout(optarg);
+      uade_timeout = uade_get_timeout(optarg);
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -255,10 +256,10 @@ int main(int argc, char *argv[])
       break;
     case 'w':
       timeout_forced = 1;
-      config_set_subsong_timeout(optarg);
+      uade_subsong_timeout = uade_get_subsong_timeout(optarg);
       break;
     case 'y':
-      config_set_silence_timeout(optarg);
+      uade_silence_timeout = uade_get_silence_timeout(optarg);
       break;
     case 'z':
       playlist_random(&uade_playlist, 1);
@@ -267,10 +268,10 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      set_filter_on(optarg);
+      uade_use_filter = uade_get_filter_type(optarg);
       break;
     case OPT_FORCE_LED:
-      set_filter_on(NULL);
+      uade_use_filter = uade_get_filter_type(NULL);
       uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
@@ -279,7 +280,7 @@ int main(int argc, char *argv[])
       }
       break;
     case OPT_INTERPOLATOR:
-      set_interpolation_mode(optarg);
+      uade_interpolation_mode = strdup(optarg);
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
@@ -570,42 +571,6 @@ void print_action_keys(void)
   tprintf(" 'v'           Toggle verbose mode.\n");
   tprintf(" 'x'           Restart current subsong.\n");
   tprintf(" 'z'           Previous subsong.\n");
-}
-
-
-void set_filter_on(const char *model)
-{
-  if (uade_use_filter == 0)
-    uade_use_filter = FILTER_MODEL_A1200;
-
-  if (model == NULL)
-    return;
-
-  if (strcasecmp(model, "a500") == 0) {
-    uade_use_filter = FILTER_MODEL_A500;
-  } else if (strcasecmp(model, "a1200") == 0) {
-    uade_use_filter = FILTER_MODEL_A1200;
-  } else if (strcasecmp(model, "a500e") == 0) {
-    uade_use_filter = FILTER_MODEL_A500E;
-  } else if (strcasecmp(model, "a1200e") == 0) {
-    uade_use_filter = FILTER_MODEL_A1200E;
-  } else {
-    fprintf(stderr, "Unknown filter model: %s\n", model);
-    exit(-1);
-  }
-}
-
-
-void set_interpolation_mode(const char *value)
-{
-  if (strlen(value) == 0) {
-    fprintf(stderr, "Empty interpolator string not allowed.\n");
-    exit(-1);
-  }
-  if ((uade_interpolation_mode = strdup(value)) == NULL) {
-    fprintf(stderr, "No memory for interpolation mode.\n");
-    exit(-1);
-  }
 }
 
 

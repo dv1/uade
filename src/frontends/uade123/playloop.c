@@ -17,6 +17,7 @@
 #include <uadeipc.h>
 #include <uadecontrol.h>
 #include <uadeconstants.h>
+#include <uadeconf.h>
 
 #include "uade123.h"
 #include "effects.h"
@@ -141,7 +142,7 @@ int play_loop(void)
 	  pause_terminal();
 	  break;
 	case 'f':
-	  set_filter_on(NULL);
+	  uade_use_filter = uade_get_filter_type(NULL);
 	  uade_force_filter = 1;
 	  uade_filter_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");

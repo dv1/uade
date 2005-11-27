@@ -15,163 +15,64 @@
 #include "config.h"
 #include "uade123.h"
 #include "postprocessing.h"
-
-
-static char *config_filename = NULL;
-
-
-void config_set_panning(const char *value)
-{
-  char *endptr;
-  if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for panning value in config file %s\n", config_filename);
-    exit(-1);
-  }
-  uade_panning_value = strtod(value, &endptr);
-  if (*endptr != 0 || uade_panning_value < 0.0 || uade_panning_value > 2.0) {
-    fprintf(stderr, "Invalid panning value: %f\n", uade_panning_value);
-    exit(-1);
-  }
-}
-
-
-void config_set_silence_timeout(const char *value)
-{
-  char *endptr;
-  if (value == NULL || value[0] == 0) {
-    fprintf(stderr, "Must have a parameter value for silence timeout in config file %s\n", config_filename);
-    exit(-1);
-  }
-  uade_silence_timeout = strtol(value, &endptr, 10);
-  if (*endptr != 0 || uade_silence_timeout < -1) {
-    fprintf(stderr, "Invalid silence timeout value: %s\n", value);
-    exit(-1);
-  }
-}
-
-
-void config_set_subsong_timeout(const char *value)
-{
-  char *endptr;
-  if (value == NULL || value[0] == 0) {
-    fprintf(stderr, "Must have a parameter value for subsong timeout in config file %s\n", config_filename);
-    exit(-1);
-  }
-  uade_subsong_timeout = strtol(value, &endptr, 10);
-  if (*endptr != 0 || uade_subsong_timeout < -1) {
-    fprintf(stderr, "Invalid subsong timeout value: %s\n", value);
-    exit(-1);
-  }
-}
-
-
-void config_set_timeout(const char *value)
-{
-  char *endptr;
-  if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for timeout value in config file %s\n", config_filename);
-    exit(-1);
-  }
-  uade_timeout = strtol(value, &endptr, 10);
-  if (*endptr != 0 || uade_timeout < -1) {
-    fprintf(stderr, "Invalid timeout value: %s\n", value);
-    exit(-1);
-  }
-}
-
-
-static char *nextspace(const char *foo)
-{
-  while (foo[0] != 0 && !isspace(foo[0]))
-    foo++;
-  if (foo[0] == 0)
-    return NULL;
-  return (char *) foo;
-}
-
-
-static char *nextnonspace(const char *foo)
-{
-  while (foo[0] != 0 && isspace(foo[0]))
-    foo++;
-  if (foo[0] == 0)
-    return NULL;
-  return (char *) foo;
-}
+#include "uadeconf.h"
 
 
 int load_config(const char *filename)
 {
-  char line[256];
-  FILE *f;
-  char *key;
-  char *value;
-  int linenumber = 0;
-  if ((f = fopen(filename, "r")) == NULL)
-    return 0;
+  int ret;
+  struct uade_config uc;
 
-  config_filename = (char *) filename;
+  ret = uade_load_config(&uc, filename);
 
-  while (fgets(line, sizeof(line), f) != NULL) {
-    linenumber++;
-    if (line[strlen(line) - 1] == '\n')
-      line[strlen(line) - 1] = 0;
-    if (line[0] == 0)
-      continue;
-    if (line[0] == '#')
-      continue;
-    key = line;
-    value = nextspace(key);
-    if (value != NULL) {
-      *value = 0;
-      value = nextnonspace(value + 1);
-    }
-    if (strncmp(key, "action_keys", 6) == 0) {
-      uade_terminal_mode = 1;
-      if (value != NULL) {
-	if (strcasecmp(value, "on") == 0) {
-	  uade_terminal_mode = 1;
-	} else if (strcasecmp(value, "off") == 0) {
-	  uade_terminal_mode = 0;
-	} else {
-	  fprintf(stderr, "Unknown setting for action keys: %s\n", value);
-	  exit(-1);
-	}
-      }
-    } else if (strncmp(key, "filter", 6) == 0) {
-      set_filter_on(value);
-    } else if (strncmp(key, "force_led_off", 10) == 0) {
-      uade_force_filter = 1;
-      uade_filter_state = 0;
-    } else if (strncmp(key, "headphones", 4) == 0) {
-      uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
-    } else if (strncmp(key, "ignore_player_check", 6) == 0) {
-      uade_ignore_player_check = 1;
-    } else if (strncmp(key, "interpolator", 5) == 0) {
-      set_interpolation_mode(value);
-    } else if (strncmp(key, "no_filter", 9) == 0) {
-      uade_use_filter = 0;
-    } else if (strncmp(key, "one_subsong", 3) == 0) {
-      uade_one_subsong_per_file = 1;
-    } else if (strncmp(key, "panning_value", 3) == 0) {
-      config_set_panning(value);
-      uade_postprocessing_setup(UADE_PANNING_ENABLE);
-    } else if (strncmp(key, "random_play", 6) == 0) {
-      playlist_random(&uade_playlist, 1);
-    } else if (strncmp(key, "recursive_mode", 9) == 0) {
-      uade_recursivemode = 1;
-    } else if (strncmp(key, "silence_timeout_value", 7) == 0) {
-      config_set_silence_timeout(value);
-    } else if (strncmp(key, "subsong_timeout_value", 7) == 0) {
-      config_set_subsong_timeout(value);
-    } else if (strncmp(key, "timeout_value", 7) == 0) {
-      config_set_timeout(value);
-    } else {
-      fprintf(stderr, "Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
-    }
+  if (uc.action_keys)
+      uade_terminal_mode = uc.action_keys - 1;
+
+  if (uc.filter)
+    uade_use_filter = uc.filter;
+
+  if (uc.force_filter_off) {
+    uade_force_filter = 1;
+    uade_filter_state = 0;
   }
 
-  fclose(f);
-  config_filename = NULL;
-  return 1;
+  if (uc.no_filter)
+    uade_use_filter = 0;
+
+  if (uc.headphones)
+    uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
+
+  if (uc.ignore_player_check)
+    uade_ignore_player_check = 1;
+
+  if (uc.interpolator)
+    uade_interpolation_mode = strdup(uc.interpolator);
+
+  if (uc.no_filter)
+      uade_use_filter = 0;
+
+  if (uc.one_subsong)
+    uade_one_subsong_per_file = 1;
+
+  if (uc.panning != 0.0) {
+    uade_panning_value = uc.panning;
+    uade_postprocessing_setup(UADE_PANNING_ENABLE);
+  }
+
+  if (uc.random_play)
+    playlist_random(&uade_playlist, 1);
+
+  if (uc.recursive_mode)
+    uade_recursivemode = 1;
+
+  if (uc.silence_timeout)
+    uade_silence_timeout = uc.silence_timeout;
+
+  if (uc.subsong_timeout)
+    uade_subsong_timeout = uc.subsong_timeout;
+
+  if (uc.timeout)
+    uade_timeout = uc.timeout;
+
+  return ret;
 }
