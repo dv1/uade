@@ -175,15 +175,9 @@ static void uade_play_file(char *filename)
     char configname[PATH_MAX];
 
     plugindebug("spawning uadecore\n");
-    uade_spawn(&uadepid, UADE_CONFIG_UADE_CORE, 0);
-    plugindebug("uadecore spawned\n");
-
     snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
-    if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
-      fprintf(stderr, "Can not send config name.\n");
-      abort_playing = 1;
-      return;
-    }
+    uade_spawn(&uadepid, UADE_CONFIG_UADE_CORE, configname, 0);
+    plugindebug("uadecore spawned\n");
   }
 
   if (!uade_ip.output->open_audio(FMT_S16_NE, 44100, 2)) {
