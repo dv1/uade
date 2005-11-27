@@ -20,7 +20,7 @@
 #include <eagleplayer.h>
 #include <uadeconfig.h>
 #include <uadecontrol.h>
-#include <uadesettings.h>
+#include <uadeconstants.h>
 
 #include "plugin.h"
 
@@ -66,10 +66,32 @@ static const AFormat sample_format = FMT_S16_NE;
 static int abort_playing;
 static pthread_t decode_thread;
 static int plugin_disabled;
+static int song_end_trigger;
 static int thread_running;
 static pid_t uadepid;
 static int uade_ignore_player_check;
 static int uade_no_song_end;
+
+#if 0
+static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void lock_variables(void)
+{
+  if (pthread_mutex_lock(&vlock)) {
+    fprintf(stderr, "UADE2 locking error.\n");
+    exit(-1);
+  }
+}
+
+static void unlock_variables(void)
+{
+  if (pthread_mutex_unlock(&vlock)) {
+    fprintf(stderr, "UADE2 unlocking error.\n");
+    exit(-1);
+  }
+}
+#endif
 
 /* this function is first called by xmms. returns pointer to plugin table */
 InputPlugin *get_iplugin_info(void) {
@@ -144,31 +166,44 @@ static int initialize_song(char *filename)
 
 static void *play_loop(void *arg)
 {
-  int next_song = 0;
   enum uade_control_state state = UADE_S_STATE;
   int ret;
   int left = 0;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int subsong_end = 0;
-  int song_end_trigger = 0;
-  int min_sub, max_sub, cur_sub;
+  int min_sub = -1, max_sub = -1, cur_sub = -1;
   uint16_t *sm;
   int i;
   int playbytes, tailbytes = 0;
-  int64_t time_bytes;
   char *reason;
   uint32_t *u32ptr;
   int have_subsong_info = 0;
   int writable;
 
-  while (next_song == 0) {
+  while (1) {
     if (state == UADE_S_STATE) {
+
+      assert(left == 0);
 
       if (abort_playing)
 	break;
 
-      assert(left == 0);
+      if (subsong_end && song_end_trigger == 0) {
+	if (cur_sub == -1 || max_sub == -1) {
+	  song_end_trigger = 1;
+	} else {
+	  cur_sub++;
+	  if (cur_sub > max_sub) {
+	    song_end_trigger = 1;
+	  } else {
+	    uade_change_subsong(cur_sub);
+	    subsong_end = 0;
+	  }
+	}
+      }
+      if (song_end_trigger)
+	break;
 
       left = uade_read_request();
       
@@ -205,15 +240,17 @@ static void *play_loop(void *arg)
 	  playbytes = um->size;
 	}
 
-	time_bytes += playbytes;
-
-	while ((writable = uade_ip.output->buffer_free()) < playbytes)
+	while ((writable = uade_ip.output->buffer_free()) < playbytes) {
+	  if (abort_playing)
+	    goto nowrite;
 	  xmms_usleep(10000);
+	}
 
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, playbytes, um->data);
 
 	uade_ip.output->write_audio(um->data, playbytes);
 
+      nowrite:
 	assert (left >= um->size);
 	left -= um->size;
 	break;
@@ -251,7 +288,7 @@ static void *play_loop(void *arg)
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
-	  song_end_trigger = 1;
+	  abort_playing = 1;
 	}
 	i = 0;
 	reason = &((uint8_t *) um->data)[8];
@@ -291,24 +328,36 @@ static void *play_loop(void *arg)
 	
       default:
 	fprintf(stderr, "Expected sound data. got %d.\n", um->msgtype);
-	return 0;
+	plugin_disabled = 1;
+	return NULL;
       }
     }
+  }
+
+  if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
+    fprintf(stderr, "Can not send reboot.\n");
+    return 0;
+  }
+
+  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+    fprintf(stderr, "Can not send token.\n");
+    return 0;
   }
 
   do {
     ret = uade_receive_message(um, sizeof(space));
     if (ret < 0) {
       fprintf(stderr, "Can not receive events from uade.\n");
-      return 0;
+      return NULL;
     }
     if (ret == 0) {
       fprintf(stderr, "End of input after reboot.\n");
-      return 0;
+      return NULL;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
-  return 0;
+  plugindebug("Play loop exitting successfully.\n");
+  return NULL;
 }
 
 
@@ -337,7 +386,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(filename, -1, UADE_SAMPLE_RATE, UADE_FREQUENCY, UADE_CHANNELS);
+  uade_ip.set_info(filename, -1, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -389,7 +438,7 @@ static void uade_seek(int time)
 
 static int uade_get_time(void)
 {
-  if (abort_playing)
+  if (abort_playing || song_end_trigger)
     return -1;
 
   return uade_ip.output->output_time();
