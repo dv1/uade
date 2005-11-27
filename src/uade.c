@@ -351,7 +351,7 @@ void uade_get_amiga_message(void)
       uade_put_long(0x208, len);
       uade_put_long(0x20C, -1);
     } else {
-      fprintf(stderr, "uadecore: Can not get file size for '%s'\n", nameptr);
+      uade_send_debug("Can not get file size for '%s'\n", nameptr);
       uade_put_long(0x208, 0);
       uade_put_long(0x20C, 0);
     }

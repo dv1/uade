@@ -1,11 +1,11 @@
-CC = gcc
+CC = {CC}
 CFLAGS = -Wall -O2 -fpic -shared -g `xmms-config --cflags` -DVERSION=\"1.50\" -I../common -I../../include
 
 CLIBS = `xmms-config --libs`
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o
 
-uade2.so:	$(MODULES)
+libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 
 amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
@@ -14,7 +14,8 @@ amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
 	$(CC) $(CFLAGS) -c $<
 
-plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h
+plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h
+
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
@@ -31,3 +32,6 @@ uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -c $<
+
+clean:	
+	rm -f *.so *.o

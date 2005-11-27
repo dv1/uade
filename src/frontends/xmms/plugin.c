@@ -283,22 +283,22 @@ static void *play_loop(void *arg)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("Format name: %s\n", (uint8_t *) um->data);
+	/* plugindebug("Format name: %s\n", (uint8_t *) um->data); */
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("Module name: %s\n", (uint8_t *) um->data);
+	/* plugindebug("Module name: %s\n", (uint8_t *) um->data); */
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	plugindebug("Message: %s\n", (char *) um->data);
+	/* plugindebug("Message: %s\n", (char *) um->data); */
 	break;
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	plugindebug("Player name: %s\n", (uint8_t *) um->data);
+	/* plugindebug("Player name: %s\n", (uint8_t *) um->data); */
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -338,10 +338,9 @@ static void *play_loop(void *arg)
 	uade_max_sub = ntohl(u32ptr[1]);
 	uade_cur_sub = ntohl(u32ptr[2]);
 
-	plugindebug("subsong: %d from range [%d, %d]\n", uade_cur_sub, uade_min_sub, uade_max_sub);
 	if (!(-1 <= uade_min_sub && uade_min_sub <= uade_cur_sub && uade_cur_sub <= uade_max_sub)) {
 	  int tempmin = uade_min_sub, tempmax = uade_max_sub;
-	  fprintf(stderr, "The player is broken. Subsong info does not match.\n");
+	  fprintf(stderr, "uade: The player is broken. Subsong info does not match with %s.\n", gui_filename);
 	  uade_min_sub = tempmin <= tempmax ? tempmin : tempmax;
 	  uade_max_sub = tempmax >= tempmin ? tempmax : tempmin;
 	  if (uade_cur_sub > uade_max_sub)
@@ -349,8 +348,6 @@ static void *play_loop(void *arg)
 	  else if (uade_cur_sub < uade_min_sub)
 	    uade_min_sub = uade_cur_sub;
 	}
-	if ((uade_max_sub - uade_min_sub) != 0)
-	  fprintf(stderr, "There are %d subsongs in range [%d, %d].\n", 1 + uade_max_sub - uade_min_sub, uade_min_sub, uade_max_sub);
 	uade_unlock();
 	break;
 	

@@ -32,8 +32,8 @@ xmmsplugin:
 	$(MAKE) -C src/frontends/xmms
 
 xmmsplugininstall:	
-	mkdir -p ~/.xmms/Plugins/Input
-	install src/frontends/xmms/uade2.so ~/.xmms/Plugins/Input/
+	mkdir -p "{XMMSPLUGINDIR}"
+	install src/frontends/xmms/libuade2.so "{XMMSPLUGINDIR}"
 
 src/include/uadeconfig.h:	
 	@echo ""

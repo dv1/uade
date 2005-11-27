@@ -1,5 +1,5 @@
 2005-11-27  Heikki Orsila <heikki.orsila@iki.fi>
-	- Continuing modularization of uade front ends. Various commands,
+	- Continuing modularization of uade frontends. Various commands,
 	  such as set subsong, change subsong, set filter type, and set
 	  interpolation mode, were moved to src/frontends/common/uadecontrol.c.
 	  The idea is that all the non-trivial commands have a wrapper in
@@ -8,6 +8,7 @@
 	- Added src/include/uadeconstants.h that should contain constants that
 	  are common with uadecore and frontends.
 	- Subsong seeking works in XMMS plugin :-)
+	- Made XMMS plugin globally installable as it should be
 
 2005-11-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continuing modularization of uade frontends. Renamed

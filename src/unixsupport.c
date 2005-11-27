@@ -137,7 +137,7 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
       }
     } else {
       /* didn't find entry */
-      fprintf (stderr, "uade: %s not found from (%s) (dir scanning)\n", fake, dirname);
+      /* fprintf (stderr, "uade: %s not found from (%s) (dir scanning)\n", fake, dirname); */
       return 0;
     }
     ptr = separator + 1;
@@ -158,7 +158,7 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
     }
   } else {
     /* didn't find entry */
-    fprintf (stderr, "uade: %s not found from %s\n", ptr, dirname);
+    /* fprintf (stderr, "uade: %s not found from %s\n", ptr, dirname); */
     return 0;
   }
   if (!(file = fopen(dirname, "r"))) {

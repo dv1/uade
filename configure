@@ -26,8 +26,8 @@ packageprefix=""
 mymods="\$ENV{HOME}"
 usexmms="no"
 usebmp="no"
-xmmsplugindir="no"
-bmpplugindir="no"
+xmmsplugindir="auto"
+bmpplugindir="auto"
 FORCEDAUDIOTARGET="AO"
 disablealsa="no"
 disableoss="no"
@@ -404,6 +404,9 @@ if test "$user" = "no"; then
     if test -z "$bindir"; then
 	bindir="$prefix/bin"
     fi
+    if test "$usexmms" = "yes" ; then
+	xmmsplugin="`xmms-config --input-plugin-dir`"
+    fi
     if test -z "$docdir"; then
 	docdir="$prefix/share/doc/uade-$VERSION"
     fi
@@ -420,8 +423,9 @@ else
     if test -z "$bindir"; then
 	bindir="$prefix"
     fi
-    xmmsplugin="$HOME/.xmms/Plugins/Input"
-    bmpplugin="$HOME/.bmp/Plugins/Input"
+    if test "$usexmms" = "yes" ; then
+	xmmsplugin="$HOME/.xmms/Plugins/Input"
+    fi
     if test -z "$docdir"; then
 	docdir="$prefix/uade-$VERSION"
     fi
@@ -527,6 +531,7 @@ sed -e "s|{MAKE}|$MAKE|g" \
     -e "s|{UADE123NAME}|$UADE123NAME|g" \
     -e "s|{UADE123}|$uade123rule|g" \
     -e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
+    -e "s|{XMMSPLUGINDIR}|$xmmsplugin|g" \
     Makefile.in > Makefile
 
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do
