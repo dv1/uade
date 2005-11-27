@@ -139,10 +139,30 @@ static int initialize_song(char *filename)
 
 static void *play_loop(void *arg)
 {
+  int next_song = 0;
+  enum uade_control_state state = UADE_S_STATE;
+  int left;
+
   plugindebug("\n");
   if (abort_playing) {
     plugindebug("thread is aborted.\n");
     pthread_exit(0);
+  }
+
+  while (next_song == 0) {
+    if (state == UADE_S_STATE) {
+      left = uade_read_request();
+      
+      if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+	fprintf(stderr, "\ncan not send token\n");
+	return 0;
+      }
+      state = UADE_R_STATE;
+
+    } else {
+
+      xmms_usleep(10000);
+    }
   }
 
   pthread_exit(0);

@@ -254,14 +254,7 @@ int play_loop(void)
 	goto sendtoken;
       }
 
-      left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
-      um->msgtype = UADE_COMMAND_READ;
-      um->size = 4;
-      * (uint32_t *) um->data = htonl(left);
-      if (uade_send_message(um)) {
-	fprintf(stderr, "\ncan not send read command\n");
-	return 0;
-      }
+      left = uade_read_request();
 
     sendtoken:
       if (uade_send_short_message(UADE_COMMAND_TOKEN)) {

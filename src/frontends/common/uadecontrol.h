@@ -8,6 +8,7 @@ enum {
 };
 
 void uade_change_subsong(int subsong);
+int uade_read_request(void);
 void uade_send_filter_command(int filter_type, int filter_state, int force_filter);
 void uade_send_interpolation_command(const char *mode);
 void uade_set_subsong(int subsong);

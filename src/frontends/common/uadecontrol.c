@@ -23,6 +23,34 @@
 #include <unixatomic.h>
 
 
+static void subsong_control(int subsong, int command);
+
+
+void uade_change_subsong(int subsong)
+{
+  subsong_control(subsong, UADE_COMMAND_CHANGE_SUBSONG);
+}
+
+
+int uade_read_request(void)
+{
+  int left;
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+
+  left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
+  um->msgtype = UADE_COMMAND_READ;
+  um->size = 4;
+  * (uint32_t *) um->data = htonl(left);
+  if (uade_send_message(um)) {
+    fprintf(stderr, "\ncan not send read command\n");
+    return 0;
+  }
+
+  return left;
+}
+
+
 void uade_send_filter_command(int filter_type, int filter_state, int force_filter)
 {
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
@@ -70,12 +98,6 @@ static void subsong_control(int subsong, int command)
     fprintf(stderr, "Could not changet subsong\n");
     exit(-1);
   }
-}
-
-
-void uade_change_subsong(int subsong)
-{
-  subsong_control(subsong, UADE_COMMAND_CHANGE_SUBSONG);
 }
 
 
