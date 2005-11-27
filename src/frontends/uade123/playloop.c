@@ -16,6 +16,7 @@
 
 #include <uadeipc.h>
 #include <uadecontrol.h>
+#include <uadesettings.h>
 
 #include "uade123.h"
 #include "effects.h"
@@ -52,7 +53,7 @@ static int uade_test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / uade_sample_bytes_per_second >= uade_silence_timeout) {
+    if (silence_count / UADE_BYTES_PER_SECOND >= uade_silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -91,12 +92,13 @@ int play_loop(void)
   int old_force_filter = uade_force_filter;
   int old_filter_state = uade_filter_state;
 
+  const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
+
   uade_effect_reset_internals();
 
-  /* skip bytes must be a multiple of audio frame size, which is 4 from the
-     simulator */
-  skip_bytes = uade_jump_pos * 4 * 44100;
-  skip_bytes = (skip_bytes / 4) * 4;
+  /* Skip bytes must be a multiple of audio frame size */
+  skip_bytes = uade_jump_pos * UADE_BYTES_PER_SECOND;
+  skip_bytes = (skip_bytes / framesize) * framesize;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
 
@@ -114,7 +116,7 @@ int play_loop(void)
     if (state == UADE_S_STATE) {
 
       if (skip_bytes == 0) {
-	deciseconds = time_bytes * 10 / (44100 * 4);
+	deciseconds = time_bytes * 10 / (UADE_BYTES_PER_SECOND);
 	if (!uade_no_output) {
 	  tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
 	  fflush(stdout);
@@ -128,7 +130,7 @@ int play_loop(void)
 	case '.':
 	  if (skip_bytes == 0) {
 	    fprintf(stderr, "\nSkipping 10 seconds\n");
-	    skip_bytes = 4 * 44100 * 10;
+	    skip_bytes = UADE_BYTES_PER_SECOND * 10;
 	  }
 	  break;
 	case ' ':
@@ -312,7 +314,7 @@ int play_loop(void)
 	  }
 	}
 
-	uade_effect_run((int16_t *) um->data, playbytes / 4);
+	uade_effect_run((int16_t *) um->data, playbytes / framesize);
 
 	if (!audio_play(um->data, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");
@@ -322,7 +324,7 @@ int play_loop(void)
 	/* FIX ME */
 	if (uade_timeout != -1 && uade_no_timeouts == 0) {
 	  if (uade_song_end_trigger == 0) {
-	    if (total_bytes / uade_sample_bytes_per_second >= uade_timeout) {
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= uade_timeout) {
 	      fprintf(stderr, "\nSong end (timeout %ds)\n", uade_timeout);
 	      uade_song_end_trigger = 1;
 	    }
@@ -331,7 +333,7 @@ int play_loop(void)
 
 	if (uade_subsong_timeout != -1 && uade_no_timeouts == 0) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    if (subsong_bytes / uade_sample_bytes_per_second >= uade_subsong_timeout) {
+	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uade_subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uade_subsong_timeout);
 	      subsong_end = 1;
 	    }

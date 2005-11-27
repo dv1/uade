@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "uade.h"
+#include "uadesettings.h"
 
 #define MAX_SOUND_BUF_SIZE (65536)
 
@@ -24,5 +25,5 @@ extern void finish_sound_buffer (void);
 
 #define DEFAULT_SOUND_MAXB 8192
 #define DEFAULT_SOUND_MINB 8192
-#define DEFAULT_SOUND_BITS 16
-#define DEFAULT_SOUND_FREQ 44100
+#define DEFAULT_SOUND_BITS (8 * UADE_BYTES_PER_SAMPLE)
+#define DEFAULT_SOUND_FREQ UADE_FREQUENCY

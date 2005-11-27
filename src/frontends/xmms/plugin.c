@@ -20,6 +20,7 @@
 #include <eagleplayer.h>
 #include <uadeconfig.h>
 #include <uadecontrol.h>
+#include <uadesettings.h>
 
 #include "plugin.h"
 
@@ -60,10 +61,7 @@ static InputPlugin uade_ip = {
   .get_song_info = uade_get_song_info
 };
 
-static const int channels = 2;
-static const AFormat format = FMT_S16_NE;
-static const int frequency = 44100;
-static const int sample_rate = 2 * 2 * 44100;
+static const AFormat sample_format = FMT_S16_NE;
 
 static int abort_playing;
 static pthread_t decode_thread;
@@ -212,7 +210,7 @@ static void *play_loop(void *arg)
 	while ((writable = uade_ip.output->buffer_free()) < playbytes)
 	  xmms_usleep(10000);
 
-	uade_ip.add_vis_pcm(uade_ip.output->written_time(), format, channels, playbytes, um->data);
+	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, playbytes, um->data);
 
 	uade_ip.output->write_audio(um->data, playbytes);
 
@@ -326,7 +324,7 @@ static void uade_play_file(char *filename)
     uade_spawn(&uadepid, UADE_CONFIG_UADE_CORE, configname, 0);
   }
 
-  if (!uade_ip.output->open_audio(format, frequency, channels)) {
+  if (!uade_ip.output->open_audio(sample_format, UADE_FREQUENCY, UADE_CHANNELS)) {
     abort_playing = 1;
     return;
   }
@@ -339,7 +337,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(filename, -1, sample_rate, frequency, channels);
+  uade_ip.set_info(filename, -1, UADE_SAMPLE_RATE, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");

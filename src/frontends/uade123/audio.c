@@ -3,11 +3,10 @@
 
 #include <ao/ao.h>
 
+#include <uadesettings.h>
+
 #include "audio.h"
 #include "uade123.h"
-
-int uade_bytes_per_sample;
-int uade_sample_bytes_per_second;
 
 
 static ao_device *libao_device = NULL;
@@ -25,21 +24,15 @@ int audio_init(void)
   int driver;
   ao_sample_format format;
 
-  if (uade_no_output) {
-    uade_bytes_per_sample = 2;
-    uade_sample_bytes_per_second = uade_bytes_per_sample * 2 * 44100;
+  if (uade_no_output)
     return 1;
-  }
 
   ao_initialize();
 
-  format.bits = 16;
-  format.channels = 2;
-  format.rate = 44100;
+  format.bits = UADE_BYTES_PER_SAMPLE * 8;
+  format.channels = UADE_CHANNELS;
+  format.rate = UADE_FREQUENCY; /* Rate means sampling frequency */
   format.byte_format = AO_FMT_NATIVE;
-
-  uade_bytes_per_sample = format.bits / 8;
-  uade_sample_bytes_per_second = uade_bytes_per_sample * format.channels * format.rate;
 
   if (uade_output_file_name[0]) {
     driver = ao_driver_id(uade_output_file_format[0] ? uade_output_file_format : "wav");
