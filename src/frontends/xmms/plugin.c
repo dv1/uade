@@ -60,6 +60,10 @@ static InputPlugin uade_ip = {
   .get_song_info = uade_get_song_info
 };
 
+static const int channels = 2;
+static const AFormat format = FMT_S16_NE;
+static const int frequency = 44100;
+static const int sample_rate = 2 * 2 * 44100;
 
 static int abort_playing;
 static pthread_t decode_thread;
@@ -208,7 +212,7 @@ static void *play_loop(void *arg)
 	while ((writable = uade_ip.output->buffer_free()) < playbytes)
 	  xmms_usleep(10000);
 
-	uade_ip.add_vis_pcm(uade_ip.output->written_time(), FMT_S16_NE, 2, playbytes, um->data);
+	uade_ip.add_vis_pcm(uade_ip.output->written_time(), format, channels, playbytes, um->data);
 
 	uade_ip.output->write_audio(um->data, playbytes);
 
@@ -312,20 +316,17 @@ static void *play_loop(void *arg)
 
 static void uade_play_file(char *filename)
 {
-  plugindebug("\n");
+  plugindebug("Play %s\n", filename);
 
   abort_playing = 0;
 
   if (!uadepid) {
     char configname[PATH_MAX];
-
-    plugindebug("spawning uadecore\n");
     snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
     uade_spawn(&uadepid, UADE_CONFIG_UADE_CORE, configname, 0);
-    plugindebug("uadecore spawned\n");
   }
 
-  if (!uade_ip.output->open_audio(FMT_S16_NE, 44100, 2)) {
+  if (!uade_ip.output->open_audio(format, frequency, channels)) {
     abort_playing = 1;
     return;
   }
@@ -337,6 +338,8 @@ static void uade_play_file(char *filename)
 
   if (initialize_song(filename) == FALSE)
     goto err;
+
+  uade_ip.set_info(filename, -1, sample_rate, frequency, channels);
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");

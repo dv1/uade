@@ -184,8 +184,15 @@ void uade_spawn(pid_t *uadepid, const char *uadename, const char *configname,
   if (*uadepid == 0) {
     int fd;
     char instr[32], outstr[32];
+    int maxfds;
+
+    if ((maxfds = sysconf(_SC_OPEN_MAX)) < 0) {
+      maxfds = 1024;
+      fprintf(stderr, "Getting max fds failed. Using %d.\n", maxfds);
+    }
+
     /* close everything else but stdin, stdout, stderr, and in/out fds */
-    for (fd = 3; fd < 64; fd++) {
+    for (fd = 3; fd < maxfds; fd++) {
       if (fd != forwardfds[0] && fd != backwardfds[1])
 	atomic_close(fd);
     }
