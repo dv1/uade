@@ -12,6 +12,9 @@ static GtkWidget *seekpopup = NULL;
 static GtkObject *subsong_adj;
 
 
+static int get_cur_subsong(int def);
+static int get_max_subsong(int def);
+static int get_min_subsong(int def);
 static void uade_seek_directly(void);
 static void uade_seek_next(void);
 static void uade_seek_previous(void);
@@ -21,52 +24,75 @@ static void uade_seek_update_display(int subsong);
 
 static int get_next_subsong(void)
 {
-    int newsubsong;
-#if 0
-    if (!is_paused()) {
-	newsubsong = get_curr_subsong();
+    int ispaused;
+    uade_lock();
+    ispaused = uade_is_paused;
+    uade_unlock();
+    if (ispaused == 0) {
+	int newsubsong;
+	newsubsong = get_cur_subsong(-1);
+	if (newsubsong == -1)
+	    return -1;
 	newsubsong++;
 	return newsubsong;
-    } else {
-	return -1;
     }
-#endif
-    newsubsong = 0;
-    return newsubsong;
+    return -1;
 }
 
 
 static int get_previous_subsong(void)
 {
-    int newsubsong;
-#if 0
-    if (!is_paused()) {
-	newsubsong = get_curr_subsong();
-	if (newsubsong > get_min_subsong()) {
+    int ispaused;
+    uade_lock();
+    ispaused = uade_is_paused;
+    uade_unlock();
+    if (ispaused == 0) {
+	int newsubsong;
+	newsubsong = get_cur_subsong(-1);
+	if (newsubsong == -1)
+	    return -1;
+	if (newsubsong > get_min_subsong(-1)) {
 	    newsubsong--;
 	    return newsubsong;
 	}
     }
     return -1;
-#endif
-    newsubsong = 0;
-    return newsubsong;
 }
 
 
-static int get_cur_subsong(void)
+static int get_cur_subsong(int def)
 {
-    return 0;
+    int subsong;
+    uade_lock();
+    subsong = uade_cur_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
 }
 
-static int get_max_subsong(void)
+
+static int get_max_subsong(int def)
 {
-    return 0;
+    int subsong;
+    uade_lock();
+    subsong = uade_max_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
 }
 
-static int get_min_subsong(void)
+
+static int get_min_subsong(int def)
 {
-    return 0;
+    int subsong;
+    uade_lock();
+    subsong = uade_min_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
 }
 
 
@@ -112,19 +138,19 @@ void uade_gui_seek_subsong(int to)
 
         /* define Slider code, will be used by all styles of the popup */
 
-	if (get_max_subsong() > 0) {
+	if (get_max_subsong(-1) >= 0) {
 
 	    subsong_adj =
-		gtk_adjustment_new(get_cur_subsong(), get_min_subsong(),
-				   get_max_subsong(), 1, 0, 0);	/*our scale for the subsong slider */
+		gtk_adjustment_new(get_cur_subsong(0), get_min_subsong(0),
+				   get_max_subsong(0), 1, 0, 0);	/*our scale for the subsong slider */
 	    maxsong_label =
-		gtk_label_new(g_strdup_printf("%d", get_max_subsong())); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
+		gtk_label_new(g_strdup_printf("%d", get_max_subsong(0))); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
 	    gtk_widget_set_usize(maxsong_label, 24, -1);
 
 	} else {
 	    subsong_adj =
-		gtk_adjustment_new(get_cur_subsong(), get_min_subsong(),
-				   (get_min_subsong()) + 10, 1, 0, 0);	/*our scale for the subsong slider */
+		gtk_adjustment_new(get_cur_subsong(0), get_min_subsong(0),
+				   (get_max_subsong(0)) + 10, 1, 0, 0);	/*our scale for the subsong slider */
 	    /*currently: min - min+10  */
 	    maxsong_label = gtk_label_new("..."); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
 	    gtk_widget_set_usize(maxsong_label, 24, -1);
@@ -223,12 +249,13 @@ void uade_gui_seek_subsong(int to)
 
 static void uade_seek_directly(void)
 {
-    int subsong = (gint) GTK_ADJUSTMENT(subsong_adj)->value;	/*get the subsong the user selected from scale */
-
-    /*
-      seek(subsong, "user request");
-    */
-    fprintf(stderr, "Change to subsong %d\n", subsong);
+    /* get the subsong the user selected from scale */
+    int subsong = (gint) GTK_ADJUSTMENT(subsong_adj)->value;
+    int cursub = get_cur_subsong(-1);
+    if (cursub >= 0 && cursub != subsong) {
+	fprintf(stderr, "Change to subsong %d\n", subsong);
+	uade_select_sub = subsong;
+    }
 }
 
 
@@ -247,18 +274,8 @@ static void uade_seek_directly(void)
 static void uade_seek_next(void)
 {
     int subsong = get_next_subsong();
-
     if (subsong != -1) {
-	/* Bad, bad hack to increment the upper boundary of our subsong seeker
-	 * UADE really, really needs a reliable maxsubsong ! :-((((
-	 */
-
-	if ((GTK_ADJUSTMENT(subsong_adj)->upper < subsong)) {
-	    fprintf(stderr, "maxsubsong %d\n", get_max_subsong());
-	    GTK_ADJUSTMENT(subsong_adj)->upper = subsong;
-	    gtk_adjustment_changed(GTK_ADJUSTMENT(subsong_adj));
-	}
-	/*call update scale with new subsong */
+	/* Call update scale with new subsong */
 	uade_seek_update_display(subsong);
     }
 }

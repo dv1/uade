@@ -7,7 +7,7 @@
 	  can be used through uadeipc.c (uade_send_short_message()).
 	- Added src/include/uadeconstants.h that should contain constants that
 	  are common with uadecore and frontends.
-	- XMMS plugin works more and more :-)
+	- Subsong seeking works in XMMS plugin :-)
 
 2005-11-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continuing modularization of uade frontends. Renamed

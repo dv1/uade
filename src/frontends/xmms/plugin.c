@@ -68,19 +68,27 @@ static const AFormat sample_format = FMT_S16_NE;
 
 static int abort_playing;
 static pthread_t decode_thread;
+static char gui_filename[PATH_MAX];
+static int gui_info_set;
 static int plugin_disabled;
 static int song_end_trigger;
 static pid_t uadepid;
 static int uade_ignore_player_check;
 static int uade_no_song_end;
 
-int uade_thread_running;
 
-#if 0
+int uade_cur_sub;
+int uade_is_paused;
+int uade_max_sub;
+int uade_min_sub;
+int uade_thread_running;
+int uade_select_sub;
+
+
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
 
 
-static void lock_variables(void)
+void uade_lock(void)
 {
   if (pthread_mutex_lock(&vlock)) {
     fprintf(stderr, "UADE2 locking error.\n");
@@ -88,14 +96,15 @@ static void lock_variables(void)
   }
 }
 
-static void unlock_variables(void)
+
+void uade_unlock(void)
 {
   if (pthread_mutex_unlock(&vlock)) {
     fprintf(stderr, "UADE2 unlocking error.\n");
     exit(-1);
   }
 }
-#endif
+
 
 /* this function is first called by xmms. returns pointer to plugin table */
 InputPlugin *get_iplugin_info(void) {
@@ -182,13 +191,11 @@ static void *play_loop(void *arg)
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int subsong_end = 0;
-  int min_sub = -1, max_sub = -1, cur_sub = -1;
   uint16_t *sm;
   int i;
   int playbytes, tailbytes = 0;
   char *reason;
   uint32_t *u32ptr;
-  int have_subsong_info = 0;
   int writable;
 
   while (1) {
@@ -199,19 +206,30 @@ static void *play_loop(void *arg)
       if (abort_playing)
 	break;
 
+      uade_lock();
+      if (uade_select_sub != -1) {
+	uade_cur_sub = uade_select_sub;
+	uade_change_subsong(uade_cur_sub);
+	uade_ip.output->flush(0);
+	uade_select_sub = -1;
+	subsong_end = 0;
+      }
       if (subsong_end && song_end_trigger == 0) {
-	if (cur_sub == -1 || max_sub == -1) {
+	if (uade_cur_sub == -1 || uade_max_sub == -1) {
 	  song_end_trigger = 1;
 	} else {
-	  cur_sub++;
-	  if (cur_sub > max_sub) {
+	  uade_cur_sub++;
+	  if (uade_cur_sub > uade_max_sub) {
 	    song_end_trigger = 1;
 	  } else {
-	    uade_change_subsong(cur_sub);
+	    uade_change_subsong(uade_cur_sub);
+	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	  }
 	}
       }
+      uade_unlock();
+
       if (song_end_trigger)
 	break;
 
@@ -317,23 +335,25 @@ static void *play_loop(void *arg)
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
-	min_sub = ntohl(u32ptr[0]);
-	max_sub = ntohl(u32ptr[1]);
-	cur_sub = ntohl(u32ptr[2]);
-	plugindebug("subsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
-	if (!(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub)) {
-	  int tempmin = min_sub, tempmax = max_sub;
+	uade_lock();
+	uade_min_sub = ntohl(u32ptr[0]);
+	uade_max_sub = ntohl(u32ptr[1]);
+	uade_cur_sub = ntohl(u32ptr[2]);
+
+	plugindebug("subsong: %d from range [%d, %d]\n", uade_cur_sub, uade_min_sub, uade_max_sub);
+	if (!(-1 <= uade_min_sub && uade_min_sub <= uade_cur_sub && uade_cur_sub <= uade_max_sub)) {
+	  int tempmin = uade_min_sub, tempmax = uade_max_sub;
 	  fprintf(stderr, "The player is broken. Subsong info does not match.\n");
-	  min_sub = tempmin <= tempmax ? tempmin : tempmax;
-	  max_sub = tempmax >= tempmin ? tempmax : tempmin;
-	  if (cur_sub > max_sub)
-	    max_sub = cur_sub;
-	  else if (cur_sub < min_sub)
-	    min_sub = cur_sub;
+	  uade_min_sub = tempmin <= tempmax ? tempmin : tempmax;
+	  uade_max_sub = tempmax >= tempmin ? tempmax : tempmin;
+	  if (uade_cur_sub > uade_max_sub)
+	    uade_max_sub = uade_cur_sub;
+	  else if (uade_cur_sub < uade_min_sub)
+	    uade_min_sub = uade_cur_sub;
 	}
-	if ((max_sub - min_sub) != 0)
-	  fprintf(stderr, "There are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
-	have_subsong_info = 1;
+	if ((uade_max_sub - uade_min_sub) != 0)
+	  fprintf(stderr, "There are %d subsongs in range [%d, %d].\n", 1 + uade_max_sub - uade_min_sub, uade_min_sub, uade_max_sub);
+	uade_unlock();
 	break;
 	
       default:
@@ -375,8 +395,16 @@ static void uade_play_file(char *filename)
 {
   plugindebug("Play %s\n", filename);
 
+  uade_lock();
   abort_playing = 0;
   song_end_trigger = 0;
+  uade_cur_sub = uade_max_sub = uade_min_sub = -1;
+  uade_is_paused = 0;
+  uade_select_sub = -1;
+  uade_unlock();
+
+  strlcpy(gui_filename, filename, sizeof gui_filename);
+  gui_info_set = 0;
 
   if (!uadepid) {
     char configname[PATH_MAX];
@@ -427,17 +455,13 @@ static void uade_stop(void)
 }
 
 
-int uade_is_paused(void)
-{
-  plugindebug("\n");
-  return FALSE;
-}
-
-
 /* function that xmms calls when pausing or unpausing */
 static void uade_pause(short paused)
 {
   plugindebug("Pause argument %d\n", paused);
+  uade_lock();
+  uade_is_paused = paused;
+  uade_unlock();
   uade_ip.output->pause(paused);
 }
 
@@ -452,6 +476,19 @@ static int uade_get_time(void)
 {
   if (abort_playing || song_end_trigger)
     return -1;
+
+  if (gui_info_set == 0 && uade_max_sub != -1) {
+    uade_lock();
+    if (uade_max_sub != -1) {
+      /* Hack. Set info text late, because we didn't know subsong amounts
+	 before this. Pass zero as a length so that the graphical
+         play time counter will run but seek is still enabled. Passing -1
+         would disable seeking. */
+      uade_ip.set_info(gui_filename, 0, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+    }
+    uade_unlock();
+    gui_info_set = 1;
+  }
 
   return uade_ip.output->output_time();
 }
