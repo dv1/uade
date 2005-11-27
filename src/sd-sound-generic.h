@@ -12,7 +12,7 @@
 #include <string.h>
 
 #include "uade.h"
-#include "uadesettings.h"
+#include "uadeconstants.h"
 
 #define MAX_SOUND_BUF_SIZE (65536)
 

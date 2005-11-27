@@ -14,7 +14,7 @@ amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
 	$(CC) $(CFLAGS) -c $<
 
-plugin.o:	plugin.c
+plugin.o:	plugin.c ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h

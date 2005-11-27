@@ -366,6 +366,7 @@ static void uade_play_file(char *filename)
   plugindebug("Play %s\n", filename);
 
   abort_playing = 0;
+  song_end_trigger = 0;
 
   if (!uadepid) {
     char configname[PATH_MAX];

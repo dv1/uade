@@ -1,5 +1,5 @@
-#ifndef _UADE_SETTINGS_H_
-#define _UADE_SETTINGS_H_
+#ifndef _UADE_CONSTANTS_H_
+#define _UADE_CONSTANTS_H_
 
 /* You must not change anything */
 #define UADE_CHANNELS (2)

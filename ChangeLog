@@ -5,6 +5,9 @@
 	  The idea is that all the non-trivial commands have a wrapper in
 	  uadecontrol.c, but trivial commands that don't require parameters
 	  can be used through uadeipc.c (uade_send_short_message()).
+	- Added src/include/uadeconstants.h that should contain constants that
+	  are common with uadecore and frontends.
+	- XMMS plugin works more and more :-)
 
 2005-11-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continuing modularization of uade frontends. Renamed

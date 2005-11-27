@@ -104,13 +104,13 @@ custom.o: include/events.h
 newcpu.o: newcpu.c include/uade.h include/events.h include/uademsg.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
-sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadesettings.h {SOUNDHEADER} {SOUNDSOURCE}
-audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadesettings.h {SOUNDHEADER}
+sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
+audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h {SOUNDHEADER}
 memory.o: 
 debug.o: 
 fpp.o: 
 
-uade.o: include/uade.h sd-sound.h include/uademsg.h include/uadesettings.h
+uade.o: include/uade.h sd-sound.h include/uademsg.h include/uadeconstants.h
 
 uadecontrol.o:	include/uadecontrol.h include/uademsg.h
 

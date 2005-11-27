@@ -16,7 +16,7 @@
 
 #include <uadeipc.h>
 #include <uadecontrol.h>
-#include <uadesettings.h>
+#include <uadeconstants.h>
 
 #include "uade123.h"
 #include "effects.h"
@@ -216,7 +216,7 @@ int play_loop(void)
 
       if (uade_debug_trigger == 1) {
 	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER)) {
-	  fprintf(stderr, "\ncan not active debugger\n");
+	  fprintf(stderr, "\nCan not active debugger\n");
 	  return 0;
 	}
 	uade_debug_trigger = 0;
@@ -250,7 +250,7 @@ int play_loop(void)
       if (uade_song_end_trigger) {
 	next_song = 1;
 	if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
-	  fprintf(stderr, "\ncan not send reboot\n");
+	  fprintf(stderr, "\nCan not send reboot\n");
 	  return 0;
 	}
 	goto sendtoken;
@@ -260,7 +260,7 @@ int play_loop(void)
 
     sendtoken:
       if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
-	fprintf(stderr, "\ncan not send token\n");
+	fprintf(stderr, "\nCan not send token\n");
 	return 0;
       }
       state = UADE_R_STATE;
@@ -270,7 +270,7 @@ int play_loop(void)
       /* receive state */
 
       if (uade_receive_message(um, sizeof(space)) <= 0) {
-	fprintf(stderr, "\ncan not receive events from uade\n");
+	fprintf(stderr, "\nCan not receive events from uade\n");
 	return 0;
       }
       
