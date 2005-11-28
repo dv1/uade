@@ -1,5 +1,5 @@
 CC = {CC}
-CFLAGS = -Wall -O2 -fpic -shared -g `xmms-config --cflags` -DVERSION=\"1.50\" -I../common -I../../include
+CFLAGS = -Wall -O2 -fpic -shared -g `xmms-config --cflags` -I../common -I../../include
 
 CLIBS = `xmms-config --libs`
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
@@ -12,6 +12,9 @@ amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
 eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
+	$(CC) $(CFLAGS) -c $<
+
+effects.o:	../common/effects.c ../common/effects.h
 	$(CC) $(CFLAGS) -c $<
 
 plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h
