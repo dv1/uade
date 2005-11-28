@@ -76,6 +76,10 @@ install:	all
 	test -n "{UADE123}" && $(MAKE) uade123install
 	test -n "{XMMSPLUGIN}" && $(MAKE) xmmsplugininstall
 
+feclean:	
+	$(MAKE) -C src/frontends/uade123 clean
+	$(MAKE) -C src/frontends/xmms clean
+
 clean:	
 	$(MAKE) -C src clean
-	$(MAKE) -C src/frontends/uade123 clean
+	$(MAKE) feclean

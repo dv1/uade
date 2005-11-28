@@ -4,6 +4,8 @@
 	- It is possible that config parsing for uade123 breaks now.
 	- Added partial config loading support for XMMS plugin. Doesn't
 	  support setting filter type or interpolation mode yet.
+	- Added cleaning rule for XMMS plugin
+	- New make rule: 'make feclean' will clean all frontend objects
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added hardcoded timeouts for the XMMS plugin. They are the same
