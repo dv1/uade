@@ -494,7 +494,7 @@ int main(int argc, char *argv[])
 
 static void print_help(void)
 {
-  printf("uade123\n");
+  printf("uade123 %s\n", UADE_VERSION);
   printf(" by Heikki Orsila <heikki.orsila@iki.fi>\n");
   printf("    Michael Doering <mldoering@gmx.net>\n");
   printf("uadecore is based on the UAE source code. UAE is made by Bernd Schmidt et al.\n");

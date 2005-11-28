@@ -3,7 +3,8 @@ CFLAGS = -Wall -O2 -fpic -shared -g `xmms-config --cflags` -I../common -I../../i
 
 CLIBS = `xmms-config --libs`
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
-	uadeipc.o unixatomic.o subsongseek.o
+	uadeipc.o unixatomic.o subsongseek.o effects.o postprocessing.o \
+	uadeconf.o
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
