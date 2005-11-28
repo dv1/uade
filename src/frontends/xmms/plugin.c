@@ -601,7 +601,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(filename, -1, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+  uade_ip.set_info(gui_filename, -1, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -670,7 +670,14 @@ static int uade_get_time(void)
 
 static void uade_get_song_info(char *filename, char **title, int *length)
 {
-  if ((*title = strdup(filename)) == NULL)
+  char tempname[PATH_MAX];
+  char *t;
+
+  strlcpy(tempname, filename, sizeof tempname);
+  t = basename(tempname);
+  if (t == NULL)
+    t = filename;
+  if ((*title = strdup(t)) == NULL)
     plugindebug("Not enough memory for song info.\n");
   *length = -1;
 }
