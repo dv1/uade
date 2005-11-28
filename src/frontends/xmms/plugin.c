@@ -210,15 +210,19 @@ static void uade_init(void)
 
   set_defaults();
 
-  /* If config exists in home, read it and ignore global uade.conf. */
+  /* If config exists in home, ignore global uade.conf. */
   snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
-  if (stat(configname, &st) == 0) {
-    load_config();
+  if (stat(configname, &st) == 0)
+    return;
 
-  } else {
-    snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
-    load_config();
-  }
+  /* No uade.conf in $HOME/.uade2/. */
+  snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
+  if (stat(configname, &st) == 0)
+    return;
+
+  fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
+  fprintf(stderr, "HOME/.uade2/uade.conf in the future.\n");
+  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
 }
 
 

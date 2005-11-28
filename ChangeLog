@@ -6,6 +6,14 @@
 	  support setting filter type or interpolation mode yet.
 	- Added cleaning rule for XMMS plugin
 	- New make rule: 'make feclean' will clean all frontend objects
+	- The XMMS plugin determines configuration file path for uade.conf
+	  once during XMMS plugin initialization, and it will not change
+	  afterwards. If no global or user configuration is found, then
+	  the plugin chooses the file under HOME ($HOME/.uade2/uade.conf).
+	  It will try to load the configuration each time a new song is
+	  selected from the XMMS.
+	- Optimization: XMMS will re-read configuration when a new song is
+	  selected if the file timestamp of uade.conf has changed.
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added hardcoded timeouts for the XMMS plugin. They are the same
