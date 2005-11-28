@@ -3,7 +3,9 @@
 	  src/frontends/common/uadeconf.[ch].
 	- It is possible that config parsing for uade123 breaks now.
 	- Added partial config loading support for XMMS plugin. Doesn't
-	  support setting filter type or interpolation mode yet.
+	  support setting filter type or interpolation mode yet. You must
+	  edit uade.conf by hand if you want configuration changes. No GUI
+	  for setting options yet.
 	- Added cleaning rule for XMMS plugin
 	- New make rule: 'make feclean' will clean all frontend objects
 	- The XMMS plugin determines configuration file path for uade.conf
