@@ -252,10 +252,8 @@ static void uade_seek_directly(void)
     /* get the subsong the user selected from scale */
     int subsong = (gint) GTK_ADJUSTMENT(subsong_adj)->value;
     int cursub = get_cur_subsong(-1);
-    if (cursub >= 0 && cursub != subsong) {
-	fprintf(stderr, "Change to subsong %d\n", subsong);
+    if (cursub >= 0 && cursub != subsong)
 	uade_select_sub = subsong;
-    }
 }
 
 

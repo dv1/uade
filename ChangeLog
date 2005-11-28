@@ -2,6 +2,8 @@
 	- Modularized loading and parsing on uade.conf options. See
 	  src/frontends/common/uadeconf.[ch].
 	- It is possible that config parsing for uade123 breaks now.
+	- Added partial config loading support for XMMS plugin. Doesn't
+	  support setting filter type or interpolation mode yet.
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added hardcoded timeouts for the XMMS plugin. They are the same

@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "effects.h"
+#include <effects.h>
+
 #include "postprocessing.h"
 
 float uade_panning_value = 0.7;

@@ -14,6 +14,7 @@
 
 #include <netinet/in.h>
 #include <signal.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,6 +24,9 @@
 #include <uadecontrol.h>
 #include <uadeconstants.h>
 #include <strlrep.h>
+#include <uadeconf.h>
+#include <effects.h>
+#include <postprocessing.h>
 
 #include "plugin.h"
 #include "subsongseek.h"
@@ -68,17 +72,21 @@ static InputPlugin uade_ip = {
 static const AFormat sample_format = FMT_S16_NE;
 
 static int abort_playing;
+static char configname[PATH_MAX];
 static pthread_t decode_thread;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
 static int ignore_player_check;
 static int no_song_end;
+static int one_subsong_per_file;
 static int plugin_disabled;
-static int silence_timeout = 20;
+static int silence_timeout;
 static int song_end_trigger;
-static int subsong_timeout = 512;
-static int timeout = -1;
+static int subsong_timeout;
+static int timeout;
 static pid_t uadepid;
+
+static time_t config_load_time;
 
 int uade_cur_sub;
 int uade_is_paused;
@@ -89,6 +97,85 @@ int uade_select_sub;
 
 
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
+
+
+static void set_defaults(void)
+{
+  ignore_player_check = 0;
+  no_song_end = 0;
+  one_subsong_per_file = 0;
+  silence_timeout = 20;
+  subsong_timeout = 512;
+  timeout = -1;
+  uade_use_panning = 0;
+  uade_panning_value = 0.7;
+  uade_use_postprocessing = 0;
+  uade_use_headphones = 0;
+  uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
+}
+
+
+static void load_config(void)
+{
+  struct stat st;
+  struct uade_config uc;
+
+  if (stat(configname, &st))
+    return;
+
+  if (st.st_mtime <= config_load_time)
+    return;
+
+  config_load_time = st.st_mtime;
+
+  set_defaults();
+  
+  uade_load_config(&uc, configname);
+
+  /*
+  if (uc.filter)
+  uade_use_filter = uc.filter;
+
+  if (uc.force_filter_off) {
+  uade_force_filter = 1;
+  uade_filter_state = 0;
+  }
+
+  if (uc.no_filter)
+  uade_use_filter = 0;
+  */
+  
+  if (uc.headphones)
+    uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
+
+  if (uc.ignore_player_check)
+    ignore_player_check = 1;
+
+  /*
+  if (uc.interpolator)
+    uade_interpolation_mode = strdup(uc.interpolator);
+
+  if (uc.no_filter)
+      uade_use_filter = 0;
+  */
+
+  if (uc.one_subsong)
+    one_subsong_per_file = 1;
+
+  if (uc.panning != 0.0) {
+    uade_panning_value = uc.panning;
+    uade_postprocessing_setup(UADE_PANNING_ENABLE);
+  }
+
+  if (uc.silence_timeout)
+    silence_timeout = uc.silence_timeout;
+
+  if (uc.subsong_timeout)
+    subsong_timeout = uc.subsong_timeout;
+
+  if (uc.timeout)
+    timeout = uc.timeout;
+}
 
 
 void uade_lock(void)
@@ -110,14 +197,30 @@ void uade_unlock(void)
 
 
 /* this function is first called by xmms. returns pointer to plugin table */
-InputPlugin *get_iplugin_info(void) {
+InputPlugin *get_iplugin_info(void)
+{
   return &uade_ip;
 }
+
 
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
+  struct stat st;
+
+  set_defaults();
+
+  /* If config exists in home, read it and ignore global uade.conf. */
+  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
+  if (stat(configname, &st) == 0) {
+    load_config();
+
+  } else {
+    snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
+    load_config();
+  }
 }
+
 
 static void uade_cleanup(void)
 {
@@ -199,6 +302,7 @@ static void *play_loop(void *arg)
   char *reason;
   uint32_t *u32ptr;
   int writable;
+  int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
 
   while (1) {
     if (state == UADE_S_STATE) {
@@ -282,6 +386,8 @@ static void *play_loop(void *arg)
 	  xmms_usleep(10000);
 	}
 
+	uade_effect_run((int16_t *) um->data, playbytes / framesize);
+
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, playbytes, um->data);
 
 	uade_ip.output->write_audio(um->data, playbytes);
@@ -357,7 +463,7 @@ static void *play_loop(void *arg)
 	  fprintf(stderr, "Broken reason string with song end notice\n");
 	  exit(-1);
 	}
-	fprintf(stderr, "Song end (%s)\n", reason);
+	/* fprintf(stderr, "Song end (%s)\n", reason); */
 	break;
 
       case UADE_REPLY_SUBSONG_INFO:
@@ -458,6 +564,8 @@ static void uade_play_file(char *filename)
 {
   char tempname[PATH_MAX];
   char *t;
+
+  load_config();
 
   uade_lock();
   abort_playing = 0;

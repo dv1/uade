@@ -38,7 +38,7 @@ playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
 playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
-postprocessing.o:	postprocessing.c postprocessing.h ../common/effects.h
+postprocessing.o:	../common/postprocessing.c ../common/postprocessing.h ../common/effects.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
@@ -47,7 +47,7 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h ../common/postprocessing.h
 	$(CC) $(CFLAGS) -c $<
 
 uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h

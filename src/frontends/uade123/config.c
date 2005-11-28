@@ -26,7 +26,7 @@ int load_config(const char *filename)
   ret = uade_load_config(&uc, filename);
 
   if (uc.action_keys)
-      uade_terminal_mode = uc.action_keys - 1;
+    uade_terminal_mode = uc.action_keys - 1;
 
   if (uc.filter)
     uade_use_filter = uc.filter;
