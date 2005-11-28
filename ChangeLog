@@ -16,6 +16,14 @@
 	  selected from the XMMS.
 	- Optimization: XMMS will re-read configuration when a new song is
 	  selected if the file timestamp of uade.conf has changed.
+	- Fixed synchronization problem in XMMS plugin's play loop. The audio
+	  device is drained of written sound data before actually stopping
+	  the device. The earlier version cut of audible data from the end
+	  of the song :( However, draining can be interrupted if the user
+	  requests something urgent, such as wanting an immediate song change.
+	  Draining takes time as long as audio
+	  device has buffered data. Buffering settings can be found from
+	  output plugin settings, as usual.
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added hardcoded timeouts for the XMMS plugin. They are the same

@@ -77,11 +77,11 @@ static pthread_t decode_thread;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
 static int ignore_player_check;
+static int last_beat_played;
 static int no_song_end;
 static int one_subsong_per_file;
 static int plugin_disabled;
 static int silence_timeout;
-static int song_end_trigger;
 static int subsong_timeout;
 static int timeout;
 static pid_t uadepid;
@@ -307,6 +307,7 @@ static void *play_loop(void *arg)
   uint32_t *u32ptr;
   int writable;
   int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
+  int song_end_trigger = 0;
 
   while (1) {
     if (state == UADE_S_STATE) {
@@ -343,8 +344,14 @@ static void *play_loop(void *arg)
       }
       uade_unlock();
 
-      if (song_end_trigger)
+      if (song_end_trigger) {
+	/* We must drain the audio fast if abort_playing happens (e.g.
+	   the user changes song when we are here waiting the sound device) */
+	while (uade_ip.output->buffer_playing() && abort_playing == 0)
+
+	  xmms_usleep(10000);
 	break;
+      }
 
       left = uade_read_request();
       
@@ -457,7 +464,7 @@ static void *play_loop(void *arg)
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
-	  abort_playing = 1;
+	  song_end_trigger = 1;
 	}
 	i = 0;
 	reason = &((uint8_t *) um->data)[8];
@@ -501,6 +508,8 @@ static void *play_loop(void *arg)
       }
     }
   }
+
+  last_beat_played = 1;
 
   if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
     fprintf(stderr, "Can not send reboot.\n");
@@ -573,7 +582,7 @@ static void uade_play_file(char *filename)
 
   uade_lock();
   abort_playing = 0;
-  song_end_trigger = 0;
+  last_beat_played = 0;
   uade_cur_sub = uade_max_sub = uade_min_sub = -1;
   uade_is_paused = 0;
   uade_select_sub = -1;
@@ -652,7 +661,7 @@ static void uade_seek(int time)
 
 static int uade_get_time(void)
 {
-  if (abort_playing || song_end_trigger)
+  if (abort_playing || last_beat_played)
     return -1;
 
   if (gui_info_set == 0 && uade_max_sub != -1) {
