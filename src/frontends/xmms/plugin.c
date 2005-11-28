@@ -57,7 +57,7 @@ static void uade_stop(void);
 /* GLOBAL VARIABLE DECLARATIONS */
 
 static InputPlugin uade_ip = {
-  .description = "UADE2 " VERSION,
+  .description = "UADE2 " UADE_VERSION,
   .init = uade_init,
   .is_our_file = uade_is_our_file,
   .play_file = uade_play_file,
