@@ -251,22 +251,22 @@ void uade_get_amiga_message(void)
     break;
 
   case AMIGAMSG_PLAYERNAME:
-    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
     uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr);
     break;
 
   case AMIGAMSG_MODULENAME:
-    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
     uade_send_string(UADE_REPLY_MODULENAME, tmpstr);
     break;
 
   case AMIGAMSG_FORMATNAME:
-    strlcpy(tmpstr, get_real_address(0x204), sizeof(tmpstr));
+    strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
     uade_send_string(UADE_REPLY_FORMATNAME, tmpstr);
     break;
 
   case AMIGAMSG_GENERALMSG:
-    uade_send_debug(get_real_address(0x204));
+    uade_send_debug((char *) get_real_address(0x204));
     break;
 
   case AMIGAMSG_CHECKERROR:
@@ -300,7 +300,7 @@ void uade_get_amiga_message(void)
       break;
     }
     nameptr = get_real_address(src);
-    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
+    if ((file = uade_open_amiga_file((char *) nameptr, uade_player_dir))) {
       dst = uade_get_u32(0x208);
       len = uade_safe_load(dst, file, uade_highmem - dst);
       fclose(file); file = 0;
@@ -320,7 +320,7 @@ void uade_get_amiga_message(void)
     off = uade_get_u32(0x20C);
     len = uade_get_u32(0x210);
     /* fprintf(stderr,"uadecore: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
-    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
+    if ((file = uade_open_amiga_file((char *) nameptr, uade_player_dir))) {
       if (fseek(file, off, SEEK_SET)) {
 	perror("can not fseek to position");
 	x = 0;
@@ -344,7 +344,7 @@ void uade_get_amiga_message(void)
       break;
     }
     nameptr = get_real_address(src);
-    if ((file = uade_open_amiga_file(nameptr, uade_player_dir))) {
+    if ((file = uade_open_amiga_file((char *) nameptr, uade_player_dir))) {
       fseek(file, 0, SEEK_END);
       len = ftell(file);
       fclose(file);
@@ -373,7 +373,7 @@ void uade_get_amiga_message(void)
       fprintf(stderr, "uadecore: Invalid address from 0x%x or 0x%x\n", src, dst);
       break;
     }
-    len = uade_get_info(get_real_address(dst), get_real_address(src), len);
+    len = uade_get_info((char *) get_real_address(dst), (char *) get_real_address(src), len);
     uade_put_long(0x20C, len);
     break;
 
@@ -454,7 +454,7 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_SET_INTERPOLATION_MODE:
       uade_check_fix_string(um, 16);
-      select_audio_interpolator(um->data);
+      select_audio_interpolator((char *) um->data);
       break;
 
     case UADE_COMMAND_SPEED_HACK:
@@ -728,8 +728,8 @@ void uade_reset(void)
   if (um->size == 0) {
     song.modulename[0] = 0;
   } else {
-    assert(um->size == (strlen(um->data) + 1));
-    strlcpy(song.modulename, um->data, sizeof(song.modulename));
+    assert(um->size == (strlen((char *) um->data) + 1));
+    strlcpy(song.modulename, (char *) um->data, sizeof(song.modulename));
   }
 
   uade_set_automatic_song_end(1);
@@ -791,7 +791,7 @@ void uade_reset(void)
       goto skiptonextsong;
     }
 
-    strlcpy(get_real_address(modnameaddr), song.modulename, 1024);
+    strlcpy((char *) get_real_address(modnameaddr), song.modulename, 1024);
     uade_put_long(SCORE_MODULE_NAME_ADDR, modnameaddr);
 
   } else {
@@ -801,7 +801,7 @@ void uade_reset(void)
       goto skiptonextsong;
     }
 
-    strlcpy(get_real_address(modnameaddr), song.playername, 1024);
+    strlcpy((char *) get_real_address(modnameaddr), song.playername, 1024);
     uade_put_long(SCORE_MODULE_NAME_ADDR, modnameaddr);
 
     bytesread = 0;
@@ -995,7 +995,7 @@ void uade_song_end(char *reason, int kill_it)
   um->msgtype = UADE_REPLY_SONG_END;
   ((uint32_t *) um->data)[0] = htonl(((intptr_t) sndbufpt) - ((intptr_t) sndbuffer));
   ((uint32_t *) um->data)[1] = htonl(kill_it);
-  strlcpy(((uint8_t *) um->data) + 8, reason, 256);
+  strlcpy((char *) um->data + 8, reason, 256);
   um->size = 8 + strlen(reason) + 1;
   if (uade_send_message(um)) {
     fprintf(stderr, "uadecore: Could not send song end message.\n");

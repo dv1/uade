@@ -5,7 +5,8 @@
 	- GCC4 gave warnings of problems I had not noticed: Fixed a bug in
 	  md5.h. uint32_t was accidently redefined (that is #included 
 	  originally from stdint.h). XMMS plugin's uade_ip structure was
-	  declared static but later as external.
+	  declared static but later as external. Fixed signedness warnings
+	  from various modules.
 	- Added seek-forward button into XMMS plugin (mld)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>

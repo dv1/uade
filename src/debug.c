@@ -150,7 +150,7 @@ static uae_u32 uade_debug_search (char *name) {
   int infolen, i;
 
   for (ptr = 0; ptr < 0x10000; ptr += 2) {
-    if (!strcmp(chipmemory + ptr, "uade debug info")) {
+    if (!strcmp((char *) chipmemory + ptr, "uade debug info")) {
       baseptr = ptr;
       break;
     }
@@ -168,7 +168,7 @@ static uae_u32 uade_debug_search (char *name) {
     if (!p[infoptr])
       break;
     infoname = infoptr;
-    infolen = strlen(p + infoptr) + 1;
+    infolen = strlen((char *) p + infoptr) + 1;
     if (infolen %2 == 1)
       infolen++;
     infoptr += infolen;
@@ -179,7 +179,7 @@ static uae_u32 uade_debug_search (char *name) {
 	printf("%.8x: %s\n", infoval, p + infoname);
       } else {
 	if (strlen(name) > 0) {
-	  if (!strncmp (p + infoname, name, strlen(name))) {
+	  if (!strncmp ((char *) p + infoname, name, strlen(name))) {
 	    return infoval;
 	  }
 	}
