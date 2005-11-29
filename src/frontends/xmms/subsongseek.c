@@ -278,7 +278,9 @@ static void uade_seek_directly(void)
 
 static void uade_ffwd(void)
 {
-return;
+    uade_lock();
+    uade_seek_forward += 10;
+    uade_unlock();
 }
 
 

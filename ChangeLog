@@ -4,6 +4,7 @@
 	  already play songs, or at least it should.
 	- Fixed a bug in md5.h. uint32_t was accidently redefined (that is
 	  #included originally from stdint.h)
+	- Added seek-forward button into XMMS plugin (mld)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade

@@ -17,6 +17,7 @@ extern int uade_cur_sub;
 extern int uade_is_paused;
 extern int uade_max_sub;
 extern int uade_min_sub;
+extern int uade_seek_forward;
 extern int uade_select_sub;
 extern int uade_thread_running;
 

@@ -93,6 +93,7 @@ int uade_is_paused;
 int uade_max_sub;
 int uade_min_sub;
 int uade_thread_running;
+int uade_seek_forward;
 int uade_select_sub;
 
 
@@ -301,13 +302,14 @@ static void *play_loop(void *arg)
   int subsong_end = 0;
   uint16_t *sm;
   int i;
-  unsigned int playbytes, tailbytes = 0;
+  unsigned int play_bytes, tailbytes = 0;
   uint64_t subsong_bytes = 0, total_bytes = 0;
   char *reason;
   uint32_t *u32ptr;
   int writable;
   int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
   int song_end_trigger = 0;
+  int64_t skip_bytes = 0;
 
   while (1) {
     if (state == UADE_S_STATE) {
@@ -318,6 +320,10 @@ static void *play_loop(void *arg)
 	break;
 
       uade_lock();
+      if (uade_seek_forward) {
+	skip_bytes += uade_seek_forward * UADE_BYTES_PER_SECOND;
+	uade_seek_forward = 0;
+      }
       if (uade_select_sub != -1) {
 	uade_cur_sub = uade_select_sub;
 	uade_change_subsong(uade_cur_sub);
@@ -382,26 +388,36 @@ static void *play_loop(void *arg)
 	}
 
 	if (subsong_end) {
-	  playbytes = tailbytes;
+	  play_bytes = tailbytes;
 	  tailbytes = 0;
 	} else {
-	  playbytes = um->size;
+	  play_bytes = um->size;
 	}
 
-	subsong_bytes += playbytes;
-	total_bytes += playbytes;
+	if (skip_bytes > 0) {
+	  if (play_bytes <= skip_bytes) {
+	    skip_bytes -= play_bytes;
+	    play_bytes = 0;
+	  } else {
+	    play_bytes -= skip_bytes;
+	    skip_bytes = 0;
+	  }
+	}
 
-	while ((writable = uade_ip.output->buffer_free()) < playbytes) {
+	subsong_bytes += play_bytes;
+	total_bytes += play_bytes;
+
+	while ((writable = uade_ip.output->buffer_free()) < play_bytes) {
 	  if (abort_playing)
 	    goto nowrite;
 	  xmms_usleep(10000);
 	}
 
-	uade_effect_run((int16_t *) um->data, playbytes / framesize);
+	uade_effect_run((int16_t *) um->data, play_bytes / framesize);
 
-	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, playbytes, um->data);
+	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
-	uade_ip.output->write_audio(um->data, playbytes);
+	uade_ip.output->write_audio(um->data, play_bytes);
 
       nowrite:
 
@@ -421,7 +437,7 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	if (test_silence(um->data, playbytes)) {
+	if (test_silence(um->data, play_bytes)) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
 	    subsong_end = 1;
 	  }
@@ -586,6 +602,7 @@ static void uade_play_file(char *filename)
   uade_cur_sub = uade_max_sub = uade_min_sub = -1;
   uade_is_paused = 0;
   uade_select_sub = -1;
+  uade_seek_forward = 0;
   uade_unlock();
 
   strlcpy(tempname, filename, sizeof tempname);
