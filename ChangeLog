@@ -1,3 +1,8 @@
+2005-11-30  Heikki Orsila <heikki.orsila@iki.fi>
+	- Make XMMS plugin auto detectable in configure script. The plugin is
+	  still very experimental and incomplete in features, but it can
+	  already play songs, or at least it should.
+
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade
 	  specific work-arounds for broken or bad songs. Look at doc/song.conf

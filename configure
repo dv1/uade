@@ -24,7 +24,7 @@ fi
 user="no"
 packageprefix=""
 mymods="\$ENV{HOME}"
-usexmms="no"
+usexmms="auto"
 usebmp="no"
 xmmsplugindir="auto"
 bmpplugindir="auto"
@@ -82,13 +82,9 @@ for opt in "$@" ; do
 	--xmms-plugin-dir=*)
 		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
-	--bmp-plugin-dir=*)
-		bmpplugindir=`echo $opt | sed -n 's/--bmp-plugin-dir=\(.*\)/\1/p'`
-		;;
-	--mymods=*)
-		mymods=`echo $opt | sed -n 's/--mymods=\(.*\)/\1/p'`
-		mod=1
-		;;
+#	--bmp-plugin-dir=*)
+#		bmpplugindir=`echo $opt | sed -n 's/--bmp-plugin-dir=\(.*\)/\1/p'`
+#		;;
 
 	--with-xmms)
 		usexmms="yes"
@@ -96,32 +92,20 @@ for opt in "$@" ; do
 	--without-xmms)
 		usexmms="no"
 		;;
-	--with-bmp)
-		usebmp="yes"
-		;;
-	--without-bmp)
-		usebmp="no"
-		;;
+#	--with-bmp)
+#		usebmp="yes"
+#		;;
+#	--without-bmp)
+#		usebmp="no"
+#		;;
 
-	--with-alsa)
-		FORCEDAUDIOTARGET="ALSA"
-		disablealsa="no"
-		;;
-	--without-alsa)
-		disablealsa="yes"
-		;;
-
-	--with-null)
-		FORCEDAUDIOTARGET="NULL"
-		;;
-
-	--with-oss)
-		FORCEDAUDIOTARGET="OSS"
-		disableoss="no"
-		;;
-	--without-oss)
-		disableoss="yes"
-		;;
+#	--with-alsa)
+#		FORCEDAUDIOTARGET="ALSA"
+#		disablealsa="no"
+#		;;
+#	--without-alsa)
+#		disablealsa="yes"
+#		;;
 
 	--with-ao)
 		FORCEDAUDIOTARGET="AO"
@@ -131,20 +115,6 @@ for opt in "$@" ; do
 		disableao="yes"
 		;;
 
-	--with-sdl)
-		FORCEDAUDIOTARGET="SDL"
-		disablesdl="no"
-		;;
-	--without-sdl)
-		disablesdl="yes"
-		;;
-
-	--interaction)
-		interaction="yes"
-		;;
-	--no-interaction)
-		interaction="nooo"
-		;;
         --user)
 		user="yes"
 		;;
@@ -167,6 +137,9 @@ for opt in "$@" ; do
 		echo " --mandir=dir           Install man page to this directory"
 		echo " --libdir=dir           Add this dircetory to linking path"
 		echo " --sharedir=dir         Install UADE data files into this directory"
+		echo "Frontend options:"
+		echo " --with-xmms          Compile an XMMS plugin (auto detect)"
+		echo " --without-xmms       Do not compile an XMMS plugin"
 		echo
 		echo "Library control:"
 		echo " --glib-config=exe    Use 'exe' as glib-config executable"
@@ -199,7 +172,7 @@ if test "$usexmms" = "auto" ; then
 	usexmms="yes"
     else
 	usexmms="no"
-	echo "Couldn't find xmms-config => not compiling xmms-plugin!"
+	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
     fi
 fi
 
@@ -493,7 +466,8 @@ echo "Documentation directory will be         : $docdir"
 echo "Man directory will be                   : $mandir"
 echo "Installer that will be used             : $INSTALLTEST"
 echo "Make that will be used during the build : $MAKE"
-echo "Sound output with                       : $AUDIOTARGET"
+echo "uade123 sound output:                   : $AUDIOTARGET"
+echo "XMMS plugin                             : $usexmms"
 echo
 
 cat > src/ossupport.c <<EOF
