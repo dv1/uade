@@ -4,9 +4,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-/* this can cause problems on platforms where unsigned int is not 32 bits */
-typedef unsigned int uint32_t;
-
 #define MD5_HASHBYTES 16
 
 typedef struct MD5Context {
