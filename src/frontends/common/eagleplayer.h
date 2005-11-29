@@ -10,15 +10,17 @@
 #define EP_CONTENT_DETECTION (1 << 3)
 #define EP_SPEED_HACK        (1 << 4)
 
-#define ES_BROKEN_SUBSONGS   (1 << 0)
-#define ES_LED_OFF           (1 << 1)
-#define ES_LED_ON            (1 << 2)
-#define ES_NO_HEADPHONES     (1 << 3)
-#define ES_NO_PANNING        (1 << 4)
-#define ES_NO_POSTPROCESSING (1 << 5)
-#define ES_NTSC              (1 << 6)
-#define ES_SPEEDHACK         (1 << 7)
-#define ES_VBLANK            (1 << 8)
+#define ES_A500              (1 <<  0)
+#define ES_A1200             (1 <<  1)
+#define ES_BROKEN_SUBSONGS   (1 <<  2)
+#define ES_LED_OFF           (1 <<  3)
+#define ES_LED_ON            (1 <<  4)
+#define ES_NO_HEADPHONES     (1 <<  5)
+#define ES_NO_PANNING        (1 <<  6)
+#define ES_NO_POSTPROCESSING (1 <<  7)
+#define ES_NTSC              (1 <<  8)
+#define ES_SPEED_HACK        (1 <<  9)
+#define ES_VBLANK            (1 << 10)
 
 struct eagleplayer {
   char *playername;
@@ -48,10 +50,12 @@ struct eaglesong {
 
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     const char *basedir, int verbose);
-
+struct eaglesong *uade_analyze_song(const char *asciimd5);
+int uade_file_md5(char *asciimd5, const char *filename, size_t len);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);
 
 struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
+int uade_read_song_conf(const char *filename);
 
 #endif

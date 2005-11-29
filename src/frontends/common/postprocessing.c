@@ -22,6 +22,9 @@ void uade_postprocessing_setup(enum uade_postprocessing_op op)
       uade_effect_reset_internals();
     uade_use_postprocessing = 1;
     break;
+  case UADE_POSTPROCESSING_DISABLE:
+    uade_use_postprocessing = 0;
+    break;
   case UADE_POSTPROCESSING_TOGGLE:
     if (uade_use_postprocessing == 0)
       uade_effect_reset_internals();
@@ -30,11 +33,17 @@ void uade_postprocessing_setup(enum uade_postprocessing_op op)
   case UADE_PANNING_ENABLE:
     uade_use_panning = 1;
     break;
+  case UADE_PANNING_DISABLE:
+    uade_use_panning = 0;
+    break;
   case UADE_PANNING_TOGGLE:
     uade_use_panning ^= 1;
     break;
   case UADE_HEADPHONES_ENABLE:
     uade_use_headphones = 1;
+    break;
+  case UADE_HEADPHONES_DISABLE:
+    uade_use_headphones = 0;
     break;
   case UADE_HEADPHONES_TOGGLE:
     uade_use_headphones ^= 1;

@@ -153,7 +153,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
 struct eaglesong *uade_analyze_song(const char *asciimd5)
 {
   struct eaglesong key;
-  if (strlcpy(key.md5, asciimd5, sizeof key.md5) != sizeof key.md5) {
+  if (strlcpy(key.md5, asciimd5, sizeof key.md5) != ((sizeof key.md5) - 1)) {
     fprintf(stderr, "Invalid md5sum: %s\n", asciimd5);
     exit(-1);
   }
@@ -183,7 +183,7 @@ int uade_file_md5(char *asciimd5, const char *filename, size_t len)
     MD5Update(&ctx, buf, s);
   }
   MD5Final(md5, &ctx);
-  snprintf(asciimd5, sizeof asciimd5, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  snprintf(asciimd5, len, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
   return 1;
 }
 
@@ -413,7 +413,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 }
 
 
-void uade_read_song_conf(const char *filename)
+int uade_read_song_conf(const char *filename)
 {
   FILE *f;
   struct eaglesong *s;
@@ -422,7 +422,7 @@ void uade_read_song_conf(const char *filename)
   size_t i;
 
   if ((f = fopen(filename, "r")) == NULL)
-    return;
+    return 0;
 
   nsongs = 0;
   allocated = 16;
@@ -456,14 +456,18 @@ void uade_read_song_conf(const char *filename)
       free(items);
       continue;
     }
-    if (strlcpy(s->md5, items[0] + 4, sizeof s->md5) != 33) {
+    if (strlcpy(s->md5, items[0] + 4, sizeof s->md5) != ((sizeof s->md5) - 1)) {
       fprintf(stderr, "Line %zd in %s has too long an md5sum.\n", lineno, filename);
       free(items);
       continue;
     }
 
     for (i = 1; i < nitems; i++) {
-      if (strcasecmp(items[i], "\\broken_subsongs") == 0) {
+      if (strcasecmp(items[i], "\\a500") == 0) {
+	s->flags |= ES_A500;
+      } else if (strcasecmp(items[i], "\\a1200") == 0) {
+	s->flags |= ES_A1200;
+      } else if (strcasecmp(items[i], "\\broken_subsongs") == 0) {
 	s->flags |= ES_BROKEN_SUBSONGS;
       } else if (strcasecmp(items[i], "\\led_off") == 0) {
 	s->flags |= ES_LED_OFF;
@@ -507,11 +511,9 @@ void uade_read_song_conf(const char *filename)
 	s->subsongs[pos] = -1;
 	assert(pos == s->nsubsongs);
       } else if (strcasecmp(items[i], "\\speedhack") == 0) {
-	s->flags |= ES_SPEEDHACK;
+	s->flags |= ES_SPEED_HACK;
       } else if (strcasecmp(items[i], "\\vblank") == 0) {
 	s->flags |= ES_VBLANK;
-      } else if (strncasecmp(items[i], "\\comment:", 8) == 0) {
-	break;
       }
     }
 
@@ -522,6 +524,7 @@ void uade_read_song_conf(const char *filename)
 
   /* Sort MD5 sums for binary searching songs */
   qsort(songstore, nsongs, sizeof songstore[0], escompare);
+  return 1;
 }
 
 

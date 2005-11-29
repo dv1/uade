@@ -32,6 +32,7 @@
 #include <uadeconfig.h>
 #include <eagleplayer.h>
 #include <uadeconf.h>
+#include <postprocessing.h>
 
 #include "uade123.h"
 #include "playlist.h"
@@ -39,7 +40,6 @@
 #include "audio.h"
 #include "config.h"
 #include "terminal.h"
-#include "postprocessing.h"
 #include "amigafilter.h"
 
 int uade_debug_trigger;
@@ -152,12 +152,22 @@ int main(int argc, char *argv[])
   if (config_loaded == 0)
     config_loaded = load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
   if (config_loaded == 0)
-    fprintf(stderr, "Not able to load uade.conf from ~/.uade2/uade.conf or %s/uade.conf.\n", UADE_CONFIG_BASE_DIR);
+    debug("Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "Too long a string for option %c.\n", ret); \
          exit(-1); \
       }
+
+  config_loaded = 0;
+  if (getenv("HOME") != NULL) {
+    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/song.conf", getenv("HOME"));
+    config_loaded = uade_read_song_conf(tmpstr);
+  }
+  if (config_loaded == 0)
+    config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
+  if (config_loaded == 0)
+    debug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
   while ((ret = getopt_long(argc, argv, "@:1de:f:ghij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
@@ -381,6 +391,7 @@ int main(int argc, char *argv[])
     nplayers = 1;
     if (playernamegiven == 0) {
       struct eagleplayer *candidate;
+      char md5[33];
 
       debug("\n");
 
@@ -409,11 +420,41 @@ int main(int argc, char *argv[])
       if (filter_override)
 	debug("eagleplayer.conf specifies filter model %d\n", filter_override);
 
+      if (uade_file_md5(md5, modulename, sizeof md5)) {
+	struct eaglesong *es = uade_analyze_song(md5);
+	if (es) {
+	  fprintf(stderr, "Warning: song.conf is not implemented properly. Effects are permanent rather than file specific :(\n");
+	  if (es->flags & ES_A500)
+	    filter_override = FILTER_MODEL_A500;
+	  if (es->flags & ES_A1200)
+	    filter_override = FILTER_MODEL_A1200;
+	  if (es->flags & ES_LED_OFF) {
+	    uade_force_filter = 1;
+	    uade_filter_state = 0;
+	  }
+	  if (es->flags & ES_LED_ON) {
+	    uade_force_filter = 1;
+	    uade_filter_state = 1;
+	  }
+	  /* Command line should be able to override these */
+	  if (es->flags & ES_NO_HEADPHONES)
+	    uade_postprocessing_setup(UADE_HEADPHONES_DISABLE);
+	  if (es->flags & ES_NO_PANNING)
+	    uade_postprocessing_setup(UADE_PANNING_DISABLE);
+	  if (es->flags & ES_NO_POSTPROCESSING)
+	    uade_postprocessing_setup(UADE_POSTPROCESSING_DISABLE);
+	  if (es->flags & ES_NTSC)
+	    fprintf(stderr, "NTSC not implemented.\n");
+	  if (es->subsongs)
+	    fprintf(stderr, "Subsongs not implemented.\n");
+	}
+      }
+
       if (strcmp(candidate->playername, "custom") == 0) {
-	strlcpy(playername, modulename, sizeof(playername));
+	strlcpy(playername, modulename, sizeof playername);
 	modulename[0] = 0;
       } else {
-	snprintf(playername, sizeof(playername), "%s/players/%s", basedir, candidate->playername);
+	snprintf(playername, sizeof playername, "%s/players/%s", basedir, candidate->playername);
       }
     }
 
