@@ -111,7 +111,7 @@ static const char *offset_0024_patterns[] = {
    the 'pattern' must lie inside range [0, maxlen) in the buffer.
    returns true if pattern is at buf[offset], otherwrise false
  */
-static int patterntest(const char *buf, const char *pattern,
+static int patterntest(const unsigned char *buf, const char *pattern,
 		       int offset, int bytes, int maxlen)
 {
   if ((offset + bytes) <= maxlen)
@@ -159,7 +159,7 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
   if (bufsize <= 0x208)
     return 0;
 
-  if (strncmp(buf, "TFHD", 4) == 0) {
+  if (strncmp((char *) buf, "TFHD", 4) == 0) {
     if (buf[0x8] == 0x01) {
       strcpy(pre, "TFHD1.5");	/* One File TFMX format by Alexis NASR */
       return 1;
@@ -172,15 +172,15 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
     }
   }
 
-  if (strncasecmp(buf, "TFMX", 4) == 0) {
-    if (strncmp(&buf[4], "-SONG", 5) == 0 ||
-	strncmp(&buf[4], "_SONG ", 6) == 0 ||
-	strncasecmp(&buf[4], "SONG", 4) == 0 ||
+  if (strncasecmp((char *) buf, "TFMX", 4) == 0) {
+    if (strncmp((char *) &buf[4], "-SONG", 5) == 0 ||
+	strncmp((char *) &buf[4], "_SONG ", 6) == 0 ||
+	strncasecmp((char *) &buf[4], "SONG", 4) == 0 ||
 	buf[4] == 0x20) {
       strcpy(pre, "MDAT");	/*default TFMX: TFMX Pro */
 
-      if (strncmp(&buf[10], "by  ", 4) == 0 ||
-	  strncmp(&buf[16], "(Empty)", 7) == 0 ||
+      if (strncmp((char *) &buf[10], "by  ", 4) == 0 ||
+	  strncmp((char *) &buf[16], "(Empty)", 7) == 0 ||
 	  /* Lethal Zone */
 	  (buf[16] == '0' && buf[17] == 0x3d)) { 
 

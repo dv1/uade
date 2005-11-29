@@ -168,9 +168,9 @@ int uade_receive_string(char *s, enum uade_msgtype com,
     return -1;
   if (um->size == 0)
     return -1;
-  if (um->size != (strlen(um->data) + 1))
+  if (um->size != (strlen((char *) um->data) + 1))
     return -1;
-  strlcpy(s, um->data, maxlen);
+  strlcpy(s, (char *) um->data, maxlen);
   return 1;
 }
 
