@@ -352,7 +352,6 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
 /*		 11 for a PTK Compatible		    */
 
 {
-/* todo: port and enhance ptk-prowiz detection to amifilemagic */
 
     /* mod patterns at file offset 0x438 */
     char *mod_patterns[] = { "M.K.", ".M.K", 0 };
@@ -462,7 +461,7 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
     	     max_pattern=(buf[1080 - 130 + 2 + i] > max_pattern) ? buf[1080 - 130 + 2 + i] : max_pattern;
 	    }
 
-	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
+	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 100 for mod*/
 
 
 	

@@ -18,6 +18,7 @@ static int get_min_subsong(int def);
 static void uade_seek_directly(void);
 static void uade_seek_next(void);
 static void uade_seek_previous(void);
+static void uade_ffwd(void);
 static void focus_out_event();
 static void uade_seek_update_display(int subsong);
 
@@ -101,16 +102,17 @@ static int get_min_subsong(int def)
 void uade_gui_seek_subsong(int to)
 {
     GtkWidget *seek_button_box;
+    GtkWidget *prev_next_button_box;
     GtkWidget *seek_button_vbox;
     GtkWidget *seek_slider_box;
 
-    GtkWidget *prev_button, *prev2_button;
+    GtkWidget *prev_button;
     GtkWidget *prev_button_frame;
     GtkWidget *frame;
     GtkWidget *hscale;
     GtkWidget *maxsong_label;
-    GtkWidget *next_button, *next2_button;
-    GtkWidget *next_button_frame;
+    GtkWidget *next_button,*ffwd_button;
+    GtkWidget *ffwd_button_frame;
 
     if (!uade_thread_running) {
 	fprintf(stderr, "uade: BUG! Seek not possible.\n");
@@ -179,11 +181,6 @@ void uade_gui_seek_subsong(int to)
 	gtk_frame_set_shadow_type(GTK_FRAME(prev_button_frame),
 				  GTK_SHADOW_IN);
 
-	prev2_button = gtk_button_new_with_label("<");
-	gtk_widget_set_usize(prev2_button, 27, -1);
-	gtk_signal_connect_object(GTK_OBJECT(prev2_button), "clicked",
-				  GTK_SIGNAL_FUNC(uade_seek_previous),
-				  NULL);
 
         /* next subsong button, will be used by all styles of the seek popup*/
 	next_button = gtk_button_new_with_label(">");
@@ -191,14 +188,14 @@ void uade_gui_seek_subsong(int to)
 	gtk_signal_connect_object(GTK_OBJECT(next_button), "clicked",
 				  GTK_SIGNAL_FUNC(uade_seek_next), NULL);
 
-	next_button_frame = gtk_frame_new(NULL);
-	gtk_frame_set_shadow_type(GTK_FRAME(next_button_frame),
+	ffwd_button_frame = gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(ffwd_button_frame),
 				  GTK_SHADOW_IN);
 
-	next2_button = gtk_button_new_with_label(">");
-	gtk_widget_set_usize(next2_button, 27, -1);
-	gtk_signal_connect_object(GTK_OBJECT(next2_button), "clicked",
-				  GTK_SIGNAL_FUNC(uade_seek_next), NULL);
+	ffwd_button = gtk_button_new_with_label(">>");
+	gtk_widget_set_usize(ffwd_button, 27, -1);
+	gtk_signal_connect_object(GTK_OBJECT(ffwd_button), "clicked",
+				  GTK_SIGNAL_FUNC(uade_ffwd), NULL);
 
 	/* with the alternative styles of the subsongseeker,
 	 * following suggestions made by David Le Corfec*/
@@ -215,11 +212,21 @@ void uade_gui_seek_subsong(int to)
 	gtk_signal_connect(GTK_OBJECT(seek_button_vbox), "focus_out_event",
 			   GTK_SIGNAL_FUNC(focus_out_event), NULL);
 
+	prev_next_button_box = gtk_hbox_new(FALSE, 0);
+
 	/* use the previous defined buttons here */
+
 	gtk_box_pack_start_defaults(GTK_BOX(seek_button_vbox),
-				    prev_button_frame);
+			   prev_button_frame);
+
 	gtk_container_add(GTK_CONTAINER(prev_button_frame),
-			  prev_button);
+			   prev_next_button_box);
+
+	gtk_box_pack_start_defaults(GTK_BOX(prev_next_button_box),
+			   prev_button);
+	gtk_box_pack_start_defaults(GTK_BOX(prev_next_button_box),
+			   next_button);
+
 
 
 	seek_slider_box = gtk_hbox_new(FALSE, 0);
@@ -234,9 +241,9 @@ void uade_gui_seek_subsong(int to)
 
 	/* use the previous defined buttons here */
 	gtk_box_pack_start_defaults(GTK_BOX(seek_button_vbox),
-				    next_button_frame);
-	gtk_container_add(GTK_CONTAINER(next_button_frame),
-			  next_button);
+			   ffwd_button_frame);
+	gtk_container_add(GTK_CONTAINER(ffwd_button_frame), 		 
+			   ffwd_button);
 
 	gtk_widget_show_all(seekpopup);
 
@@ -268,6 +275,12 @@ static void uade_seek_directly(void)
  * GTK signalling the uade_seek_directly is invoked automatically.
  * A bit tricky but it works ;-)
  */
+
+static void uade_ffwd(void)
+{
+return;
+}
+
 
 static void uade_seek_next(void)
 {
