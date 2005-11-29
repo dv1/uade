@@ -1,5 +1,6 @@
 To be solved:
 
+2005-11-30: XMMS plugin displays wrong time if seek forward is used (shd)
 2005-11-03: make soundcheck uses uade.conf if it can find one. (shd)
 2005-10-30: THM.BlueAngel69 subsong 2 is very buggy (shd)
 2005-10-29: CUST.Wings does not work (shd)
