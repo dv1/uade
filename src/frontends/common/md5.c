@@ -21,12 +21,12 @@
 #if __BYTE_ORDER == 1234
 #define byteReverse(buf, len)	/* Nothing */
 #else
-void byteReverse(unsigned char *buf, unsigned longs);
+static void byteReverse(unsigned char *buf, unsigned longs);
 
 /*
  * Note: this code is harmless on little-endian machines.
  */
-void byteReverse(unsigned char *buf, unsigned longs)
+static void byteReverse(unsigned char *buf, unsigned longs)
 {
     uint32_t t;
     do {

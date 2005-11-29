@@ -5,7 +5,7 @@ CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
 	playloop.o audio.o config.o terminal.o postprocessing.o \
-	uadecontrol.o uadeconf.o
+	uadecontrol.o uadeconf.o md5.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -26,10 +26,13 @@ chrarray.o:	chrarray.c chrarray.h
 config.o:	config.c config.h ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
-eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h
+eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h ../common/md5.h
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	../common/effects.c ../common/effects.h
+	$(CC) $(CFLAGS) -c $<
+
+md5.o:	../common/md5.c ../common/md5.h
 	$(CC) $(CFLAGS) -c $<
 
 playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h

@@ -2,6 +2,7 @@
 	- Wrote code for parsing song.conf (which is used for uade specific
 	  work-arounds for broken or bad songs) into
 	  src/frontends/common/eagleplayer.c. However, it is not used yet.
+	- Added MD5 sum routine to identify songs with song.conf
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modularized loading and parsing on uade.conf options. See

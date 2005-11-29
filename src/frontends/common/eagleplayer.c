@@ -27,6 +27,7 @@
 
 #include <eagleplayer.h>
 #include <amifilemagic.h>
+#include <md5.h>
 
 
 #define LINESIZE (1024)
@@ -146,6 +147,44 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
     return candidate;
 
   return NULL;
+}
+
+
+struct eaglesong *uade_analyze_song(const char *asciimd5)
+{
+  struct eaglesong key;
+  if (strlcpy(key.md5, asciimd5, sizeof key.md5) != sizeof key.md5) {
+    fprintf(stderr, "Invalid md5sum: %s\n", asciimd5);
+    exit(-1);
+  }
+  return bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
+}
+
+
+int uade_file_md5(char *asciimd5, const char *filename, size_t len)
+{
+  uint8_t buf[4096];
+  FILE *f;
+  size_t s;
+  MD5_CTX ctx;
+  uint8_t md5[16];
+
+  if (len < 33)
+    return 0;
+  if ((f = fopen(filename, "r")) == NULL)
+    return 0;
+
+  MD5Init(&ctx);
+
+  while (1) {
+    s = fread(buf, 1, sizeof buf, f);
+    if (s == 0)
+      break;
+    MD5Update(&ctx, buf, s);
+  }
+  MD5Final(md5, &ctx);
+  snprintf(asciimd5, sizeof asciimd5, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  return 1;
 }
 
 
