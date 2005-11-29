@@ -517,9 +517,12 @@ test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 
 uade123rule="uade123"
+uade123installrule="uade123install"
 xmmspluginrule=""
+xmmsplugininstallrule=""
 if test "$usexmms" = "yes" ; then
     xmmspluginrule="xmmsplugin"
+    xmmsplugininstallrule="xmmsplugininstall"
 fi
 
 sed -e "s|{MAKE}|$MAKE|g" \
@@ -531,7 +534,9 @@ sed -e "s|{MAKE}|$MAKE|g" \
     -e "s|{PACKAGEPREFIX}|$packageprefix|g" \
     -e "s|{UADE123NAME}|$UADE123NAME|g" \
     -e "s|{UADE123}|$uade123rule|g" \
+    -e "s|{UADE123INSTALL}|$uade123installrule|g" \
     -e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
+    -e "s|{XMMSPLUGININSTALL}|$xmmsplugininstallrule|g" \
     -e "s|{XMMSPLUGINDIR}|$xmmsplugin|g" \
     Makefile.in > Makefile
 

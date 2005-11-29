@@ -2,6 +2,9 @@
 	- Partial and buggy implementation of song.conf. It is used for uade
 	  specific work-arounds for broken or bad songs. Look at doc/song.conf
 	  and src/frontends/common/eagleplayer.c. Please do not use this yet.
+	- Fixed some compiler warnings that surprisingly came with gcc 4.0.2.
+	- Fixed Makefile.in to not report error on 'make install' when XMMS
+	  plugin is not installed.
 
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modularized loading and parsing on uade.conf options. See

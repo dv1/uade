@@ -53,10 +53,10 @@ int audio_init(void)
 }
 
 
-int audio_play(char *samples, int bytes)
+int audio_play(unsigned char *samples, int bytes)
 {
   if (uade_no_output)
     return bytes;
   /* ao_play returns 0 on failure */
-  return ao_play(libao_device, samples, bytes);
+  return ao_play(libao_device, (char *) samples, bytes);
 }

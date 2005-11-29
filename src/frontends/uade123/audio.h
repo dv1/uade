@@ -3,6 +3,6 @@
 
 void audio_close(void);
 int audio_init(void);
-int audio_play(char *samples, int bytes);
+int audio_play(unsigned char *samples, int bytes);
 
 #endif

@@ -73,8 +73,10 @@ install:	all
 	cp -f src/uadecore "$(LIBDIR)"/
 	chmod og+rx "$(LIBDIR)/uadecore"
 
-	test -n "{UADE123}" && $(MAKE) uade123install
-	test -n "{XMMSPLUGIN}" && $(MAKE) xmmsplugininstall
+	$(MAKE) feinstall
+
+feinstall:	{UADE123INSTALL} {XMMSPLUGININSTALL}
+	@true
 
 feclean:	
 	$(MAKE) -C src/frontends/uade123 clean
