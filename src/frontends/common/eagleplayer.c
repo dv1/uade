@@ -39,8 +39,19 @@
 static uint8_t fileformat_buf[8192];
 static struct eagleplayerstore *playerstore;
 
+static int nsongs;
+static struct eaglesong *songstore;
+
 
 static int ufcompare(const void *a, const void *b);
+
+
+/* Compare function for bsearch() and qsort() to sort songs with respect
+   to their md5sums */
+static int escompare(const void *a, const void *b)
+{
+  return strcasecmp(((struct eaglesong *) a)->md5, ((struct eaglesong *) b)->md5);
+}
 
 
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
@@ -363,7 +374,120 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 }
 
 
-/* Compare function for bsearch() and qsort() */
+void uade_read_song_conf(const char *filename)
+{
+  FILE *f;
+  struct eaglesong *s;
+  size_t allocated;
+  size_t lineno = 0;
+  size_t i;
+
+  if ((f = fopen(filename, "r")) == NULL)
+    return;
+
+  nsongs = 0;
+  allocated = 16;
+  songstore = calloc(allocated, sizeof songstore[0]);
+  if (songstore == NULL)
+    eperror("No memory for song store.");
+
+  while (1) {
+    char **items;
+    size_t nitems;
+
+    if ((items = split_line(&nitems, &lineno, f, WS_DELIMITERS)) == NULL)
+      break;
+
+    assert(nitems > 0);
+
+    if (nsongs == allocated) {
+      allocated *= 2;
+      songstore = realloc(songstore, allocated * sizeof(songstore[0]));
+      if (songstore == NULL)
+	eperror("No memory for players.");
+    }
+
+    s = &songstore[nsongs];
+    nsongs++;
+
+    memset(s, 0, sizeof s[0]);
+
+    if (strncasecmp(items[0], "md5=", 4) != 0) {
+      fprintf(stderr, "Line %zd must begin with md5= in %s\n", lineno, filename);
+      free(items);
+      continue;
+    }
+    if (strlcpy(s->md5, items[0] + 4, sizeof s->md5) != 33) {
+      fprintf(stderr, "Line %zd in %s has too long an md5sum.\n", lineno, filename);
+      free(items);
+      continue;
+    }
+
+    for (i = 1; i < nitems; i++) {
+      if (strcasecmp(items[i], "\\broken_subsongs") == 0) {
+	s->flags |= ES_BROKEN_SUBSONGS;
+      } else if (strcasecmp(items[i], "\\led_off") == 0) {
+	s->flags |= ES_LED_OFF;
+      } else if (strcasecmp(items[i], "\\led_on") == 0) {
+	s->flags |= ES_LED_ON;
+      } else if (strcasecmp(items[i], "\\no_headphones") == 0) {
+	s->flags |= ES_NO_HEADPHONES;
+      } else if (strcasecmp(items[i], "\\no_panning") == 0) {
+	s->flags |= ES_NO_PANNING;
+      } else if (strcasecmp(items[i], "\\no_postprocessing") == 0) {
+	s->flags |= ES_NO_POSTPROCESSING;
+      } else if (strcasecmp(items[i], "\\ntsc") == 0) {
+	s->flags |= ES_NTSC;
+      } else if (strncasecmp(items[i], "\\subsongs=", 10) == 0) {
+	char subsongs[LINESIZE];
+	char *subsongstart = items[i] + 10;
+	char *sp, *str;
+	size_t pos;
+
+	s->nsubsongs = 0;
+	strlcpy(subsongs, subsongstart, sizeof subsongs);
+	sp = subsongs;
+	while ((str = strsep(&sp, OPTION_DELIMITER)) != NULL) {
+	  if (*str == 0)
+	    continue;
+	  s->nsubsongs++;
+	}
+
+	s->subsongs = malloc(s->nsubsongs * (1 + sizeof(s->subsongs[0])));
+	if (s->subsongs == NULL)
+	  eperror("No memory for subsongs.");
+
+	pos = 0;
+	sp = subsongstart;
+	while ((str = strsep(&sp, OPTION_DELIMITER)) != NULL) {
+	  if (*str == 0)
+	    continue;
+	  s->subsongs[pos] = atoi(str);
+	  pos++;
+	}
+	s->subsongs[pos] = -1;
+	assert(pos == s->nsubsongs);
+      } else if (strcasecmp(items[i], "\\speedhack") == 0) {
+	s->flags |= ES_SPEEDHACK;
+      } else if (strcasecmp(items[i], "\\vblank") == 0) {
+	s->flags |= ES_VBLANK;
+      } else if (strncasecmp(items[i], "\\comment:", 8) == 0) {
+	break;
+      }
+    }
+
+    free(items);
+  }
+
+  fclose(f);
+
+  /* Sort MD5 sums for binary searching songs */
+  qsort(songstore, nsongs, sizeof songstore[0], escompare);
+}
+
+
+/* Compare function for bsearch() and qsort() to sort eagleplayers with
+   respect to name extension. */
 static int ufcompare(const void *a, const void *b)
 {
   const struct eagleplayermap *ua = a;

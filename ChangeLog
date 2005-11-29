@@ -1,3 +1,8 @@
+2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
+	- Wrote code for parsing song.conf (which is used for uade specific
+	  work-arounds for broken or bad songs) into
+	  src/frontends/common/eagleplayer.c. However, it is not used yet.
+
 2005-11-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Modularized loading and parsing on uade.conf options. See
 	  src/frontends/common/uadeconf.[ch].
