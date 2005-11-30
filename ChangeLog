@@ -15,6 +15,9 @@
 	- changed to a stricter tracker module length policy... 
 	  If uade doesn't play your modfiles anymore, it's a bad rip.
 	  Get a good one... :)
+	- Since Master-Soundtracker files seem to use a subset of the normal
+	  Soundtracker fx, they now get played with the mod15 replay
+	  This makes Master-ST replayer kind of obsolete atm (mld)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade

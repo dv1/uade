@@ -626,17 +626,18 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
        }
      }
 
-     for (j=0xc; j<0x11; j++)
+
+     for (j=0x0c; j<0x11; j++)
     	 {
     	    if (pfx[j] != 0)
     		{
-		 if (pfx[0x0d] !=0 && pfxarg[0x0d] !=0) return 4 ; /* ST II-IV */
-		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!=0) {
-    		    return 1;	/* DOC ST */
-    		} else {
-    		    if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
-		    return 3;	/* Master ST */
-    		}
+		 if (pfx[0x0d] != 0 && pfxarg[0x0d] !=0 ) return 4 ; /* ST II-IV */
+		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!= 0 ) {
+    			return 1;	/* DOC ST */
+    		 } else {
+    			if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
+			return 3;	/* Master ST */
+    		 }
     	    }
     	}
 
