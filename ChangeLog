@@ -8,6 +8,8 @@
 	  declared static but later as external. Fixed signedness warnings
 	  from various modules.
 	- Added seek-forward button into XMMS plugin (mld)
+	- New replayer for Soundtracker v2-v5 mods with 15 instruments and
+	  a lot of different effects added. (mld)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade

@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Master Soundtracker player 2005-11-24',0
+	dc.b '$VER: Master Soundtracker player 2005-11-30',0
 	even
 
 PlayerTagArray
@@ -49,7 +49,6 @@ CName	dc.b "'88 by DOC & TIP/The New Masters",10
 ; Test Soundtracker-Module
 
 Chk						; UST ?
-	move.w	#-1,d0
 	move.l	dtg_ChkData(a5),a0
 	move.l	dtg_ChkSize(a5),d1
 	move.l	a0,song
@@ -327,7 +326,13 @@ replaystep:				;** work next pattern-step
 	lea	datach3(pc),a6
 	bsr.L	chanelhandler
 	move.w	#400,d0			;** wait a while and set len
-rep1:	dbf	d0,rep1			;   of oneshot to 1 word
+rep1:
+	movem.l	d0-d7/a0-a6,-(a7)
+	move.l	delibase,a5
+	move.l	dtg_WaitAudioDMA(a5),a0
+	jsr (a0)
+	movem.l	(a7)+,d0-d7/a0-a6
+	
 	move.w	#$8000,d0
 	or.w	enbits,d0
 	move.w	d0,$dff096

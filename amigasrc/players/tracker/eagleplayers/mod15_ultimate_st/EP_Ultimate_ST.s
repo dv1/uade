@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Ultimate Soundtracker player 2005-11-26',0
+	dc.b '$VER: Ultimate Soundtracker player 2005-11-30',0
 	even
 
 PlayerTagArray
@@ -47,7 +47,6 @@ CName		dc.b "87/88 by Karsten Obarski",10
 ; Testet auf Ultimate Soundtracker-Modul
 
 Chk						; UST ?
-	move.w	#-1,d0
 	move.l	dtg_ChkData(a5),a0
 	move.l	dtg_chksize(a5),d1		; File len
 	move.l	a0,ustsong
@@ -299,8 +298,13 @@ replaystep:				;** work next pattern-step
 	lea.l	$dff0d0,a5		;chanel 3
 	lea.l	datach3,a6
 	bsr	chanelhandler
-	move.l	#400,d0			;** wait a while and set len
-rep1:	dbra	d0,rep1			;   of oneshot to 1 word
+rep1:
+	movem.l	d0-d7/a0-a6,-(a7)
+	move.l	delibase,a5
+	move.l	dtg_WaitAudioDMA(a5),a0
+	jsr	(a0)
+	movem.l	(a7)+,d0-d7/a0-a6
+
 	move.l	#$8000,d0
 	or.w	enbits,d0
 	move.w	d0,$dff096

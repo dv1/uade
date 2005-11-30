@@ -303,7 +303,7 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
   int i, j, fx;
   unsigned char fxarg;
   
-  for (i = 0; i <= max_pattern; i++) {
+  for (i = 0; i < max_pattern; i++) {
     for (j = 0; j < 256; j++) {
       offset = header + i * 1024 + j * 4;
 
@@ -334,6 +334,7 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
       }
     }
   }
+
 }
 
 
@@ -612,18 +613,15 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 
 /* and now for let's see if we can spot the mod */
 
-/* FX used:					*/
-/* Ultimate ST:			0,1,2		*/
-/* MasterSoundtracker:		0,1,2,  c,  e,f	*/
-/* DOC-Soundtracker V2.0:	0,1,2,b,c,d,e,f */
-/* Soundtracker II-IV		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
-
-
-
+/* FX used:					  */
+/* Ultimate ST:			0,1,2		  */
+/* MasterSoundtracker:		0,1,2,    c,  e,f */
+/* DOC-Soundtracker V2.2:	0,1,2,a,b,c,d,e,f */
+/* Soundtracker I-VI		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
 
 
 /* Check for fx used between 0x3 <-> 0xb */
-   for (j=3; j<0xb; j++ )
+   for (j=0x5; j<0xa; j++ )
      {
       if (pfx[j] !=0)
        { 
@@ -632,12 +630,12 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
      }
 
 
-     for (j=0xb; j<0x10; j++)
+     for (j=0xc; j<0x11; j++)
     	 {
     	    if (pfx[j] != 0)
     		{
-		 if (pfx[0x0d] >max_pattern) return 4 ; /* ST II-IV */
-		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0) {
+		 if (pfx[0x0d] !=0 && pfxarg[0x0d] !=0) return 4 ; /* ST II-IV */
+		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!=0) {
     		    return 1;	/* DOC ST */
     		} else {
     		    if (pfxarg[1] > 0xf || pfxarg[2] > 0xf) return 1;	/*DOC ST */
