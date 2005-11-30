@@ -12,6 +12,9 @@
 	  a lot of different effects added. (mld)
 	- fixed WaitAudioDMA for all old mod15 replayers (thanks heikki!)
 	- changed mod15 (again) for stricter st-iv detection (mld)
+	- changed to a stricter tracker module length policy... 
+	  If uade doesn't play your modfiles anymore, it's a bad rip.
+	  Get a good one... :)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade

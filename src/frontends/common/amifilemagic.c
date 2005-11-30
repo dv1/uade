@@ -285,15 +285,12 @@ static int modlentest(unsigned char *buf, size_t filesize, int header)
 
   //fprintf (stderr, "%d\n",(header + (maxpattern + 1) * 1024 + smpl * 2));
  
-  if (filesize < (header + (maxpattern + 1) * 1024 + smpl * 2)){
+  if (filesize != (header + (maxpattern + 1) * 1024 + smpl * 2)){
     return -1; 			/*size  error */
+  } else {
+   return 1;
   }
   
-  if (filesize > (header + (maxpattern + 1) * 1024 + smpl * 2)+1024) {
-    return -1;			/*size error */
-  } else {
-    return 1;			/*size ok, sort of */
-  }
   return 0;
 }
 
@@ -629,7 +626,6 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
        }
      }
 
-
      for (j=0xc; j<0x11; j++)
     	 {
     	    if (pfx[j] != 0)
@@ -638,11 +634,12 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
 		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!=0) {
     		    return 1;	/* DOC ST */
     		} else {
-    		    if (pfxarg[1] > 0xf || pfxarg[2] > 0xf) return 1;	/*DOC ST */
+    		    if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
 		    return 3;	/* Master ST */
     		}
     	    }
     	}
+
 
    
 /* pitchbend out of range ? */
