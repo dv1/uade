@@ -1,7 +1,9 @@
 2005-12-01  Michael Doering <mldoering@gmx.net>
 	- eagleplayer.conf: Amended the different MarkCooksey prefixes.
-	- amifilemagic: fixed TFMX 1.5 detection bug, introduced by the recent 
+	- amifilemagic: fixed TFMX 1.5 detection bug  introduced by the recent 
 	  clean-up.
+	- amifilemagic: fixed another TFMX detection bug. Should be alright
+	  again now.
 
 2005-11-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Make XMMS plugin auto detectable in configure script. The plugin is
