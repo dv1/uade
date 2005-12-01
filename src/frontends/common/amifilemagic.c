@@ -182,7 +182,8 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
       if (strncmp((char *) &buf[10], "by  ", 4) == 0 ||
 	  strncmp((char *) &buf[16], "(Empty)", 7) == 0 ||
 	  /* Lethal Zone */
-	  (buf[16] == '0' && buf[17] == 0x3d)) { 
+	  (buf[16] == '0' && buf[17] == 0x3d) ||
+	  (buf [4] == 0x20)){ 
 
 	if (read_be_u32(&buf[464]) == 0x00000000) {
 	  uint16_t x = read_be_u16(&buf[14]);

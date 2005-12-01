@@ -1,3 +1,8 @@
+2005-12-01  Michael Doering <mldoering@gmx.net>
+	- eagleplayer.conf: Amended the different MarkCooksey prefixes.
+	- amifilemagic: fixed TFMX 1.5 detection bug, introduced by the recent 
+	  clean-up.
+
 2005-11-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Make XMMS plugin auto detectable in configure script. The plugin is
 	  still very experimental and incomplete in features, but it can
@@ -7,17 +12,17 @@
 	  originally from stdint.h). XMMS plugin's uade_ip structure was
 	  declared static but later as external. Fixed signedness warnings
 	  from various modules.
-	- Added seek-forward button into XMMS plugin (mld)
+	- Added seek-forward button into XMMS plugin. (mld)
 	- New replayer for Soundtracker v2-v5 mods with 15 instruments and
 	  a lot of different effects added. (mld)
-	- fixed WaitAudioDMA for all old mod15 replayers (thanks heikki!)
+	- fixed WaitAudioDMA for all old mod15 replayers. (thanks heikki!)
 	- changed mod15 (again) for stricter st-iv detection (mld)
 	- changed to a stricter tracker module length policy... 
 	  If uade doesn't play your modfiles anymore, it's a bad rip.
-	  Get a good one... :)
+	  Get a good one! :)
 	- Since Master-Soundtracker files seem to use a subset of the normal
 	  Soundtracker fx, they now get played with the mod15 replay
-	  This makes Master-ST replayer kind of obsolete atm (mld)
+	  This makes Master-ST replayer kind of obsolete atm. (mld)
 
 2005-11-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Partial and buggy implementation of song.conf. It is used for uade
