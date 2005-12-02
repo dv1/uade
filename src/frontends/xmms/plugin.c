@@ -71,30 +71,44 @@ static InputPlugin uade_ip = {
 
 static const AFormat sample_format = FMT_S16_NE;
 
-static int abort_playing;
+/* Definition of trigger type:
+   abort_playing variable does not need locking, because it is initialized to
+   false synchronously in play_file, and it is triggered to be true in stop().
+   Other places in the plugin only read the value. We call this type of
+   variable a trigger type.
+
+   The locking strategy in the plugin is that all lockable variables are
+   initialized in play_file() for each song. Using variables after that
+   requires locking.  When locking is needed, call uade_lock() and
+   uade_unlock(). */
+
+static int abort_playing;     /* Trigger type */
+
 static char configname[PATH_MAX];
 static pthread_t decode_thread;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
 static int ignore_player_check;
-static int last_beat_played;
+static int last_beat_played;  /* Lock before use */
 static int no_song_end;
 static int one_subsong_per_file;
 static int plugin_disabled;
 static int silence_timeout;
 static int subsong_timeout;
 static int timeout;
+static int total_bytes_valid; /* Lock before use */
+static int total_bytes;       /* Lock before use */
 static pid_t uadepid;
 
 static time_t config_load_time;
 
-int uade_cur_sub;
-int uade_is_paused;
-int uade_max_sub;
-int uade_min_sub;
-int uade_thread_running;
-int uade_seek_forward;
-int uade_select_sub;
+int uade_cur_sub;             /* Lock before use */
+int uade_is_paused;           /* Lock before use */
+int uade_max_sub;             /* Lock before use */
+int uade_min_sub;             /* Lock before use */
+int uade_thread_running;      /* Trigger type */
+int uade_seek_forward;        /* Lock before use */
+int uade_select_sub;          /* Lock before use */
 
 
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
@@ -303,7 +317,7 @@ static void *play_loop(void *arg)
   uint16_t *sm;
   int i;
   unsigned int play_bytes, tailbytes = 0;
-  uint64_t subsong_bytes = 0, total_bytes = 0;
+  uint64_t subsong_bytes = 0;
   char *reason;
   uint32_t *u32ptr;
   int writable;
@@ -316,8 +330,12 @@ static void *play_loop(void *arg)
 
       assert(left == 0);
 
-      if (abort_playing)
+      if (abort_playing) {
+	uade_lock();
+	total_bytes_valid = 0;
+	uade_unlock();
 	break;
+      }
 
       uade_lock();
       if (uade_seek_forward) {
@@ -333,6 +351,7 @@ static void *play_loop(void *arg)
 	subsong_end = 0;
 	subsong_bytes = 0;
 	total_bytes = 0;
+	total_bytes_valid = 0;
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uade_cur_sub == -1 || uade_max_sub == -1) {
@@ -396,7 +415,9 @@ static void *play_loop(void *arg)
 	}
 
 	subsong_bytes += play_bytes;
+	uade_lock();
 	total_bytes += play_bytes;
+	uade_unlock();
 
 	if (skip_bytes > 0) {
 	  if (play_bytes <= skip_bytes) {
@@ -424,9 +445,10 @@ static void *play_loop(void *arg)
 
 	if (timeout != -1) {
 	  if (song_end_trigger == 0) {
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= timeout) {
+	    uade_lock();
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= timeout)
 	      song_end_trigger = 1;
-	    }
+	    uade_unlock();
 	  }
 	}
 
@@ -598,12 +620,17 @@ static void uade_play_file(char *filename)
   load_config();
 
   uade_lock();
+
   abort_playing = 0;
   last_beat_played = 0;
+  total_bytes = 0;
+  total_bytes_valid = 1;
+
   uade_cur_sub = uade_max_sub = uade_min_sub = -1;
   uade_is_paused = 0;
   uade_select_sub = -1;
   uade_seek_forward = 0;
+
   uade_unlock();
 
   strlcpy(tempname, filename, sizeof tempname);
@@ -651,17 +678,28 @@ static void uade_play_file(char *filename)
 
 static void uade_stop(void)
 {
+  /* Signal other subsystems to proceed to finished state as soon as possible
+   */
   abort_playing = 1;
+
+  /* Wait for playing thread to finish */
   if (uade_thread_running) {
     pthread_join(decode_thread, 0);
     uade_thread_running = 0;
   }
+
+  /* If song ended volutarily, tell the play time for XMMS. */
+  uade_lock();
+  if (total_bytes_valid)
+    uade_ip.set_info(gui_filename, (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+  uade_unlock();
+
   uade_ip.output->close_audio();
   uade_gui_close_subsong_win();
 }
 
 
-/* function that xmms calls when pausing or unpausing */
+/* XMMS calls this function when pausing or unpausing */
 static void uade_pause(short paused)
 {
   uade_lock();
@@ -671,12 +709,16 @@ static void uade_pause(short paused)
 }
 
 
+/* XMMS calls this function when song is seeked */
 static void uade_seek(int time)
 {
   uade_gui_seek_subsong(time);
 }
 
 
+/* XMMS calls this function periodically to determine current playing time.
+   We use this function to report song name and title after play_file(),
+   and to tell XMMS to end playing if song ends for any reason. */
 static int uade_get_time(void)
 {
   if (abort_playing || last_beat_played)
