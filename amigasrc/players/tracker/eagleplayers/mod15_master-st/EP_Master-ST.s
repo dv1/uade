@@ -55,6 +55,10 @@ Chk						; UST ?
 	bsr.w	mcheck_moduledata		; currently -1 for no mod
 	cmp.l	#"M15.",d0
 	bne	.Chk_fail
+
+	move.b	fx,Fname
+	add.b	#65,Fname
+
 .Chk_ok: moveq	#0,d0
 	rts
 
