@@ -322,6 +322,7 @@ static void *play_loop(void *arg)
       uade_lock();
       if (uade_seek_forward) {
 	skip_bytes += uade_seek_forward * UADE_BYTES_PER_SECOND;
+	uade_ip.output->flush(uade_ip.output->written_time() + uade_seek_forward * 1000);
 	uade_seek_forward = 0;
       }
       if (uade_select_sub != -1) {
@@ -394,6 +395,9 @@ static void *play_loop(void *arg)
 	  play_bytes = um->size;
 	}
 
+	subsong_bytes += play_bytes;
+	total_bytes += play_bytes;
+
 	if (skip_bytes > 0) {
 	  if (play_bytes <= skip_bytes) {
 	    skip_bytes -= play_bytes;
@@ -403,9 +407,6 @@ static void *play_loop(void *arg)
 	    skip_bytes = 0;
 	  }
 	}
-
-	subsong_bytes += play_bytes;
-	total_bytes += play_bytes;
 
 	while ((writable = uade_ip.output->buffer_free()) < play_bytes) {
 	  if (abort_playing)

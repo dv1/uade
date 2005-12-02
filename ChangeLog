@@ -1,3 +1,8 @@
+2005-12-02  Heikki Orsilaa <heikki.orsila@iki.fi>
+	- Fixed a latency and time bug in the XMMS plugin that affected
+	  fast forward seeking. When forward seeking happened the XMMS time
+	  display was not updated and the seeking happened with a delay.
+
 2005-12-01  Michael Doering <mldoering@gmx.net>
 	- eagleplayer.conf: Amended the different MarkCooksey prefixes.
 	- amifilemagic: fixed TFMX 1.5 detection bug  introduced by the recent 
