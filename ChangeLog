@@ -1,7 +1,17 @@
-2005-12-02  Heikki Orsilaa <heikki.orsila@iki.fi>
+2005-12-03  Heikki Orsila <heikki.orsila@iki.fi>
+	- Made XMMS plugin display play time correctly in the play list
+	  after a song ends. If song ended volutarily, tell XMMS the
+	  play time. If song ended involuntarily by user intervention,
+	  error, or timeout, tell XMMS that the song doesn't have a length
+	  leaving the play list time empty.
+
+2005-12-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a latency and time bug in the XMMS plugin that affected
 	  fast forward seeking. When forward seeking happened the XMMS time
 	  display was not updated and the seeking happened with a delay.
+	- Made XMMS plugin report the play time for XMMS after a song
+	  ends.
+	- Added comments about variable locking in XMMS plugin.
 
 2005-12-01  Michael Doering <mldoering@gmx.net>
 	- eagleplayer.conf: Amended the different MarkCooksey prefixes.

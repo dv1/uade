@@ -678,6 +678,8 @@ static void uade_play_file(char *filename)
 
 static void uade_stop(void)
 {
+  int play_time;
+
   /* Signal other subsystems to proceed to finished state as soon as possible
    */
   abort_playing = 1;
@@ -690,8 +692,10 @@ static void uade_stop(void)
 
   /* If song ended volutarily, tell the play time for XMMS. */
   uade_lock();
+  play_time = -1;
   if (total_bytes_valid)
-    uade_ip.set_info(gui_filename, (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+    play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
+  uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
   uade_unlock();
 
   uade_ip.output->close_audio();
