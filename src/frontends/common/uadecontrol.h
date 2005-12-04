@@ -1,6 +1,8 @@
 #ifndef _UADE_CONTROL_
 #define _UADE_CONTROL_
 
+#include <sys/types.h>
+
 enum {
   UADECORE_INIT_OK = 0,
   UADECORE_INIT_ERROR,

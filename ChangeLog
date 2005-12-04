@@ -1,3 +1,6 @@
+2005-12-04  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added missing #include for uadecontrol.h (sys/types.h for pid_t)
+
 2005-12-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made XMMS plugin display play time correctly in the play list
 	  after a song ends. If song ended volutarily, tell XMMS the
