@@ -90,8 +90,9 @@ int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
     n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
     if (n != NULL) {
       strlcpy(n->md5, md5, sizeof(n->md5));
+      if (n->playtime != playtime)
+	ccmodified = 1;
       n->playtime = playtime;
-      ccmodified = 1;
       return 1;
     }
   }
@@ -253,6 +254,8 @@ int uade_find_playtime(const char *md5)
   struct contentchecksum key;
   struct contentchecksum *n;
   int playtime = 0;
+  if (nccused == 0)
+    return 0;
   strlcpy(key.md5, md5, sizeof key.md5);
   n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
   if (n != NULL)
@@ -341,12 +344,14 @@ int uade_read_content_db(const char *filename)
 {
   char line[256];
   FILE *f;
-  nccalloc = 16;
   nccused = 0;
-  contentchecksums = malloc(nccalloc * sizeof(struct contentchecksum));
-  if (contentchecksums == NULL) {
-    fprintf(stderr, "uade: No memory for content checksums\n");
-    return 0;
+  if (nccalloc == 0) {
+    nccalloc = 16;
+    contentchecksums = malloc(nccalloc * sizeof(struct contentchecksum));
+    if (contentchecksums == NULL) {
+      fprintf(stderr, "uade: No memory for content checksums\n");
+      return 0;
+    }
   }
   if ((f = fopen(filename, "r")) == NULL) {
     fprintf(stderr, "uade: Can not find %s\n", filename);
@@ -379,6 +384,8 @@ int uade_read_content_db(const char *filename)
   fclose(f);
   qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
   ccmodified = 0;
+
+  fprintf(stderr, "uade: Read content database with %zd entries\n", nccused);
   return 1;
 }
 
@@ -662,6 +669,7 @@ void uade_save_content_db(const char *filename)
   for (i = 0; i < nccused; i++)
     fprintf(f, "%s %d\n", contentchecksums[i].md5, contentchecksums[i].playtime);
   fclose(f);
+  fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
 }
 
 

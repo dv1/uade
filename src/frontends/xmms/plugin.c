@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include <uadeipc.h>
@@ -105,6 +106,7 @@ static int total_bytes;       /* Lock before use */
 static pid_t uadepid;
 
 static time_t config_load_time;
+static time_t md5_load_time;
 
 int uade_cur_sub;             /* Lock before use */
 int uade_is_paused;           /* Lock before use */
@@ -142,6 +144,7 @@ static void load_config(void)
   if (stat(configname, &st))
     return;
 
+  /* Read only newer files */
   if (st.st_mtime <= config_load_time)
     return;
 
@@ -197,6 +200,35 @@ static void load_config(void)
 }
 
 
+static void load_content_db(void)
+{
+  struct stat st;
+  time_t curtime = time(NULL);
+  char name[PATH_MAX];
+
+  if (curtime)
+    md5_load_time = curtime;
+
+  if (md5name[0] == 0) {
+    char *home = getenv("HOME");
+    if (home)
+      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
+  }
+
+  if (md5name[0]) {
+    /* Try home directory first */
+    if (stat(md5name, &st) == 0) {
+      if (uade_read_content_db(md5name))
+	return;
+    }
+  }
+
+  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+  if (stat(name, &st) == 0)
+    uade_read_content_db(name);
+}
+
+
 void uade_lock(void)
 {
   if (pthread_mutex_lock(&vlock)) {
@@ -225,25 +257,22 @@ InputPlugin *get_iplugin_info(void)
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
+  char *home = getenv("HOME");
   struct stat st;
 
   set_defaults();
 
-  /* If config exists in home, ignore global uade.conf. */
-  snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", getenv("HOME"));
-  if (stat(md5name, &st) == 0) {
-    if (!uade_read_content_db(md5name)) {
-      snprintf(md5name, sizeof md5name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
-      if (stat(md5name, &st) == 0)
-	uade_read_content_db(md5name);
-    }
+  if (home) {
+    char name[PATH_MAX];
+    snprintf(name, sizeof name, "%s/.uade2", home);
+    if (stat(name, &st) != 0)
+      mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
   }
-  snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", getenv("HOME"));
-  if (getenv("HOME") == NULL)
-    md5name[0] = 0;
+
+  load_content_db();
 
   /* If config exists in home, ignore global uade.conf. */
-  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
+  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
   if (stat(configname, &st) == 0)
     return;
 
@@ -254,7 +283,7 @@ static void uade_init(void)
 
   fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
   fprintf(stderr, "HOME/.uade2/uade.conf in the future.\n");
-  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
+  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
 }
 
 
@@ -263,7 +292,11 @@ static void uade_cleanup(void)
   if (uadepid)
     kill(uadepid, SIGTERM);
 
-  uade_save_content_db(md5name);
+  if (md5name[0]) {
+    struct stat st;
+    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
+      uade_save_content_db(md5name);
+  }
 }
 
 
@@ -273,6 +306,8 @@ static int uade_is_our_file(char *filename)
   return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? TRUE : FALSE;
 }
 
+
+/* Analyze file format, and handshake with uadecore. */
 static int initialize_song(char *filename)
 {
   struct eagleplayer *ep;
@@ -677,10 +712,31 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
+  /* If content db has changed (newer mtime chan previously read) then force
+     a reload */
+  if (md5name[0]) {
+    struct stat st;
+    time_t curtime;
+
+    if (stat(md5name, &st) == 0 && md5_load_time < st.st_mtime)
+      load_content_db();
+
+    /* Current db if an hour has passed and loading is not forced (during init
+       time) */
+    curtime = time(NULL);
+    if (curtime >= (md5_load_time + 3600) && md5name[0]) {
+      uade_save_content_db(md5name);
+      md5_load_time = curtime;
+    }
+  } else {
+    load_content_db();
+  }
+
+  /* Compute md5sum of the file to be played, and see if its length is in the
+     db, and use the length. */
   curplaytime = -1;
   if (uade_file_md5(curmd5, filename, sizeof curmd5)) {
-    int playtime;
-    playtime = uade_find_playtime(curmd5);
+    int playtime = uade_find_playtime(curmd5);
     if (playtime > 0)
       curplaytime = playtime;
   }

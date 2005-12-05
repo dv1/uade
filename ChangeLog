@@ -3,6 +3,9 @@
 	  is compatible with uade1 db-content, but named differently:
 	  ~/.uade2/contentdb. You can just copy the old db:
 	    cp ~/.uade/db-content ~/.uade2/contentdb
+	- Content db is loaded during play_file if it has changed
+	  on the disk. If it has not changed on the disk, then it is
+	  saved if an hour has passed and the db has been changed.
 
 2005-12-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added missing #include for uadecontrol.h (sys/types.h for pid_t).
