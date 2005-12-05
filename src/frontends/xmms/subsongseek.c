@@ -253,6 +253,10 @@ void uade_gui_seek_subsong(int to)
 }
 
 
+void uade_gui_subsong_changed(int subsong)
+{
+}
+
 
 static void uade_seek_directly(void)
 {

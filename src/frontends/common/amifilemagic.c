@@ -528,7 +528,8 @@ return 0;
 }
 
 
-static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
+static int mod15check(unsigned char *buf, int bufsize, int realfilesize,
+		      const char *filename)
 /* pattern parsing based on Sylvain 'Asle' Chipaux'	*/
 /* Modinfo-V2						*/
 /*							*/
@@ -553,6 +554,31 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize)
   int max_pattern=1;
   int pfx[32];
   int pfxarg[32];
+
+  char *s;
+  int mod15possible = 0;
+
+  /* Hack hack. mod15 detection is still so unreliable that we'll enable it
+     only if filename matches certain extension. */
+  s = strrchr(filename, '/');
+  if (s == NULL) {
+    s = (char *) filename;
+  } else {
+    s++;
+  }
+  if (strncasecmp(s, "mod15.", 6) == 0 ||
+      strncasecmp(s, "mod15_", 6) == 0 ||
+      strncasecmp(s, "mod.", 4) == 0)
+    mod15possible = 1;
+  if ((s = strrchr(filename, '.')) != NULL) {
+    if (strcasecmp(s, ".mod15") == 0 ||
+	strncasecmp(s, ".mod15_", 7) == 0 ||
+	strcasecmp(s, ".mod") == 0)
+      mod15possible = 1;
+  }
+
+  if (mod15possible == 0)
+    return 0;
 
   /* sanity checks */
   if (bufsize < 0x1f3)
@@ -673,7 +699,7 @@ return 3; // anything is played as normal soundtracker
 }
 
 
-void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t bufsize)
+void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t bufsize, const char *filename)
 {
   /* char filemagic():
      detects formats like e.g.: tfmx1.5, hip, hipc, fc13, fc1.4      
@@ -693,68 +719,57 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
   int i,t;
 
   t = mod32check(buf, bufsize, realfilesize);
-     switch (t)
-     { 
-	 case 0:
-	     strcpy(pre, "");	/* don't accept file*/
-	     break;
-         case 1:
-    	    strcpy(pre, "MOD_DOC");	/* Soundtracker 32instrument*/
-	    return;
-         case 2:
-    	    strcpy(pre, "MOD_NTK1");	/* Noisetracker 1.x*/
-	    return;
-         case 3:
-    	    strcpy(pre, "MOD_NTK2");	/* Noisetracker 2.x*/
-	    return;
-         case 4:
-    	    strcpy(pre, "MOD_FLT4");	/* Startrekker 4ch*/
-	    return;
-         case 5:
-    	    strcpy(pre, "MOD_FLT8");	/* Startrekker 8ch*/
-	    return;
-         case 6:
-    	    strcpy(pre, "MOD_ADSC4");	/* Audiosculpture 4ch AM*/
-	    return;
-         case 7:
-    	    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
-	    return;
-         case 8:
-    	    strcpy(pre, "MOD");		/* Protracker*/
-	    return;
-         case 9:
-    	    strcpy(pre, "MOD_PTKCOMP");	/* Fasttracker 4 ch*/
-	    return;
-         case 10:
-    	    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
-	    return;
-         case 11:
-    	    strcpy(pre, "MOD_PTKCOMP");	/* PTKCOMP*/
-	    return;
-	  }
-  
-  
-  t = mod15check(buf, bufsize, realfilesize);
-     switch (t)
-     { 
-	 case 0:
-	     strcpy(pre, "");	/* don't accept file*/
-	     break;
-         case 1:
-    	    strcpy(pre, "MOD15");
-	    return;
-         case 2:
-    	    strcpy(pre, "MOD15_UST");
-	    return;
-         case 3:
-    	    strcpy(pre, "MOD15_MST");
-	    return;
-         case 4:
-    	    strcpy(pre, "MOD15_ST-IV");
-	    return;
-	}
+  switch (t) { 
+  case 1:
+    strcpy(pre, "MOD_DOC");	/* Soundtracker 32instrument*/
+    return;
+  case 2:
+    strcpy(pre, "MOD_NTK1");	/* Noisetracker 1.x*/
+    return;
+  case 3:
+    strcpy(pre, "MOD_NTK2");	/* Noisetracker 2.x*/
+    return;
+  case 4:
+    strcpy(pre, "MOD_FLT4");	/* Startrekker 4ch*/
+    return;
+  case 5:
+    strcpy(pre, "MOD_FLT8");	/* Startrekker 8ch*/
+    return;
+  case 6:
+    strcpy(pre, "MOD_ADSC4");	/* Audiosculpture 4ch AM*/
+    return;
+  case 7:
+    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
+    return;
+  case 8:
+    strcpy(pre, "MOD");		/* Protracker*/
+    return;
+  case 9:
+    strcpy(pre, "MOD_PTKCOMP");	/* Fasttracker 4 ch*/
+    return;
+  case 10:
+    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
+    return;
+  case 11:
+    strcpy(pre, "MOD_PTKCOMP");	/* PTKCOMP*/
+    return;
+  }
 
- 
+  t = mod15check(buf, bufsize, realfilesize, filename);
+  switch (t) { 
+  case 1:
+    strcpy(pre, "MOD15");
+    return;
+  case 2:
+    strcpy(pre, "MOD15_UST");
+    return;
+  case 3:
+    strcpy(pre, "MOD15_MST");
+    return;
+  case 4:
+    strcpy(pre, "MOD15_ST-IV");
+    return;
+  }
 
   if (((buf[0x438] >= '1' && buf[0x438] <= '3')
        && (buf[0x439] >= '0' && buf[0x439] <= '9') && buf[0x43a] == 'C'

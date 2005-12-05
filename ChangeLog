@@ -6,6 +6,10 @@
 	- Content db is loaded during play_file if it has changed
 	  on the disk. If it has not changed on the disk, then it is
 	  saved if an hour has passed and the db has been changed.
+	- Added a requirement for Soundtracker15 song content detection that
+	  the name must have prefix or postix being: "mod", "mod15", or
+	  "mod15_". This change could be reverted at some point but now it's
+	  the safest choice.
 
 2005-12-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added missing #include for uadecontrol.h (sys/types.h for pid_t).

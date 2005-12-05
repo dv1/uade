@@ -418,6 +418,7 @@ static void *play_loop(void *arg)
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	    subsong_bytes = 0;
+	    uade_gui_subsong_changed(uade_cur_sub);
 	  }
 	}
       }
