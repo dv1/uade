@@ -11,6 +11,7 @@
 
 #include <libgen.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include <netinet/in.h>
 #include <signal.h>
@@ -85,11 +86,14 @@ static const AFormat sample_format = FMT_S16_NE;
 static int abort_playing;     /* Trigger type */
 
 static char configname[PATH_MAX];
+static char curmd5[33];
+static int curplaytime;
 static pthread_t decode_thread;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
 static int ignore_player_check;
 static int last_beat_played;  /* Lock before use */
+static char md5name[PATH_MAX];
 static int no_song_end;
 static int one_subsong_per_file;
 static int plugin_disabled;
@@ -226,6 +230,19 @@ static void uade_init(void)
   set_defaults();
 
   /* If config exists in home, ignore global uade.conf. */
+  snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", getenv("HOME"));
+  if (stat(md5name, &st) == 0) {
+    if (!uade_read_content_db(md5name)) {
+      snprintf(md5name, sizeof md5name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+      if (stat(md5name, &st) == 0)
+	uade_read_content_db(md5name);
+    }
+  }
+  snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", getenv("HOME"));
+  if (getenv("HOME") == NULL)
+    md5name[0] = 0;
+
+  /* If config exists in home, ignore global uade.conf. */
   snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", getenv("HOME"));
   if (stat(configname, &st) == 0)
     return;
@@ -243,9 +260,10 @@ static void uade_init(void)
 
 static void uade_cleanup(void)
 {
-  if (uadepid) {
+  if (uadepid)
     kill(uadepid, SIGTERM);
-  }
+
+  uade_save_content_db(md5name);
 }
 
 
@@ -659,7 +677,15 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(gui_filename, -1, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+  curplaytime = -1;
+  if (uade_file_md5(curmd5, filename, sizeof curmd5)) {
+    int playtime;
+    playtime = uade_find_playtime(curmd5);
+    if (playtime > 0)
+      curplaytime = playtime;
+  }
+
+  uade_ip.set_info(gui_filename, curplaytime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, 0, play_loop, 0)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -692,9 +718,12 @@ static void uade_stop(void)
 
   /* If song ended volutarily, tell the play time for XMMS. */
   uade_lock();
-  play_time = -1;
-  if (total_bytes_valid)
+  play_time = curplaytime;
+  if (total_bytes_valid) {
     play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
+    if (curmd5[0] != 0)
+      uade_add_playtime(curmd5, play_time, 1);
+  }
   uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
   uade_unlock();
 
@@ -731,11 +760,14 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uade_max_sub != -1) {
     uade_lock();
     if (uade_max_sub != -1) {
-      /* Hack. Set info text late, because we didn't know subsong amounts
-	 before this. Pass zero as a length so that the graphical
-         play time counter will run but seek is still enabled. Passing -1
-         would disable seeking. */
-      uade_ip.set_info(gui_filename, 0, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+      int playtime = curplaytime;
+      /* Hack. Set info text and song length late because we didn't know
+	 subsong amounts before this. Pass zero as a length so that the
+	 graphical play time counter will run but seek is still enabled.
+	 Passing -1 as playtime would disable seeking. */
+      if (playtime <= 0)
+	playtime = 0;
+      uade_ip.set_info(gui_filename, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     }
     uade_unlock();
     gui_info_set = 1;

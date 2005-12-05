@@ -1,5 +1,11 @@
+2005-12-05  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added initial version of song length database into XMMS plugin. It
+	  is compatible with uade1 db-content, but named differently:
+	  ~/.uade2/contentdb. You can just copy the old db:
+	    cp ~/.uade/db-content ~/.uade2/contentdb
+
 2005-12-04  Heikki Orsila <heikki.orsila@iki.fi>
-	- Added missing #include for uadecontrol.h (sys/types.h for pid_t)
+	- Added missing #include for uadecontrol.h (sys/types.h for pid_t).
 
 2005-12-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made XMMS plugin display play time correctly in the play list

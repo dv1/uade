@@ -37,6 +37,17 @@
 #define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
 
+struct contentchecksum {
+  uint32_t playtime; /* in milliseconds */
+  char md5[33];
+};
+
+
+static struct contentchecksum *contentchecksums;
+static size_t nccalloc;
+static size_t nccused;
+static int ccmodified;
+
 static uint8_t fileformat_buf[8192];
 static struct eagleplayerstore *playerstore;
 
@@ -52,6 +63,55 @@ static int ufcompare(const void *a, const void *b);
 static int escompare(const void *a, const void *b)
 {
   return strcasecmp(((struct eaglesong *) a)->md5, ((struct eaglesong *) b)->md5);
+}
+
+
+static int contentcompare(const void *a, const void *b)
+{
+  return strcasecmp(((struct contentchecksum *) a)->md5, ((struct contentchecksum *) b)->md5);
+}
+
+
+/* replace must be zero if content db is unsorted */
+int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
+{
+  if (contentchecksums == NULL)
+    return 0;
+  /* Do not record song shorter than 5 secs */
+  if (playtime < 5000)
+    return 1;
+  if (strlen(md5) != 32)
+    return 0;
+
+  if (replaceandsort) {
+    struct contentchecksum key;
+    struct contentchecksum *n;
+    strlcpy(key.md5, md5, sizeof key.md5);
+    n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+    if (n != NULL) {
+      strlcpy(n->md5, md5, sizeof(n->md5));
+      n->playtime = playtime;
+      ccmodified = 1;
+      return 1;
+    }
+  }
+  if (nccused == nccalloc) {
+    struct contentchecksum *n;
+    nccalloc *= 2;
+    n = realloc(contentchecksums, nccalloc * sizeof(struct contentchecksum));
+    if (n == NULL) {
+      fprintf(stderr, "uade: No memory for new md5s.\n");
+      return 0;
+    }
+    contentchecksums = n;
+  }
+  strlcpy(contentchecksums[nccused].md5, md5, sizeof(contentchecksums[nccused].md5));
+  contentchecksums[nccused].playtime = playtime;
+  nccused++;
+  ccmodified = 1;
+  if (replaceandsort)
+    qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+  return 1;
 }
 
 
@@ -188,6 +248,21 @@ int uade_file_md5(char *asciimd5, const char *filename, size_t len)
 }
 
 
+int uade_find_playtime(const char *md5)
+{
+  struct contentchecksum key;
+  struct contentchecksum *n;
+  int playtime = 0;
+  strlcpy(key.md5, md5, sizeof key.md5);
+  n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+  if (n != NULL)
+    playtime = n->playtime;
+  if (playtime < 0)
+    playtime = 0;
+  return playtime;
+}
+
+
 struct eagleplayer *uade_get_eagleplayer(const char *extension, struct eagleplayerstore *ps)
 {
   struct eagleplayermap *uf = ps->map;
@@ -259,6 +334,52 @@ static char **split_line(size_t *nitems, size_t *lineno, FILE *f,
   assert(pos == *nitems);
 
   return items;
+}
+
+
+int uade_read_content_db(const char *filename)
+{
+  char line[256];
+  FILE *f;
+  nccalloc = 16;
+  nccused = 0;
+  contentchecksums = malloc(nccalloc * sizeof(struct contentchecksum));
+  if (contentchecksums == NULL) {
+    fprintf(stderr, "uade: No memory for content checksums\n");
+    return 0;
+  }
+  if ((f = fopen(filename, "r")) == NULL) {
+    fprintf(stderr, "uade: Can not find %s\n", filename);
+    return 0;
+  }
+
+  while (fgets(line, sizeof line, f)) {
+    long playtime;
+    int i;
+    char *eptr;
+    if (line[0] == '#')
+      continue;
+    for (i = 0; i < 32; i++) {
+      if (line[i] == 0 || !isxdigit(line[i]))
+	break;
+    }
+    if (i != 32)
+      continue;
+    if (line[32] != ' ')
+      continue;
+    line[32] = 0;
+    if (line[33] == '\n' || line[33] == 0)
+      continue;
+    playtime = strtol(&line[33], &eptr, 10);
+    if (*eptr == '\n' || *eptr == 0) {
+      if (playtime > 0)
+	uade_add_playtime(line, playtime, 0);
+    }
+  }
+  fclose(f);
+  qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+  ccmodified = 0;
+  return 1;
 }
 
 
@@ -525,6 +646,22 @@ int uade_read_song_conf(const char *filename)
   /* Sort MD5 sums for binary searching songs */
   qsort(songstore, nsongs, sizeof songstore[0], escompare);
   return 1;
+}
+
+
+void uade_save_content_db(const char *filename)
+{
+  FILE *f;
+  size_t i;
+  if (ccmodified == 0)
+    return;
+  if ((f = fopen(filename, "w")) == NULL) {
+    fprintf(stderr, "uade: Can not write content db: %s\n", filename);
+    return;
+  }
+  for (i = 0; i < nccused; i++)
+    fprintf(f, "%s %d\n", contentchecksums[i].md5, contentchecksums[i].playtime);
+  fclose(f);
 }
 
 
