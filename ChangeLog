@@ -1,7 +1,15 @@
 2005-12-06  Michael Doering <mldoering@gmx.net>
 	- XMMS plugin now automagically advances the subsong seek slider, if
 	  the replay rolls over to the next subsong.
-	- Soundtracker15 name check that was added yesterday was removed.
+	- Soundtracker15 name check that was added yesterday was removed. (shd)
+	- Fixed a bug in uade_filemagic() that char *pre was not initialized
+	  to be an empty string by default. This caused
+	  uade_analyze_file_format() to receive garbage data when file format
+	  was not recognized. (shd)
+	- Valgrinded a memory allocation bug in two places of eagleplayer.c
+	  (the same error actually due to replicating same lines of code),
+	  where space for (n + 1) pointers should have been allocated, but
+	  only ((n * sizeof ptr) + 1) bytes was allocated. (shd)
 
 2005-12-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added initial version of song length database into XMMS plugin. It

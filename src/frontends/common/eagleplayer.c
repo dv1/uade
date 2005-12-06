@@ -121,6 +121,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
 {
   struct stat st;
   char extension[11];
+
   FILE *f;
   size_t readed;
   struct eagleplayer *candidate;
@@ -459,7 +460,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 	  p->nextensions++;
 	}
 
-	p->extensions = malloc(p->nextensions * (1 + sizeof(p->extensions[0])));
+	p->extensions = malloc((p->nextensions + 1) * sizeof(p->extensions[0]));
 	if (p->extensions == NULL)
 	  eperror("No memory for extensions.");
 
@@ -624,7 +625,7 @@ int uade_read_song_conf(const char *filename)
 	  s->nsubsongs++;
 	}
 
-	s->subsongs = malloc(s->nsubsongs * (1 + sizeof(s->subsongs[0])));
+	s->subsongs = malloc((s->nsubsongs + 1) * sizeof(s->subsongs[0]));
 	if (s->subsongs == NULL)
 	  eperror("No memory for subsongs.");
 

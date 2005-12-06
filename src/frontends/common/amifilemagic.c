@@ -703,6 +703,9 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 
   int i,t;
 
+  /* Mark format unknown by default */
+  pre[0] = 0;
+
   t = mod32check(buf, bufsize, realfilesize);
   switch (t) { 
   case 1:
