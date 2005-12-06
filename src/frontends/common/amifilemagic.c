@@ -297,13 +297,10 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 
   //fprintf (stderr, "%d\n",(header + (maxpattern + 1) * 1024 + smpl * 2));
  
-  if (filesize != (header + (maxpattern + 1) * 1024 + smpl * 2)){
-    return -1; 			/* size  error */
-  } else {
-   return 1;
-  }
-  
-  return 0;
+  if (filesize < (header + (maxpattern + 1) * 1024 + smpl * 2))
+    return 0;
+
+  return 1;
 }
 
 static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int max_pattern, int pfx[], int pfxarg[])
@@ -424,7 +421,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       }
     }
 
-   if (modlentest(buf, bufsize, realfilesize, 1084) < 1)
+   if (modlentest(buf, bufsize, realfilesize, 1084) == 0)
      return 0; /* modlentest failed */
 
  /* parse instruments */
@@ -570,7 +567,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
-  if (modlentest(buf, bufsize, realfilesize, 600) < 1)
+  if (modlentest(buf, bufsize, realfilesize, 600) == 0)
     return 0; /* modlentest failed */
 
  /* check for 15 instruments */
