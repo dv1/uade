@@ -288,11 +288,10 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
   for (i = 0; i < no_of_instr; i++)
     smpl += read_be_u16(&buf[42 + i * 30]);	/* smpl len  */
 
-  //fprintf (stderr, "%d\t%d\n",filesize, (header + (maxpattern + 1) * 1024 + smpl * 2));
  
   calculated_size= header + (maxpattern + 1) * 1024 + smpl * 2;
-  if (filesize < calculated_size);
-    return 0;
+  //fprintf (stderr, "%d\t%d\n",filesize, calculated_size);
+  if (filesize < calculated_size) return 0;
 
   if (filesize > calculated_size) {
 	if (header == 600) {
