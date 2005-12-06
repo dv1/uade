@@ -128,6 +128,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   char *t, *tn;
   int len;
   static int warnings = 1;
+  size_t bufsize;
 
   if ((f = fopen(modulename, "r")) == NULL) {
     fprintf(stderr, "Can not open module: %s\n", modulename);
@@ -137,12 +138,14 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
     fprintf(stderr, "Very weird stat error: %s (%s)\n", modulename, strerror(errno));
     exit(-1);
   }
-  readed = fread(fileformat_buf, 1, sizeof(fileformat_buf), f);
+  bufsize = sizeof fileformat_buf;
+  readed = fread(fileformat_buf, 1, bufsize, f);
   fclose(f);
   if (readed == 0)
     return NULL;
-  memset(&fileformat_buf[readed], 0, sizeof(fileformat_buf) - readed);
-  uade_filemagic(fileformat_buf, st.st_size, extension, sizeof(fileformat_buf));
+  memset(&fileformat_buf[readed], 0, bufsize - readed);
+  bufsize = readed;
+  uade_filemagic(fileformat_buf, st.st_size, extension, bufsize);
 
   if (verbose == 2)
     fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
