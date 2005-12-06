@@ -11,7 +11,8 @@ Subsystems
 ----------
 
  - Antti S. Lankila <alankila@bel.fi> for filter emulation and sound effects
- - Claudio Matsuoka and Hipolito Carraro Jr for module decruncing code.
+ - Claudio Matsuoka and Hipolito Carraro Jr for module decruncing code in
+   uade 1.xy.
 	jah@fh-zwickau.de for unsqsh
 	Sipos Attila for unsqsh checksum
 	Olivier Lapicque for mmcp
@@ -31,7 +32,6 @@ Eagleplayers
  - Don Adan / Wanted Team
  - Eagleeye and Buggs from Defect (Eagleplayer project authors)
  - Nicolas Frank <gryzor@club-internet.fr> for PTK-Prowiz
-
  - Andy Silva <silva@psi5.com> for his replayers
  - Bartman and Dexter from Abyss for AHX v2 replay routine:
    http://www.the-leader-of-the-eighties.de
@@ -45,7 +45,7 @@ Eagleplayers
  - Paul v.d. Valk for Medley replay routine
  - Tap & Walt for digibooster source
    http://www.highantdev2.de/dbpro/index.php
- - The Welter / Divine for protracker replay routine
+ - The Welder / Divine for protracker replay routine
 
  - Everyone else whose Eagleplayer plugins we use. Respective authors of
    eagleplayer plugins can be found from inside the plugin.

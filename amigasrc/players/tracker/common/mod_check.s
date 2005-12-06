@@ -49,27 +49,12 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 			cmp.w	#-1,d0			;mod15 ?
 			beq	.mcheck_fail		;nope
 
-.mcheck_mod15:		move.l #"M15.",modtag
+.mcheck_mod15:
+			bsr	mcheck_mod15
 			bra	.mcheck_open_on_uade
 
 .mcheck_mod32:
-			; Check for vblank by playtime
-			; in Protracker modules 
-			moveq.l	#0,d0
-			move.l	#25000/50,d1		; 50Hz
-			moveq.l	#1,d2
-			move.l	song,a0
-			lea.l	Timer,a1
-			bsr	PTCalcTime
-			move.l #mod_PTK_vblank,modtag
-			lea.l	Timer,a1
-			move.l	(a1),d0
-			cmp.l	#0,d0			; playtime in hours?
-			bgt	.mcheck_open_on_uade
-			;move.l	4(a1),d0
-			;cmp.l	#15,a1
-			;bgt	.mcheck_open_on_uade
-			move.l #mod_PTK,modtag	
+			bsr mcheck_ptk_vblank		
 
 .mcheck_open_on_uade:	move.l	4.w,a6
 			lea	uadename(pc),a1
@@ -85,6 +70,32 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 
 .mcheck_fail:		moveq	#-1,d0
 			bra.s	.mcheck_end
+
+;---- Mod32 Checks ----
+mcheck_ptk_vblank:
+			; Check for vblank by playtime
+			; in Protracker modules 
+			moveq.l	#0,d0
+			move.l	#25000/50,d1		; 50Hz
+			moveq.l	#1,d2
+			move.l	song,a0
+			lea.l	Timer,a1
+			bsr	PTCalcTime
+			move.l #mod_PTK_vblank,modtag
+			lea.l	Timer,a1
+			move.l	(a1),d0
+			cmp.l	#0,d0			; playtime in hours?
+			bgt	.mcheck_end
+			move.l	4(a1),d0
+			cmp.l	#28,d0			; more than 28 minutes?
+			bgt	.mcheck_end
+			move.l #mod_PTK,modtag	
+.mcheck_end		rts
+
+;---- Mod15 Checks ----
+mcheck_mod15:
+			move.l #"M15.",modtag
+			rts
 
 ;--------------------------------------------------------------------------
 ; Calculate Modlen
@@ -208,6 +219,9 @@ mcheck_calc_modlen:
 ; A4 - 
 ; A5 - 
 ; A6 - 
+
+* BUGGY !!! Does not work with mod.ode2ptk *sigh*
+
 PTCalcTime	move.l	#6,.Speed
 		move.l	#0,.PattPos
 		move.l	d0,.SongPos
@@ -369,15 +383,18 @@ PTCalcTime	move.l	#6,.Speed
 		tst.l	.PattLoopCnt
 		beq.s	.SetLoopCnt
 
+
 		subq.l	#1,.PattLoopCnt
 		bne.s	.DoLoop
 
 		rts
 
-.SetLoop	move.l	.PattPos,.PattLoopPos
+.SetLoop
+		move.l	.PattPos,.PattLoopPos
 		rts
 
-.SetLoopCnt	move.l	d0,.PattLoopCnt
+.SetLoopCnt
+		move.l	d0,.PattLoopCnt
 
 .DoLoop		move.l	.PattLoopPos,.PattBreakPos; Force loop
 		sub.l	#1,.SongPos
@@ -417,8 +434,10 @@ PTCalcTime	move.l	#6,.Speed
 ;--------------------------------------------------------------------------
 ; Datas:
 
+
+
 maxpattern:		dc.w	0
-Timer:			dc.l	0,0,0,0			; Hours, Minutes,
+Timer:			dc.l	0,0,0,0			; Hours, Minutes, secs
 header:			dc.l	0
 modtag:			dc.l	0
 uadebase:		dc.l	0

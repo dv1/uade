@@ -145,7 +145,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
     return NULL;
   memset(&fileformat_buf[readed], 0, bufsize - readed);
   bufsize = readed;
-  uade_filemagic(fileformat_buf, st.st_size, extension, bufsize);
+  uade_filemagic(fileformat_buf, bufsize, extension, st.st_size);
 
   if (verbose == 2)
     fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);

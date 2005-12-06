@@ -13,7 +13,10 @@
 	- Added gain effect into uade.conf. You can use variable named
 	  'gain' to set scaling value for each outputted sample. For
 	   example, add a following line to uade.conf:
-	   gain 0.25
+	   gain 0.25 (shd)
+	- Made length test of mods with 32 instruments less strict. Due to
+	  popular demand *g* now "oversize mods" get accepted.
+	- Added check for sane finetune and volume values in modchecks.
 
 2005-12-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added initial version of song length database into XMMS plugin. It

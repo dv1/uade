@@ -595,6 +595,8 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
       //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
+      if (vol > 64 && buf[44+i*30] != 0) return 0; /* vol and finetune */
+
       if (slen == 0) {
        if  (vol == 0 )
         {  noof_slen_zero_vol_zero++;} 
