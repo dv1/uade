@@ -248,8 +248,11 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
   return 0;
 }
 
-/* returns:	 -1 for a mod with bad length 		*/
-/* 		 0  for no mod				*/
+/* Calculate Module length:	Just need at max 1084	*/
+/*				data in buf for a 	*/
+/*				succesful calculation	*/
+/* returns:				 		*/
+/* 		 0 for no mod				*/
 /*		 1 for a mod with good length		*/
 static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 		      int header)
@@ -259,47 +262,45 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
   int smpl = 0;
   int plist;
   int maxpattern = 0;
-
-  if (header == 600)   {
-    no_of_instr = 15;
-    /* XXX: What is this? plist is parsed from 470 but mod_check.s starts
-       from 472! */
-    plist = header - 130;
-  } else if (header == 1084) {
-    no_of_instr = 31;
-    /* XXX: plist is parsed from 950 but mod_check.s starts to from 952 */
-    plist = header - 4 - 130;
-  } else {
-    return 0;
-  }
+  int calculated_size=0;
 
   if (header > bufsize)
     return 0;			/* no mod */
 
-  /* XXX: What is this test??? */
-  if (buf[43] + no_of_instr * 30 > filesize)
-    return 0;			/* no mod */
-
-  if ((plist + 2 * 128) > bufsize)
+  if (header == 600)   {
+    no_of_instr = 15;
+    plist = header - 128;
+  } else if (header == 1084) {
+    no_of_instr = 31;
+    plist = header - 4 - 128;
+  } else {
     return 0;
+  }
 
   for (i = 0; i < 128; i++) {
-    if (buf[plist + 2 + i] > maxpattern)
-      maxpattern = buf[plist + 2 + i];
+    if (buf[plist + i] > maxpattern)
+      maxpattern = buf[plist + i];
   }
 
   if (maxpattern > 100)
     return 0;
 
-  /* XXX: Should sample lengths be multiplied by two? */
   for (i = 0; i < no_of_instr; i++)
     smpl += read_be_u16(&buf[42 + i * 30]);	/* smpl len  */
 
-  //fprintf (stderr, "%d\n",(header + (maxpattern + 1) * 1024 + smpl * 2));
+  //fprintf (stderr, "%d\t%d\n",filesize, (header + (maxpattern + 1) * 1024 + smpl * 2));
  
-  if (filesize < (header + (maxpattern + 1) * 1024 + smpl * 2))
+  calculated_size= header + (maxpattern + 1) * 1024 + smpl * 2;
+  if (filesize < calculated_size);
     return 0;
 
+  if (filesize > calculated_size) {
+	if (header == 600) {
+	    return 0;
+	} else {
+	    return 1;
+	}
+    }
   return 1;
 }
 
@@ -432,11 +433,17 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
 //      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
+      if (vol > 64) return 0;
+      if (buf[44+i*30] != 0) {
+        if (buf[44+i*30] >15){
+		return 0;
+	    }else {
+		finetune_used++;
+	    }
+	}
+
       if (slen > 0 && (srep+sreplen) > slen) return 1; /* Old Noisetracker /Soundtracker with repeat offset in bytes */
-
-      if (buf[44+i*30] != 0) finetune_used++;
-
-
+     
       if (srep==0) {
         if (slen >0) {
     	    if (sreplen==1){
