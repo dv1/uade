@@ -148,6 +148,10 @@ int play_loop(void)
 	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");
 	  uade_send_filter_command(uade_use_filter, uade_filter_state, uade_force_filter);
 	  break;
+	case 'g':
+	  uade_postprocessing_setup(UADE_GAIN_TOGGLE);
+	  tprintf("\nGain effect %s %s\n", uade_use_gain ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_gain == 1 ? "(Remember to turn ON postprocessing!)" : "");
+	  break;
 	case 'h':
 	  tprintf("\n\n");
 	  print_action_keys();

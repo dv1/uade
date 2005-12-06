@@ -10,6 +10,10 @@
 	  (the same error actually due to replicating same lines of code),
 	  where space for (n + 1) pointers should have been allocated, but
 	  only ((n * sizeof ptr) + 1) bytes was allocated. (shd)
+	- Added gain effect into uade.conf. You can use variable named
+	  'gain' to set scaling value for each outputted sample. For
+	   example, add a following line to uade.conf:
+	   gain 0.25
 
 2005-12-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added initial version of song length database into XMMS plugin. It

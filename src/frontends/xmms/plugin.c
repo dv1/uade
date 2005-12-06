@@ -166,7 +166,12 @@ static void load_config(void)
   if (uc.no_filter)
   uade_use_filter = 0;
   */
-  
+
+  if (uc.gain != 1.0 || uade_gain_value != 1.0) {
+    uade_gain_value = uc.gain;
+    uade_postprocessing_setup(UADE_GAIN_ENABLE);
+  }
+
   if (uc.headphones)
     uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
 
@@ -184,10 +189,9 @@ static void load_config(void)
   if (uc.one_subsong)
     one_subsong_per_file = 1;
 
-  if (uc.panning != 0.0) {
-    uade_panning_value = uc.panning;
+  uade_panning_value = uc.panning;
+  if (uc.panning != 0.0)
     uade_postprocessing_setup(UADE_PANNING_ENABLE);
-  }
 
   if (uc.silence_timeout)
     silence_timeout = uc.silence_timeout;

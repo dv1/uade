@@ -112,9 +112,10 @@ int main(int argc, char *argv[])
   struct option long_options[] = {
     {"basedir", 1, NULL, OPT_BASEDIR},
     {"debug", 0, NULL, 'd'},
-    {"get-info", 0, NULL, 'g'},
     {"filter", 2, NULL, OPT_FILTER},
     {"force-led", 1, NULL, OPT_FORCE_LED},
+    {"get-info", 0, NULL, 'g'},
+    {"gain", 1, NULL, 'G'},
     {"headphones", 0, NULL, OPT_HEADPHONES},
     {"help", 0, NULL, 'h'},
     {"ignore", 0, NULL, 'i'},
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
   if (config_loaded == 0)
     debug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
-  while ((ret = getopt_long(argc, argv, "@:1de:f:ghij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -207,6 +208,9 @@ int main(int argc, char *argv[])
       uade_no_output = 1;
       uade_terminal_mode = 0;
       break;
+    case 'G':
+      uade_gain_value = uade_convert_to_double(optarg, 1.0, 0.0, 1.0, "gain");
+      uade_postprocessing_setup(UADE_GAIN_ENABLE);
     case 'h':
       print_help();
       exit(0);
@@ -233,7 +237,7 @@ int main(int argc, char *argv[])
       uade_use_filter = 0;
       break;
     case 'p':
-      uade_panning_value = uade_get_panning(optarg);
+      uade_panning_value = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
       uade_postprocessing_setup(UADE_PANNING_ENABLE);
       break;
     case 'P':
@@ -557,6 +561,7 @@ static void print_help(void)
   printf(" --filter,           Enable filter emulation. Default is ON.\n");
   printf(" --filter=a500/a1200 Enable A500 or A1200 filter model. Default is A1200.\n"); 
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
+  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h/--help,          Print help\n");
@@ -602,6 +607,7 @@ void print_action_keys(void)
   tprintf(" SPACE, 'b'    Go to next subsong.\n");
   tprintf(" 'c'           Pause.\n");
   tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
+  tprintf(" 'g'           Toggle gain effect.\n");
   tprintf(" 'h'           Print this list.\n");
   tprintf(" 'H'           Toggle headphones effect.\n");
   tprintf(" RETURN, 'n'   Next song.\n");

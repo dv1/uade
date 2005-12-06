@@ -7,6 +7,7 @@ struct uade_config {
   int action_keys;
   int filter;
   int force_filter_off;
+  float gain;
   int headphones;
   int ignore_player_check;
   char *interpolator;
@@ -24,8 +25,9 @@ int uade_get_filter_type(const char *value);
 int uade_get_silence_timeout(const char *value);
 int uade_get_subsong_timeout(const char *value);
 int uade_get_timeout(const char *value);
-double uade_get_panning(const char *value);
-
+double uade_convert_to_double(const char *value,
+			      double def,
+			      double low, double high, const char *type);
 int uade_load_config(struct uade_config *uc, const char *filename);
 
 #endif

@@ -6,7 +6,10 @@
 
 #include "postprocessing.h"
 
+
+float uade_gain_value = 1.0;
 float uade_panning_value = 0.7;
+int uade_use_gain;
 int uade_use_headphones;
 int uade_use_panning;
 int uade_use_postprocessing;
@@ -29,6 +32,15 @@ void uade_postprocessing_setup(enum uade_postprocessing_op op)
     if (uade_use_postprocessing == 0)
       uade_effect_reset_internals();
     uade_use_postprocessing ^= 1;
+    break;
+  case UADE_GAIN_ENABLE:
+    uade_use_gain = 1;
+    break;
+  case UADE_GAIN_DISABLE:
+    uade_use_gain = 0;
+    break;
+  case UADE_GAIN_TOGGLE:
+    uade_use_gain ^= 1;
     break;
   case UADE_PANNING_ENABLE:
     uade_use_panning = 1;
@@ -54,6 +66,11 @@ void uade_postprocessing_setup(enum uade_postprocessing_op op)
   }
 
   if (uade_use_postprocessing) {
+    if (uade_use_gain) {
+      uade_effect_gain_set_amount(uade_gain_value);
+      uade_effect_enable(UADE_EFFECT_GAIN);
+    }
+
     if (uade_use_headphones)
       uade_effect_enable(UADE_EFFECT_HEADPHONES);
 

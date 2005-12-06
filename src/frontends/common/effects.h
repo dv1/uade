@@ -4,14 +4,16 @@
 #include <stdint.h>
 
 typedef enum {
-    UADE_EFFECT_PAN,
-    UADE_EFFECT_HEADPHONES
+  UADE_EFFECT_GAIN,
+  UADE_EFFECT_HEADPHONES,
+  UADE_EFFECT_PAN,
 } uade_effect_t;
 
 void uade_effect_disable(uade_effect_t effect);
 void uade_effect_disable_all(void);
 void uade_effect_enable(uade_effect_t effect);
 /* effect-specific knobs */
+void uade_effect_gain_set_amount(float amount);
 void uade_effect_pan_set_amount(float amount);
 /* reset state at start of song */
 void uade_effect_reset_internals(void);

@@ -117,20 +117,20 @@ int uade_get_timeout(const char *value)
 }
 
 
-double uade_get_panning(const char *value)
+double uade_convert_to_double(const char *value, double def, double low, double high, const char *type)
 {
   char *endptr;
-  double p = 0.0;
+  double v;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for panning value in config file %s\n", config_filename);
-    return 0.0;
+    fprintf(stderr, "Must have a parameter value for %s in config file %s\n", config_filename, type);
+    return def;
   }
-  p = strtod(value, &endptr);
-  if (*endptr != 0 || p < 0.0 || p > 2.0) {
-    fprintf(stderr, "Invalid panning value: %s\n", value);
-    p = 0.0;
+  v = strtod(value, &endptr);
+  if (*endptr != 0 || v < low || v > high) {
+    fprintf(stderr, "Invalid %s value: %s\n", type, value);
+    v = def;
   }
-  return p;
+  return v;
 }
 
 
@@ -143,6 +143,8 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   int linenumber = 0;
 
   memset(uc, 0, sizeof(*uc));
+
+  uc->gain = 1.0;
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
@@ -178,6 +180,8 @@ int uade_load_config(struct uade_config *uc, const char *filename)
       uc->no_filter = 0;
     } else if (strncmp(key, "force_led_off", 10) == 0) {
       uc->force_filter_off = 1;
+    } else if (strcmp(key, "gain") == 0) {
+      uc->gain = uade_convert_to_double(value, 1.0, 0.0, 1.0, "gain");
     } else if (strncmp(key, "headphones", 4) == 0) {
       uc->headphones = 1;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
@@ -194,11 +198,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uc->one_subsong = 1;
     } else if (strncmp(key, "panning_value", 3) == 0) {
-      if (value == NULL) {
-	fprintf(stderr, "uade.conf: Must give panning value.\n");
-      } else {
-	uc->panning = atof(value);
-      }
+      uc->panning = uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
     } else if (strncmp(key, "random_play", 6) == 0) {
       uc->random_play = 1;
     } else if (strncmp(key, "recursive_mode", 9) == 0) {

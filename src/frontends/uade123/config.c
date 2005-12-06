@@ -39,6 +39,11 @@ int load_config(const char *filename)
   if (uc.no_filter)
     uade_use_filter = 0;
 
+  if (uc.gain != 1.0) {
+    uade_gain_value = uc.gain;
+    uade_postprocessing_setup(UADE_GAIN_ENABLE);
+  }
+
   if (uc.headphones)
     uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
 

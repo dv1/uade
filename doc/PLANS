@@ -1,5 +1,6 @@
 Ideas of things to do for UADE 2:
 
+2005-12-06: Support all variables of uade.conf in XMMS plugin
 2005-12-06: Write amiga decruncher tool, and make filemagic notify about using
 	    that tool. Relevant formats are SQSH, power packer, and lha.
 2005-12-05: Interesting error message: Can not open module:
