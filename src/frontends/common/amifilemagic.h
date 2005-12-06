@@ -3,6 +3,6 @@
 
 #include <stdio.h>
 
-void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t bufsize, const char *filename);
+void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfilesize);
 
 #endif

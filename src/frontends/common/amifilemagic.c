@@ -251,7 +251,8 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
 /* returns:	 -1 for a mod with bad length 		*/
 /* 		 0  for no mod				*/
 /*		 1 for a mod with good length		*/
-static int modlentest(unsigned char *buf, size_t filesize, int header)
+static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
+		      int header)
 {
   int i = 0;
   int no_of_instr;
@@ -261,34 +262,43 @@ static int modlentest(unsigned char *buf, size_t filesize, int header)
 
   if (header == 600)   {
     no_of_instr = 15;
+    /* XXX: What is this? plist is parsed from 470 but mod_check.s starts
+       from 472! */
     plist = header - 130;
-    } else {
-    header = 1084;
+  } else if (header == 1084) {
     no_of_instr = 31;
-    plist = header -4 - 130 ;
-    }
-    
-  if (header > filesize)
+    /* XXX: plist is parsed from 950 but mod_check.s starts to from 952 */
+    plist = header - 4 - 130;
+  } else {
+    return 0;
+  }
+
+  if (header > bufsize)
     return 0;			/* no mod */
 
+  /* XXX: What is this test??? */
   if (buf[43] + no_of_instr * 30 > filesize)
     return 0;			/* no mod */
+
+  if ((plist + 2 * 128) > bufsize)
+    return 0;
 
   for (i = 0; i < 128; i++) {
     if (buf[plist + 2 + i] > maxpattern)
       maxpattern = buf[plist + 2 + i];
   }
 
-  if (maxpattern > 100) return 0;
+  if (maxpattern > 100)
+    return 0;
 
-  for (i = 0; i < no_of_instr; i++) {
-    smpl = smpl + (buf[42 + i * 30] << 8) + buf[43 + i * 30];	/* smpl len  */
-  }
+  /* XXX: Should sample lengths be multiplied by two? */
+  for (i = 0; i < no_of_instr; i++)
+    smpl += read_be_u16(&buf[42 + i * 30]);	/* smpl len  */
 
   //fprintf (stderr, "%d\n",(header + (maxpattern + 1) * 1024 + smpl * 2));
  
   if (filesize != (header + (maxpattern + 1) * 1024 + smpl * 2)){
-    return -1; 			/*size  error */
+    return -1; 			/* size  error */
   } else {
    return 1;
   }
@@ -337,7 +347,7 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
 }
 
 
-static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
+static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* returns:	 0 for undefined                            */
 /* 		 1 for a Soundtracker2.5/Noisetracker 1.0   */
 /*		 2 for a Noisetracker 1.2		    */
@@ -414,8 +424,8 @@ static int mod32check(unsigned char *buf, int bufsize, int realfilesize)
       }
     }
 
-   if (modlentest(buf, realfilesize, 1084) <1 ) return 0; /* modlentest failed */
-
+   if (modlentest(buf, bufsize, realfilesize, 1084) < 1)
+     return 0; /* modlentest failed */
 
  /* parse instruments */
     for (i = 0; i < 31; i++) {
@@ -528,8 +538,7 @@ return 0;
 }
 
 
-static int mod15check(unsigned char *buf, int bufsize, int realfilesize,
-		      const char *filename)
+static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* pattern parsing based on Sylvain 'Asle' Chipaux'	*/
 /* Modinfo-V2						*/
 /*							*/
@@ -555,38 +564,14 @@ static int mod15check(unsigned char *buf, int bufsize, int realfilesize,
   int pfx[32];
   int pfxarg[32];
 
-  char *s;
-  int mod15possible = 0;
-
-  /* Hack hack. mod15 detection is still so unreliable that we'll enable it
-     only if filename matches certain extension. */
-  s = strrchr(filename, '/');
-  if (s == NULL) {
-    s = (char *) filename;
-  } else {
-    s++;
-  }
-  if (strncasecmp(s, "mod15.", 6) == 0 ||
-      strncasecmp(s, "mod15_", 6) == 0 ||
-      strncasecmp(s, "mod.", 4) == 0)
-    mod15possible = 1;
-  if ((s = strrchr(filename, '.')) != NULL) {
-    if (strcasecmp(s, ".mod15") == 0 ||
-	strncasecmp(s, ".mod15_", 7) == 0 ||
-	strcasecmp(s, ".mod") == 0)
-      mod15possible = 1;
-  }
-
-  if (mod15possible == 0)
-    return 0;
-
   /* sanity checks */
   if (bufsize < 0x1f3)
     return 0;			/* file too small */
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
-  if (modlentest(buf, realfilesize, 600) < 1) return 0; /* modlentest failed */
+  if (modlentest(buf, bufsize, realfilesize, 600) < 1)
+    return 0; /* modlentest failed */
 
  /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x81 && buf[0x1f3] !=1) {
@@ -699,7 +684,7 @@ return 3; // anything is played as normal soundtracker
 }
 
 
-void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t bufsize, const char *filename)
+void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfilesize)
 {
   /* char filemagic():
      detects formats like e.g.: tfmx1.5, hip, hipc, fc13, fc1.4      
@@ -755,7 +740,7 @@ void uade_filemagic(unsigned char *buf, char *pre, size_t realfilesize, size_t b
     return;
   }
 
-  t = mod15check(buf, bufsize, realfilesize, filename);
+  t = mod15check(buf, bufsize, realfilesize);
   switch (t) { 
   case 1:
     strcpy(pre, "MOD15");
