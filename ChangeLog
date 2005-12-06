@@ -1,3 +1,7 @@
+2005-12-06  Michael Doering <mldoering@gmx.net>
+	- XMMS plugin now automagically advances the subsong seek slider, if
+	  the replay rolls over to the next subsong.
+
 2005-12-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added initial version of song length database into XMMS plugin. It
 	  is compatible with uade1 db-content, but named differently:

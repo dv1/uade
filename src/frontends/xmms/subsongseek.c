@@ -105,11 +105,11 @@ void uade_gui_seek_subsong(int to)
     GtkWidget *prev_next_button_box;
     GtkWidget *seek_button_vbox;
     GtkWidget *seek_slider_box;
+    GtkWidget *hscale;
 
     GtkWidget *prev_button;
     GtkWidget *prev_button_frame;
     GtkWidget *frame;
-    GtkWidget *hscale;
     GtkWidget *maxsong_label;
     GtkWidget *next_button,*ffwd_button;
     GtkWidget *ffwd_button_frame;
@@ -255,6 +255,10 @@ void uade_gui_seek_subsong(int to)
 
 void uade_gui_subsong_changed(int subsong)
 {
+    if (seekpopup) {
+	GTK_ADJUSTMENT(subsong_adj)->value=subsong;
+        gtk_adjustment_changed(GTK_ADJUSTMENT(subsong_adj));	/*here GTK gets the signal */
+	}
 }
 
 
@@ -309,7 +313,7 @@ static void uade_seek_previous(void)
 static void uade_seek_update_display(int subsong)
 {
     /*update scale with new subsong value */
-    GTK_ADJUSTMENT(subsong_adj)->value = subsong;
+    GTK_ADJUSTMENT(subsong_adj)->value=subsong;
     gtk_adjustment_value_changed(GTK_ADJUSTMENT(subsong_adj));	/*here GTK gets the signal */
 }
 
