@@ -1001,18 +1001,23 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 	     && buf[0x103] == 'T') {
     strcpy(pre, "SKT");		/*Skytpacker */
 
-  } else
-      if ((buf[0x5b8] == 'I' && buf[0x5b9] == 'T' && buf[0x5ba] == '1'
-	   && buf[0x5bb] == '0') || (buf[0x5b8] == 'M' && buf[0x5b9] == 'T'
-				     && buf[0x5ba] == 'N'
-				     && buf[0x5bb] == 0x00)) {
+  } else if ((buf[0x5b8] == 'I' && buf[0x5b9] == 'T' && buf[0x5ba] == '1'
+	      && buf[0x5bb] == '0') || (buf[0x5b8] == 'M' && buf[0x5b9] == 'T'
+					&& buf[0x5ba] == 'N'
+					&& buf[0x5bb] == 0x00)) {
     strcpy(pre, "ICE");		/*Ice/Soundtracker 2.6 */
 
   } else if (buf[0x3b8] == 'K' && buf[0x3b9] == 'R' && buf[0x3ba] == 'I'
 	     && buf[0x3bb] == 'S') {
     strcpy(pre, "KRIS");	/*Kristracker */
 
-/* Custom file check */
+  } else if (buf[0] == 'X' && buf[1] == 'P' && buf[2] == 'K' && buf[3] == 'F'&&
+	     read_be_u32(&buf[4]) + 8 == realfilesize &&
+	     buf[8] == 'S' && buf[9] == 'Q' && buf[10] == 'S' && buf[11] == 'H') {
+    fprintf(stderr, "uade: The file is SQSH packed. Please depack first.\n");
+    strcpy(pre, "packed");
+
+    /* Custom file check */
   } else if (buf[0] == 0x00 && buf[1] == 0x00 && buf[2] == 0x03
 	     && buf[3] == 0xf3) {
      /*CUSTOM*/ i = (buf[0x0b] * 4) + 0x1c;	/* beginning of first chunk */

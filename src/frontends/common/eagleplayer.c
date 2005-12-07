@@ -150,6 +150,9 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   if (verbose == 2)
     fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
 
+  if (strcmp(extension, "packed") == 0)
+    return NULL;
+
   if (playerstore == NULL) {
     char formatsfile[PATH_MAX];
     snprintf(formatsfile, sizeof(formatsfile), "%s/eagleplayer.conf", basedir);
