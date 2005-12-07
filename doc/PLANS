@@ -1,8 +1,10 @@
 Ideas of things to do for UADE 2:
 
-2005-12-06: Support all variables of uade.conf in XMMS plugin
+2005-12-07: Add dangerous malloc to test amifilemagic. (shd)
+2005-12-07: Remove postprocessing.[ch]. Use only effects.[ch]. (shd)
+2005-12-06: Support all variables of uade.conf in XMMS plugin. (shd)
 2005-12-06: Write amiga decruncher tool, and make filemagic notify about using
-	    that tool. Relevant formats are SQSH, power packer, and lha.
+	    that tool. Relevant formats are SQSH, power packer, and lha. (shd)
 2005-12-05: Interesting error message: Can not open module:
 	    /svu/chip/./ahx/Opaque 1/AHX.Happy Vibes... It seems it can not
 	    open files whose name end in whitespace.. (shd)

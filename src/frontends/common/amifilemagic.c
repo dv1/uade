@@ -37,6 +37,10 @@
 #endif
 
 
+#define S15_HEADER_LENGTH 600
+#define S31_HEADER_LENGTH 1084
+
+
 static int chk_id_offset(unsigned char *buf, int bufsize,
 			 const char *patterns[], int offset, char *pre);
 
@@ -257,20 +261,20 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
 static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 		      int header)
 {
-  int i = 0;
+  int i;
   int no_of_instr;
   int smpl = 0;
   int plist;
   int maxpattern = 0;
-  int calculated_size=0;
+  int calculated_size;
 
   if (header > bufsize)
     return 0;			/* no mod */
 
-  if (header == 600)   {
+  if (header == S15_HEADER_LENGTH)   {
     no_of_instr = 15;
     plist = header - 128;
-  } else if (header == 1084) {
+  } else if (header == S31_HEADER_LENGTH) {
     no_of_instr = 31;
     plist = header - 4 - 128;
   } else {
@@ -286,20 +290,13 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
     return 0;
 
   for (i = 0; i < no_of_instr; i++)
-    smpl += read_be_u16(&buf[42 + i * 30]);	/* smpl len  */
+    smpl += 2 * read_be_u16(&buf[42 + i * 30]);	/* add sample length in bytes*/
 
- 
-  calculated_size= header + (maxpattern + 1) * 1024 + smpl * 2;
-  //fprintf (stderr, "%d\t%d\n",filesize, calculated_size);
-  if (filesize < calculated_size) return 0;
+  calculated_size = header + (maxpattern + 1) * 1024 + smpl;
 
-  if (filesize > calculated_size) {
-	if (header == 600) {
-	    return 0;
-	} else {
-	    return 1;
-	}
-    }
+  if (filesize != calculated_size)
+    return 0;
+
   return 1;
 }
 
@@ -421,7 +418,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       }
     }
 
-   if (modlentest(buf, bufsize, realfilesize, 1084) == 0)
+   if (modlentest(buf, bufsize, realfilesize, S31_HEADER_LENGTH) == 0)
      return 0; /* modlentest failed */
 
  /* parse instruments */
@@ -480,7 +477,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 	
 	memset (pfx,0,sizeof (pfx));
 	memset (pfxarg,0,sizeof (pfxarg));
-	modparsing(buf, bufsize, 1084-4, max_pattern, pfx, pfxarg);
+	modparsing(buf, bufsize, S31_HEADER_LENGTH-4, max_pattern, pfx, pfxarg);
 
 
 	for (j=17; j<=31; j++)
@@ -573,7 +570,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
-  if (modlentest(buf, bufsize, realfilesize, 600) == 0)
+  if (modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH) == 0)
     return 0; /* modlentest failed */
 
  /* check for 15 instruments */
@@ -624,7 +621,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* parse pattern data -> fill pfx[] with number of times fx being used*/
     memset (pfx,0,sizeof (pfx));
     memset (pfxarg,0,sizeof (pfxarg));
-    modparsing(buf, bufsize, 600, max_pattern, pfx, pfxarg);
+    modparsing(buf, bufsize, S15_HEADER_LENGTH, max_pattern, pfx, pfxarg);
 
 /* and now for let's see if we can spot the mod */
 
