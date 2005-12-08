@@ -2,6 +2,7 @@
 	- Added unrecognizable type "packed" into amifilemagic. It is
 	  used to inform user about files that are packed with an amiga
 	  packer.
+	- some work on m68k mod checking and replay routine (mld)
 	
 2005-12-06  Michael Doering <mldoering@gmx.net>
 	- XMMS plugin now automagically advances the subsong seek slider, if

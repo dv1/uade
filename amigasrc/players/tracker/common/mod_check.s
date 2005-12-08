@@ -8,15 +8,15 @@ mod_UST=4
 mod_PTK_comp=32
 mod_PTK=33
 mod_PTK_vblank=34
-mod_NTK_2.0=35
-mod_NTK_1.0=36
-mod_NTK_AMP=36
-mod_STK=37
-mod_FLT4=38
-mod_FLT8=39
-mod_ADSC4=40
-mod_ADSC8=41
-mod_FTK=35
+mod_NTK_2=35
+mod_NTK_1=36
+mod_NTK_AMP=37
+mod_STK=38
+mod_FLT4=39
+mod_FLT8=40
+mod_ADSC4=41
+mod_ADSC8=42
+mod_FTK=43
 
 
 
@@ -43,18 +43,16 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 			move.l	#1084,d0
 			bsr	mcheck_calc_modlen
 			cmp.w	#-1,d0			;mod32 ?
-			bne	.mcheck_mod32		;yup
+			bne	.mod32			;yup
 			move.l	#600,d0
 			bsr	mcheck_calc_modlen
 			cmp.w	#-1,d0			;mod15 ?
 			beq	.mcheck_fail		;nope
 
-.mcheck_mod15:
-			bsr	mcheck_mod15
+.mod15:			bsr	mcheck_mod15
 			bra	.mcheck_open_on_uade
 
-.mcheck_mod32:
-			bsr mcheck_ptk_vblank		
+.mod32:			bsr mcheck_mod32
 
 .mcheck_open_on_uade:	move.l	4.w,a6
 			lea	uadename(pc),a1
@@ -72,7 +70,40 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 			bra.s	.mcheck_end
 
 ;---- Mod32 Checks ----
-mcheck_ptk_vblank:
+mod32_Magic:
+			dc.l	"M.K."
+					bra	mcheck_which_mk
+			dc.l	"M!K!"
+					bra	mcheck_is_ptk
+			dc.l	".M.K"
+					bra	mcheck_is_ptk
+			dc.l	"M&K!"
+					bra	mcheck_is_ntk_amp
+			dc.l	"FLT4"
+					bra	mcheck_which_FLT4
+			dc.l	"EXO4"
+					bra	mcheck_which_FLT4
+			dc.l	-1,-1,-1
+
+
+mcheck_mod32:
+			lea.l	mod32_Magic(pc),a1
+.magic_loop:		move.l	(a1)+,d0
+			cmp.l	#-1,d0
+			beq	mcheck_which_mk		; no M.K. found
+			cmp.l	$438(a0),d0
+			beq.s	.tag_found
+			add.l	#4,a1
+			bra	.magic_loop
+.tag_found:		jmp	(a1)
+
+;-----------------------------------------------------------------------------
+; M.K. - file: TODO: Distinguish STK,NTK1,NTK2,PTK and FTK :)
+;
+mcheck_which_mk:
+
+			;bra	mcheck_is_ptk		; ok, it's Protracker
+mcheck_is_ptk:
 			; Check for vblank by playtime
 			; in Protracker modules 
 			moveq.l	#0,d0
@@ -91,8 +122,25 @@ mcheck_ptk_vblank:
 			bgt	.mcheck_end
 			move.l #mod_PTK,modtag	
 .mcheck_end		rts
+			
+;----------------------------------------------------------------------------
+; M&K!- Noisetracker file
+;
+mcheck_is_ntk_amp:
+			move.l #mod_NTK_AMP,modtag	
+			rts
 
-;---- Mod15 Checks ----
+;----------------------------------------------------------------------------
+; M&K!- Noisetracker file
+;
+mcheck_which_flt4:	;bra	mcheck_is_flt4
+mcheck_is_flt4:
+			rts
+
+
+
+
+;******  Mod15 Checks *******************************************************
 mcheck_mod15:
 			move.l #"M15.",modtag
 			rts
@@ -220,7 +268,7 @@ mcheck_calc_modlen:
 ; A5 - 
 ; A6 - 
 
-* BUGGY !!! Does not work with mod.ode2ptk *sigh*
+* BUGGY !!! Does not work right with mod.ode2ptk *sigh*
 
 PTCalcTime	move.l	#6,.Speed
 		move.l	#0,.PattPos
@@ -375,7 +423,10 @@ PTCalcTime	move.l	#6,.Speed
 		move.b	#-1,.BreakFlag
 		rts
 
-._PatLoop	move.l	(a2),d0			; Get stuff
+._PatLoop	rts				; temporarily disable pt_loop
+						; because of ode2ptk...
+
+		move.l	(a2),d0			; Get stuff
 		and.l	#$f,d0
 		tst.l	d0
 		beq.s	.SetLoop
