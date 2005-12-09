@@ -183,7 +183,7 @@ EndPlay
 ; InitSnd
 InitSnd:
 	bsr	pt_end
-	;bsr	pt_deinit
+	bsr	pt_deinit
 	bsr	pt_init
 	st	pt_Enable
 	rts
@@ -206,8 +206,41 @@ SetSubsong:
     rts
 
 *-----------------------------------------------------------------------*
-;
-; 
+pt_deinit:
+		move.b	#0,pt_metspd
+		move.b	#0,pt_metrochannel
+		move.b	#6,pt_speed
+		move.b	#0,pt_songpos
+		move.b	#0,pt_pbreakposition
+		move.b	#0,pt_posjumpassert
+		move.b	#0,pt_pbreakflag
+		move.b  #0,pt_lowmask
+		move.b	#0,pt_pattdelaytime
+		move.b  #0,pt_pattdelaytime2
+		move.b  #0,pt_Enable
+		move.l	#0,pt_timervalue
+		move.l  #0,pt_counter
+		move.l  #6,pt_currspeed
+		move.w	#0,pt_pattpos
+		move.w	#0,pt_dmacontemp
+		move.w	#%00001111,pt_activechannels
+		move.l	#0,pt_patternptr
+		move.l	#0,pt_patternposition
+		;move.l #0,pt_songposition
+		move.l #0,pt_songdataptr
+		move.b	#0,pt_smpl_in_bytes
+
+
+clear_uade_playtable:
+
+		move.w   #129*64/8,d0
+		subq	#1,d0
+		lea.l	uade_playtable,a0
+clearplayt:	move.b	#0,(a0)+
+		dbra	d0,clearplayt
+
+		rts
+
 **************************************************
 *	»» Protracker 3.00B playroutine ««	 *
 *		By The Welder/Divine		 *

@@ -97,12 +97,26 @@ mcheck_mod32:
 			bra	.magic_loop
 .tag_found:		jmp	(a1)
 
+mcheck_mod32_fail:
+			rts
+
 ;-----------------------------------------------------------------------------
 ; M.K. - file: TODO: Distinguish STK,NTK1,NTK2,PTK and FTK :)
 ;
 mcheck_which_mk:
+			bsr	ParseInstruments32	; returns -1 for failed check.
+			cmp.b	#-1,d0
+			beq	mcheck_mod32_fail
 
-			;bra	mcheck_is_ptk		; ok, it's Protracker
+			tst.b	finetune_used
+			beq	mcheck_is_ptk
+			
+			tst.b	repeat_in_bytes_used
+			bne	.no_finetune
+			move.l #mod_STK,modtag		; Soundtracker 2.5
+			rts
+.no_finetune:
+			
 mcheck_is_ptk:
 			; Check for vblank by playtime
 			; in Protracker modules 
@@ -122,6 +136,7 @@ mcheck_is_ptk:
 			bgt	.mcheck_end
 			move.l #mod_PTK,modtag	
 .mcheck_end		rts
+
 			
 ;----------------------------------------------------------------------------
 ; M&K!- Noisetracker file
@@ -481,12 +496,66 @@ PTCalcTime	move.l	#6,.Speed
 .PosJumpPos	dc.l	0
 .PattBreakPos	dc.l	0
 
+;--------------------------------------------------------------------------
+; ParseInstruments
+; Arguments:
+;       a0.l = pointer to module data
+;
+; returns:
+;	d0 = status (-1 bad file, 0 = len ok)
+;
+
+ParseInstruments32:
+		movem.l	d1-d7/a0-a6,-(a7)
+		moveq	#0,d1
+		moveq	#30,d0
+.parseloop:
+		cmp.b	#64,45(a0)		; volume > 64
+		bgt	.parse_fail
+
+		move.b	44(a0),d1
+		cmp.w	#15,d1			; fine_tune > 15
+		bgt	.parse_fail
+		cmp.w	#0,d1
+		beq	.parse_no_finetune
+		st	finetune_used		; 0 <finetune <16
+
+.parse_no_finetune:
+		cmp.w	#0,42(a0)		; sample len
+		beq	.parse_empty
+		bra	.parse_other
+
+.parse_empty
+		;cmp.l	#0,20(a0)		; empty instrument name
+		;cmp.w	#0,46(a0)		; repl len
+		;cmp.w	#0,48(a0)		; loop size
+
+		bra	.parse_next
+.parse_other:
+		move.w	46(a0),d1
+		add.w	48(a0),d1
+		cmp.w	42(a0),d1		; srep+sreplen>slen ?
+		bls	.parse_next
+		st	repeat_in_bytes_used
+
+.parse_next:	add.l	#30,a1
+		dbra	d0,.parseloop
+
+.parse_Ok	moveq	#0,d0
+		movem.l	(a7)+,d1-d7/a0-a6
+		rts
+
+.parse_fail	moveq	#-1,d0
+		movem.l	(a7)+,d1-d7/a0-a6
+		rts
 
 ;--------------------------------------------------------------------------
 ; Datas:
+;Instrument flags
 
-
-
+repeat_in_bytes_used	dc.b	0	
+finetune_used:		dc.b	0
+			even
 maxpattern:		dc.w	0
 Timer:			dc.l	0,0,0,0			; Hours, Minutes, secs
 header:			dc.l	0
