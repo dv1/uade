@@ -1,6 +1,6 @@
 
 mod_fail=-1
-mod_DOC=0
+mod_DOC=1
 mod_MST=2
 mod_STIV=3
 mod_UST=4
@@ -52,7 +52,8 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 .mod15:			bsr	mcheck_mod15
 			bra	.mcheck_open_on_uade
 
-.mod32:			bsr mcheck_mod32
+.mod32:
+			bsr mcheck_mod32
 
 .mcheck_open_on_uade:	move.l	4.w,a6
 			lea	uadename(pc),a1
@@ -111,10 +112,10 @@ mcheck_which_mk:
 			tst.b	finetune_used
 			beq	mcheck_is_ptk
 			
-			tst.b	repeat_in_bytes_used
-			bne	.no_finetune
-			move.l #mod_STK,modtag		; Soundtracker 2.5
-			rts
+			;tst.b	repeat_in_bytes_used
+			;bne	.no_finetune
+			;move.l #mod_STK,modtag		; Soundtracker 2.5
+			;rts
 .no_finetune:
 			
 mcheck_is_ptk:
@@ -510,11 +511,12 @@ ParseInstruments32:
 		moveq	#0,d1
 		moveq	#30,d0
 .parseloop:
-		cmp.b	#64,45(a0)		; volume > 64
+		move.b	45(a0),d1
+		cmp.b	#64,d1			; volume > 64
 		bgt	.parse_fail
 
 		move.b	44(a0),d1
-		cmp.w	#15,d1			; fine_tune > 15
+		cmp.b	#15,d1			; fine_tune > 15
 		bgt	.parse_fail
 		cmp.w	#0,d1
 		beq	.parse_no_finetune
@@ -532,10 +534,12 @@ ParseInstruments32:
 
 		bra	.parse_next
 .parse_other:
+		clr.l	d1
+		
 		move.w	46(a0),d1
 		add.w	48(a0),d1
-		cmp.w	42(a0),d1		; srep+sreplen>slen ?
-		bls	.parse_next
+		cmp.w	42(a0),d1			; srep+sreplen>slen ?
+		ble	.parse_next
 		st	repeat_in_bytes_used
 
 .parse_next:	add.l	#30,a1

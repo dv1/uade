@@ -31,22 +31,33 @@ PlayerTagArray
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
-Formatpointer	dc.l	FName
+Formatpointer	dc.l	Format
 delibase	dc.l	0
 song		dc.l	0
 
-PName	dc.b 'Protracker and derivates',0
-FName	dc.b 'Protracker',0
-CName	dc.b "",10
+Format			dc.b	"type: "
+FName			ds.b	31
+			dc.b	0
 
-	dc.b 'Protracker 3.0b replay by Welder/Divine',10
-	dc.b 'replay fixes deriving from EP 2.04 by Eagleeye',10
-	dc.b 'subsong handling by Don Adan/Wanted Team',10
-	dc.b 'PTCalcTime V1.1 by H. Pedersen',10,10
-	dc.b 'adapted for UADE by mld and shd',10
-	dc.b '-----------------------',10
-	dc.b 'note: filedetection checks for UADE!',0
+PName			dc.b 'Protracker and derivates',0
+CName			dc.b 'Protracker 3.0b replay by Welder/Divine',10
+			dc.b 'replay fixes deriving from EP 2.04 by Eagleeye',10
+        		dc.b 'subsong detection by Don Adan/Wanted Team',10
+			dc.b 'PTCalcTime V1.1 by H. Pedersen',10,10
+			dc.b 'adapted for UADE by mld and shd',10
+			dc.b '----------------------------------------------',10
+			dc.b 'note: filedetection checks for UADE!',0
 	
+PTK_Name:		dc.b 'Protracker',-1
+PTK_Comp_Name:		dc.b 'Protracker compatible',-1
+PTK_vblank_Name:	dc.b 'Protracker (vblank)',-1
+NTK_2_Name:		dc.b 'Noisetracker 2.x',-1
+NTK_1_Name:		dc.b 'Noisetracker 1.x',-1
+NTK_AMP_Name:		dc.b 'Noisetracker (M&K!)',-1
+FLT4_Name:		dc.b 'Startrekker (4ch)',-1
+STK_Name:		dc.b 'Soundtracker II 32instr',-1
+STK15_Name:		dc.b 'Soundtracker II 15instr',-1
+
 	even
 
 
@@ -91,6 +102,9 @@ Chk_fail:
 	moveq	#-1,d0
 	rts
 Chk_ok:
+	lea.l	FName,a2
+	move.w	#30,d1
+	bsr	strncpy
 	sf	pt_chkfail
 	moveq	#0,d0
 	rts
@@ -99,28 +113,33 @@ Chk_ok:
 ;defines and flags for the different modtypes
 ;
 is_PTK:
+	lea.l	PTK_Name,a1
 	bra	Chk_ok
 
 is_PTK_comp:
+	lea.l	PTK_Comp_Name,a1
 	bra	Chk_ok
 
 is_PTK_vblank:
-	move.b	#1,pt_vblank
+	st	pt_vblank
+	lea.l	PTK_vblank_Name,a1
 	bra	Chk_ok
 
 is_FLT4:
-	move.b	#1,pt_ntkporta
-	move.b	#1,pt_vblank
+	st	pt_ntkporta
+	st	pt_vblank
 	move.l	#7,pt_vibshift
 	move.w	#36*2,pt_oldstk
+	lea.l	FLT4_Name,a1
 	bra	Chk_ok
 
 is_STK:
-	move.b	#1,pt_ntkporta
-	move.b	#1,pt_vblank
+	st	pt_ntkporta
+	st	pt_vblank
 	move.l	#6,pt_vibshift
 	move.w	#36*2,pt_oldstk
-	move.b	#1,pt_smpl_in_bytes
+	st 	pt_smpl_in_bytes
+	lea.l	STK_Name,a1
 	bra	Chk_ok
 
 is_STK15:
@@ -129,28 +148,47 @@ is_STK15:
 	move.w	#$1e0,pt_seqadj
 	move.w	#$1e4,pt_blkadj
 	move.w	#37*2,pt_oldstk
-	move.b	#1,pt_ntkporta
-	move.b	#1,pt_vblank
-	;move.b	#1,pt_smpl_in_bytes
+	st	pt_ntkporta
+	st	pt_vblank
+	;st	pt_smpl_in_bytes
+	lea.l	STK15_Name,a1
 	bra	Chk_Ok
 	
 
 is_NTK1:
 	move.b	#6,pt_vibshift
+	lea.l	NTK_1_Name,a1
 	bra	is_NTK
 
 is_NTK_AMP:
 	move.b	#5,pt_vibshift
+	lea.l	NTK_AMP_Name,a1
 	bra is_NTK
 
 is_NTK2:
+	lea.l	NTK_2_Name,a1
 
 is_NTK:
 	move.b	950(a0),pt_restart
-	move.b	#1,pt_ntkporta
-	move.b	#1,pt_vblank
+	st	pt_ntkporta
+	st	pt_vblank
 	bra	Chk_ok
 	
+
+*-----------------------------------------------------------------------*
+; strncpy
+;
+; a1=src pointer (null Terminated)
+; a2=dst pointer
+; d1=sizeof dst
+
+strncpy:
+	move.b	(a1),(a2)+
+	cmp.b	#-1,(a1)+
+	dbeq	d1,strncpy
+	clr.b	-1(a2)
+	rts
+
 
 *-----------------------------------------------------------------------*
 ;
@@ -197,6 +235,7 @@ EndSnd:
 	rts
 
 SubSongRange:
+    * DEBUG: Hack to check playtime *
     lea.l	Timer,a0
     move.l	(a0),d0
     move.l	4(a0),d1
@@ -228,7 +267,7 @@ pt_deinit:
 		move.l	#0,pt_patternposition
 		;move.l #0,pt_songposition
 		move.l #0,pt_songdataptr
-		move.b	#0,pt_smpl_in_bytes
+		;move.b	#0,pt_smpl_in_bytes
 
 
 clear_uade_playtable:
@@ -285,17 +324,18 @@ pt_lop:
 		lea	pt_samplestarts(pc),a1
 		lea	42(a0),a0		; First sample length
 		move.w	pt_noofinstr(pc),d0	; No of inst
-pt_lop3:
-		clr.l	(a2)			; Clear first four bytes
-		move.l	a2,(a1)+
+pt_lop3:	cmp.w	#2,(a0)			; smpllen  <= 0
+		bls.s	.Noe
+		clr.l	(a2)			; Clear first words
+.Noe:		move.l	a2,(a1)+
     		moveq	#0,d1
 
 		move.w	(a0),d1
 		add.l	d1,d1
 		adda.l	d1,a2			; next sample
-	    
-		cmp.b #1,pt_smpl_in_bytes
-		bne.b	repeat_ok
+
+		tst.b	pt_smpl_in_bytes
+		beq.b	repeat_ok
 		lsr.w	4(a0)
 repeat_ok:
 		lea	30(a0),a0
@@ -532,9 +572,9 @@ pt_plvskip:
 		move.l	d2,10(a6)
 		move.l	d2,36(a6)
 		move.w	4(a3,d4.l),d0		; Get repeat
-		tst.w	6(a3,d4.l)		; Test repeat length is zero
-		bne	rplen_ok
-		add.w	#2,d0			; set std replen for mods
+		 tst.w	6(a3,d4.l)		; Test repeat length is zero
+		 bne	rplen_ok
+		 add.w	#2,d0			; set std replen for mods
 rplen_ok	add.w	6(a3,d4.l),d0		; Add repeat length
 		move.w	d0,8(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save replen
@@ -545,9 +585,9 @@ pt_noloop:
 		move.l	d2,10(a6)
 		move.l	d2,36(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save repeat length
-		tst.w	14(a6)			; repeat length zero?
-		bne	pt_setregisters		; nope
-		move.w	#2,14(a6)		; otherwise set it to std
+		 tst.w	14(a6)			; repeat length zero?
+		 bne	pt_setregisters		; nope
+		 move.w	#2,14(a6)		; otherwise set it to std
 pt_setregisters:
 		move.w	(a6),d0
 		andi.w	#$0fff,d0
@@ -1377,12 +1417,23 @@ pt_funkok:
 pt_funkend:
 		rts
 pt_raster:
-		movem.l d0-d7/a0-a6,-(a7)
-		move.l	delibase,a5
-		move.l	dtg_WaitAudioDMA(a5),a0
-		jsr	(a0)
-		movem.l	(a7)+,d0-d7/a0-a6
+		moveq	#15-1,d7
+pt_lo1:
+		move.b	$dff006,d6
+pt_lo2:
+		cmp.b	$dff006,d6
+		beq.b	pt_lo2
+		dbf	d7,pt_lo1
 		rts
+
+;--- Wrong Timing :/
+;		movem.l d0-d7/a0-a6,-(a7)
+;		move.l	delibase,a5
+;		move.w	#14,d0
+;		move.l	dtg_WaitAudioDMA(a5),a0
+;		jsr	(a0)
+;		movem.l	(a7)+,d0-d7/a0-a6
+;		rts
 
 		Even
 
