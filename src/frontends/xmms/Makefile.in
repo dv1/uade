@@ -1,7 +1,9 @@
 CC = {CC}
-CFLAGS = -Wall -O2 -fpic -shared -g `xmms-config --cflags` -I../common -I../../include
+XMMSFLAGS={XMMSFLAGS}
+XMMSLIBS={XMMSLIBS}
 
-CLIBS = `xmms-config --libs`
+CFLAGS = -Wall -O2 -fpic -shared -g $(XMMSFLAGS) -I../common -I../../include
+CLIBS = $(XMMSLIBS)
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o postprocessing.o \
 	uadeconf.o md5.o

@@ -79,8 +79,8 @@ feinstall:	{UADE123INSTALL} {XMMSPLUGININSTALL}
 	@true
 
 feclean:	
-	$(MAKE) -C src/frontends/uade123 clean
-	$(MAKE) -C src/frontends/xmms clean
+	$(MAKE) -C src/frontends/uade123 clean || true
+	$(MAKE) -C src/frontends/xmms clean || true
 
 clean:	
 	$(MAKE) -C src clean

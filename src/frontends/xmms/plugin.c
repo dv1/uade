@@ -167,7 +167,7 @@ static void load_config(void)
   uade_use_filter = 0;
   */
 
-  if (uc.gain != 1.0) {
+  if (uc.gain != 1.0 || uade_gain_value != 1.0) {
     uade_gain_value = uc.gain;
     uade_postprocessing_setup(UADE_GAIN_ENABLE);
   }
@@ -189,10 +189,9 @@ static void load_config(void)
   if (uc.one_subsong)
     one_subsong_per_file = 1;
 
-  if (uc.panning != 0.0) {
-    uade_panning_value = uc.panning;
+  uade_panning_value = uc.panning;
+  if (uc.panning != 0.0)
     uade_postprocessing_setup(UADE_PANNING_ENABLE);
-  }
 
   if (uc.silence_timeout)
     silence_timeout = uc.silence_timeout;
@@ -225,6 +224,11 @@ static void load_content_db(void)
     if (stat(md5name, &st) == 0) {
       if (uade_read_content_db(md5name))
 	return;
+    } else {
+      FILE *f = fopen(md5name, "w");
+      if (f)
+	fclose(f);
+      uade_read_content_db(md5name);
     }
   }
 
@@ -727,10 +731,9 @@ static void uade_play_file(char *filename)
     if (stat(md5name, &st) == 0 && md5_load_time < st.st_mtime)
       load_content_db();
 
-    /* Current db if an hour has passed and loading is not forced (during init
-       time) */
+    /* Save current db if an hour has passed */
     curtime = time(NULL);
-    if (curtime >= (md5_load_time + 3600) && md5name[0]) {
+    if (curtime >= (md5_load_time + 3600)) {
       uade_save_content_db(md5name);
       md5_load_time = curtime;
     }

@@ -23,17 +23,9 @@ fi
 
 user="no"
 packageprefix=""
-mymods="\$ENV{HOME}"
 usexmms="auto"
-usebmp="no"
+useuade123="yes"
 xmmsplugindir="auto"
-bmpplugindir="auto"
-FORCEDAUDIOTARGET="AO"
-disablealsa="no"
-disableoss="no"
-disablesdl="no"
-disableao="no"
-interaction="no"
 debug_flags=""
 
 for opt in "$@" ; do
@@ -66,13 +58,6 @@ for opt in "$@" ; do
 	--sharedir=*)
 		sharedir=`echo $opt | sed -n 's/--sharedir=\(.*\)/\1/p'`
 		;;
-
-	--glib-config=*)
-	        GLIB_CONFIG=`echo $opt | sed -n 's/--glib-config=\(.*\)/\1/p'`
-		;;
-	--gtk-config=*)
-	        GTK_CONFIG=`echo $opt | sed -n 's/--gtk-config=\(.*\)/\1/p'`
-		;;
 	--pkg-config=*)
 	        PKG_CONFIG=`echo $opt | sed -n 's/--pkg-config=\(.*\)/\1/p'`
 		;;
@@ -82,37 +67,19 @@ for opt in "$@" ; do
 	--xmms-plugin-dir=*)
 		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
-#	--bmp-plugin-dir=*)
-#		bmpplugindir=`echo $opt | sed -n 's/--bmp-plugin-dir=\(.*\)/\1/p'`
-#		;;
+
+	--with-uade123)
+		useuade123="yes"
+		;;
+	--without-uade123)
+		useuade123="no"
+		;;
 
 	--with-xmms)
 		usexmms="yes"
 		;;
 	--without-xmms)
 		usexmms="no"
-		;;
-#	--with-bmp)
-#		usebmp="yes"
-#		;;
-#	--without-bmp)
-#		usebmp="no"
-#		;;
-
-#	--with-alsa)
-#		FORCEDAUDIOTARGET="ALSA"
-#		disablealsa="no"
-#		;;
-#	--without-alsa)
-#		disablealsa="yes"
-#		;;
-
-	--with-ao)
-		FORCEDAUDIOTARGET="AO"
-		disableao="no"
-		;;
-	--without-ao)
-		disableao="yes"
 		;;
 
         --user)
@@ -123,12 +90,10 @@ for opt in "$@" ; do
 		;;
 	--help)
 		echo
-		echo "Usage:"
-		echo
 		echo "Installation control:"
-                echo " --user           Install the program completely to the home directory"
-		echo "                  for _this_ user (no root privileges needed for installation)"
-                echo " --prefix=path    Install program under 'path'"
+                echo " --user                 Install uade to user's home directory. Do not run"
+		echo "                        'make install' as root!"
+                echo " --prefix=path          Install program under 'path'"
 	        echo " --package-prefix=path  File installation prefix (for package maintainers)"
 		echo " --make=exe             Use 'exe' as the make command"
 		echo " --bindir=dir           Install executables into this directory"
@@ -136,15 +101,17 @@ for opt in "$@" ; do
 		echo " --includedir=dir       Add this directory to compilation include path"
 		echo " --mandir=dir           Install man page to this directory"
 		echo " --libdir=dir           Add this dircetory to linking path"
-		echo " --sharedir=dir         Install UADE data files into this directory"
+		echo " --sharedir=dir         Install data files into this directory"
+		echo
 		echo "Frontend options:"
-		echo " --with-xmms          Compile an XMMS plugin (auto detect)"
-		echo " --without-xmms       Do not compile an XMMS plugin"
+		echo " --with-uade123         Compile uade123 (auto detect)"
+		echo " --without-uade123      Do not compile uade123"
+		echo " --with-xmms            Compile an XMMS plugin (auto detect)"
+		echo " --without-xmms         Do not compile an XMMS plugin"
+		echo " --xmms-config=exe      Use 'exe' as xmms-config"
 		echo
 		echo "Library control:"
-		echo " --glib-config=exe    Use 'exe' as glib-config executable"
-		echo " --gtk-config=exe     Use 'exe' as gtk-config executable"
-		echo " --pkg-config=exe     Use 'exe' as pkg-config executable"
+		echo " --pkg-config=exe       Use 'exe' as pkg-config executable"
 		echo
 		exit
 		;;
@@ -170,18 +137,11 @@ fi
 if test "$usexmms" = "auto" ; then
     if test -x "`which $XMMS_CONFIG`" ; then
 	usexmms="yes"
+	XMMSFLAGS="`$XMMS_CONFIG --cflags`"
+	XMMSLIBS="`$XMMS_CONFIG --libs`"
     else
 	usexmms="no"
 	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
-    fi
-fi
-
-if test "$usebmp" = "auto" ; then
-    usebmp="no"
-    if test -n "$PKG_CONFIG" ; then
-	if test -n "`$PKG_CONFIG bmp --libs 2>/dev/null`"; then
-	    usebmp="yes"
-	fi
     fi
 fi
 
@@ -192,143 +152,34 @@ if test -z "$OS" ; then
 fi
 
 UNIXSHELL="yes"
-AUDIOTARGET="NULL"
-LIBTOOL="libtool"
 UADE123NAME="uade123"
 
-if test -n "$OS" && test "$OS" = "SunOS"; then
-    echo
-    echo "Configuring for Solaris." 
-    AUDIOTARGET="SOLARIS"
-elif test -n "$OS" && test "$OS" = "IRIX"; then
-    echo
-    echo "Configuring for IRIX."
-    AUDIOTARGET="SGI"
-elif test -n "$OS" && test "$OS" = "MorphOS"; then
+if test -n "$OS" && test "$OS" = "MorphOS"; then
     echo
     echo "Configuring for MorphOS / AmigaOS."
-    AUDIOTARGET="AHI"
     ARCHFLAGS="$ARCHFLAGS -noixemul"
-    UNIXSHELL="no"
     usexmms="no"
 elif test -n "$OS" && test "$OS" = "AmigaOS"; then
     echo
     echo "Configuring for AmigaOS 4."
-    AUDIOTARGET="AHI"
     ARCHFLAGS="$ARCHFLAGS"
-    UNIXSHELL="no"
     usexmms="no"
 elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo
     echo "Configuring for MacOSX"
-    AUDIOTARGET="COREAUDIO"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
-    LIBTOOL="glibtool"
-    if test "$interaction" != "nooo"; then
-        interaction="yes"
-    fi
-elif test -n "$OS" && test "$OS" = "Linux"; then
-    if test "$interaction" != "nooo"; then
-        interaction="yes"
-    fi
-    AUDIOTARGET="ALSA"
-elif test -n "$OS" && test "$OS" = "OpenBSD"; then
-    if test "$interaction" != "nooo"; then
-        interaction=yes
-    fi
-    AUDIOTARGET="SOLARIS"
-else
-    grep -i cygwin 2>/dev/null >/dev/null <<EOF
+fi
+
+grep -i cygwin 2>/dev/null >/dev/null <<EOF
 $OS
 EOF
-    if test "$?" = "0" ; then
-	OS="Cygwin"
-	UADE123NAME="uade123.exe"
-    fi
+if test "$?" = "0" ; then
+    OS="Cygwin"
+    UADE123NAME="uade123.exe"
 fi
 
-if test "$disablealsa" = "yes" && test "$AUDIOTARGET" = "ALSA"; then
-    AUDIOTARGET="NULL"
-fi
-if test "$disableoss" = "yes" && test "$AUDIOTARGET" = "OSS"; then
-    AUDIOTARGET="NULL"
-fi
-if test "$disablesdl" = "yes" && test "$AUDIOTARGET" = "SDL"; then
-    AUDIOTARGET="NULL"
-fi
-if test "$disableao" = "yes" && test "$AUDIOTARGET" = "AO"; then
-    AUDIOTARGET="NULL"
-fi
-
-
-# Automatic checking for ALSA version 1.0.x. Fall back to OSS sound on
-# failure.
-if test "$AUDIOTARGET" = "ALSA"; then
- cat > alsatest.c <<EOF
-#include <alsa/asoundlib.h>
-int main(void) { return (!(SND_LIB_MAJOR==1 && SND_LIB_MINOR==0)); }
-EOF
-$CC -Wall -O2 -o alsatest alsatest.c 2>/dev/null || AUDIOTARGET="OSS"
-fi
-
-if test -n "$FORCEDAUDIOTARGET"; then
-    AUDIOTARGET="$FORCEDAUDIOTARGET"
-    echo "Forcing sound output to be $AUDIOTARGET"
-fi
-
-AUDIOFLAGS=""
-AUDIOLIBS=""
-
-if test "$AUDIOTARGET" = "SOLARIS"; then
-    SOUNDSOURCE="sd-sound-solaris.c"
-    SOUNDHEADER="sd-sound-generic.h"
-elif test "$AUDIOTARGET" = "SGI"; then
-    AUDIOLIBS="$UADEEXTRALIBS -lgen -laudio"
-    SOUNDSOURCE="sd-sound-sgi.c"
-    SOUNDHEADER="sd-sound-sgi.h"
-elif test "$AUDIOTARGET" = "AHI"; then
-    SOUNDSOURCE="sd-sound-ahi.c"
-    SOUNDHEADER="sd-sound-ahi.h"
-elif test "$AUDIOTARGET" = "ALSA"; then
-    AUDIOFLAGS=""
-    AUDIOLIBS="-lasound"
-    if test -n "$PKG_CONFIG" ; then
-	AUDIOFLAGS="`"$PKG_CONFIG" alsa --cflags`" || AUDIOFLAGS=""
-	AUDIOLIBS="`"$PKG_CONFIG" alsa --libs`" || AUDIOLIBS="-lasound"
-    fi
-    SOUNDSOURCE="sd-sound-alsa.c"
-    SOUNDHEADER="sd-sound-alsa.h"
-elif test "$AUDIOTARGET" = "OSS"; then
-    SOUNDHEADER="sd-sound-generic.h"
-    SOUNDSOURCE="sd-sound-oss.c"
-elif test "$AUDIOTARGET" = "SDL"; then
-    AUDIOFLAGS=`sdl-config --cflags`
-    AUDIOLIBS=`sdl-config --libs`
-    SOUNDSOURCE="sd-sound-sdl.c"
-    SOUNDHEADER="sd-sound-sdl.h"
-elif test "$AUDIOTARGET" = "AO"; then
-    AUDIOFLAGS=""
-    AUDIOLIBS="-lao"
-    if test -n "$PKG_CONFIG" ; then
-	AUDIOFLAGS="`"$PKG_CONFIG" ao --cflags`" || AUDIOFLAGS=""
-	AUDIOLIBS="`"$PKG_CONFIG" ao --libs`" || AUDIOLIBS="-lao"
-    fi
-    SOUNDSOURCE="sd-sound-ao.c"
-    SOUNDHEADER="sd-sound-ao.h"
-elif test "$AUDIOTARGET" = "COREAUDIO"; then
-    AUDIOLIBS="-framework coreaudio"
-    SOUNDSOURCE="sd-sound-coreaudio.c"
-    SOUNDHEADER="sd-sound-coreaudio.h"
-else
-    SOUNDSOURCE="sd-sound-null.c"
-    SOUNDHEADER="sd-sound-null.h"
-fi
-
-AUDIOFLAGS=""
-AUDIOLIBS=""
 SOUNDSOURCE="sd-sound-generic.c"
 SOUNDHEADER="sd-sound-generic.h"
-
 echo "#include \"$SOUNDSOURCE\"" > src/sd-sound.c;
 echo "#include \"$SOUNDHEADER\"" > src/sd-sound.h;
 
@@ -337,8 +188,7 @@ if test "$MACHINE" = "parisc"; then
     ARCHFLAGS="$ARCHFLAGS -ffunction-sections"
 fi
 
-PERLDIR="`which perl`"
-INSTALLTEST="`which ginstall`"
+INSTALLTEST="`which ginstall 2>/dev/null`"
 
 if test ! -x "$INSTALLTEST"; then
  if test -n "$OS" && test "$OS" = "SunOS"; then
@@ -407,16 +257,6 @@ else
     fi
 fi
 
-# --xmms-plugin-dir overrides automatically detected xmms plugin directory
-if test "$xmmsplugindir" != "auto"; then
-    xmmsplugin=$xmmsplugindir
-fi
-
-# --bmp-plugin-dir overrides automatically detected bmp plugin directory
-if test "$bmpplugindir" != "auto"; then
-    bmpplugin=$bmpplugindir
-fi
-
 if test -z "$libdir" ; then
     libdir="$prefix/lib"
 fi
@@ -425,19 +265,6 @@ if test -z "$includedir" ; then
 fi
 if test -n "$sharedir"; then
     uadedatadir="$sharedir"
-fi
-
-LHA="`which lha`"
-if test -x "$LHA"; then
-    LHAREPLY="yes"
-else
-    echo
-    echo "LHA archiver not found: UADE won't take advantage of lha archives"
-    echo "until 'lha' executable is placed into command execution path."
-    echo "You do not need to reinstall and/or recompile UADE if you later add"
-    echo "lha to command execution path.."
-    echo
-    LHAREPLY="no"
 fi
 
 cd compat
@@ -450,23 +277,28 @@ if test "$?" != "0" ; then
 fi
 cd ..
 
-AOFLAGS="`pkg-config --cflags ao`"
-if test "$?" != "0"; then
-    echo ""
-    echo "Configure error:"
-    echo "Please install libao (including development kit)."
-    exit -1
+if test "$useuade123" = "yes" ; then
+    AOFLAGS="`$PKG_CONFIG --cflags ao`"
+    if test "$?" != "0"; then
+	echo ""
+	echo "Can not compile uade123. Please install libao (including development kit)."
+	echo ""
+	useuade123="no"
+    fi
+    AOLIBS="`$PKG_CONFIG --libs ao`"
 fi
-AOLIBS="`pkg-config --libs ao`"
 
-
+echo ""
 echo "UADE and frontends will be installed to : $bindir"
 echo "Data directory will be                  : $uadedatadir"
 echo "Documentation directory will be         : $docdir"
 echo "Man directory will be                   : $mandir"
 echo "Installer that will be used             : $INSTALLTEST"
 echo "Make that will be used during the build : $MAKE"
-echo "uade123 sound output:                   : $AUDIOTARGET"
+echo "uade123                                 : $useuade123"
+if test "$useuade123" = "yes" ; then
+    echo "uade123 sound output                    : AO"
+fi
 echo "XMMS plugin                             : $usexmms"
 echo
 
@@ -490,8 +322,13 @@ echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> "$conffile"
 test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 
-uade123rule="uade123"
-uade123installrule="uade123install"
+if test "$useuade123" = "yes" ; then
+    uade123rule="uade123"
+    uade123installrule="uade123install"
+else
+    uade123rule=""
+    uade123installrule=""
+fi
 xmmspluginrule=""
 xmmsplugininstallrule=""
 if test "$usexmms" = "yes" ; then
@@ -511,17 +348,17 @@ sed -e "s|{MAKE}|$MAKE|g" \
     -e "s|{UADE123INSTALL}|$uade123installrule|g" \
     -e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
     -e "s|{XMMSPLUGININSTALL}|$xmmsplugininstallrule|g" \
-    -e "s|{XMMSPLUGINDIR}|$xmmsplugin|g" \
+    -e "s|{XMMSPLUGINDIR}|$xmmsplugindir|g" \
     Makefile.in > Makefile
 
 for file in src/Makefile.in src/frontends/*/Makefile.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
 	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
-	-e "s|{AUDIOFLAGS}|$AUDIOFLAGS|g" \
-	-e "s|{AUDIOLIBS}|$AUDIOLIBS|g" \
 	-e "s|{AOFLAGS}|$AOFLAGS|g" \
 	-e "s|{AOLIBS}|$AOLIBS|g" \
+	-e "s|{XMMSFLAGS}|$XMMSFLAGS|g" \
+	-e "s|{XMMSLIBS}|$XMMSLIBS|g" \
 	-e "s|{CC}|$CC|g" \
 	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|g" \
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \

@@ -3,8 +3,6 @@ CC = {CC}
 ARCHFLAGS = {ARCHFLAGS}
 ARCHLIBS = {ARCHLIBS}
 DEBUGFLAGS = {DEBUGFLAGS}
-AUDIOFLAGS= {AUDIOFLAGS}
-AUDIOLIBS= {AUDIOLIBS}
 
 CFLAGS	= -fomit-frame-pointer -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS) -g
 LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
@@ -13,7 +11,7 @@ LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
 
 .SECONDARY: cpuemu.c cpustbl.c cputbl.h
 
-INCLUDES=-I. -I./include/ $(AUDIOFLAGS)
+INCLUDES=-I. -I./include/
 
 CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7.o cpuemu8.o
 
