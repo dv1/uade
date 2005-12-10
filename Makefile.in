@@ -14,26 +14,44 @@ DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 
-all:	src/include/uadeconfig.h uadecore {UADE123} {XMMSPLUGIN}
+UADECORE={UADECORE}
+UADECORENAME={UADECORENAME}
+UADECOREINSTALL={UADECOREINSTALL}
+UADE123={UADE123}
+UADE123NAME={UADE123NAME}
+UADE123INSTALL={UADE123INSTALL}
+XMMSPLUGIN={XMMSPLUGIN}
+XMMSPLUGINDIR={XMMSPLUGINDIR}
+XMMSPLUGININSTALL={XMMSPLUGININSTALL}
+
+all:	src/include/uadeconfig.h $(UADECORE) $(UADE123) $(XMMSPLUGIN)
 
 uadecore:	
+	echo "here"
 	$(MAKE) -C src
+
+uadecoreinstall:	$(UADECORE)
+	echo "here 2"
+	mkdir -p "$(LIBDIR)"
+	chmod og+rx "$(LIBDIR)"
+	cp -f src/$(UADECORENAME) "$(LIBDIR)"/
+	chmod og+rx "$(LIBDIR)/$(UADECORENAME)"
 
 uade123:	
 	$(MAKE) -C src/frontends/uade123
 
-uade123install:	
-	cp -f src/frontends/uade123/{UADE123NAME} "$(BINDIR)/" || true
-	chmod og+rx "$(BINDIR)/{UADE123NAME}"
+uade123install:	$(UADE123)
+	cp -f src/frontends/uade123/$(UADE123NAME) "$(BINDIR)/" || true
+	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
 	cp doc/uade123.1 "$(MANDIR)"/
 	chmod og+r "$(MANDIR)"/uade123.1
 
 xmmsplugin:	
 	$(MAKE) -C src/frontends/xmms
 
-xmmsplugininstall:	
-	mkdir -p "{XMMSPLUGINDIR}"
-	install src/frontends/xmms/libuade2.so "{XMMSPLUGINDIR}"
+xmmsplugininstall:	$(XMMSPLUGIN)
+	mkdir -p "$(XMMSPLUGINDIR)"
+	install src/frontends/xmms/libuade2.so "$(XMMSPLUGINDIR)"
 
 src/include/uadeconfig.h:	
 	@echo ""
@@ -45,42 +63,29 @@ soundcheck:
 	@ echo ""
 	@ echo "### UADE should be playing now 'AHX.Cruisin'"
 	@ echo ""
-	src/frontends/uade123/uade123 --basedir=. -S amigasrc/score/score -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
+	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
 
-uninstall:	
-	rm -f "$(FINALBINDIR)/uadecore"
-	rm -f "$(FINALBINDIR)/uade123"
-	rm -f "$(FINALLIBDIR)/uadecore"
-	rm -f "$(FINALDATADIR)/uade.conf"
-	rm -f "$(FINALDATADIR)/score"
-	rm -f "$(FINALDATADIR)/uaerc"
-	rm -f "$(FINALDATADIR)/eagleplayer.conf"
-	rm -rf "$(FINALDATADIR)/players"
-	rmdir "$(FINALDATADIR)" || true
-
-install:	all
+install:	
 	mkdir -p "$(BINDIR)"
 	mkdir -p "$(DATADIR)/players"
 	mkdir -p "$(DOCDIR)"
 	mkdir -p "$(MANDIR)"
-	mkdir -p "$(LIBDIR)"
-	chmod og+rx "$(LIBDIR)"
 	test -e "$(DATADIR)/uade.conf" || cp -f uade.conf "$(DATADIR)/"
 	cp -f amigasrc/score/score uaerc eagleplayer.conf "$(DATADIR)/"
 	cp -rf players "$(DATADIR)/" || true
 	chmod -R og+rX "$(DATADIR)"
-
-	cp -f src/uadecore "$(LIBDIR)"/
-	chmod og+rx "$(LIBDIR)/uadecore"
-
+	$(MAKE) installagain
 	$(MAKE) feinstall
 
-feinstall:	{UADE123INSTALL} {XMMSPLUGININSTALL}
+installagain:	$(UADECOREINSTALL)
+	@true
+
+feinstall:	$(UADE123INSTALL) $(XMMSPLUGININSTALL)
 	@true
 
 feclean:	
-	$(MAKE) -C src/frontends/uade123 clean || true
-	$(MAKE) -C src/frontends/xmms clean || true
+	$(MAKE) -C src/frontends/uade123 clean
+	$(MAKE) -C src/frontends/xmms clean
 
 clean:	
 	$(MAKE) -C src clean
