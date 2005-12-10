@@ -25,6 +25,7 @@ user="no"
 packageprefix=""
 usexmms="auto"
 useuade123="yes"
+useuadecore="yes"
 xmmsplugindir=""
 debug_flags=""
 
@@ -68,6 +69,10 @@ for opt in "$@" ; do
 		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
 
+	--without-uadecore)
+		useuadecore="no"
+		;;
+
 	--with-uade123)
 		useuade123="yes"
 		;;
@@ -104,6 +109,9 @@ for opt in "$@" ; do
 		echo " --sharedir=dir         Install data files into this directory"
 		echo
 		echo "Frontend options:"
+		echo " --without-uadecore     Do not compile uadecore. This is useful for"
+		echo "                        distribution makers who want to compile new frontends"
+		echo "                        without re-compiling the emulator binary."
 		echo " --with-uade123         Compile uade123 (auto detect)"
 		echo " --without-uade123      Do not compile uade123"
 		echo " --with-xmms            Compile an XMMS plugin (auto detect)"
@@ -153,6 +161,7 @@ fi
 
 UNIXSHELL="yes"
 UADE123NAME="uade123"
+UADECORENAME="uadecore"
 
 if test -n "$OS" && test "$OS" = "MorphOS"; then
     echo
@@ -176,6 +185,7 @@ EOF
 if test "$?" = "0" ; then
     OS="Cygwin"
     UADE123NAME="uade123.exe"
+    UADECORENAME="uadecore.exe"
 fi
 
 SOUNDSOURCE="sd-sound-generic.c"
@@ -321,10 +331,17 @@ else
     echo "#define UADE_CONFIG_USER_MODE (0)" >> "$conffile"
 fi
 echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
-echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/uadecore\"" >> "$conffile"
+echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/$UADECORENAME\"" >> "$conffile"
 test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 
+if test "$useuadecore" = "yes" ; then
+    uadecorerule="uadecore"
+    uadecoreinstallrule="uadecoreinstall"
+else
+    uadecorerule=""
+    uadecoreinstallrule=""
+fi
 if test "$useuade123" = "yes" ; then
     uade123rule="uade123"
     uade123installrule="uade123install"
@@ -332,11 +349,12 @@ else
     uade123rule=""
     uade123installrule=""
 fi
-xmmspluginrule=""
-xmmsplugininstallrule=""
 if test "$usexmms" = "yes" ; then
     xmmspluginrule="xmmsplugin"
     xmmsplugininstallrule="xmmsplugininstall"
+else
+    xmmspluginrule=""
+    xmmsplugininstallrule=""
 fi
 
 sed -e "s|{MAKE}|$MAKE|g" \
@@ -346,6 +364,9 @@ sed -e "s|{MAKE}|$MAKE|g" \
     -e "s|{MANDIR}|$mandir|g" \
     -e "s|{LIBDIR}|$uadelibdir|g" \
     -e "s|{PACKAGEPREFIX}|$packageprefix|g" \
+    -e "s|{UADECORENAME}|$UADECORENAME|g" \
+    -e "s|{UADECORE}|$uadecorerule|g" \
+    -e "s|{UADECOREINSTALL}|$uadecoreinstallrule|g" \
     -e "s|{UADE123NAME}|$UADE123NAME|g" \
     -e "s|{UADE123}|$uade123rule|g" \
     -e "s|{UADE123INSTALL}|$uade123installrule|g" \

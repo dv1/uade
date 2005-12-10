@@ -27,11 +27,9 @@ XMMSPLUGININSTALL={XMMSPLUGININSTALL}
 all:	src/include/uadeconfig.h $(UADECORE) $(UADE123) $(XMMSPLUGIN)
 
 uadecore:	
-	echo "here"
 	$(MAKE) -C src
 
 uadecoreinstall:	$(UADECORE)
-	echo "here 2"
 	mkdir -p "$(LIBDIR)"
 	chmod og+rx "$(LIBDIR)"
 	cp -f src/$(UADECORENAME) "$(LIBDIR)"/
