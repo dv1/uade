@@ -558,8 +558,10 @@ static void print_help(void)
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter,           Enable filter emulation. Default is ON.\n");
-  printf(" --filter=a500/a1200 Enable A500 or A1200 filter model. Default is A1200.\n"); 
+  printf(" --filter=a500/a1200 Set filter model to A500 or A1200 filter model. The\n");
+  printf("                     default is A1200. PLEASE NOTE that this option has an\n");
+  printf("                     audible effect even if a song doesn't use filtering.\n");
+  printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
