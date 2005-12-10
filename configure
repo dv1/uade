@@ -25,7 +25,7 @@ user="no"
 packageprefix=""
 usexmms="auto"
 useuade123="yes"
-xmmsplugindir="auto"
+xmmsplugindir=""
 debug_flags=""
 
 for opt in "$@" ; do
@@ -228,7 +228,7 @@ if test "$user" = "no"; then
 	bindir="$prefix/bin"
     fi
     if test "$usexmms" = "yes" ; then
-	xmmsplugin="`xmms-config --input-plugin-dir`"
+	xmmsplugindir="`xmms-config --input-plugin-dir`"
     fi
     if test -z "$docdir"; then
 	docdir="$prefix/share/doc/uade-$VERSION"
@@ -247,7 +247,7 @@ else
 	bindir="$prefix"
     fi
     if test "$usexmms" = "yes" ; then
-	xmmsplugin="$HOME/.xmms/Plugins/Input"
+	xmmsplugindir="$HOME/.xmms/Plugins/Input"
     fi
     if test -z "$docdir"; then
 	docdir="$prefix/uade-$VERSION"
@@ -300,6 +300,9 @@ if test "$useuade123" = "yes" ; then
     echo "uade123 sound output                    : AO"
 fi
 echo "XMMS plugin                             : $usexmms"
+if test "$usexmms" = "yes" ; then
+    echo "XMMS plugin directory                   : $xmmsplugindir"
+fi
 echo
 
 cat > src/ossupport.c <<EOF
