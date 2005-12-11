@@ -1,19 +1,17 @@
 2005-12-11  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre9
-	- XMMS plugin. Possible to seek fast forward. Includes an automatic
-	  song content database system from uade1. UADE will remember
-	  playtimes based on md5sums of songs. Corrected subsong seeking
-	  with respect to UADE1. Still lacks a GUI for configuration, but
-	  you can edit uade.conf directly.
-	- Audibly different default settings for filtering. Affects even
-	  those songs which do not use the filter.
-	- New soundtracker 15 players
-	- Infrastructure for song.conf that can be used to add song specific
-	  work-arounds and features.
-	- eagleplayer.conf to set file prefixes, work-arounds, and features
-	  for eagleplayers.
-	- Updated man page
-	- Many changes in all subsystems.
+	- An XMMS plugin has been added. New features compared to UADE1 XMMS
+	  plugin are seek fast forward and correct subsong seeking bar. The
+	  plugin still lacks GUI for configuration, but uade.conf can be
+	  edited directly.
+	- Filtering settings are audibly different compared to last release.
+	  A500E filter model is now the default. It was A1200 in the last
+	  release. This affects all songs, even those which do not use the
+	  filter.
+	- New players for 15 instrument soundtracker variants have been added.
+	- uade123 man page has been updated.
+	- Most subsystems have gone through changes. Some important changes
+	  have been left out. See log entries for further details.
 
 2005-12-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Significant changes in filter default values. Current default filter
