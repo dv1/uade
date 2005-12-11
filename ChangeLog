@@ -1,3 +1,10 @@
+2005-12-11  Heikki Orsila <heikki.orsila@iki.fi>
+	- Significant changes in filter default values. Current default filter
+	  is A500E, which is audibly different on every song compared to the
+	  old default (A1200). To restore the old behavior, set "filter a1200"
+	  in uade.conf. If you want to advocate another default value, please
+	  post to the forum or send email. The forum is preferred.
+
 2005-12-10  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added notices to documentation that setting filter model has an
 	  audible effect even if a song doesn't use filtering at all.
