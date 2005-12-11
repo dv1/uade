@@ -56,13 +56,12 @@ void uade_send_filter_command(int filter_type, int filter_state, int force_filte
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
 
+  /* Note that filter state is not normally forced */
+  filter_state = force_filter ? (2 + (filter_state & 1)) : 0;
+
   *um = (struct uade_msg) {.msgtype = UADE_COMMAND_FILTER, .size = 8};
   ((uint32_t *) um->data)[0] = htonl(filter_type);
-  if (force_filter == 0) {
-    ((uint32_t *) um->data)[1] = htonl(0);
-  } else {
-    ((uint32_t *) um->data)[1] = htonl(2 + (filter_state & 1));
-  }
+  ((uint32_t *) um->data)[1] = htonl(filter_state);
   if (uade_send_message(um)) {
     fprintf(stderr, "Can not setup filters.\n");
     exit(-1);

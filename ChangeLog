@@ -310,7 +310,7 @@
 	  in amifilemagic to changelog *grin* (mld)
 
 2005-11-03  Heikki Orsila <heikki.orsila@iki.fi>
-	UADE 1.50-pre8
+	* UADE 1.50-pre8
 	- Many bug fixes and cleanups.
 	- Headphones postprocessing effect.
 	- Improved A1200 filter emulation.

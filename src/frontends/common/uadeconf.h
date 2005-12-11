@@ -6,7 +6,7 @@
 struct uade_config {
   int action_keys;
   int filter;
-  int force_filter_off;
+  int force_led;
   float gain;
   int headphones;
   int ignore_player_check;

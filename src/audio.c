@@ -33,7 +33,7 @@ void (*sample_handler) (void);
 unsigned long sample_evtime;
 int sound_available;
 
-int sound_use_filter = FILTER_MODEL_A1200;
+int sound_use_filter = FILTER_MODEL_A500E;
 
 static unsigned long last_cycles, next_sample_evtime;
 static int audperhack;
@@ -479,6 +479,8 @@ void audio_reset (void)
 
     memset(sound_filter_state, 0, sizeof sound_filter_state);
     memset(cspline_old_samples, 0, sizeof cspline_old_samples);
+
+    select_audio_interpolator(NULL);
 }
 
 static int sound_prefs_changed (void)
@@ -518,40 +520,21 @@ void check_prefs_changed_audio (void)
 
 void select_audio_interpolator(char *name)
 {
-
-  /* This is just for compatibility with the old crap */
-  switch (currprefs.sound_interpol) {
-  case 0:
-    sample_handler = sample16s_handler;
-    break;
-  case 1:
-    sample_handler = sample16si_linear_handler;
-    break;
-  case 2:
-    sample_handler = sample16si_crux_handler;
-    break;
-  default:
-    fprintf(stderr, "\nUnknown interpolator number in uaerc: %d\n", currprefs.sound_interpol);
-    exit(-1);
-  }
-
   /* This is the new system (a user should give the interpolation mode as a
      human-readable string) */
-  if (name != NULL) {
-    if (strcmp(name, "default") == 0) {
-      sample_handler = sample16s_handler;
-    } else if (strcmp(name, "rh") == 0 || strcmp(name, "linear") == 0) {
-      sample_handler = sample16si_linear_handler;
-    } else if (strcmp(name, "crux") == 0) {
-      sample_handler = sample16si_crux_handler;
-    } else if (strcmp(name, "cspline") == 0) {
-      sample_handler = sample16si_cspline_handler;
-    } else if (strcmp(name, "anti") == 0) {
-      sample_handler = sample16si_anti_handler;
-    } else {
-      fprintf(stderr, "\nUnknown interpolation mode: %s\n", name);
-      exit(-1);
-    }
+  if (name == NULL || strcasecmp(name, "default") == 0) {
+    sample_handler = sample16s_handler;
+  } else if (strcasecmp(name, "rh") == 0 || strcasecmp(name, "linear") == 0) {
+    sample_handler = sample16si_linear_handler;
+  } else if (strcasecmp(name, "crux") == 0) {
+    sample_handler = sample16si_crux_handler;
+  } else if (strcasecmp(name, "cspline") == 0) {
+    sample_handler = sample16si_cspline_handler;
+  } else if (strcasecmp(name, "anti") == 0) {
+    sample_handler = sample16si_anti_handler;
+  } else {
+    fprintf(stderr, "\nUnknown interpolation mode: %s\n", name);
+    exit(-1);
   }
 }
 

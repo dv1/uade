@@ -433,9 +433,11 @@ void uade_handle_r_state(void)
 	exit(-1);
       }
       do {
-	int filter_enable = ntohl(((uint32_t *) um->data)[0]);
-	int filter_force = ntohl(((uint32_t *) um->data)[1]);
-	sound_use_filter = filter_enable;
+	int filter_force;
+	/* If sound_use_filter is zero, filtering is disabled, but if it's
+	   non-zero, it contains the filter type (a500 or a1200) */
+	sound_use_filter = ntohl(((uint32_t *) um->data)[0]);
+	filter_force = ntohl(((uint32_t *) um->data)[1]);
 	gui_ledstate &= ~1;
 	if (filter_force & 2) {
 	  gui_ledstate_forced = filter_force & 3;

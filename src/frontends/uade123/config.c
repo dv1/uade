@@ -26,14 +26,14 @@ int load_config(const char *filename)
   ret = uade_load_config(&uc, filename);
 
   if (uc.action_keys)
-    uade_terminal_mode = uc.action_keys - 1;
+    uade_terminal_mode = uc.action_keys & 1;
 
   if (uc.filter)
     uade_use_filter = uc.filter;
 
-  if (uc.force_filter_off) {
+  if (uc.force_led) {
     uade_force_filter = 1;
-    uade_filter_state = 0;
+    uade_filter_state = uc.force_led & 1;
   }
 
   if (uc.no_filter)
@@ -52,9 +52,6 @@ int load_config(const char *filename)
 
   if (uc.interpolator)
     uade_interpolation_mode = strdup(uc.interpolator);
-
-  if (uc.no_filter)
-      uade_use_filter = 0;
 
   if (uc.one_subsong)
     uade_one_subsong_per_file = 1;

@@ -46,10 +46,14 @@ Output sound data to filename.
 Enable filter emulation. Default is ON.
 .TP
 \fB\-\-filter=\fRx
-Set filter emulation mode to x. x is one of following: a500, a500e, a1200,
-or a1200e. The default is a1200. PLEASE note that this option has an audible
-effect even if a song doesn't use filtering at all, because A500 does some
-filtering regardless of LED state.
+Set filter emulation mode to x. x is a500, a500e, a1200, or a1200e. A500E is
+the default. PLEASE note that A500 and A1200 are audibly different on every
+song even if a song doesn't use filtering. Surprisingly, the biggest
+difference between A500 and A1200 is filter behavior when LED is off (i.e.
+song doesn't use filtering). When LED is off, A1200 does very little filtering
+but A500 does some filtering that can be easily heard. Please try switching
+between A500 and A1200 modes. You should get the same results with real
+Amigas too :-)
 .TP
 \fB\-\-force\-led=\fRx
 Turn Amiga filter on or off. 0 means off and 1 means on. The default is off
@@ -73,11 +77,12 @@ Set interpolator to
 .BR s .
 It should be
 .BR default ,
-.BR cspline ,
+.BR linear ,
+.BR crux ,
 or
-.BR ansi .
-cspline interpolator is bad for chip songs. It is designed for natural
-sounding samples.
+.BR cspline .
+The default is strongly recommended. cspline may cause problems with chip
+samples.
 .TP
 \fB\-j\fR x\fB, \-\-jump=\fRx
 Jump to song position of x seconds.

@@ -59,7 +59,7 @@ int uade_recursivemode;
 int uade_terminated;
 FILE *uade_terminal_file;
 int uade_terminal_mode = 1;
-int uade_use_filter = FILTER_MODEL_A1200;
+int uade_use_filter = FILTER_MODEL_A500E;
 int uade_silence_timeout = 20; /* -1 is infinite */
 int uade_song_end_trigger;
 int uade_subsong_timeout = 512;
@@ -511,8 +511,7 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       uade_set_subsong(subsong);
 
-    uade_send_filter_command(filter_override ?
-			     filter_override : uade_use_filter,
+    uade_send_filter_command(filter_override ? filter_override : uade_use_filter,
 			     uade_filter_state, uade_force_filter);
     uade_send_interpolation_command(uade_interpolation_mode);
 
@@ -558,9 +557,10 @@ static void print_help(void)
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=a500/a1200 Set filter model to A500 or A1200 filter model. The\n");
-  printf("                     default is A1200. PLEASE NOTE that this option has an\n");
-  printf("                     audible effect even if a song doesn't use filtering.\n");
+  printf(" --filter=model      Set filter model to A500, A500E, A1200, or A1200E. The\n");
+  printf("                     default is A500E. PLEASE NOTE that A500 and A1200 are\n");
+  printf("                     audibly different even if a song doesn't use filtering.\n");
+  printf("                     Trying different types is recommended.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");

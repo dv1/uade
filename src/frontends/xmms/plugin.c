@@ -90,15 +90,20 @@ static char configname[PATH_MAX];
 static char curmd5[33];
 static int curplaytime;
 static pthread_t decode_thread;
+static int filter_state;
+static int filter_type;
+static int force_led;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
 static int ignore_player_check;
+static char *interpolation_mode;
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
 static int no_song_end;
 static int one_subsong_per_file;
 static int plugin_disabled;
 static int silence_timeout;
+static int speed_hack;
 static int subsong_timeout;
 static int timeout;
 static int total_bytes_valid; /* Lock before use */
@@ -129,10 +134,17 @@ static void set_defaults(void)
   subsong_timeout = 512;
   timeout = -1;
   uade_use_panning = 0;
+  uade_gain_value = 1.0;
   uade_panning_value = 0.7;
   uade_use_postprocessing = 0;
   uade_use_headphones = 0;
   uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
+
+  filter_state = 0;
+  force_led = 0;
+  filter_type = FILTER_MODEL_A500E;
+  interpolation_mode = NULL;
+  speed_hack = 0;
 }
 
 
@@ -154,20 +166,18 @@ static void load_config(void)
   
   uade_load_config(&uc, configname);
 
-  /*
   if (uc.filter)
-  uade_use_filter = uc.filter;
+    filter_type = uc.filter;
 
-  if (uc.force_filter_off) {
-  uade_force_filter = 1;
-  uade_filter_state = 0;
+  if (uc.force_led) {
+    force_led = 1;
+    filter_state = uc.force_led & 1;
   }
 
   if (uc.no_filter)
-  uade_use_filter = 0;
-  */
+    filter_type = 0;
 
-  if (uc.gain != 1.0 || uade_gain_value != 1.0) {
+  if (uc.gain != 1.0) {
     uade_gain_value = uc.gain;
     uade_postprocessing_setup(UADE_GAIN_ENABLE);
   }
@@ -178,13 +188,8 @@ static void load_config(void)
   if (uc.ignore_player_check)
     ignore_player_check = 1;
 
-  /*
   if (uc.interpolator)
-    uade_interpolation_mode = strdup(uc.interpolator);
-
-  if (uc.no_filter)
-      uade_use_filter = 0;
-  */
+    interpolation_mode = strdup(uc.interpolator);
 
   if (uc.one_subsong)
     one_subsong_per_file = 1;
@@ -360,6 +365,17 @@ static int initialize_song(char *filename)
   if (no_song_end) {
     if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
       fprintf(stderr, "Can not send 'song end not possible'.\n");
+      plugin_disabled = 1;
+      return FALSE;
+    }
+  }
+
+  uade_send_filter_command(filter_type, filter_state, force_led);
+  uade_send_interpolation_command(interpolation_mode);
+
+  if (speed_hack) {
+    if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
+      fprintf(stderr, "Can not send speed hack command.\n");
       plugin_disabled = 1;
       return FALSE;
     }

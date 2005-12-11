@@ -45,7 +45,7 @@ static char *nextnonspace(const char *foo)
 
 int uade_get_filter_type(const char *model)
 {
-  int filter = FILTER_MODEL_A1200;
+  int filter = FILTER_MODEL_A500E;
 
   if (model == NULL)
     return filter;
@@ -144,6 +144,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 
   memset(uc, 0, sizeof(*uc));
 
+  uc->filter = uade_get_filter_type(NULL);
   uc->gain = 1.0;
 
   if ((f = fopen(filename, "r")) == NULL)
@@ -168,9 +169,9 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     if (strncmp(key, "action_keys", 6) == 0) {
       if (value != NULL) {
 	if (strcasecmp(value, "on") == 0) {
-	  uc->action_keys = 2;
+	  uc->action_keys = 2 | 1;
 	} else if (strcasecmp(value, "off") == 0) {
-	  uc->action_keys = 1;
+	  uc->action_keys = 2 | 0;
 	} else {
 	  fprintf(stderr, "uade.conf: Unknown setting for action keys: %s\n", value);
 	}
@@ -178,8 +179,10 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     } else if (strncmp(key, "filter", 6) == 0) {
       uc->filter = uade_get_filter_type(value);
       uc->no_filter = 0;
-    } else if (strncmp(key, "force_led_off", 10) == 0) {
-      uc->force_filter_off = 1;
+    } else if (strncmp(key, "force_led_off", 12) == 0) {
+      uc->force_led = 2 | 0;
+    } else if (strncmp(key, "force_led_on", 12) == 0) {
+      uc->force_led = 2 | 1;
     } else if (strcmp(key, "gain") == 0) {
       uc->gain = uade_convert_to_double(value, 1.0, 0.0, 1.0, "gain");
     } else if (strncmp(key, "headphones", 4) == 0) {
@@ -211,6 +214,19 @@ int uade_load_config(struct uade_config *uc, const char *filename)
       uc->timeout = uade_get_timeout(value);
     } else {
       fprintf(stderr, "Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
+    }
+  }
+
+  if (uc->interpolator != NULL && strcmp(uc->interpolator, "anti") == 0) {
+    fprintf(stderr, "uade: You are misusing the 'anti' interpolator. Please change the interpolator\nsetting. Forcing to 'default'.\n");
+    uc->interpolator = NULL;
+  }
+
+  /* Note that the user may not set anti, but uade may. This is to force
+     correctness of the filter design. */
+  if (uc->filter == FILTER_MODEL_A500E || uc->filter == FILTER_MODEL_A1200E) {
+    if (uc->interpolator == NULL || strcasecmp(uc->interpolator, "default") == 0) {
+      uc->interpolator = strdup("anti");
     }
   }
 

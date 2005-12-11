@@ -1,5 +1,7 @@
 To be solved:
 
+2005-12-11: Fix the dualism in frontend configuration with respect to uade.conf
+	    loader. Dualism here means redundancy and ugliness.
 2005-12-06: Is FA-18 Interceptor still buggy? (shd)
 2005-12-06: Uadecore possibly consumes too much CPU time (shd)
 2005-12-06: Seeking fast forwards hangs may hang on some machines. It is
