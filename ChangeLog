@@ -1,3 +1,6 @@
+2005-12-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added INSTALL file to document build process.
+
 2005-12-11  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre9
 	- An XMMS plugin has been added. New features compared to UADE1 XMMS
