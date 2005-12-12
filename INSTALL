@@ -1,3 +1,18 @@
+General Instructions for Installing UADE
+========================================
+
+* Dependencies
+
+Compiling and running UADE requires some libraries depending on which
+frontends you want to use:
+
+ Frontend name  | Type           | Dependencies
+ ----------------------------------------------
+ uade123        | Command line   | libao: http://www.xiph.org/ao/
+ xmms		| XMMS plugin	 | XMMS
+
+* Compiling and installation
+
 The installation process has 3 or 4 steps.
 
 (1) ./configure
@@ -50,3 +65,12 @@ Longer explanations of these steps follow:
 
   This will install the software. If --user was used the uadecore and frontends
   are installed into ~/.uade2/.
+
+
+Hints for various GNU/Linux distributions
+========================================
+
+To install necessary dependencies for Gentoo, execute:
+
+	emerge -u libao		(the dependency for uade123)
+	emerge -u xmms
