@@ -1,0 +1,52 @@
+The installation process has 3 or 4 steps.
+
+(1) ./configure
+(2) make
+(3) make soundcheck (optional phase)
+(4) make install (possibly run as root user)
+
+Longer explanations of these steps follow:
+
+(1) ./configure
+
+  Look at which frontends will be compiled in. In the good case you will see:
+
+  uade123                                 : yes
+  XMMS plugin                             : yes
+  .. other frontends
+
+
+  You have the possibility of using many options, such as disabling possible
+  frontends (methods for using uadecore through various systems such as the
+  command line and XMMS). See ./configure --help for options. Some of the
+  more important options are:
+
+	--prefix
+	--user
+
+  --user makes uade to be installed into users ~/.uade2/ directory, but of
+  course you may issue --prefix=$HOME/something to achieve the same effect.
+
+  It is possible to leavy any uade frontend or even uadecore compiled so that
+  packing for distributions is faster and easier. Important options for
+  distribution packagers are:
+
+	--package-prefix
+	--without-uadecore
+	--without-uade123
+	--without-xmms
+
+(2) make
+
+  This will build all the components that were configured.
+
+(3) make soundcheck
+
+  You should hear sound if uade123 was compiled in and it works. If uade123
+  was not compiled, you may still have success with other frontends such as
+  the XMMS plugin. uade123 is only the command line player tool.
+
+(4) make install
+
+  This will install the software. If --user was used the uadecore and frontends
+  are installed into ~/.uade2/.
