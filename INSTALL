@@ -74,3 +74,7 @@ To install necessary dependencies for Gentoo, execute:
 
 	emerge -u libao		(the dependency for uade123)
 	emerge -u xmms
+
+In Debian, the required libraries can be downloaded by:
+
+	apt-get install libao-dev xmms-dev
