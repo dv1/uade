@@ -326,7 +326,7 @@ pt_lop:
 		move.w	pt_noofinstr(pc),d0	; No of inst
 pt_lop3:	cmp.w	#2,(a0)			; smpllen  <= 0
 		bls.s	.Noe
-		clr.l	(a2)			; Clear first words
+		clr.w	(a2)			; Clear first words
 .Noe:		move.l	a2,(a1)+
     		moveq	#0,d1
 
@@ -1417,23 +1417,22 @@ pt_funkok:
 pt_funkend:
 		rts
 pt_raster:
-		moveq	#15-1,d7
-pt_lo1:
-		move.b	$dff006,d6
-pt_lo2:
-		cmp.b	$dff006,d6
-		beq.b	pt_lo2
-		dbf	d7,pt_lo1
-		rts
+;		moveq	#15-1,d7
+;pt_lo1:
+;		move.b	$dff006,d6
+;pt_lo2:
+;		cmp.b	$dff006,d6
+;		beq.b	pt_lo2
+;		dbf	d7,pt_lo1
+;		rts
 
 ;--- Wrong Timing :/
-;		movem.l d0-d7/a0-a6,-(a7)
-;		move.l	delibase,a5
-;		move.w	#14,d0
-;		move.l	dtg_WaitAudioDMA(a5),a0
-;		jsr	(a0)
-;		movem.l	(a7)+,d0-d7/a0-a6
-;		rts
+		movem.l d0-d7/a0-a6,-(a7)
+		move.l	delibase,a5
+		move.l	dtg_WaitAudioDMA(a5),a0
+		jsr	(a0)
+		movem.l	(a7)+,d0-d7/a0-a6
+		rts
 
 		Even
 
