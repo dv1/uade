@@ -336,7 +336,6 @@ int main(int argc, char *argv[])
       uade_use_filter = uade_get_filter_type(optarg);
       break;
     case OPT_FORCE_LED:
-      uade_use_filter = uade_get_filter_type(NULL);
       uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
