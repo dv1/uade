@@ -55,6 +55,7 @@ char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 int uade_one_subsong_per_file;
 struct playlist uade_playlist;
+int uade_playtime;
 int uade_recursivemode;
 int uade_terminated;
 FILE *uade_terminal_file;
@@ -68,6 +69,8 @@ int uade_verbose_mode;
 
 static char basedir[PATH_MAX];
 static int debug_mode;
+static char md5name[PATH_MAX];
+static time_t md5_load_time;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
 
@@ -78,6 +81,40 @@ ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
+
+
+static void load_content_db(void)
+{
+  struct stat st;
+  time_t curtime = time(NULL);
+  char name[PATH_MAX];
+
+  if (curtime)
+    md5_load_time = curtime;
+
+  if (md5name[0] == 0) {
+    char *home = getenv("HOME");
+    if (home)
+      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
+  }
+
+  if (md5name[0]) {
+    /* Try home directory first */
+    if (stat(md5name, &st) == 0) {
+      if (uade_read_content_db(md5name))
+	return;
+    } else {
+      FILE *f = fopen(md5name, "w");
+      if (f)
+	fclose(f);
+      uade_read_content_db(md5name);
+    }
+  }
+
+  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+  if (stat(name, &st) == 0)
+    uade_read_content_db(name);
+}
 
 
 int main(int argc, char *argv[])
@@ -97,6 +134,8 @@ int main(int argc, char *argv[])
   int config_loaded;
   int speed_hack = 0;
   int timeout_forced = 0;
+  char *home;
+  struct stat st;
 
   enum {
     OPT_FILTER = 0x100,
@@ -145,9 +184,19 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+  /* Create ~/.uade2 directory if it does not exist */
+  home = getenv("HOME");
+  if (home) {
+    char name[PATH_MAX];
+    snprintf(name, sizeof name, "%s/.uade2", home);
+    if (stat(name, &st) != 0)
+      mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
+  }
+
+  /* First try to load config from ~/.uade2/uade.conf */
   config_loaded = 0;
-  if (getenv("HOME") != NULL) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", getenv("HOME"));
+  if (home) {
+    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", home);
     config_loaded = load_config(tmpstr);
   }
   if (config_loaded == 0)
@@ -161,14 +210,16 @@ int main(int argc, char *argv[])
       }
 
   config_loaded = 0;
-  if (getenv("HOME") != NULL) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/song.conf", getenv("HOME"));
+  if (home != NULL) {
+    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/song.conf", home);
     config_loaded = uade_read_song_conf(tmpstr);
   }
   if (config_loaded == 0)
     config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
   if (config_loaded == 0)
     debug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
+
+  load_content_db();
 
   while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
@@ -453,6 +504,10 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "Subsongs not implemented.\n");
 	}
       }
+
+      uade_playtime = uade_find_playtime(md5);
+      if (uade_playtime <= 0)
+	uade_playtime = -1;
 
       if (strcmp(candidate->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof playername);

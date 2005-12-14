@@ -119,7 +119,13 @@ int play_loop(void)
       if (skip_bytes == 0) {
 	deciseconds = time_bytes * 10 / (UADE_BYTES_PER_SECOND);
 	if (!uade_no_output) {
-	  tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  if (uade_playtime >= 0) {
+	    int ptimesecs = uade_playtime / 1000;
+	    int ptimesubsecs = (uade_playtime / 100) % 10;
+	    tprintf("Playing time position %d.%ds in subsong %d (all subs %d.%ds)  \r", deciseconds / 10, deciseconds % 10, cur_sub == -1 ? 0 : cur_sub, ptimesecs, ptimesubsecs);
+	  } else {
+	    tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	  }
 	  fflush(stdout);
 	}
       }
