@@ -1,6 +1,8 @@
 UNDONE
 ======
 
+2005-12-15: DTP_Interrupt must have priority over DTP_StartInt (shd)
+
 2005-11-05: Things to do for interrupts:
 	   - Timer.device support should use ciaa.resource or vblank server,
 	     but this is a low priority change because afaik only
