@@ -29,5 +29,6 @@ double uade_convert_to_double(const char *value,
 			      double def,
 			      double low, double high, const char *type);
 int uade_load_config(struct uade_config *uc, const char *filename);
+void uade_post_config(struct uade_config *uc);
 
 #endif

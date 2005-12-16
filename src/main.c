@@ -297,11 +297,7 @@ int main (int argc, char **argv)
 	exit(-1);
     }
 
-    if (sound_available && currprefs.produce_sound > 1 && ! init_sound ()) {
-	fprintf (stderr, "Sound driver unavailable: Sound output disabled\n");
-	currprefs.produce_sound = 0;
-	exit(-1);
-    }
+    init_sound();
 
     fix_options ();
     changed_prefs = currprefs;

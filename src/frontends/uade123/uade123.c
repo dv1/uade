@@ -71,6 +71,7 @@ static char basedir[PATH_MAX];
 static int debug_mode;
 static char md5name[PATH_MAX];
 static time_t md5_load_time;
+static struct uade_config uadeconf;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
 
@@ -197,10 +198,10 @@ int main(int argc, char *argv[])
   config_loaded = 0;
   if (home) {
     snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", home);
-    config_loaded = load_config(tmpstr);
+    config_loaded = uade_load_config(&uadeconf, tmpstr);
   }
   if (config_loaded == 0)
-    config_loaded = load_config(UADE_CONFIG_BASE_DIR "/uade.conf");
+    config_loaded = uade_load_config(&uadeconf, UADE_CONFIG_BASE_DIR "/uade.conf");
   if (config_loaded == 0)
     debug("Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
@@ -242,7 +243,7 @@ int main(int argc, char *argv[])
       } while (0);
       break;
     case '1':
-      uade_one_subsong_per_file = 1;
+      uadeconf.one_subsong = 1;
       break;
     case 'd':
       debug_mode = 1;
@@ -257,16 +258,15 @@ int main(int argc, char *argv[])
     case 'g':
       uade_info_mode = 1;
       uade_no_output = 1;
-      uade_terminal_mode = 0;
+      uadeconf.action_keys = 0;
       break;
     case 'G':
-      uade_gain_value = uade_convert_to_double(optarg, 1.0, 0.0, 1.0, "gain");
-      uade_postprocessing_setup(UADE_GAIN_ENABLE);
+      uadeconf.gain = uade_convert_to_double(optarg, 1.0, 0.0, 1.0, "gain");
     case 'h':
       print_help();
       exit(0);
     case 'i':
-      uade_ignore_player_check = 1;
+      uadeconf.ignore_player_check = 1;
       break;
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
@@ -276,20 +276,19 @@ int main(int argc, char *argv[])
       }
       break;
     case 'k':
-      uade_terminal_mode = 1;
+      uadeconf.action_keys = 1;
       break;
     case 'K':
-      uade_terminal_mode = 0;
+      uadeconf.action_keys = 0;
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       break;
     case 'n':
-      uade_use_filter = 0;
+      uadeconf.no_filter = 1;
       break;
     case 'p':
-      uade_panning_value = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
-      uade_postprocessing_setup(UADE_PANNING_ENABLE);
+      uadeconf.panning = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -297,7 +296,7 @@ int main(int argc, char *argv[])
       have_modules = 1;
       break;
     case 'r':
-      uade_recursivemode = 1;
+      uadeconf.recursive_mode = 1;
       break;
     case 's':
       subsong = strtol(optarg, &endptr, 10);
@@ -310,8 +309,8 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(scorename);
       break;
     case 't':
+      uadeconf.timeout = uade_get_timeout(optarg);
       timeout_forced = 1;
-      uade_timeout = uade_get_timeout(optarg);
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -321,30 +320,30 @@ int main(int argc, char *argv[])
       break;
     case 'w':
       timeout_forced = 1;
-      uade_subsong_timeout = uade_get_subsong_timeout(optarg);
+      uadeconf.subsong_timeout = uade_get_subsong_timeout(optarg);
       break;
     case 'y':
-      uade_silence_timeout = uade_get_silence_timeout(optarg);
+      uadeconf.silence_timeout = uade_get_silence_timeout(optarg);
       break;
     case 'z':
-      playlist_random(&uade_playlist, 1);
+      uadeconf.random_play = 1;
       break;
     case '?':
     case ':':
       exit(-1);
     case OPT_FILTER:
-      uade_use_filter = uade_get_filter_type(optarg);
+      uadeconf.filter = uade_get_filter_type(optarg);
       break;
     case OPT_FORCE_LED:
-      uade_force_filter = 1;
       uade_filter_state = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
 	fprintf(stderr, "Invalid filter state: %s (must 0 or 1)\n", optarg);
 	exit(-1);
       }
+      uadeconf.force_led = 2 | (uade_filter_state ? 1 : 0);
       break;
     case OPT_INTERPOLATOR:
-      uade_interpolation_mode = strdup(optarg);
+      uadeconf.interpolator = strdup(optarg);
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
@@ -359,13 +358,15 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(basedir);
       break;
     case OPT_HEADPHONES:
-      uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
+      uadeconf.headphones = 1;
       break;
     default:
       fprintf(stderr, "Impossible option.\n");
       exit(-1);
     }
   }
+
+  post_config(&uadeconf);
 
   for (i = optind; i < argc; i++) {
     playlist_add(&uade_playlist, argv[i], uade_recursivemode);

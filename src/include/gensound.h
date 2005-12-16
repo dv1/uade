@@ -19,7 +19,7 @@ extern int scaled_sample_evtime_ok;
  * if unsure, say yes.  Any call to init_sound may change the value.  */
 extern int setup_sound (void);
 
-extern int init_sound (void);
+extern void init_sound (void);
 extern void flush_sound (void);
 extern void close_sound (void);
 

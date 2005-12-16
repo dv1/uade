@@ -34,7 +34,7 @@ int setup_sound (void)
    return 1;
 }
 
-int init_sound (void)
+void init_sound (void)
 {
   int channels;
   int dspbits;
@@ -71,7 +71,6 @@ int init_sound (void)
 #ifdef FRAME_RATE_HACK
   vsynctime = vsynctime * 9 / 10;
 #endif	
-  return 1;
 }
 
 /* this should be called between subsongs when remote slave changes subsong */

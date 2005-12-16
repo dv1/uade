@@ -165,6 +165,7 @@ static void load_config(void)
   set_defaults();
   
   uade_load_config(&uc, configname);
+  uade_post_config(&uc);
 
   if (uc.filter)
     filter_type = uc.filter;

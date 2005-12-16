@@ -329,9 +329,6 @@ static void audio_handler (int nr)
 
      case 5:
 	/* We come here at the second hsync after DMA was turned on. */
-	if (currprefs.produce_sound == 0)
-	    cdp->per = 65535;
-
 	cdp->evtime = cdp->per;
 	cdp->dat = cdp->nextdat;
         cdp->last_sample[2] = cdp->last_sample[1];
@@ -351,9 +348,6 @@ static void audio_handler (int nr)
 
      case 2:
 	/* We come here when a 2->3 transition occurs */
-	if (currprefs.produce_sound == 0)
-	    cdp->per = 65535;
-
 	cdp->last_sample[2] = cdp->last_sample[1];
 	cdp->last_sample[1] = cdp->last_sample[0];
 	cdp->last_sample[0] = cdp->current_sample;
@@ -375,9 +369,6 @@ static void audio_handler (int nr)
 	    if (nr < 3) {
 		if (cdp->dat == 0)
 		    (cdp+1)->per = 65535;
-
-		else if (cdp->dat < maxhpos/2 && currprefs.produce_sound < 3)
-		    (cdp+1)->per = maxhpos/2;
 		else
 		    (cdp+1)->per = cdp->dat;
 	    }
@@ -386,9 +377,6 @@ static void audio_handler (int nr)
 
      case 3:
 	/* We come here when a 3->2 transition occurs */
-	if (currprefs.produce_sound == 0)
-	    cdp->per = 65535;
-
 	cdp->evtime = cdp->per;
 
 	if ((INTREQR() & (0x80 << nr)) && !cdp->dmaen) {
@@ -472,20 +460,9 @@ void check_prefs_changed_audio (void)
 	currprefs.sound_bits = changed_prefs.sound_bits;
 	currprefs.sound_freq = changed_prefs.sound_freq;
 
-	if (currprefs.produce_sound >= 2) {
-	    if (init_sound ()) {
-		last_cycles = cycles - 1;
-		next_sample_evtime = sample_evtime;
-	    } else
-		if (! sound_available) {
-		    fprintf (stderr, "Sound is not supported.\n");
-		} else {
-		    fprintf (stderr, "Sorry, can't initialize sound.\n");
-		    currprefs.produce_sound = 0;
-		    /* So we don't do this every frame */
-		    changed_prefs.produce_sound = 0;
-		}
-	}
+	init_sound ();
+	last_cycles = cycles - 1;
+	next_sample_evtime = sample_evtime;
     }
 }
 
@@ -513,20 +490,16 @@ void update_audio (void)
 {
     unsigned long int n_cycles;
 
-    if (currprefs.produce_sound < 2)
-	return;
-
     n_cycles = cycles - last_cycles;
     for (;;) {
 	unsigned long int best_evtime = n_cycles + 1;
-	if (audio_channel[0].state != 0 && best_evtime > audio_channel[0].evtime)
-	    best_evtime = audio_channel[0].evtime;
-	if (audio_channel[1].state != 0 && best_evtime > audio_channel[1].evtime)
-	    best_evtime = audio_channel[1].evtime;
-	if (audio_channel[2].state != 0 && best_evtime > audio_channel[2].evtime)
-	    best_evtime = audio_channel[2].evtime;
-	if (audio_channel[3].state != 0 && best_evtime > audio_channel[3].evtime)
-	    best_evtime = audio_channel[3].evtime;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+	  if (audio_channel[i].state != 0 && best_evtime > audio_channel[i].evtime)
+	    best_evtime = audio_channel[i].evtime;
+	}
+
 	if (best_evtime > next_sample_evtime)
 	    best_evtime = next_sample_evtime;
 
@@ -534,23 +507,20 @@ void update_audio (void)
 	    break;
 
 	next_sample_evtime -= best_evtime;
-	audio_channel[0].evtime -= best_evtime;
-	audio_channel[1].evtime -= best_evtime;
-	audio_channel[2].evtime -= best_evtime;
-	audio_channel[3].evtime -= best_evtime;
+
+	for (i = 0; i < 4; i++)
+	  audio_channel[i].evtime -= best_evtime;
+
 	n_cycles -= best_evtime;
-	if (next_sample_evtime == 0 && currprefs.produce_sound > 1) {
+	if (next_sample_evtime == 0) {
 	    next_sample_evtime = sample_evtime;
 	    (*sample_handler) ();
 	}
-	if (audio_channel[0].evtime == 0 && audio_channel[0].state != 0)
-	    audio_handler (0);
-	if (audio_channel[1].evtime == 0 && audio_channel[1].state != 0)
-	    audio_handler (1);
-	if (audio_channel[2].evtime == 0 && audio_channel[2].state != 0)
-	    audio_handler (2);
-	if (audio_channel[3].evtime == 0 && audio_channel[3].state != 0)
-	    audio_handler (3);
+
+	for (i = 0; i < 4; i++) {
+	  if (audio_channel[i].evtime == 0 && audio_channel[i].state != 0)
+	    audio_handler(i);
+	}
     }
     last_cycles = cycles - n_cycles;
 }
@@ -600,8 +570,6 @@ void AUDxPER (int nr, uae_u16 v)
 	}
 	v = 16;
     }
-    if (v < maxhpos/2 && currprefs.produce_sound < 3)
-	v = maxhpos/2;
     audio_channel[nr].per = v;
 }
 

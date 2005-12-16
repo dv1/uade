@@ -392,7 +392,7 @@ int uade_read_content_db(const char *filename)
   qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
   ccmodified = 0;
 
-  fprintf(stderr, "uade: Read content database with %zd entries\n", nccused);
+  /* fprintf(stderr, "uade: Read content database with %zd entries\n", nccused); */
   return 1;
 }
 

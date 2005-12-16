@@ -2,6 +2,10 @@
 	- Applied filter improvement and optimization to audio.c. The
 	  filter should be slightly better than the old. Affects only
 	  A500E and A1200E filters. (alankila)
+	- Cleaned up audio.c
+	- Reworked configuration loading system to avoid conflicts with
+	  uade123 command line parameters. Command line parameters have
+	  priority over uade.conf.
 
 2005-12-15  Michael Doering <mldoering@gmx.net>
 	- Some progress on porting the mod detection to m68k asm.
