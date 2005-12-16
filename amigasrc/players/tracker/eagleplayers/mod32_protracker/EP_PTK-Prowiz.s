@@ -173,12 +173,11 @@ is_NTK:
 	st	pt_ntkporta
 	st	pt_vblank
 	bra	Chk_ok
-	
 
 *-----------------------------------------------------------------------*
 ; strncpy
 ;
-; a1=src pointer (null Terminated)
+; a1=src pointer (-1 Terminated)
 ; a2=dst pointer
 ; d1=sizeof dst
 
@@ -235,10 +234,13 @@ EndSnd:
 	rts
 
 SubSongRange:
-    * DEBUG: Hack to check playtime *
-    lea.l	Timer,a0
-    move.l	(a0),d0
-    move.l	4(a0),d1
+    * DEBUG: Hack to check some values for now*
+    move.l	#0,d0
+    move.l	#0,d1
+
+    lea.l	pfx,a0
+    move.w	#0,d0
+    move.w	$1d*2(a0),d1
     rts
     
 SetSubsong:
@@ -326,7 +328,7 @@ pt_lop:
 		move.w	pt_noofinstr(pc),d0	; No of inst
 pt_lop3:	cmp.w	#2,(a0)			; smpllen  <= 0
 		bls.s	.Noe
-		clr.w	(a2)			; Clear first words
+		clr.l	(a2)			; Clear first words
 .Noe:		move.l	a2,(a1)+
     		moveq	#0,d1
 

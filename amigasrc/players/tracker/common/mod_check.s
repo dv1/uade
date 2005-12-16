@@ -105,19 +105,107 @@ mcheck_mod32_fail:
 ; M.K. - file: TODO: Distinguish STK,NTK1,NTK2,PTK and FTK :)
 ;
 mcheck_which_mk:
+			move.l	song,a0
 			bsr	ParseInstruments32	; returns -1 for failed check.
 			cmp.b	#-1,d0
 			beq	mcheck_mod32_fail
 
-			tst.b	finetune_used
-			beq	mcheck_is_ptk
-			
+			move.l	song,a0
+			bsr	ParseEffects
+
+
 			;tst.b	repeat_in_bytes_used
-			;bne	.no_finetune
+			;beq	.is_generic_mk
 			;move.l #mod_STK,modtag		; Soundtracker 2.5
 			;rts
-.no_finetune:
+
+.is_generic_mk:
+			moveq	#0,d1
+			move.b	$3b7(a0),d1
+
+			tst.b	extended_fx_used	; fx:  e1y > efy used?
+			bne	.probl_ptk
+			tst.b	finetune_used		; fx:  e1y > efy used?
+			beq	.no_specialfx
+
+.probl_ptk:
+			cmp.w	#$7f,d1
+			beq	mcheck_is_ptk
+			cmp.w	#$78,d1
+			beq	mcheck_is_ptk
+			bra mcheck_is_ptk_comp
 			
+.no_specialfx:
+			cmp.w	#$7f,d1
+			bne	.ntkbyte		;=0x7f
+			move.b	has_slen_sreplen_zero,d2
+			cmp.b	has_slen_sreplen_one,d2
+			bgt	.ntkbyte
+			move.b	no_slen_sreplen_zero,d2
+			cmp.b	no_slen_sreplen_one,d2
+			bgt	.ntkbyte
+			bra	mcheck_is_ptk
+
+.ntkbyte		cmp.w	#$7f,d1
+			bgt	mcheck_is_ptk_comp	;>0x7f
+
+			cmp.w	#0,d1
+			bne	.endif1
+			move.b	has_slen_sreplen_zero,d2
+			cmp.b	has_slen_sreplen_one,d2
+			ble	.endif1
+			move.b	no_slen_sreplen_zero,d2
+			cmp.b	no_slen_sreplen_one,d2
+			ble	.endif1
+
+			lea.l	pfx(pc),a1
+			cmp.w	#0,$10*2(a1)		; Filter fx used?
+			bne	mcheck_is_ptk
+			bra	mcheck_is_ptk_comp
+.endif1			
+			cmp.w	#0,d1
+			beq	.endif2
+			moveq	#0,d2
+			move.b	$3b6(a0),d2
+			cmp.w	d2,d1
+			bgt	.endif2
+			moveq	#0,d1
+			moveq	#0,d2		
+			move.b	has_slen_sreplen_zero,d2
+			move.b	has_slen_sreplen_one,d1
+			cmp.w	d1,d2
+			bgt	.endif2
+			cmp.w	#1,no_slen_sreplen_zero
+			bne	.endif2
+			move.b	no_slen_sreplen_zero,d2
+			move.b	no_slen_sreplen_one,d1
+			cmp.w	d1,d2
+			bgt	.endif2
+			bra	mcheck_is_ntk_1
+
+.endif2			moveq	#0,d1
+			moveq	#0,d2			
+			move.b	has_slen_sreplen_zero,d2
+			move.b	has_slen_sreplen_one,d1
+			cmp.w	d1,d2
+			bgt	.endif3
+			move.b	no_slen_sreplen_zero,d2
+			move.b	no_slen_sreplen_one,d1
+			cmp.w	d1,d2
+			bgt	.endif3
+			bra	mcheck_is_ntk_2
+
+.endif3
+			move.b	has_slen_sreplen_zero,d2
+			cmp.b	has_slen_sreplen_one,d2
+			ble	.endif4
+			move.b	no_slen_sreplen_zero,d2
+			cmp.b	no_slen_sreplen_one,d2
+			bge	.endif4
+			bra	mcheck_is_ntk_1
+
+.endif4			bra	mcheck_is_ptk_comp
+
 mcheck_is_ptk:
 			; Check for vblank by playtime
 			; in Protracker modules 
@@ -138,6 +226,14 @@ mcheck_is_ptk:
 			move.l #mod_PTK,modtag	
 .mcheck_end		rts
 
+mcheck_is_ptk_comp:	move.l #mod_PTK_comp,modtag
+			rts
+
+mcheck_is_ntk_1:	move.l #mod_NTK_1,modtag
+			rts
+
+mcheck_is_ntk_2:	move.l #mod_NTK_2,modtag
+			rts
 			
 ;----------------------------------------------------------------------------
 ; M&K!- Noisetracker file
@@ -147,7 +243,7 @@ mcheck_is_ntk_amp:
 			rts
 
 ;----------------------------------------------------------------------------
-; M&K!- Noisetracker file
+; FLT4- Noisetracker file
 ;
 mcheck_which_flt4:	;bra	mcheck_is_flt4
 mcheck_is_flt4:
@@ -512,36 +608,42 @@ ParseInstruments32:
 		moveq	#30,d0
 .parseloop:
 		move.b	45(a0),d1
-		cmp.b	#64,d1			; volume > 64
+		cmp.w	#64,d1			; volume > 64
 		bgt	.parse_fail
 
 		move.b	44(a0),d1
-		cmp.b	#15,d1			; fine_tune > 15
+		cmp.w	#15,d1			; fine_tune > 15
 		bgt	.parse_fail
 		cmp.w	#0,d1
 		beq	.parse_no_finetune
 		st	finetune_used		; 0 <finetune <16
 
 .parse_no_finetune:
-		cmp.w	#0,42(a0)		; sample len
-		beq	.parse_empty
-		bra	.parse_other
+		cmp.w	#0,46(a0)		; srep == 0
+		bne	.parse_next
 
-.parse_empty
-		;cmp.l	#0,20(a0)		; empty instrument name
-		;cmp.w	#0,46(a0)		; repl len
-		;cmp.w	#0,48(a0)		; loop size
+		cmp.w	#0,42(a0)		; slen >0
+		beq	.elseif_slen0
 
+		cmp.w	#1,48(a0)		; sreplen ==1
+		bne	.else_slen
+		addq.b	#1,has_slen_sreplen_one
+.else_slen	cmp.w	#0,48(a0)		; sreplen== 0
+		bne	.parse_next
+		addq.b	#1,has_slen_sreplen_zero
 		bra	.parse_next
-.parse_other:
-		clr.l	d1
-		
-		move.w	46(a0),d1
-		add.w	48(a0),d1
-		cmp.w	42(a0),d1			; srep+sreplen>slen ?
-		ble	.parse_next
-		st	repeat_in_bytes_used
 
+.elseif_slen0	cmp.w	#0,48(a0)		; sreplen !=0
+		beq	.else2
+		addq.b	#1,no_slen_sreplen_one
+		bra	.endif1
+.else2		addq.b	#1,no_slen_sreplen_zero
+.endif1
+		cmp.b	#0,45(a0)		; volume >0
+		beq	.parse_next
+		addq.b	#1,no_slen_has_volume
+
+		
 .parse_next:	add.l	#30,a1
 		dbra	d0,.parseloop
 
@@ -554,16 +656,84 @@ ParseInstruments32:
 		rts
 
 ;--------------------------------------------------------------------------
+; parse effects
+;
+; Input a0 = pointer to Module
+; 	(d0 = no of instruments, to be done yet)
+;
+
+ParseEffects:
+		movem.l	d1-d7/a0-a6,-(a7)
+		lea.l	1084(a0),a0
+
+		move.w	maxpattern,d0
+		beq	.do_calc
+		subq.w	#1,d0
+.do_calc
+		lea.l	pfx(pc),a1
+.loop1:		move.w	#255,d1			; 1024 bytes
+.loop2:		move.w	2(a0),d2
+		and.w	#$0fff,d2
+		beq	.next1			; no fx
+		lsr.w	#8,d2
+		cmp.w	#15,d2			; fxy?
+		bne	.no_speedfx		;
+
+		moveq	#0,d3
+		move.b	3(a0),d3
+		cmp.w	#$1f,d3			; Speed > $1f
+		ble	.setSpeed
+
+.setBPM		move.w	#15,d2			; Set Speed 	-> 0xf
+		bra	.addpfx
+.setSpeed
+		move.w	#14,d2			; Set BPM 	-> 0xe
+		bra	.addpfx
+
+.no_speedfx:	cmp.w	#14,d2			; Exy ?
+		bne	.addpfx			; nope, normal one 0 - 15
+		moveq	#0,d2
+		move.b	3(a0),d2
+		lsr.w	#4,d2
+		add.w	#$10,d2			; Exy 		-> 16 to 32
+		cmp.w	#17,d2			; Protracker cmds used?
+		blt	.addpfx
+		st	extended_fx_used
+
+.addpfx		add.w	d2,d2			; word offset to pfx
+		addq.w	#1,(a1,d2.w)
+.next1:		add.l	#4,a0
+		dbf	d1,.loop2
+		dbf	d0,.loop1
+				
+.end		movem.l	(a7)+,d1-d7/a0-a6
+		rts
+
+
+;--------------------------------------------------------------------------
 ; Datas:
 ;Instrument flags
 
-repeat_in_bytes_used	dc.b	0	
-finetune_used:		dc.b	0
+
+uadebase:		dc.l	0
+uadename:		dc.b	"uade.library",0
 			even
+			
 maxpattern:		dc.w	0
 Timer:			dc.l	0,0,0,0			; Hours, Minutes, secs
 header:			dc.l	0
 modtag:			dc.l	0
-uadebase:		dc.l	0
-uadename:		dc.b	"uade.library",0
+pfx			dcb.w	32,0
+pfxarg			dcb.w	32,0
+
+extended_fx_used	dc.b	0
+repeat_in_bytes_used	dc.b	0	
+finetune_used:		dc.b	0
+
+no_slen_sreplen_one:	dc.b	0
+no_slen_sreplen_zero:	dc.b	0
+no_slen_has_volume:	dc.b	0
+has_slen_sreplen_one:	dc.b	0
+has_slen_sreplen_zero:	dc.b	0
 			even
+

@@ -1,3 +1,6 @@
+2005-12-15  Michael Doering <mldoering@gmx.net>
+	- some progress on porting the mod detection to m68k asm.
+
 2005-12-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug that forced filter to be A500E type when --force-led
 	  was uade with uade123. (alankila)

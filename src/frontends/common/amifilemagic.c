@@ -427,7 +427,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
       srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
       sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-//      fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
 
       if (vol > 64) return 0;
       if (buf[44+i*30] != 0) {
@@ -442,7 +442,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
      
       if (srep==0) {
         if (slen >0) {
-    	    if (sreplen==1){
+    	    if (sreplen==2){
         	 has_slen_sreplen_one++;
     		}
 	    if (sreplen==0){
@@ -521,6 +521,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 	    	    return 2; // Noisetracker 1.2
 
 	if ((buf[0x3b7] <0x80) && 
+
 	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
 	        (no_slen_sreplen_zero <=no_slen_sreplen_one))    
 			return 3; // Noisetracker 2.x
