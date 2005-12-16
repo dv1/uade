@@ -22,11 +22,6 @@
 #include "amigafilter.h"
 #include "uade.h"
 
-struct biquad_state {
-    float x[2];
-    float y[2];
-};
-
 struct audio_channel_data audio_channel[4];
 static int cspline_old_samples[4];
 void (*sample_handler) (void);
@@ -39,9 +34,7 @@ static unsigned long last_cycles, next_sample_evtime;
 static int audperhack;
 
 static struct filter_state {
-    float rc1, rc2, rc3;
-    struct biquad_state bq1;
-    struct biquad_state bq2;
+    float rc1, rc2, rc3, rc4;
 } sound_filter_state[2];
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
@@ -107,43 +100,21 @@ static int filter(int input, struct filter_state *fs)
 	fs->rc1 = 0.48 * input + 0.52 * fs->rc1;
         normal_output = fs->rc1;
 
-        fs->rc2 = 0.810 * normal_output + 0.190 * fs->rc2;
+        fs->rc2 = 0.48 * normal_output + 0.52 * fs->rc2;
+        fs->rc3 = 0.48 * fs->rc2       + 0.52 * fs->rc3;
+        fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
 
-        tmp = 0.510611 * fs->rc2 - 0.146176 * fs->bq1.x[0] + 0.057950 * fs->bq1.x[1]
-                                 + 0.146176 * fs->bq1.y[0] + 0.431440 * fs->bq1.y[1];
-        fs->bq1.x[1] = fs->bq1.x[0];
-        fs->bq1.x[0] = fs->rc2;
-        fs->bq1.y[1] = fs->bq1.y[0];
-        fs->bq1.y[0] = tmp;
-        
-        tmp = 1.057758 * fs->bq1.y[0] - 1.414072 * fs->bq2.x[0] + 0.496108 * fs->bq2.x[1]
-                                      + 1.414072 * fs->bq2.y[0] - 0.553866 * fs->bq2.y[1];
-        fs->bq2.x[1] = fs->bq2.x[0];
-        fs->bq2.x[0] = fs->bq1.y[0];
-        fs->bq2.y[1] = fs->bq2.y[0];
-        fs->bq2.y[0] = tmp;
-        led_output = fs->bq2.y[0];
+        led_output = fs->rc4;
         break;
         
     case FILTER_MODEL_A1200E:
         normal_output = input;
 
-        fs->rc2 = 0.363 * normal_output + 0.637 * fs->rc2;
+        fs->rc2 = 0.48 * normal_output + 0.52 * fs->rc2;
+        fs->rc3 = 0.48 * fs->rc2       + 0.52 * fs->rc3;
+        fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
 
-        tmp = 0.666114 * fs->rc2 + 0.101430 * fs->bq1.x[0] + 0.066404 * fs->bq1.x[1]
-                                 - 0.101430 * fs->bq1.y[0] + 0.267482 * fs->bq1.y[1];
-        fs->bq1.x[1] = fs->bq1.x[0];
-        fs->bq1.x[0] = fs->rc2;
-        fs->bq1.y[1] = fs->bq1.y[0];
-        fs->bq1.y[0] = tmp;
-
-        tmp = 1.059494 * fs->bq1.y[0] - 1.007695 * fs->bq2.x[0] + 0.137360 * fs->bq2.x[1]
-                                      + 1.007695 * fs->bq2.y[0] - 0.196854 * fs->bq2.y[1];
-        fs->bq2.x[1] = fs->bq2.x[0];
-        fs->bq2.x[0] = fs->bq1.y[0];
-        fs->bq2.y[1] = fs->bq2.y[0];
-        fs->bq2.y[0] = tmp;
-        led_output = fs->bq2.y[0];
+        led_output = fs->rc4;
         break;
 
     default:

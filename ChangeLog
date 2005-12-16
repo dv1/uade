@@ -1,5 +1,10 @@
+2005-12-16  Heikki Orsila <heikki.orsila@iki.fi>
+	- Applied filter improvement and optimization to audio.c. The
+	  filter should be slightly better than the old. Affects only
+	  A500E and A1200E filters. (alankila)
+
 2005-12-15  Michael Doering <mldoering@gmx.net>
-	- some progress on porting the mod detection to m68k asm.
+	- Some progress on porting the mod detection to m68k asm.
 
 2005-12-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug that forced filter to be A500E type when --force-led
