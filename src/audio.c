@@ -545,6 +545,7 @@ void update_audio (void)
 	if (best_evtime > next_sample_evtime)
 	    best_evtime = next_sample_evtime;
 
+	/* Quit if no interesting audio events have happened. */
 	if (best_evtime > n_cycles)
 	    break;
 
