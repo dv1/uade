@@ -120,9 +120,6 @@ static int patterntest(const unsigned char *buf, const char *pattern,
 {
   if ((offset + bytes) <= maxlen)
     return (memcmp(buf + offset, pattern, bytes) == 0) ? 1 : 0;
-
-  fprintf(stderr,
-	  "uade: warning: would have searched filemagic outside of range\n");
   return 0;
 }
 

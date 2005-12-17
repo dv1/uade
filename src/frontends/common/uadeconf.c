@@ -220,21 +220,3 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   fclose(f);
   return 1;
 }
-
-
-void uade_post_config(struct uade_config *uc)
-{
-  if (uc->interpolator != NULL && strcmp(uc->interpolator, "anti") == 0) {
-    fprintf(stderr, "uade: You are misusing the 'anti' interpolator. Please change the interpolator\nsetting. Forcing to 'default'.\n");
-    uc->interpolator = NULL;
-  }
-
-  /* Note that the user may not set anti, but uade may. This is to force
-     correctness of the filter design. */
-  if (uc->filter == FILTER_MODEL_A500E || uc->filter == FILTER_MODEL_A1200E) {
-    if (uc->interpolator == NULL || strcasecmp(uc->interpolator, "default") == 0) {
-      
-      uc->interpolator = strdup("anti");
-    }
-  }
-}

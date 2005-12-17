@@ -408,7 +408,7 @@ static __inline__ void COPCON (uae_u16 a)
 
 static void DMACON (uae_u16 v)
 {
-    int i, need_resched = 0;
+    int i;
     uae_u16 oldcon = dmacon;
 
     setclr(&dmacon,v); dmacon &= 0x1FFF;
@@ -427,8 +427,8 @@ static void DMACON (uae_u16 v)
 	prepare_copper ();
 	if (eventtab[ev_copper].evtime == cycles && eventtab[ev_copper].active)
 	    abort ();
-	need_resched = 1;
     }
+
     update_audio ();
 
     for (i = 0; i < 4; i++) {
@@ -439,6 +439,7 @@ static void DMACON (uae_u16 v)
 	    if (cdp->state == 0) {
 		cdp->state = 1;
 		cdp->pt = cdp->lc;
+		cdp->ptend = cdp->lc + 2 * (cdp->len ? cdp->len : 65536);
 		cdp->wper = cdp->per;
 		cdp->wlen = cdp->len;
 		cdp->data_written = 2;
@@ -455,8 +456,7 @@ static void DMACON (uae_u16 v)
 	}
     }
 
-    if (need_resched)
-	events_schedule();
+    events_schedule();
 }
 
 /*static int trace_intena = 0;*/
@@ -1250,41 +1250,55 @@ static void vsync_handler (void)
 
 static void hsync_handler (void)
 {
-  eventtab[ev_hsync].evtime += cycles - eventtab[ev_hsync].oldcycles;
-  eventtab[ev_hsync].oldcycles = cycles;
-  CIA_hsync_handler();
-  
-  if (currprefs.produce_sound > 0) {
     int nr;
-    
+
+    eventtab[ev_hsync].evtime += cycles - eventtab[ev_hsync].oldcycles;
+    eventtab[ev_hsync].oldcycles = cycles;
+
+    CIA_hsync_handler();
+  
     update_audio ();
     
     /* Sound data is fetched at the beginning of each line */
     for (nr = 0; nr < 4; nr++) {
-      struct audio_channel_data *cdp = audio_channel + nr;
-      
-      if (cdp->data_written == 2) {
-	cdp->data_written = 0;
-	cdp->nextdat = chipmem_bank.wget(cdp->pt);
-	cdp->pt += 2;
-	if (cdp->state == 2 || cdp->state == 3) {
-	  if (cdp->wlen == 1) {
-	    cdp->pt = cdp->lc;
-	    cdp->wlen = cdp->len;
-	    cdp->intreq2 = 1;
-	  } else
-	    cdp->wlen--;
+	struct audio_channel_data *cdp = audio_channel + nr;
+
+	if (cdp->data_written == 2) {
+	    cdp->data_written = 0;
+
+#if AUDIO_DEBUG	   
+	    if (cdp->state != 0 && cdp->pt >= cdp->ptend) {
+		fprintf(stderr, "Audio DMA fetch overrun on channel %d: %.8x/%.8x\n", nr, cdp->pt, cdp->ptend);
+	    }
+#endif
+
+	    cdp->nextdat = chipmem_bank.wget(cdp->pt);
+
+	    cdp->nextdatpt = cdp->pt;
+	    cdp->nextdatptend = cdp->ptend;
+
+	    if (cdp->wlen != 1)
+		cdp->pt += 2;
+
+	    if (cdp->state == 2 || cdp->state == 3) {
+		if (cdp->wlen == 1) {
+		    cdp->pt = cdp->lc;
+		    cdp->ptend = cdp->lc + 2 * (cdp->len ? cdp->len : 65536);
+		    cdp->wlen = cdp->len;
+		    cdp->intreq2 = 1;
+		} else {
+		    cdp->wlen = (cdp->wlen - 1) & 0xFFFF;
+		}
+	    }
 	}
-      }
     }
-  }
   
-  if (++vpos == (maxvpos + (lof != 0))) {
-    vpos = 0;
-    vsync_handler();
-  }
+    if (++vpos == (maxvpos + (lof != 0))) {
+	vpos = 0;
+	vsync_handler();
+    }
   
-  is_lastline = vpos + 1 == maxvpos + (lof != 0) && currprefs.m68k_speed == -1 && ! rpt_did_reset;
+    is_lastline = vpos + 1 == maxvpos + (lof != 0) && currprefs.m68k_speed == -1 && ! rpt_did_reset;
 }
 
 static void init_eventtab (void)
@@ -1301,10 +1315,6 @@ static void init_eventtab (void)
     eventtab[ev_hsync].handler = hsync_handler;
     eventtab[ev_hsync].evtime = maxhpos + cycles;
     eventtab[ev_hsync].active = 1;
-
-    eventtab[ev_blitter].active = 0;
-    eventtab[ev_diskblk].active = 0;
-    eventtab[ev_diskindex].active = 0;
 
     events_schedule ();
 }

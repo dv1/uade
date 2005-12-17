@@ -19,8 +19,6 @@
 
 void post_config(struct uade_config *uc)
 {
-  uade_post_config(uc);
-
   if (uc->action_keys)
     uade_terminal_mode = uc->action_keys & 1;
 

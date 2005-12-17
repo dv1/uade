@@ -33,7 +33,8 @@ enum {
 
 extern struct ev eventtab[ev_max];
 
-static __inline__ void events_schedule (void) {
+static void events_schedule (void)
+{
   unsigned long int mintime = ~0L;
   unsigned long int eventtime;
   /* HSYNC */
@@ -41,6 +42,13 @@ static __inline__ void events_schedule (void) {
     eventtime = eventtab[ev_hsync].evtime - cycles;
     if (eventtime < mintime) mintime = eventtime;
   }
+  /* AUDIO */
+#if 0
+  if(eventtab[ev_audio].active) {
+    eventtime = eventtab[ev_audio].evtime - cycles;
+    if (eventtime < mintime) mintime = eventtime;
+  }
+#endif
   /* CIA */
   if(eventtab[ev_cia].active) {
     eventtime = eventtab[ev_cia].evtime - cycles;
@@ -49,7 +57,7 @@ static __inline__ void events_schedule (void) {
   nextevent = cycles + mintime;
 }
 
-static __inline__ void do_cycles_slow (unsigned long cycles_to_add) {
+static void do_cycles_slow (unsigned long cycles_to_add) {
   if (is_lastline && eventtab[ev_hsync].evtime-cycles <= cycles_to_add
       && (long int)(read_processor_time () - vsyncmintime) < 0)
     return;
@@ -61,6 +69,12 @@ static __inline__ void do_cycles_slow (unsigned long cycles_to_add) {
 	if(eventtab[ev_hsync].active && eventtab[ev_hsync].evtime == cycles) {
 	  (*eventtab[ev_hsync].handler)();
 	}
+	/* AUDIO */
+#if 0
+	if(eventtab[ev_audio].active && eventtab[ev_audio].evtime == cycles) {
+	  (*eventtab[ev_audio].handler)();
+	}
+#endif
 	/* CIA */
 	if(eventtab[ev_cia].active && eventtab[ev_cia].evtime == cycles) {
 	  (*eventtab[ev_cia].handler)();

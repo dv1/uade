@@ -22,15 +22,19 @@
 #include "amigafilter.h"
 #include "uade.h"
 
+
 struct audio_channel_data audio_channel[4];
 static int cspline_old_samples[4];
 void (*sample_handler) (void);
+
+/* Average time in bus cycles to output a new sample */
 unsigned long sample_evtime;
+
 int sound_available;
 
 int sound_use_filter = FILTER_MODEL_A500E;
 
-static unsigned long last_cycles, next_sample_evtime;
+static unsigned long last_audio_cycles, next_sample_evtime;
 static int audperhack;
 
 static struct filter_state {
@@ -133,6 +137,7 @@ static int filter(int input, struct filter_state *fs)
     return o;
 }
 
+
 static void check_sound_buffers (void)
 {
     if (uade_reboot)
@@ -156,8 +161,19 @@ static void check_sound_buffers (void)
     }
 }
 
+
 static inline void sample_backend(int left, int right)
 {
+#if AUDIO_DEBUG
+    int nr;
+    for (nr = 0; nr < 4; nr++) {
+	struct audio_channel_data *cdp = audio_channel + nr;
+	if (cdp->state != 0 && cdp->datpt != 0 && (dmacon & (1 << nr)) && cdp->datpt >= cdp->datptend) {
+	    fprintf(stderr, "Audio output overrun on channel %d: %.8x/%.8x\n", nr, cdp->datpt, cdp->datptend);
+	}
+    }
+#endif
+
     /* samples are in range -16384 (-128*64*2) and 16256 (127*64*2) */
     left <<= 16 - 14 - 1;
     right <<= 16 - 14 - 1;
@@ -188,6 +204,7 @@ void sample16s_handler (void)
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
+
 void sample16si_crux_handler (void)
 {
     int i;
@@ -208,6 +225,7 @@ void sample16si_crux_handler (void)
 
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
+
 
 void sample16si_linear_handler (void)
 {
@@ -246,6 +264,7 @@ int sample16si_cspline_interpolate_one(int *last, int current, float x)
         + x3*(-0.5 * current + 1.5 * last[0] - 1.5 * last[1] + 0.5 * last[2]));
 }
 
+
 void sample16si_cspline_handler (void)
 {
     int i, tmp;
@@ -273,6 +292,7 @@ void sample16si_cspline_handler (void)
     
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
+
 
 /* This interpolator examines sample points when Paula switches the output
  * voltage and computes the average of Paula's output */
@@ -305,6 +325,7 @@ void sample16si_anti_handler (void)
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
+
 static void audio_handler (int nr)
 {
     struct audio_channel_data *cdp = audio_channel + nr;
@@ -321,16 +342,25 @@ static void audio_handler (int nr)
 	cdp->state = 5;
 	INTREQ(0x8000 | (0x80 << nr));
 	if (cdp->wlen != 1)
-	    cdp->wlen--;
+	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF;
 	cdp->nextdat = chipmem_bank.wget(cdp->pt);
 
-	cdp->pt += 2;
+	cdp->nextdatpt = cdp->pt;
+	cdp->nextdatptend = cdp->ptend;
+
+	/* BUG in UAE. Only hsync handler should increase DMA pointer
+	   cdp->pt += 2;
+	*/
 	break;
 
      case 5:
 	/* We come here at the second hsync after DMA was turned on. */
 	cdp->evtime = cdp->per;
 	cdp->dat = cdp->nextdat;
+
+	cdp->datpt = cdp->nextdatpt;
+	cdp->datptend = cdp->nextdatptend;
+
         cdp->last_sample[2] = cdp->last_sample[1];
         cdp->last_sample[1] = cdp->last_sample[0];
 	cdp->last_sample[0] = cdp->current_sample;
@@ -364,6 +394,10 @@ static void audio_handler (int nr)
 	    cdp->intreq2 = 0;
 
 	    cdp->dat = cdp->nextdat;
+
+	    cdp->datpt = cdp->nextdatpt;
+	    cdp->datptend = cdp->nextdatptend;
+
 	    if (cdp->dmaen)
 		cdp->data_written = 2;
 	    if (nr < 3) {
@@ -399,6 +433,10 @@ static void audio_handler (int nr)
 	    cdp->intreq2 = 0;
 
 	    cdp->dat = cdp->nextdat;
+
+	    cdp->datpt = cdp->nextdatpt;
+	    cdp->datptend = cdp->nextdatptend;
+
             cdp->last_sample[2] = cdp->last_sample[1];
             cdp->last_sample[1] = cdp->last_sample[0];
             cdp->last_sample[0] = cdp->current_sample;
@@ -431,7 +469,7 @@ void audio_reset (void)
     audio_channel[2].per = 65535;
     audio_channel[3].per = 65535;
 
-    last_cycles = 0;
+    last_audio_cycles = 0;
     next_sample_evtime = sample_evtime;
 
     audperhack = 0;
@@ -442,6 +480,7 @@ void audio_reset (void)
     select_audio_interpolator(NULL);
 }
 
+
 static int sound_prefs_changed (void)
 {
     return (changed_prefs.produce_sound != currprefs.produce_sound
@@ -449,6 +488,7 @@ static int sound_prefs_changed (void)
 	    || changed_prefs.sound_freq != currprefs.sound_freq
 	    || changed_prefs.sound_bits != currprefs.sound_bits);
 }
+
 
 void check_prefs_changed_audio (void)
 {
@@ -461,10 +501,11 @@ void check_prefs_changed_audio (void)
 	currprefs.sound_freq = changed_prefs.sound_freq;
 
 	init_sound ();
-	last_cycles = cycles - 1;
+	last_audio_cycles = cycles - 1;
 	next_sample_evtime = sample_evtime;
     }
 }
+
 
 void select_audio_interpolator(char *name)
 {
@@ -486,18 +527,19 @@ void select_audio_interpolator(char *name)
   }
 }
 
+
 void update_audio (void)
 {
-    unsigned long int n_cycles;
+    /* Number of cycles that has passed since last call to update_audio() */
+    unsigned long n_cycles = cycles - last_audio_cycles;
 
-    n_cycles = cycles - last_cycles;
     for (;;) {
 	unsigned long int best_evtime = n_cycles + 1;
 	int i;
 
 	for (i = 0; i < 4; i++) {
-	  if (audio_channel[i].state != 0 && best_evtime > audio_channel[i].evtime)
-	    best_evtime = audio_channel[i].evtime;
+	    if (audio_channel[i].state != 0 && best_evtime > audio_channel[i].evtime)
+		best_evtime = audio_channel[i].evtime;
 	}
 
 	if (best_evtime > next_sample_evtime)
@@ -506,24 +548,30 @@ void update_audio (void)
 	if (best_evtime > n_cycles)
 	    break;
 
+	/* Decrease time-to-wait counters */
 	next_sample_evtime -= best_evtime;
 
 	for (i = 0; i < 4; i++)
-	  audio_channel[i].evtime -= best_evtime;
+	    audio_channel[i].evtime -= best_evtime;
 
 	n_cycles -= best_evtime;
+
+	/* Test if new sample needs to be outputted */
 	if (next_sample_evtime == 0) {
 	    next_sample_evtime = sample_evtime;
 	    (*sample_handler) ();
 	}
 
+	/* Call audio state machines if needed */
 	for (i = 0; i < 4; i++) {
-	  if (audio_channel[i].evtime == 0 && audio_channel[i].state != 0)
-	    audio_handler(i);
+	    if (audio_channel[i].evtime == 0 && audio_channel[i].state != 0)
+		audio_handler(i);
 	}
     }
-    last_cycles = cycles - n_cycles;
+
+    last_audio_cycles = cycles - n_cycles;
 }
+
 
 void AUDxDAT (int nr, uae_u16 v)
 {
@@ -532,6 +580,8 @@ void AUDxDAT (int nr, uae_u16 v)
     update_audio ();
 
     cdp->dat = v;
+    cdp->datpt = 0;
+
     if (cdp->state == 0 && !(INTREQR() & (0x80 << nr))) {
 	cdp->state = 2;
 	INTREQ(0x8000 | (0x80 << nr));
@@ -540,6 +590,7 @@ void AUDxDAT (int nr, uae_u16 v)
     }
 }
 
+
 void AUDxLCH (int nr, uae_u16 v)
 {
     update_audio ();
@@ -547,12 +598,14 @@ void AUDxLCH (int nr, uae_u16 v)
     audio_channel[nr].lc = (audio_channel[nr].lc & 0xffff) | ((uae_u32)v << 16);
 }
 
+
 void AUDxLCL (int nr, uae_u16 v)
 {
     update_audio ();
 
     audio_channel[nr].lc = (audio_channel[nr].lc & ~0xffff) | (v & 0xFFFE);
 }
+
 
 void AUDxPER (int nr, uae_u16 v)
 {
@@ -573,12 +626,14 @@ void AUDxPER (int nr, uae_u16 v)
     audio_channel[nr].per = v;
 }
 
+
 void AUDxLEN (int nr, uae_u16 v)
 {
     update_audio ();
 
     audio_channel[nr].len = v;
 }
+
 
 void AUDxVOL (int nr, uae_u16 v)
 {

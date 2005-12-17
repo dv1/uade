@@ -5,6 +5,10 @@
 	- Fixed a bug in audio state engine that caused DMA engine to play
 	  one word too much of sample data. How could this bug have gone
 	  unnoticed for so long? The same bug exists in UAE too.
+	- Reverted back to not using interpolation with A500E and A1200E
+	  filters. The anti interpolator caused problems with many songs.
+	  It will be fixed at some point and changed back, but at the
+	  moment there's doubt how to fix the problem.
 
 2005-12-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Applied filter improvement and optimization to audio.c. The
