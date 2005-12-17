@@ -1,4 +1,5 @@
 2005-12-17  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 1.50-pre10
 	- Cleaned up src/include/events.h. Removed unnecessary event
 	  scheduler.
 	- Reworked audio subsystem to be more debuggable and added comments.
