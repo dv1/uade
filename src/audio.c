@@ -1,11 +1,11 @@
  /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * OS specific functions
+  * UADE's audio state machine emulation
   *
   * Copyright 1995, 1996, 1997 Bernd Schmidt
   * Copyright 1996 Marcus Sundberg
   * Copyright 1996 Manfred Thole
+  * Copyright 2005 Heikki Orsila
+  * Copyright 2005 Antti S. Lankila
   */
 
 #include "sysconfig.h"
