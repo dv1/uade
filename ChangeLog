@@ -1,6 +1,10 @@
 2005-12-17  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up src/include/events.h. Removed unnecessary event
 	  scheduler.
+	- Reworked audio subsystem to be more debuggable and added comments.
+	- Fixed a bug in audio state engine that caused DMA engine to play
+	  one word too much of sample data. How could this bug have gone
+	  unnoticed for so long? The same bug exists in UAE too.
 
 2005-12-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Applied filter improvement and optimization to audio.c. The
