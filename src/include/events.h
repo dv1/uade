@@ -72,25 +72,4 @@ static __inline__ void do_cycles_slow (unsigned long cycles_to_add) {
   cycles += cycles_to_add;
 }
 
-static __inline__ void do_cycles_fast (void) {
-  if (is_lastline && eventtab[ev_hsync].evtime-cycles <= 1
-      && (long int)(read_processor_time () - vsyncmintime) < 0)
-    return;
-  
-  cycles++;
-  if (nextevent == cycles) {
-    int i;
-    for (i = 0; i < 3; i++) {
-      if (eventtab[i].active && eventtab[i].evtime == cycles) {
-	(*eventtab[i].handler) ();
-      }
-    }
-    events_schedule();
-  }
-}
-
-#if /* M68K_SPEED == 1 */  0
-#define do_cycles do_cycles_fast
-#else
 #define do_cycles do_cycles_slow
-#endif

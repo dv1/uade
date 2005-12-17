@@ -1,3 +1,7 @@
+2005-12-17  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cleaned up src/include/events.h. Removed unnecessary event
+	  scheduler.
+
 2005-12-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Applied filter improvement and optimization to audio.c. The
 	  filter should be slightly better than the old. Affects only
