@@ -532,6 +532,9 @@ void select_audio_interpolator(char *name)
 }
 
 
+/* update_audio() emulates actions of audio state machine since it was last
+   time called. One can assume it is called at least once per horizontal
+   line and possibly more often. */
 void update_audio (void)
 {
     /* Number of cycles that has passed since last call to update_audio() */
