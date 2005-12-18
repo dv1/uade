@@ -61,7 +61,7 @@ void init_sound (void)
 
   sound_bytes_per_second = (dspbits / 8) *  channels * rate;
   
-  sample_evtime = (long) maxhpos * maxvpos * 50 / rate;
+  sample_evtime_interval = ((float) maxhpos) * maxvpos * 50 / rate;
 
   sample_handler = sample16s_handler;
 

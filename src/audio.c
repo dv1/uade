@@ -8,6 +8,8 @@
   * Copyright 2005 Antti S. Lankila
   */
 
+#include <math.h>
+
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -28,13 +30,15 @@ static int cspline_old_samples[4];
 void (*sample_handler) (void);
 
 /* Average time in bus cycles to output a new sample */
-unsigned long sample_evtime;
+float sample_evtime_interval;
+float next_sample_evtime;
 
 int sound_available;
 
 int sound_use_filter = FILTER_MODEL_A500E;
 
-static unsigned long last_audio_cycles, next_sample_evtime;
+static unsigned long last_audio_cycles;
+
 static int audperhack;
 
 static struct filter_state {
@@ -212,9 +216,9 @@ void sample16si_crux_handler (void)
 
     for (i = 0; i < 4; i += 1) {
         int ratio1 = audio_channel[i].per - audio_channel[i].evtime;
-#define INTERVAL (sample_evtime * 3)
+#define INTERVAL (sample_evtime_interval * 3)
 	int ratio = (ratio1 << 12) / INTERVAL;
-	if (audio_channel[i].evtime < sample_evtime || ratio1 >= INTERVAL)
+	if (audio_channel[i].evtime < sample_evtime_interval || ratio1 >= INTERVAL)
 	    ratio = 4096;
 #undef INTERVAL
 	datas[i] = ((       ratio) * audio_channel[i].current_sample
@@ -308,12 +312,12 @@ void sample16si_anti_handler (void)
         oldval *= audio_channel[i].vol;
         curval *= audio_channel[i].vol;
         
-        int interpoint = audio_channel[i].evtime + sample_evtime;
+        int interpoint = audio_channel[i].evtime + sample_evtime_interval;
         if (interpoint > audio_channel[i].per) {
             /* interpoint now becomes the count of evtimes that Paula's
              * output should have been the previous value */
             interpoint -= audio_channel[i].per;
-            float oldvalfrac = interpoint / (float) sample_evtime;
+            float oldvalfrac = interpoint / sample_evtime_interval;
 
             datas[i] = oldvalfrac * oldval + (1 - oldvalfrac) * curval;
         } else {
@@ -470,7 +474,7 @@ void audio_reset (void)
     audio_channel[3].per = 65535;
 
     last_audio_cycles = 0;
-    next_sample_evtime = sample_evtime;
+    next_sample_evtime = sample_evtime_interval;
 
     audperhack = 0;
 
@@ -502,7 +506,7 @@ void check_prefs_changed_audio (void)
 
 	init_sound ();
 	last_audio_cycles = cycles - 1;
-	next_sample_evtime = sample_evtime;
+	next_sample_evtime = sample_evtime_interval;
     }
 }
 
@@ -534,16 +538,22 @@ void update_audio (void)
     unsigned long n_cycles = cycles - last_audio_cycles;
 
     for (;;) {
-	unsigned long int best_evtime = n_cycles + 1;
+	unsigned long best_evtime = n_cycles + 1;
 	int i;
+	unsigned long rounded;
+	float f;
 
 	for (i = 0; i < 4; i++) {
 	    if (audio_channel[i].state != 0 && best_evtime > audio_channel[i].evtime)
 		best_evtime = audio_channel[i].evtime;
 	}
 
-	if (best_evtime > next_sample_evtime)
-	    best_evtime = next_sample_evtime;
+	rounded = floorf(next_sample_evtime);
+	if ((next_sample_evtime - rounded) >= 0.5)
+	    rounded++;
+
+	if (best_evtime > rounded)
+	    best_evtime = rounded;
 
 	/* Quit if no interesting audio events have happened. */
 	if (best_evtime > n_cycles)
@@ -558,8 +568,8 @@ void update_audio (void)
 	n_cycles -= best_evtime;
 
 	/* Test if new sample needs to be outputted */
-	if (next_sample_evtime == 0) {
-	    next_sample_evtime = sample_evtime;
+	if (rounded == best_evtime) {
+	    next_sample_evtime += sample_evtime_interval;
 	    (*sample_handler) ();
 	}
 

@@ -1,3 +1,12 @@
+2005-12-19  Heikki Orsila <heikki.orsila@iki.fi>
+	- Merged accurate audio output patch from Antti S. Lankila. The patch
+	  solves the problem that Paula's 3.5 MHz output was sampled at
+	  regular integer valued intervals that caused inaccuracy. The old
+	  interval was round_down(3541200 / 44100) = 80 paula cycles, but
+	  the real interval is ~80.299 paula cycles. This means 0.4% relative
+	  error in outputted sampling rate that is not audible, but it is
+	  harming filter accuracy analysis.
+
 2005-12-17  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre10
 	- Cleaned up src/include/events.h. Removed unnecessary event
