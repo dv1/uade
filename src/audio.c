@@ -572,6 +572,8 @@ void update_audio (void)
 
 	/* Test if new sample needs to be outputted */
 	if (rounded == best_evtime) {
+	    /* Before the following addition, next_sample_evtime is in range
+	       [-0.5, 0.5) */
 	    next_sample_evtime += sample_evtime_interval;
 	    (*sample_handler) ();
 	}
