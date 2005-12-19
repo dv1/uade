@@ -551,6 +551,7 @@ void update_audio (void)
 		best_evtime = audio_channel[i].evtime;
 	}
 
+	/* next_sample_evtime >= 0 so floor() behaves as expected */
 	rounded = floorf(next_sample_evtime);
 	if ((next_sample_evtime - rounded) >= 0.5)
 	    rounded++;
