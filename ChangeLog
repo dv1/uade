@@ -1,7 +1,7 @@
 2005-12-20  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a short note for Max OS X users to address a compilation
 	  problem.
-	- Renamed INSTALL to be INSTALL.readme to avoid make problems with
+	- Renamed INSTALL to be INSTALL.readme to avoid makefile problems with
 	  Mac OS X.
 
 2005-12-19  Heikki Orsila <heikki.orsila@iki.fi>
