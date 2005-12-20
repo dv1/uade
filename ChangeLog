@@ -1,3 +1,7 @@
+2005-12-20  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added a short note for Max OS X users to address a compilation
+	  problem.
+
 2005-12-19  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged accurate audio output patch from Antti S. Lankila. The patch
 	  solves the problem that Paula's 3.5 MHz output was sampled at

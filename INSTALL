@@ -79,8 +79,8 @@ In Debian, the required libraries can be downloaded by:
 
 	apt-get install libao-dev xmms-dev
 
-Note for Mac OS X
-=================
+Troubleshooting for Mac OS X
+============================
 
 If you are not able to compile uade due to following problem:
 
