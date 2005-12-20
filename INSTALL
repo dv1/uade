@@ -86,6 +86,7 @@ If you are not able to compile uade due to following problem:
 
 	make: `install' is up to date." 
 
-Then please rename this file. Unfortunately Mac OS X confuses 'make' by
+Then please rename this file to INSTALL2 (or something which does not
+match any rule name in Makefile). Unfortunately Mac OS X confuses 'make' by
 having case insensitive file access. 'make' will think this file is
 the result of 'install' rule, which it is not.
