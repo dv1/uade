@@ -68,7 +68,7 @@ Longer explanations of these steps follow:
 
 
 Hints for various GNU/Linux distributions
-========================================
+=========================================
 
 To install necessary dependencies for Gentoo, execute:
 
@@ -78,3 +78,14 @@ To install necessary dependencies for Gentoo, execute:
 In Debian, the required libraries can be downloaded by:
 
 	apt-get install libao-dev xmms-dev
+
+Note for Mac OS X
+=================
+
+If you are not able to compile uade due to following problem:
+
+	make: `install' is up to date." 
+
+Then please rename this file. Unfortunately Mac OS X confuses 'make' by
+having case insensitive file access. 'make' will think this file is
+the result of 'install' rule, which it is not.
