@@ -1,11 +1,10 @@
 2005-12-21  Heikki Orsila <heikki.orsila@iki.fi>
-	- PTK-Prowiz: Commited various changes to cvs. The code is already
-	  there, the binary not, until I know it works:
-	   o Almost finished reorganizing and redoing the mod checks.
-	   o Fixed bug in Soundtracker with repeat in bytes handling.
-	   o Fixed some bugs in handling empty instruments.
-	   o Added hack for vblank mod detection.
-	   o Hopefully working, support for Karplusstrong fx.
+	- PTK-Prowiz: Commited various changes to cvs. 
+	    o Almost finished reorganizing and redoing the mod checks.
+	    o Fixed bug in Soundtracker with repeat in bytes handling.
+	    o Fixed some bugs in handling empty instruments.
+	    o Added hack for vblank mod detection.
+	    o Hopefully working, support for Karplusstrong fx.
 	- Amifilemagic: backported a small bugfix in mod detection.
 
 2005-12-20  Heikki Orsila <heikki.orsila@iki.fi>

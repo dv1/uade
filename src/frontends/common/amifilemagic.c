@@ -489,10 +489,10 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     	 }
 	}
 
-	fprintf (stderr, "has_slen_sreplen_zero: %d\n",has_slen_sreplen_zero);
-	fprintf (stderr, "has_slen_sreplen_one: %d\n",has_slen_sreplen_one);
-	fprintf (stderr, "no_slen_sreplen_zero: %d\n",no_slen_sreplen_zero);
-	fprintf (stderr, "no_slen_sreplen_one: %d\n\n",no_slen_sreplen_one);
+//	fprintf (stderr, "has_slen_sreplen_zero: %d\n",has_slen_sreplen_zero);
+//	fprintf (stderr, "has_slen_sreplen_one: %d\n",has_slen_sreplen_one);
+//	fprintf (stderr, "no_slen_sreplen_zero: %d\n",no_slen_sreplen_zero);
+//	fprintf (stderr, "no_slen_sreplen_one: %d\n\n",no_slen_sreplen_one);
 
 	if ((buf[0x3b7] == 0x7f) && 
 	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
