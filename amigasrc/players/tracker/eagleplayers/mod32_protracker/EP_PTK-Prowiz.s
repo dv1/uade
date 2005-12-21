@@ -10,12 +10,13 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2005-12-08',0
+	dc.b '$VER: Protracker 3.0b player 2005-12-20',0
 	even
 
 PlayerTagArray
 	dc.l	DTP_PlayerVersion,1
 	dc.l	DTP_PlayerName,PName
+	dc.l	DTP_ModuleName,MNamepointer
 	dc.l	DTP_Creator,CName
 	dc.l	DTP_Check2,Chk
 	dc.l	DTP_Interrupt,pt_play
@@ -25,15 +26,20 @@ PlayerTagArray
 	dc.l	DTP_EndSound,EndSnd
 	dc.l	DTP_Flags,PLYF_SONGEND
 	dc.l	DTP_FormatName,Formatpointer
-	dc.l	DTP_SubSongRange,SubSongRange
+	dc.l	DTP_SubSongRange,mod_SubSongRange
 	dc.l	TAG_DONE
 	
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
+MNamepointer	dc.l	Mname
 Formatpointer	dc.l	Format
 delibase	dc.l	0
 song		dc.l	0
+size		dc.l	0
+pt_pckddata	dc.l	0
+pt_pckdsize	dc.l	0
+
 
 Format			dc.b	"type: "
 FName			ds.b	31
@@ -47,16 +53,17 @@ CName			dc.b 'Protracker 3.0b replay by Welder/Divine',10
 			dc.b 'adapted for UADE by mld and shd',10
 			dc.b '----------------------------------------------',10
 			dc.b 'note: filedetection checks for UADE!',0
-	
-PTK_Name:		dc.b 'Protracker',-1
-PTK_Comp_Name:		dc.b 'Protracker compatible',-1
-PTK_vblank_Name:	dc.b 'Protracker (vblank)',-1
-NTK_2_Name:		dc.b 'Noisetracker 2.x',-1
-NTK_1_Name:		dc.b 'Noisetracker 1.x',-1
-NTK_AMP_Name:		dc.b 'Noisetracker (M&K!)',-1
-FLT4_Name:		dc.b 'Startrekker (4ch)',-1
-STK_Name:		dc.b 'Soundtracker II 32instr',-1
-STK15_Name:		dc.b 'Soundtracker II 15instr',-1
+
+MName:			ds.b 21
+PTK_Name:		dc.b 'Protracker',0
+PTK_Comp_Name:		dc.b 'Protracker compatible',0
+PTK_vblank_Name:	dc.b 'Protracker (vblank)',0
+NTK_2_Name:		dc.b 'Noisetracker 2.x',0
+NTK_1_Name:		dc.b 'Noisetracker 1.x',0
+NTK_AMP_Name:		dc.b 'Noisetracker (M&K!)',0
+FLT4_Name:		dc.b 'Startrekker (4ch)',0
+STK_Name:		dc.b 'Soundtracker II (32 instr.)',0
+STK15_Name:		dc.b 'Soundtracker II (15 instr.)',0
 
 	even
 
@@ -66,10 +73,26 @@ STK15_Name:		dc.b 'Soundtracker II 15instr',-1
 ; Test Soundtracker-Module
 
 Chk:
-	move.l	dtg_ChkData(a5),a0
+	; -- set some defaults for new Check
+	; -- probl. breaks on Deliplayer :)
+	; --
+	move.l 	#0,pt_songposition
+	move.w	#-1,pt_chkfail
+	move.b	#0,pt_restart
+	move.b	#0,pt_ntkporta
+	move.b	#0,pt_vblank
+	move.b	#0,pt_smpl_in_bytes
+	move.l	#7,pt_vibshift
+	move.w	#31-1,pt_noofinstr
+	move.w	#0,pt_blkadj
+	move.w	#0,pt_seqadj
+	move.w	#37*2,pt_oldstk
+
+	move.l	dtg_ChkData(a5),a0		; get song data
 	move.l	dtg_ChkSize(a5),d1
 	move.l	a0,song
-
+	move.l	d1,size
+	
 	bsr.w	mcheck_moduledata
 	cmp.b	#mod_PTK,d0
 	beq	is_PTK
@@ -96,7 +119,13 @@ Chk:
 
 	cmp.b	#mod_FLT4,d0
 	beq	is_FLT4
-	
+
+	jsr	Convertmod
+	tst.l	d0
+	beq	is_clone
+
+
+
 Chk_fail:	
 	st	pt_chkfail	
 	moveq	#-1,d0
@@ -105,6 +134,15 @@ Chk_ok:
 	lea.l	FName,a2
 	move.w	#30,d1
 	bsr	strncpy
+
+Chk_ok_MName:
+	move.l	song,a1
+	lea.l	MName(pc),a2	
+	move.w	#20,d1
+	bsr	strncpy
+
+	*move.l	song,a0
+	bsr	mod_probe_subsongs
 	sf	pt_chkfail
 	moveq	#0,d0
 	rts
@@ -150,7 +188,7 @@ is_STK15:
 	move.w	#37*2,pt_oldstk
 	st	pt_ntkporta
 	st	pt_vblank
-	;st	pt_smpl_in_bytes
+	st	pt_smpl_in_bytes
 	lea.l	STK15_Name,a1
 	bra	Chk_Ok
 	
@@ -174,6 +212,17 @@ is_NTK:
 	st	pt_vblank
 	bra	Chk_ok
 
+is_Clone:
+	move.l	pt_pckddata,a0
+	move.l	pt_pckdsize,d0	
+	move.l	a0,song
+	move.l	d0,size
+	move.l	FormName,a1
+	lea.l	FName,a2
+	move.w	#30,d1
+	bsr	strncpy
+	bra	Chk_ok_Mname
+
 *-----------------------------------------------------------------------*
 ; strncpy
 ;
@@ -182,12 +231,27 @@ is_NTK:
 ; d1=sizeof dst
 
 strncpy:
-	move.b	(a1),(a2)+
-	cmp.b	#-1,(a1)+
-	dbeq	d1,strncpy
-	clr.b	-1(a2)
-	rts
+	moveq	#0,d2
+	move.b	(a1)+,d2
+	cmp.w	#159,d2
+	bgt	.strn_putchar
+	cmp.w	#127,d2
+	bgt	.strn_nogoodchar
+	cmp.w	#31,d2
+	bgt	.strn_putchar
 
+	cmp.w	#0,d2
+	bne	.strn_nogoodchar
+	bra	.strn_end
+
+.strn_nogoodchar:
+	move.b #".",d2
+.strn_putchar:
+	move.b	d2,(a2)+
+	dbra	d1,strncpy
+	move.b	#0,-1(a2)
+.strn_end
+	rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -233,18 +297,6 @@ EndSnd:
 	bsr	pt_End
 	rts
 
-SubSongRange:
-    * DEBUG: Hack to check some values for now*
-    move.l	#0,d0
-    move.l	#0,d1
-
-    lea.l	pfx,a0
-    move.w	#0,d0
-    move.w	$1d*2(a0),d1
-    rts
-    
-SetSubsong:
-    rts
 
 *-----------------------------------------------------------------------*
 pt_deinit:
@@ -267,9 +319,7 @@ pt_deinit:
 		move.w	#%00001111,pt_activechannels
 		move.l	#0,pt_patternptr
 		move.l	#0,pt_patternposition
-		;move.l #0,pt_songposition
-		move.l #0,pt_songdataptr
-		;move.b	#0,pt_smpl_in_bytes
+		move.l 	#0,pt_songdataptr
 
 
 clear_uade_playtable:
@@ -357,7 +407,8 @@ repeat_ok:
 		bne.s 	nociatimer		; and skip cia int :)
 		bsr	ep_SetCIASpeed
 
-nociatimer	bsr	SetSubsong
+nociatimer:
+		bsr	mod_Set_Subsong
 
 		movem.l	(sp)+,d0-d2/a0-a2
 		rts
@@ -1603,3 +1654,8 @@ pt_samplestarts:
 		dcb.l	31,0
 
 	 ********************************
+
+
+	incdir	"amiga:work/players/tracker/converter/"
+	include	"Deli-Wizard.s"
+

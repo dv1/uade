@@ -40,6 +40,12 @@ mod_FTK=43
 mcheck_moduledata:	; Current implemation is just a hack for uade only.
 			movem.l	d1-d7/a0-a6,-(a7)
 
+			move.w	#MyVarsEnd-MyVars-1,d0
+			lea.l	MyVars(pc),a1
+
+.cls_myvar:		move.b	#0,(a1)+
+			dbra	d0,.cls_myvar
+
 			move.l	#1084,d0
 			bsr	mcheck_calc_modlen
 			cmp.w	#-1,d0			;mod32 ?
@@ -114,10 +120,10 @@ mcheck_which_mk:
 			bsr	ParseEffects
 
 
-			;tst.b	repeat_in_bytes_used
-			;beq	.is_generic_mk
-			;move.l #mod_STK,modtag		; Soundtracker 2.5
-			;rts
+			tst.b	repeat_in_bytes_used
+			beq	.is_generic_mk
+			move.l #mod_STK,modtag		; Soundtracker 2.5
+			rts
 
 .is_generic_mk:
 			moveq	#0,d1
@@ -160,48 +166,53 @@ mcheck_which_mk:
 
 			lea.l	pfx(pc),a1
 			cmp.w	#0,$10*2(a1)		; Filter fx used?
-			bne	mcheck_is_ptk
-			bra	mcheck_is_ptk_comp
+			beq	mcheck_is_ptk_comp
 .endif1			
 			cmp.w	#0,d1
 			beq	.endif2
 			moveq	#0,d2
 			move.b	$3b6(a0),d2
-			cmp.w	d2,d1
-			bgt	.endif2
+			cmp.w	d1,d2
+			blt	.endif2
 			moveq	#0,d1
-			moveq	#0,d2		
 			move.b	has_slen_sreplen_zero,d2
 			move.b	has_slen_sreplen_one,d1
-			cmp.w	d1,d2
-			bgt	.endif2
-			cmp.w	#1,no_slen_sreplen_zero
+			cmp.w	d2,d1
+			blt	.endif2
+			cmp.b	#1,no_slen_sreplen_zero
 			bne	.endif2
 			move.b	no_slen_sreplen_zero,d2
 			move.b	no_slen_sreplen_one,d1
-			cmp.w	d1,d2
-			bgt	.endif2
+			cmp.w	d2,d1
+			blt	.endif2
 			bra	mcheck_is_ntk_1
 
 .endif2			moveq	#0,d1
 			moveq	#0,d2			
 			move.b	has_slen_sreplen_zero,d2
 			move.b	has_slen_sreplen_one,d1
-			cmp.w	d1,d2
-			bgt	.endif3
+			cmp.w	d2,d1
+			blt	.endif3
 			move.b	no_slen_sreplen_zero,d2
 			move.b	no_slen_sreplen_one,d1
-			cmp.w	d1,d2
-			bgt	.endif3
+			cmp.w	d2,d1
+			blt	.endif3
 			bra	mcheck_is_ntk_2
 
 .endif3
+			lea.l	pfx(pc),a1
+			cmp.w	#0,$0e*2(a1)		; SetBPM fx used?
+			bne	.endif4
+			moveq	#0,d1
+			moveq	#0,d2		
 			move.b	has_slen_sreplen_zero,d2
-			cmp.b	has_slen_sreplen_one,d2
-			ble	.endif4
+			move.b	has_slen_sreplen_one,d1
+			cmp.w	d2,d1
+			blt	.endif4
 			move.b	no_slen_sreplen_zero,d2
-			cmp.b	no_slen_sreplen_one,d2
-			bge	.endif4
+			move.b	no_slen_sreplen_one,d1
+			cmp.w	d2,d1
+			bgt	.endif4
 			bra	mcheck_is_ntk_1
 
 .endif4			bra	mcheck_is_ptk_comp
@@ -245,16 +256,33 @@ mcheck_is_ntk_amp:
 ;----------------------------------------------------------------------------
 ; FLT4- Noisetracker file
 ;
-mcheck_which_flt4:	;bra	mcheck_is_flt4
-mcheck_is_flt4:
-			rts
+mcheck_which_flt4:
+.chkAMInstr:
+			move.l	song,a0
+			moveq	#$1f,d0
+			moveq	#0,d1
+.ChkAMLoop:
+			tst.w	$2a(a0)
+			bne.s	.ChkSample
+			tst.b	$2d(a0)
+			beq	.ChkSample
+			addq.w	#1,d1
+.ChkSample
+			add.l	#$1e,a0
+			dbra	d0,.ChkAMLoop
+			
+			move.l #mod_ADSC4,modtag			    
+			tst.w	d1
+			bne	mcheck_is_flt4
+			move.l #mod_FLT4,modtag			    			
+mcheck_is_flt4:		rts
 
 
 
 
 ;******  Mod15 Checks *******************************************************
 mcheck_mod15:
-			move.l #"M15.",modtag
+			move.l #mod_DOC,modtag
 			rts
 
 ;--------------------------------------------------------------------------
@@ -604,14 +632,15 @@ PTCalcTime	move.l	#6,.Speed
 
 ParseInstruments32:
 		movem.l	d1-d7/a0-a6,-(a7)
+		move.l	a0,a1
 		moveq	#0,d1
 		moveq	#30,d0
 .parseloop:
-		move.b	45(a0),d1
+		move.b	45(a1),d1
 		cmp.w	#64,d1			; volume > 64
 		bgt	.parse_fail
 
-		move.b	44(a0),d1
+		move.b	44(a1),d1
 		cmp.w	#15,d1			; fine_tune > 15
 		bgt	.parse_fail
 		cmp.w	#0,d1
@@ -619,30 +648,42 @@ ParseInstruments32:
 		st	finetune_used		; 0 <finetune <16
 
 .parse_no_finetune:
-		cmp.w	#0,46(a0)		; srep == 0
+		cmp.w	#0,42(a1)		; slen >0
+		beq	.no_doc_stk
+
+		move.l	#0,d2
+		move.w	46(a1),d2		; srep == 0
+		add.w	48(a1),d2		; srep+sreplen > slen
+		cmp.w	42(a1),d2
+		ble	.no_doc_stk
+		st	repeat_in_bytes_used
+.no_doc_stk:
+		move.l	#0,d2
+		move.w	46(a1),d2		; srep == 0
+		cmp.w	#0,d2
 		bne	.parse_next
 
-		cmp.w	#0,42(a0)		; slen >0
+		cmp.w	#0,42(a1)		; slen >0
 		beq	.elseif_slen0
 
-		cmp.w	#1,48(a0)		; sreplen ==1
+		cmp.w	#1,48(a1)		; sreplen ==1
 		bne	.else_slen
 		addq.b	#1,has_slen_sreplen_one
-.else_slen	cmp.w	#0,48(a0)		; sreplen== 0
+		bra	.parse_next
+.else_slen	cmp.w	#0,48(a1)		; sreplen== 0
 		bne	.parse_next
 		addq.b	#1,has_slen_sreplen_zero
 		bra	.parse_next
 
-.elseif_slen0	cmp.w	#0,48(a0)		; sreplen !=0
+.elseif_slen0	cmp.w	#0,48(a1)		; sreplen !=0
 		beq	.else2
 		addq.b	#1,no_slen_sreplen_one
 		bra	.endif1
 .else2		addq.b	#1,no_slen_sreplen_zero
 .endif1
-		cmp.b	#0,45(a0)		; volume >0
+		cmp.b	#0,45(a1)		; volume >0
 		beq	.parse_next
 		addq.b	#1,no_slen_has_volume
-
 		
 .parse_next:	add.l	#30,a1
 		dbra	d0,.parseloop
@@ -684,10 +725,10 @@ ParseEffects:
 		cmp.w	#$1f,d3			; Speed > $1f
 		ble	.setSpeed
 
-.setBPM		move.w	#15,d2			; Set Speed 	-> 0xf
+.setBPM		move.w	#14,d2			; Set Speed 	-> 0xf
 		bra	.addpfx
 .setSpeed
-		move.w	#14,d2			; Set BPM 	-> 0xe
+		move.w	#15,d2			; Set BPM 	-> 0xe
 		bra	.addpfx
 
 .no_speedfx:	cmp.w	#14,d2			; Exy ?
@@ -695,9 +736,9 @@ ParseEffects:
 		moveq	#0,d2
 		move.b	3(a0),d2
 		lsr.w	#4,d2
-		add.w	#$10,d2			; Exy 		-> 16 to 32
-		cmp.w	#17,d2			; Protracker cmds used?
-		blt	.addpfx
+		add.w	#16,d2			; Exy 		-> 16 to 32
+		cmp.w	#16,d2			; Protracker cmds used?
+		ble	.addpfx
 		st	extended_fx_used
 
 .addpfx		add.w	d2,d2			; word offset to pfx
@@ -708,7 +749,101 @@ ParseEffects:
 				
 .end		movem.l	(a7)+,d1-d7/a0-a6
 		rts
+;--------------------------------------------------------------------------
+; mod_SubSongRange
+;
+mod_SubSongRange:
+	        moveq	#1,d0
+	        move.l	SubSongs,d1
+	        rts
 
+
+;--------------------------------------------------------------------------
+; mod_probe_subsongs
+; input:  a0=Songdata  
+;
+; FIXME: reports way too much Subsongs for songs playing backwards :(
+
+mod_probe_subsongs:
+		moveq	#0,D0
+
+		lea	952(A0),A1
+		suba.w	pt_seqadj(pc),a1	; adjust for 15instr
+		lea	1084(A0),A2
+		suba.w	pt_blkadj(pc),a2	; adjust for 15instr
+		lea	950(a0),a3
+		suba.w	pt_seqadj(pc),a3	; adjust for 15instr
+		moveq	#0,d2
+		move.b	(a3),d2
+		subq	#1,d2
+
+		lea	SongTable+1(PC),A6
+
+		moveq	#0,D3
+		moveq	#0,D4
+		move.w	#$ff,D5
+NextPos
+		moveq	#0,D1
+		move.b	(A1)+,D1
+		lsl.l	#8,D1
+		lsl.l	#2,D1
+		lea	(A2,D1.L),A0
+		lea	1024(A0),A3
+		addq.l	#2,A0
+NextPatPos
+    		move.b	(A0),D1
+		and.b	#$0F,D1
+		cmp.b	#$0B,D1
+		beq.b	SubFound
+noSubfound:	addq.l	#4,A0
+		cmp.l	A0,A3
+		bgt.b	NextPatPos
+		addq.l	#1,D4			; count pattern one up
+back
+		dbf	D2,NextPos
+	    
+		tst.l	D0
+		bne.b	LoopOK
+OnlyOne
+		moveq	#1,D0
+LoopOK
+		move.l	d0,SubSongs
+		rts
+
+SubFound
+		cmp.w	#$ff,D5
+		bne.b	NoFirst
+
+		move.b	1(A0),D5
+		bra.b	SkipFirst
+NoFirst
+		move.b	1(a0),d3
+		cmp.b	d3,D5
+		beq.b	OnlyOne
+		;cmp.w	d3,D5
+		;bgt	NoSubFound
+SkipFirst
+		addq.l	#1,D4
+		move.b	D4,(A6)+
+		addq.l	#1,D0
+		bra.b	back
+
+;--------------------------------------------------------------------------
+; mod_set_subsong
+;
+mod_set_subsong:
+
+		    move.l	delibase(pc),a5
+		    move.w	dtg_SndNum(a5),d0
+		    tst.w	d0
+		    beq.b	.s
+		    subq.w	#1,d0	
+.s
+		    lea.l	SongTable(pc),a5
+		    move.b	(a5,d0.w),d0
+		    ext.l	d0
+		    move.l	d0,pt_songposition
+		    rts
 
 ;--------------------------------------------------------------------------
 ; Datas:
@@ -718,6 +853,10 @@ ParseEffects:
 uadebase:		dc.l	0
 uadename:		dc.b	"uade.library",0
 			even
+;--------
+MyVars:
+Subsongs:		dc.l	0
+SongTable:		ds.b	128
 			
 maxpattern:		dc.w	0
 Timer:			dc.l	0,0,0,0			; Hours, Minutes, secs
@@ -735,5 +874,7 @@ no_slen_sreplen_zero:	dc.b	0
 no_slen_has_volume:	dc.b	0
 has_slen_sreplen_one:	dc.b	0
 has_slen_sreplen_zero:	dc.b	0
+;--------
+MyVarsEnd:
 			even
 

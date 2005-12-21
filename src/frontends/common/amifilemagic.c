@@ -488,12 +488,12 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     		}
     	 }
 	}
-/*
+
 	fprintf (stderr, "has_slen_sreplen_zero: %d\n",has_slen_sreplen_zero);
 	fprintf (stderr, "has_slen_sreplen_one: %d\n",has_slen_sreplen_one);
 	fprintf (stderr, "no_slen_sreplen_zero: %d\n",no_slen_sreplen_zero);
 	fprintf (stderr, "no_slen_sreplen_one: %d\n\n",no_slen_sreplen_one);
-*/
+
 	if ((buf[0x3b7] == 0x7f) && 
 	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
 	    (no_slen_sreplen_zero <=no_slen_sreplen_one))
@@ -506,9 +506,11 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 	    (no_slen_sreplen_zero > no_slen_sreplen_one)){
 		if (pfx[0x10] ==0) {
 		    return 11; // probl. Fastracker or Protracker compatible
-		} else {
-		    return 8; // probl. Protracker
 		}
+		/* FIXME: Investigate ?? */
+		// else {
+		//    return 8; // probl. Protracker
+		//}
 	    }
 
 	if ((buf[0x3b7] >0 && buf[0x3b7] <= buf[0x3b6]) && 
@@ -524,10 +526,10 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 			return 3; // Noisetracker 2.x
 
 	if ((buf[0x3b7] <0x80) && 
+	     (pfx[0x0e] ==0) &&
 	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
 	        (no_slen_sreplen_zero >=no_slen_sreplen_one))    
 			return 2; // Noisetracker 1.x
-
 
     	return 11; // Protracker compatible
       }
