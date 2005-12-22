@@ -1,5 +1,9 @@
-2005-12-21  Heikki Orsila <heikki.orsila@iki.fi>
-	- PTK-Prowiz: Commited various changes to cvs. 
+2005-12-22  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed shared library compilation for Mac OS X. Thanks to
+	  Michael Baltaks <mbaltaks@mac.com> for information.
+
+2005-12-21  Michael Doering <mldoering@gmx.net>
+	- PTK-Prowiz: Commited various changes to cvs.
 	    o Almost finished reorganizing and redoing the mod checks.
 	    o Fixed bug in Soundtracker with repeat in bytes handling.
 	    o Fixed some bugs in handling empty instruments.

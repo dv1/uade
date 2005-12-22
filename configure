@@ -163,6 +163,8 @@ UNIXSHELL="yes"
 UADE123NAME="uade123"
 UADECORENAME="uadecore"
 
+SHAREDLIBRARYFLAGS="-fPIC -shared"
+
 if test -n "$OS" && test "$OS" = "MorphOS"; then
     echo
     echo "Configuring for MorphOS / AmigaOS."
@@ -177,6 +179,7 @@ elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo
     echo "Configuring for MacOSX"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
+    SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
 fi
 
 grep -i cygwin 2>/dev/null >/dev/null <<EOF
@@ -388,5 +391,6 @@ for file in src/Makefile.in src/frontends/*/Makefile.in ; do
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
 	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
 	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
+	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
 	"$file" > "$dst"
 done
