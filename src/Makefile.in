@@ -69,7 +69,7 @@ cpuemu7.o: cpuemu.c
 cpuemu8.o: cpuemu.c
 	$(CC) -DPART_8 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -Wno-sign-compare $(DEBUGFLAGS) -o $@ $<
 
-custom.o:
+custom.o:	include/audio.h
 
 cpudefs.c:	build68k table68k
 	./build68k <./table68k >cpudefs.c

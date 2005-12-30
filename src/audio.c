@@ -31,7 +31,7 @@ void (*sample_handler) (void);
 
 /* Average time in bus cycles to output a new sample */
 float sample_evtime_interval;
-float next_sample_evtime;
+static float next_sample_evtime;
 
 int sound_available;
 
@@ -42,7 +42,7 @@ static unsigned long last_audio_cycles;
 static int audperhack;
 
 static struct filter_state {
-    float rc1, rc2, rc3, rc4;
+    float rc1, rc2, rc3, rc4, rc5;
 } sound_filter_state[2];
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
@@ -103,16 +103,17 @@ static int filter(int input, struct filter_state *fs)
         fs->rc3 = tmp;
         led_output = fs->rc3 * 0.98;
         break;
-        
+
     case FILTER_MODEL_A500E:
-	fs->rc1 = 0.48 * input + 0.52 * fs->rc1;
-        normal_output = fs->rc1;
+	fs->rc1 = 0.52 * input   + 0.48 * fs->rc1;
+	fs->rc2 = 0.92 * fs->rc1 + 0.08 * fs->rc2;
+	normal_output = fs->rc2;
 
-        fs->rc2 = 0.48 * normal_output + 0.52 * fs->rc2;
-        fs->rc3 = 0.48 * fs->rc2       + 0.52 * fs->rc3;
-        fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
+	fs->rc3 = 0.48 * normal_output + 0.52 * fs->rc3;
+	fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
+	fs->rc5 = 0.48 * fs->rc4       + 0.52 * fs->rc5;
 
-        led_output = fs->rc4;
+	led_output = fs->rc5;
         break;
         
     case FILTER_MODEL_A1200E:
@@ -209,95 +210,6 @@ void sample16s_handler (void)
 }
 
 
-void sample16si_crux_handler (void)
-{
-    int i;
-    int datas[4];
-
-    for (i = 0; i < 4; i += 1) {
-        int ratio1 = audio_channel[i].per - audio_channel[i].evtime;
-#define INTERVAL (sample_evtime_interval * 3)
-	int ratio = (ratio1 << 12) / INTERVAL;
-	if (audio_channel[i].evtime < sample_evtime_interval || ratio1 >= INTERVAL)
-	    ratio = 4096;
-#undef INTERVAL
-	datas[i] = ((       ratio) * audio_channel[i].current_sample
-		    + (4096 - ratio) * audio_channel[i].last_sample[0]) >> 12;
-	datas[i] *= audio_channel[i].vol;
-        datas[i] &= audio_channel[i].adk_mask;
-    }
-
-    sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
-}
-
-
-void sample16si_linear_handler (void)
-{
-    int i;
-    int datas[4];
-
-    for (i = 0; i < 4; i += 1) {
-        int period = audio_channel[i].per;
-        int position = ((audio_channel[i].evtime % period) << 8) / period;
-        datas[i] = ((      position) * audio_channel[i].last_sample[0]
-                  + (256 - position) * audio_channel[i].current_sample) >> 8;
-	datas[i] *= audio_channel[i].vol;
-        datas[i] &= audio_channel[i].adk_mask;
-    }
-
-    sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
-}
-
-/* Interpolation matrix
-
-       part       x**3    x**2    x**1    x**0
-       Y[IP-1]    -0.5     1      -0.5    0
-       Y[IP]       1.5    -2.5     0      1
-       Y[IP+1]    -1.5     2       0.5    0
-       Y[IP+2]     0.5    -0.5     0      0
-
-  See libmodplug fastmix.cpp for derivation.
- */
-int sample16si_cspline_interpolate_one(int *last, int current, float x)
-{
-    float x2 = x * x;
-    float x3 = x * x * x;
-    return  ((                 1.0 * last[0]                                )
-        + x *(-0.5 * current                 + 0.5 * last[1]                )
-        + x2*( 1.0 * current - 2.5 * last[0] + 2.0 * last[1] - 0.5 * last[2])
-        + x3*(-0.5 * current + 1.5 * last[0] - 1.5 * last[1] + 0.5 * last[2]));
-}
-
-
-void sample16si_cspline_handler (void)
-{
-    int i, tmp;
-    int datas[4];
-
-    for (i = 0; i < 4; i += 1) {
-        int period = audio_channel[i].per;
-        datas[i] = sample16si_cspline_interpolate_one(
-            audio_channel[i].last_sample,
-            audio_channel[i].current_sample,
-            (audio_channel[i].evtime % period) / (1.0 * period)
-        );
-	datas[i] *= audio_channel[i].vol;
-        datas[i] &= audio_channel[i].adk_mask;
-    }
-    
-    /* Simple lowpass FIR for reducing sudden discontinuities
-     * caused by sample starts/stops, volume changes and noise in treble
-     * due to interpolation inaccuracies. */
-    for (i = 0; i < 4; i += 1) {
-        tmp = datas[i];
-        datas[i] = (cspline_old_samples[i] + datas[i]) / 2;
-        datas[i] = tmp;
-    }
-    
-    sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
-}
-
-
 /* This interpolator examines sample points when Paula switches the output
  * voltage and computes the average of Paula's output */
 void sample16si_anti_handler (void)
@@ -306,26 +218,11 @@ void sample16si_anti_handler (void)
     int datas[4];
 
     for (i = 0; i < 4; i += 1) {
-        int oldval = audio_channel[i].last_sample[0];
-        int curval = audio_channel[i].current_sample;
-
-        oldval *= audio_channel[i].vol;
-        curval *= audio_channel[i].vol;
-        
-        int interpoint = audio_channel[i].evtime + sample_evtime_interval;
-        if (interpoint > audio_channel[i].per) {
-            /* interpoint now becomes the count of evtimes that Paula's
-             * output should have been the previous value */
-            interpoint -= audio_channel[i].per;
-            float oldvalfrac = interpoint / sample_evtime_interval;
-
-            datas[i] = oldvalfrac * oldval + (1 - oldvalfrac) * curval;
-        } else {
-            datas[i] = curval;
-        }
-        datas[i] &= audio_channel[i].adk_mask;
+        datas[i] = audio_channel[i].sample_accum / audio_channel[i].sample_accum_time;
+        audio_channel[i].sample_accum = 0;
+	audio_channel[i].sample_accum_time = 0;
     }
-    
+
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
@@ -517,17 +414,11 @@ void select_audio_interpolator(char *name)
      human-readable string) */
   if (name == NULL || strcasecmp(name, "default") == 0) {
     sample_handler = sample16s_handler;
-  } else if (strcasecmp(name, "rh") == 0 || strcasecmp(name, "linear") == 0) {
-    sample_handler = sample16si_linear_handler;
-  } else if (strcasecmp(name, "crux") == 0) {
-    sample_handler = sample16si_crux_handler;
-  } else if (strcasecmp(name, "cspline") == 0) {
-    sample_handler = sample16si_cspline_handler;
   } else if (strcasecmp(name, "anti") == 0) {
     sample_handler = sample16si_anti_handler;
   } else {
-    fprintf(stderr, "\nUnknown interpolation mode: %s\n", name);
-    exit(-1);
+    sample_handler = sample16s_handler;
+    fprintf(stderr, "\nUnknown interpolation mode: %s. Using default.\n", name);
   }
 }
 
@@ -540,7 +431,7 @@ void update_audio (void)
     /* Number of cycles that has passed since last call to update_audio() */
     unsigned long n_cycles = cycles - last_audio_cycles;
 
-    for (;;) {
+    while (n_cycles > 0) {
 	unsigned long best_evtime = n_cycles + 1;
 	int i;
 	unsigned long rounded;
@@ -559,15 +450,18 @@ void update_audio (void)
 	if (best_evtime > rounded)
 	    best_evtime = rounded;
 
-	/* Quit if no interesting audio events have happened. */
 	if (best_evtime > n_cycles)
-	    break;
+	    best_evtime = n_cycles;
 
 	/* Decrease time-to-wait counters */
 	next_sample_evtime -= best_evtime;
 
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 4; i++) {
+	    int output = (audio_channel[i].current_sample * audio_channel[i].vol) & audio_channel[i].adk_mask;
+	    audio_channel[i].sample_accum += output * best_evtime;
+	    audio_channel[i].sample_accum_time += best_evtime;
 	    audio_channel[i].evtime -= best_evtime;
+	}
 
 	n_cycles -= best_evtime;
 

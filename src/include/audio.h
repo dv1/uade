@@ -21,6 +21,7 @@ extern struct audio_channel_data {
 
     int state, wper, wlen;
     int current_sample, last_sample[3];
+    int sample_accum, sample_accum_time;
     int vol;
     uae_u16 dat, nextdat, per, len;    
 

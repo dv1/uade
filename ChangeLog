@@ -1,3 +1,9 @@
+2005-12-30  Heikki Orsila <heikki.orsila@iki.fi>
+	- Merged an altered sample accumulation patch from alankila. The
+	  patch has an effect only if anti interpolator is used.
+	- Removed crux, linear and rh interpolators because they're broken
+	  by design. Only default and anti are now supported.
+
 2005-12-22  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed shared library compilation for Mac OS X. Thanks to
 	  Michael Baltaks <mbaltaks@mac.com> for information.
