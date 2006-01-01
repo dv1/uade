@@ -1,4 +1,10 @@
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.00
+	- Finally the first stable release of UADE 2 series. The work began
+	  6 months ago. There are still rough edges and deficiencies but
+	  it is superior to UADE 1 in many respects.
+
+2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added contrib/uadexmmsadd script to add uade:// prefixed songs into
 	  XMMS playlist. This is useful to avoid conflicts with protracker
 	  songs with modplug and other XMMS plugins. Any other plugin will not

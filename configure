@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=1.50
+VERSION=2.00
 
 if test -n "$CC"; then
     CC=$CC
