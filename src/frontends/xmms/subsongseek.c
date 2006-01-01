@@ -192,7 +192,7 @@ void uade_gui_seek_subsong(int to)
 	gtk_frame_set_shadow_type(GTK_FRAME(ffwd_button_frame),
 				  GTK_SHADOW_IN);
 
-	ffwd_button = gtk_button_new_with_label(">>");
+	ffwd_button = gtk_button_new_with_label("10s fwd");
 	gtk_widget_set_usize(ffwd_button, 27, -1);
 	gtk_signal_connect_object(GTK_OBJECT(ffwd_button), "clicked",
 				  GTK_SIGNAL_FUNC(uade_ffwd), NULL);

@@ -3,6 +3,7 @@
 	  XMMS playlist. This is useful to avoid conflicts with protracker
 	  songs with modplug and other XMMS plugins. Any other plugin will not
 	  accept uade:// prefixed entries from the playlist.
+	- Changed forward seeking button in XMMS plugin from ">>" to "10s fwd".
 
 2005-12-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged an altered sample accumulation patch from alankila. The
