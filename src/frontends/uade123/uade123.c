@@ -261,7 +261,8 @@ int main(int argc, char *argv[])
       uadeconf.action_keys = 0;
       break;
     case 'G':
-      uadeconf.gain = uade_convert_to_double(optarg, 1.0, 0.0, 1.0, "gain");
+      uadeconf.gain = uade_convert_to_double(optarg, 1.0, 0.0, 128.0, "gain");
+      break;
     case 'h':
       print_help();
       exit(0);

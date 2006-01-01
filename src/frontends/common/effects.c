@@ -73,7 +73,7 @@ void uade_effect_pan_set_amount(float amount)
 
 void uade_effect_gain_set_amount(float amount)
 {
-    assert(amount >= 0.0 && amount <= 1.0);
+    assert(amount >= 0.0 && amount <= 128.0);
     gain_amount = amount * 256.0;
 }
 

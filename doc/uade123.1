@@ -21,9 +21,35 @@ UADE \- Unix Amiga Delitracker Emulator
 .B uade123
 [\fIoptions\fR] \fIfiles\fR ...
 .SH "DESCRIPTION"
-uade123 plays old amiga music formats by emulating Amiga hardware. The system
-reimplements Eagleplayer API and some AmigaOS to use existing Motorol 68000
-binary plugins.
+.BR uade123
+plays old amiga music formats by emulating Amiga hardware. It
+re-uses Amiga Eagleplayer plugins to play different formats. Therefore 
+Eagleplayer API and parts of AmigaOS have been implemented in uade.
+
+Section
+.BR COMMAND\ LINE\ OPTIONS
+documents command line options for uade123.
+
+Section
+.BR ACTION\ KEYS
+documents action keys which are used to issue run-time commands to control
+playback. These commands include switching subsong, skipping to next song,
+skipping fast forward, pausing and altering post-processing effects.
+
+Section
+.BR CONFIGURATION\ FILES
+documents variables which can be changed in
+.BR eagleplayer.conf ,
+.BR song.conf
+and
+.BR uade.conf
+to alter default behavior of uade123.
+eagleplayer.conf is used for eagleplayer plugin specific configurations.
+song.conf is used for song specific configurations which can be used to change
+sound effects or avoid problems.
+uade.conf is the main configuration file that can be used to set defaults for
+variables. Command line options will always override uade.conf options.
+
 .SH "COMMAND LINE OPTIONS"
 
 \fB\-1, \-\-one\fR
@@ -43,21 +69,28 @@ Set output file format. Use with
 Output sound data to filename.
 .TP
 \fB\-\-filter\fR
-Enable filter emulation. Default is ON.
+Enable filter emulation. It is enabled by default but could be disabled from
+uade.conf.
 .TP
 \fB\-\-filter=\fRx
-Set filter emulation mode to x. x is a500, a500e, a1200, or a1200e. A500E is
+Set filter emulation mode to
+.BR x .
+x is a500, a500e, a1200 or a1200e. A500E is
 the default. PLEASE note that A500 and A1200 are audibly different on every
 song even if a song doesn't use filtering. Surprisingly, the biggest
 difference between A500 and A1200 is filter behavior when LED is off (i.e.
 song doesn't use filtering). When LED is off, A1200 does very little filtering
 but A500 does some filtering that can be easily heard. Please try switching
-between A500 and A1200 modes. You should get the same results with real
+between A500 and A1200 modes. You should get same results with real
 Amigas too :-)
 .TP
 \fB\-\-force\-led=\fRx
-Turn Amiga filter on or off. 0 means off and 1 means on. The default is off
-(0).
+Force Amiga filter on or off. 0 means "OFF" and 1 means "ON".
+.TP
+\fB\-G, \-\-gain=\fRx
+Set volume gain to
+.BR x .
+x must be a non-negative value. The default value is 1.0.
 .TP
 \fB\-g, \-\-get\-info\fR
 Print playername and subsong information to stdout and then exit. This is
@@ -95,11 +128,11 @@ Set module filename.
 Disable filter emulation.
 .TP 
 \fB\-\-no\-song\-end\fR
-Play music ad infinitum by ignoring songend.
+Play music ad infinitum by ignoring song end.
 .TP 
 \fB\-p\fR x, \-\-panning=\fRx
 Set panning effect to x. This means mixing left and right channel affinely
-together. n is a value between 0 and 2. 0 is full stereo, 1 is mono, and
+together. n is a value between 0 and 2. 0 is full stereo, 1 is mono and
 2 is inverse stereo.
 .TP 
 \fB\-P\fR playerfile
@@ -157,6 +190,8 @@ specific action keys.
 .br
  'f'           Toggle filter (takes filter control away from eagleplayer).
 .br
+ 'g'           Toggle gain effect.
+.br
  'h'           Print this list.
 .br
  'H'           Toggle headphones effect.
@@ -177,17 +212,148 @@ specific action keys.
 .br
  'z'           Previous subsong.
 .SH CONFIGURATION FILES
-To be written. Look at the example, and see
-sourcedir/doc/eagleplayer.conf.
+All configuration files are in a line based format. This means that line breaks
+(\\n) must be used properly. Lines beginning with # are comment lines. Empty
+lines are ignored.
+.SH eagleplayer.conf
+Each line in
+.BR eagleplayer.conf
+has the format:
+.sp 1
+playername prefixes=prefix1,prefix2,... [opt1 opt2 ...] [comment]
+.sp 1
+.BR playername
+refers to an existing eagleplayer in players/ directory.
+.BR prefixes
+is a list of file prefixes and postfixes that are associated with
+this eagleplayer.
+.BR opt1 ,
+.BR opt2
+and so forth are options that can be given to the player. Valid options are:
+.sp 1
+a500                 Use A500 filter emulation.
+.br
+a1200                Use A1200 filter emulation.
+.br
+always_ends          A song will always end. This means that song end
+                     detection code is perfect so timeouts in uade.conf
+                     can be ignored. However, timeouts given from
+                     command line will override this setting.
+.br
+content_detection    A song can only be detected by contents, never
+                     by filename prefix or postfix.
+.br
+speed_hack           Enable speed hack.
+
+.BR comment
+is a tag after which everything is considered just a comment
+about the line.
+
+Some example lines for eagleplayer.conf:
+.sp 1
+custom          prefixes=cust
+.br
+fred            prefixes=fred           broken_song_end
+.br
+PTK-Prowiz      prefixes=mod,pha,pp10   always_ends
+.br
+EMSv6           prefixes=emsv6          speed_hack
+.br
+foobar          comment: this format is not detected by a filename
+                prefix but file content as it should be
+.SH song.conf
+.BR song.conf
+is a configuration file for applying work-arounds for songs that
+have problems with eagleplayers. Protracker is especially notorious
+for having many incompatible versions, and modules do not have version
+information about the editor which was used to create them.
+
+The file shall have lines of following format:
+.sp 1
+md5=XXX option1 [option2 ...] [comment: YYY]
+.sp 1
+Valid options are:
+.sp 1
+	\\broken_subsongs
+.br
+	\\led_off
+.br
+	\\led_on
+.br
+	\\no_headphones,
+.br
+	\\no_panning
+.br
+	\\no_postprocessing
+.br
+	\\ntsc
+.br
+	\\speedhack
+.br
+	\\subsongs=x,y,...
+.br
+	\\vblank
+.sp 1
+Those options should be self-explanatory ;) A few example lines:
+.sp 1
+md5=09ad7aed28ec0043e232060546259767 \\broken_subsongs \\comment cust.Bubble_Bobble reports wrong subsong numbers                        
+.sp 1
+md5=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \\speedhack \\comment this is the only song in format foo that needs speedhack    
+.sp 1
+md5=yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy \\led_off \\comment this song just sucks with filtering                  
+.sp 1
+md5=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz \\led_on \\comment turning LED ON makes this song sound c00l       
+.sp 1
+md5=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww \\no_panning subsongs=2,5 \\comment only subsongs 2 and 5 sound good
+.SH uade.conf
+.BR uade.conf
+sets default variables for configuration settings. Each line
+may contain at most one command. The valid commands are:
+.sp 1
+    filter x           Set filter emulation mode to be A500, A500E,
+                       A1200 or A1200E.
+.br
+    headphone          Enable headphone effect.
+.br
+    panning x          Set panning value to x inside range [0, 2].
+                       The default is 0.
+.br
+    gain x             Set gain value to x which is a non-negative
+                       value. The default value is 1.0.
+.br
+    interpolator x     Set interpolator to x which is either default
+                       or anti.
+.br
+    subsong_timeout x  Set subsong timeout value to x. The unit is
+                       seconds.
+.br
+    action_keys x      Set action keys "off" or "on".
+.br
+    no_filter          Turn filter emulation off.
+.br
+    force_led_off      Forces LED to "off" state.
+.br
+    ignore_player_check    Force eagleplayers to recognize any given
+                           song.
+.br
+    random_play        Set random play or shuffle mode. Used for
+                       uade123 only.
+.br
+    recursive_mode     Scan directories recursively. Used for uade123
+                       only.
+.br
+    silence_timeout x  Set silence timeout value to x. The unit is
+                       seconds.
+.br
+    timeout x          Set timeout value to x. The unit is seconds.
 .SH "SUPPORTED FORMATS"
-Quite a few. See documentation, eagleplayer.conf, and players/ directory.
+Quite a few. See documentation, eagleplayer.conf and players/ directory.
 .SH "FILES"
 .TP 
 PREFIX/bin/uade123
 Player executable.
 .TP
-PREFIX/share/uade2/eagleplayer.conf
-File containing name extensions and hints about different formats.
+PREFIX/share/uade2/eagleplayer.conf or $(HOME)/.uade2/eagleplayer.conf
 .TP 
 PREFIX/share/uade2/score
 MC68000 sound core file
@@ -195,8 +361,9 @@ MC68000 sound core file
 PREFIX/share/uade2/players
 MC68000 eagleplayer binaries
 .TP
-PREFIX/share/uade2/uade.conf
-Configuration file for UADE.
+PREFIX/share/uade2/song.conf or $(HOME)/.uade2/song.conf
+.TP
+PREFIX/share/uade2/uade.conf or $(HOME)/.uade2/uade.conf
 .TP
 PREFIX/share/uade2/uaerc
 Configuration file for UAE.
@@ -211,11 +378,15 @@ This man page.
 \fBuade123 \-zr /path\fR
 .br 
 Play files under /path recursively in random order.
+.TP
+\fBuade123 \-f output.wav mod.foo\fR
+.br
+Synthesize mod.foo into a wav file.
 .SH "AUTHOR"
 \fBUADE\fP project was started by Heikki Orsila <heikki.orsila@iki.fi>.
 There have been many other contributors. Most notable contributors
 are Michael 'mld' Doering (for almost anything),
-Harry 'Piru' Sintonen (MorphOS port), and Antti S. Lankila <alankila@bel.fi>
+Harry 'Piru' Sintonen (MorphOS port) and Antti S. Lankila <alankila@bel.fi>
 (Amiga filter emulation). See
 .B http://zakalwe.virtuaalipalvelin.net/uade
 .br
