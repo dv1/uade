@@ -30,6 +30,9 @@
 	- Changed forward seeking button in XMMS plugin from ">>" to "10s fwd".
 	- Allow gain values greater than 1.0.
 	- Improved uade123 man page.
+	- Fixed a NULL pointer derefecence in eagleplayer.conf loading. If
+	  eagleplayer.conf couldn't be loaded it would crash.
+	- Fixed a directory creation problem with 'make feinstall'.
 
 2005-12-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged an altered sample accumulation patch from alankila. The

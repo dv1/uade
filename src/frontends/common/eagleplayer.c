@@ -540,7 +540,8 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   return ps;
 
  error:
-  free(ps->players);
+  if (ps)
+    free(ps->players);
   free(ps);
   if (f != NULL)
     fclose(f);
