@@ -1,5 +1,5 @@
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
-	* UADE 2.00
+	* UADE 2.00 (Mental hangover)
 	- Finally the first stable release of UADE 2 series. The work began
 	  6 months ago. There are still rough edges and deficiencies but
 	  it is superior to UADE 1 in many respects.
@@ -777,10 +777,10 @@
 	  wrong. It was corrected to strlen(patterns[i]).
 
 2005-07-09  Heikki Orsila <heikki.orsila@iki.fi>
-	- started hacking uade. the goal is to release uade 2.00 someday
+	- Started hacking uade. The goal is to release uade 2.00 someday
 	  http://board.kohina.com/viewtopic.php?p=3499#3499
-	- these changes start a series. version 1.50 will be the first public
+	- These changes start a series. Version 1.50 will be the first public
 	  release in this series.
-	- src/frontends/trivial/ can now play single file songs
-	- debugging is broken because libao can't handle signals well
-	- tons of things missing from the system
+	- src/frontends/trivial/ can now play single file songs.
+	- Debugging is broken because libao can't handle signals well.
+	- Tons of things missing from the system.
