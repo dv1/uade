@@ -3,6 +3,22 @@
 	- Finally the first stable release of UADE 2 series. The work began
 	  6 months ago. There are still rough edges and deficiencies but
 	  it is superior to UADE 1 in many respects.
+	- UADE 2 series has following improvements over UADE 1 series:
+	    * Superior audio quality due to excellent Amiga 500 and 1200
+	      filter models. The default sound model is now the Amiga 500
+	      model. This affects all songs whether or not they use filtering.
+	      (Antti S. Lankila)
+	    * A component architecture which makes creating new frontends
+	      easier
+	    * Unified configuration files to set defaults for all frontends
+	    * Improved command line tool, uade123, supports run-time control
+	      of song playback for switching subsong, skipping to next song,
+	      skipping  fast  forward,  pausing and altering post-processing
+	      effects
+	    * Post-processing effect for headphone users (Antti S. Lankila)
+	    * Skip fast forward feature in uade123 and XMMS plugin
+	    * Many core subsystems have been rewritten or heavily altered
+	    * New supported formats
 
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added contrib/uadexmmsadd script to add uade:// prefixed songs into
