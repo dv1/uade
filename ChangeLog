@@ -19,6 +19,8 @@
 	    * Skip fast forward feature in uade123 and XMMS plugin
 	    * Many core subsystems have been rewritten or heavily altered
 	    * New supported formats
+	    * UADE 1 produces snaps in audio output because of a bug in
+	      audio DMA engine, but is fixed in UADE 2
 
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added contrib/uadexmmsadd script to add uade:// prefixed songs into
