@@ -317,6 +317,8 @@ static void uade_cleanup(void)
 /* XMMS calls this function to check if filename belongs to this plugin. */
 static int uade_is_our_file(char *filename)
 {
+  if (strncmp(filename, "uade://", 7) == 0)
+    return TRUE;
   return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? TRUE : FALSE;
 }
 
@@ -712,6 +714,9 @@ static void uade_play_file(char *filename)
 
   uade_unlock();
 
+  if (strncmp(filename, "uade://", 7) == 0)
+    filename += 7;
+
   strlcpy(tempname, filename, sizeof tempname);
   t = basename(tempname);
   if (t == NULL)
@@ -862,6 +867,9 @@ static void uade_get_song_info(char *filename, char **title, int *length)
 {
   char tempname[PATH_MAX];
   char *t;
+
+  if (strncmp(filename, "uade://", 7) == 0)
+    filename += 7;
 
   strlcpy(tempname, filename, sizeof tempname);
   t = basename(tempname);

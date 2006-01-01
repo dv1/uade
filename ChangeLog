@@ -1,3 +1,9 @@
+2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added contrib/uadexmmsadd script to add uade:// prefixed songs into
+	  XMMS playlist. This is useful to avoid conflicts with protracker
+	  songs with modplug and other XMMS plugins. Any other plugin will not
+	  accept uade:// prefixed entries from the playlist.
+
 2005-12-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged an altered sample accumulation patch from alankila. The
 	  patch has an effect only if anti interpolator is used.
