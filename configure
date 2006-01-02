@@ -143,18 +143,19 @@ if test -z "$XMMS_CONFIG" ; then
     XMMS_CONFIG="xmms-config"
 fi
 
-if test "$usexmms" = "auto" ; then
+if test "$usexmms" = "auto" -o "$usexmms" = "yes" ; then
     if test -x "`which $XMMS_CONFIG`" ; then
 	usexmms="yes"
+	XMMSFLAGS="`$XMMS_CONFIG --cflags`"
+	XMMSLIBS="`$XMMS_CONFIG --libs`"
     else
+	if test "$usexmms" = "yes" ; then
+	    echo "Sorry, compiling XMMS plugin is impossible."
+	    exit -1
+	fi
 	usexmms="no"
 	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
     fi
-fi
-
-if test "$usexmms" = "yes" ; then
-    XMMSFLAGS="`$XMMS_CONFIG --cflags`"
-    XMMSLIBS="`$XMMS_CONFIG --libs`"
 fi
 
 # set kernel type (such as AmigaOS) with environment variable $UADEKERNEL
@@ -291,6 +292,16 @@ $CC -o strltest strltest.c 2>/dev/null
 if test "$?" != "0" ; then
     cp strlrep.c ../src/
     cp strlrep.h ../src/include/
+fi
+rm -f ../src/include/stdint.h
+cat > stdinttest.c <<EOF
+#include <stdint.h>
+int main(void) { int8_t a = 0; int16_t b = 0; int32_t c = 0; int64_t d = 0; uint8_t e = 0; uint16_t f = 0; uint32_t g = 0; uint64_t h = 0; intptr_t i = 0; return 0; }
+EOF
+$CC -o stdinttest stdinttest.c 2>/dev/null
+if test "$?" != "0" ; then
+    echo "#include <inttypes.h>" > ../src/include/stdint.h
+    echo "Potential hazard detected: stdint.h is missing (needed for portable types)"
 fi
 cd ..
 
