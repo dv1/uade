@@ -158,95 +158,21 @@
                             <td>
                               <div style="margin-bottom: 0in;">
                                 <i><font color=
-                                "#000000"><b>Requirements:</b></font></i>
+                                "#000000"><b>Requirements for compiling and running UADE 2.xx:</b></font></i>
                               </div>
 
                               <ul>
-                                <li>basic console uade:<br>
-                                 &nbsp;&nbsp;&nbsp; GNU/Linux +
-                                FreeBSD: OSS sound output or since UADE 0.90-pre1 ALSA sound output<br>
-                                 &nbsp;&nbsp;&nbsp; Sparc/Solaris:
-                                native sound
-                                output&nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp;<br>
-                                 &nbsp;&nbsp;&nbsp; IRIX/mips:
-                                Silicon Graphics Audio Library
-                                output&nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp;<br>
-                                 &nbsp;&nbsp;&nbsp; AmigaOS/MorphOS:
-                                AHI sound output&nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp;<br>
-                                 &nbsp;&nbsp;&nbsp; Mac OS X: CoreAudio sound output 
-                                <br>
-                                 &nbsp;&nbsp;&nbsp; for other platforms
-                                supported by SDL sound output:<br>
-                                 &nbsp;&nbsp;&nbsp;
-                                libsdl:&nbsp;&nbsp;&nbsp; <a href=
-                                "http://www.libsdl.org">http://www.libsdl.org<br>
-
-                                <br>
-                                </a>
-
-                                <li>pwrap.pl:<br>
-                                 &nbsp; &nbsp; text interface: perl
-                                5.x.y<br>
-                                 &nbsp; &nbsp; tk-interface: tk<br>
-                                <br>
-
-
-                                <li>for the XMMS plugin:<br>
-                                 &nbsp;&nbsp;&nbsp; GNU libtool
-                                (any version new enough should
-                                do)<br>
-                                 &nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp; example download
-                                sites:<br>
-                                 &nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp;
-                                ftp://ftp.gnu.org/pub/gnu/libtool/libtool-1.3.4.tar.gz<br>
-
-                                 &nbsp;&nbsp;&nbsp;
-                                &nbsp;&nbsp;&nbsp;
-                                ftp://ftp.funet.fi/pub/gnu/gnu/libtool/libtool-1.3.4.tar.gz<br>
-
-                                <br>
-                                 &nbsp;&nbsp;&nbsp; GTK/GLIB: <a
-                                href=
-                                "http://www.gtk.org">http://www.gtk.org</a><br>
-
-                                <br>
-                                 &nbsp;&nbsp;&nbsp; <a href=
-                                "http://www.xmms.org">XMMS
-                                1.2.x</a> (at least 1.2.2 is
-                                enough, perhaps an older xmms will
-                                do)<br>
-                                <br><i>[Info: you might also need an "xmms-devel.rpm" package if you
-				got your xmms by an rpm (e.g. Redhat, Mandrake, SuSE)]</i>
-                                <br><br><i>[MacOS X Info: get fink (http://fink.sf.net) and install SDL, XMMS and GNU libtool with it]</i><br><br>
-
-
-
-                                <li>for the BEEP Media player plugin:<br>
-                                 &nbsp;&nbsp;&nbsp; GNU libtool
-                                (any version new enough should
-                                do)<br>
-<br>
-                                 &nbsp;&nbsp;&nbsp; GTK2/GLIB etc: <a
-                                href=
-                                "http://www.gtk.org">http://www.gtk.org</a><br>
-
-                                <br>
-                                 &nbsp;&nbsp;&nbsp; <a href=
-                                "http://beepmp.sf.net">BEEP Media Player
-                                </a> (tested with bmp 0.9.x)<br>
-                                <br>
-
-                                <li>with CJukebox / Musicus textmode playlist manager:<br>
-                                 &nbsp;&nbsp;&nbsp; <a href=
-                                "http://freshmeat.net/projects/cjukebox">check CJukebox freshmeat page for details
-                                </a>
-                                <br>
-
+			        <li>Bash (or similar shell)<br>
+                                <li>GNU Make<br>
+				<li>Install<br>
+                                <li>libAO (for uade123)<br>
+				<li>pkg-config (for configuring)<br>
+				<li>Sed (for configuring)
+                                <li>Sufficiently modern GCC environment (portable types from stdint.h)<br>
+				<li>XMMS development kit (for XMMS plugin)<br>
+				<li>Something else we've forgotten...<br>
+				<br>
+				<li>Preferably /dev/urandom for uade123 playlist randomization<br>
                               </ul>
                       </table>
               </table>
