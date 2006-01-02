@@ -199,9 +199,9 @@ void uade_spawn(pid_t *uadepid, const char *uadename, const char *configname,
     snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
     snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
     if (debug_mode) {
-      execlp(uadename, uadename, "-d", "-i", instr, "-o", outstr, NULL);
+      execlp(uadename, uadename, "-d", "-i", instr, "-o", outstr, (char *) NULL);
     } else {
-      execlp(uadename, uadename, "-i", instr, "-o", outstr, NULL);
+      execlp(uadename, uadename, "-i", instr, "-o", outstr, (char *) NULL);
     }
     fprintf(stderr, "Execlp failed: %s\n", strerror(errno));
     abort();
