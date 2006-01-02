@@ -773,7 +773,7 @@ static void uade_play_file(char *filename)
 
   uade_ip.set_info(gui_filename, curplaytime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
-  if (pthread_create(&decode_thread, 0, play_loop, 0)) {
+  if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     goto err;
   }
