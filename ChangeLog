@@ -1,3 +1,7 @@
+2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed a configure bug that occured when --with-xmms was specified.
+	  (Michal Januszewski <spock@gentoo.org>)
+
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.00 (Mental hangover)
 	- Finally the first stable release of UADE 2 series. The work began

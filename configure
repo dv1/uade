@@ -81,6 +81,7 @@ for opt in "$@" ; do
 		;;
 
 	--with-xmms)
+		echo "foo"
 		usexmms="yes"
 		;;
 	--without-xmms)
@@ -142,12 +143,16 @@ if test -z "$XMMS_CONFIG" ; then
     XMMS_CONFIG="xmms-config"
 fi
 
-if test "$usexmms" = "auto" ; then
+if test "$usexmms" = "auto" -o "$usexmms" = "yes" ; then
     if test -x "`which $XMMS_CONFIG`" ; then
 	usexmms="yes"
 	XMMSFLAGS="`$XMMS_CONFIG --cflags`"
 	XMMSLIBS="`$XMMS_CONFIG --libs`"
     else
+	if test "$usexmms" = "yes" ; then
+	    echo "Sorry, compiling XMMS plugin is impossible."
+	    exit -1
+	fi
 	usexmms="no"
 	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
     fi
