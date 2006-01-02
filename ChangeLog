@@ -6,8 +6,8 @@
 	- Added a work-around for OpenBSD 3.8 which lacks portable types from
 	  stdint.h. inttypes.h is used instead. Possibly this avoids type
 	  problems on some other OSes too. Note that we require some C99
-	  features from standard C libraries. Thanks to 'ave'.
-	- Made OpenBSD use 'gmake'. Thanks to 'ave'.
+	  features from standard C libraries. Thanks to ave@silokki.org.
+	- Made OpenBSD use 'gmake'. Thanks to ave@silokki.org.
 
 2006-01-01  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.00 (Mental hangover)
