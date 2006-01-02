@@ -50,8 +50,9 @@ xmmsplugin:
 	$(MAKE) -C src/frontends/xmms
 
 xmmsplugininstall:	$(XMMSPLUGIN)
-	mkdir -p "$(XMMSPLUGINDIR)"
+	mkdir -p "$(XMMSPLUGINDIR)" "$(BINDIR)"
 	install src/frontends/xmms/libuade2.so "$(XMMSPLUGINDIR)"
+	install contrib/uadexmmsadd "$(BINDIR)"/
 
 src/include/uadeconfig.h:	
 	@echo ""
