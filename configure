@@ -185,6 +185,9 @@ elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo "Configuring for MacOSX"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
     SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
+elif test -n "$OS" && test "$OS" = "OpenBSD"; then
+    # Force gmake for OpenBSD.
+    MAKE="gmake"
 fi
 
 grep -i cygwin 2>/dev/null >/dev/null <<EOF
