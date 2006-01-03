@@ -92,7 +92,13 @@ Chk:
 	move.l	dtg_ChkSize(a5),d1
 	move.l	a0,song
 	move.l	d1,size
-	
+
+	jsr	Convertmod
+	tst.l	d0
+	beq	is_clone
+
+	move.l	song,a0
+	move.l	size,d1
 	bsr.w	mcheck_moduledata
 	cmp.b	#mod_PTK,d0
 	beq	is_PTK
@@ -119,11 +125,6 @@ Chk:
 
 	cmp.b	#mod_FLT4,d0
 	beq	is_FLT4
-
-	jsr	Convertmod
-	tst.l	d0
-	beq	is_clone
-
 
 
 Chk_fail:	

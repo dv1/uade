@@ -19,6 +19,8 @@
 	  used to be. (mld)
 	- Removed 255 BPM SetTempo fix in PTK-Prowiz for mod.loader from
 	  Coolspot to fix mod.alkupala by jorma... *sigh* (mld)
+	- Fixed broken Prorunner support introduced by reorganization
+	  PTK-Prowiz (mld) 
 
 2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a configure bug that occured when --with-xmms was specified.
