@@ -5,12 +5,14 @@
 #include <stdio.h>
 
 #include "playlist.h"
+#include <effects.h>
 
 
 #define debug(fmt, args...) if (uade_verbose_mode) { fprintf(stderr, fmt, ## args); }
 #define tprintf(fmt, args...) do {fprintf(uade_terminal_file ? uade_terminal_file : stdout, fmt, ## args); } while (0)
 
 extern int uade_debug_trigger;
+extern struct uade_effect uade_effects;
 extern int uade_force_filter;
 extern int uade_filter_state;
 extern int uade_ignore_player_check;

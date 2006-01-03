@@ -4,8 +4,7 @@ CFLAGS = -Wall -O2 -I../../include -I../common {ARCHFLAGS} {AOFLAGS} {DEBUGFLAGS
 CLIBS = {ARCHLIBS} {AOLIBS}
 MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
-	playloop.o audio.o config.o terminal.o postprocessing.o \
-	uadecontrol.o uadeconf.o md5.o
+	playloop.o audio.o config.o terminal.o uadecontrol.o uadeconf.o md5.o
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -41,16 +40,13 @@ playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
 playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
-postprocessing.o:	../common/postprocessing.c ../common/postprocessing.h ../common/effects.h
-	$(CC) $(CFLAGS) -c $<
-
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
 	$(CC) $(CFLAGS) -c $<
 
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h ../common/postprocessing.h
+uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
 uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h

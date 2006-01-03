@@ -5,8 +5,7 @@ SHAREDLIBRARYFLAGS={SHAREDLIBRARYFLAGS}
 CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) -g $(XMMSFLAGS) -I../common -I../../include
 CLIBS = $(XMMSLIBS)
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
-	uadeipc.o unixatomic.o subsongseek.o effects.o postprocessing.o \
-	uadeconf.o md5.o
+	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -23,11 +22,8 @@ effects.o:	../common/effects.c ../common/effects.h
 md5.o:	../common/md5.c ../common/md5.h
 	$(CC) $(CFLAGS) -c $<
 
-plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h ../common/uadeconf.h ../common/effects.h ../common/postprocessing.h ../common/md5.h
+plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h ../common/uadeconf.h ../common/effects.h ../common/md5.h
 
-	$(CC) $(CFLAGS) -c $<
-
-postprocessing.o:	../common/postprocessing.c ../common/postprocessing.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h

@@ -184,7 +184,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     } else if (strncmp(key, "force_led_on", 12) == 0) {
       uc->force_led = 2 | 1;
     } else if (strcmp(key, "gain") == 0) {
-      uc->gain = uade_convert_to_double(value, 1.0, 0.0, 1.0, "gain");
+      uc->gain = uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
     } else if (strncmp(key, "headphones", 4) == 0) {
       uc->headphones = 1;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {

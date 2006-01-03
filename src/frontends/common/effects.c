@@ -13,19 +13,13 @@
 #include "effects.h"
 
 
-static int effects_enabled = 0;
-
-static int gain_amount = 256;
-
-static int pan_amount = 0;
-
 static float headphones_ap_l[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_ap_r[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_rc_l[4];
 static float headphones_rc_r[4];
 
-static void gain(int16_t *sm, int frames);
-static void pan(int16_t *sm, int frames);
+static void gain(int gain_amount, int16_t *sm, int frames);
+static void pan(int pan_amount, int16_t *sm, int frames);
 static void headphones(int16_t *sm, int frames);
 
 
@@ -39,46 +33,76 @@ void uade_effect_reset_internals(void)
     memset(headphones_rc_r, 0, sizeof(headphones_rc_r));
 }
 
-void uade_effect_disable_all(void)
-{
-    effects_enabled = 0;
-}
 
-void uade_effect_enable(uade_effect_t effect)
+void uade_effect_disable_all(struct uade_effect *ue)
 {
-    effects_enabled |= (1 << effect);
-}
-
-void uade_effect_disable(uade_effect_t effect)
-{
-    effects_enabled &= ~(1 << effect);
-}
-
-void uade_effect_run(int16_t *samples, int frames)
-{
-    if (effects_enabled & (1 << UADE_EFFECT_PAN))
-        pan(samples, frames);
-    if (effects_enabled & (1 << UADE_EFFECT_HEADPHONES))
-        headphones(samples, frames);
-    if (effects_enabled & (1 << UADE_EFFECT_GAIN))
-	gain(samples, frames);
-}
-
-void uade_effect_pan_set_amount(float amount)
-{
-    assert(amount >= 0.0 && amount <= 2.0);
-    pan_amount = amount * 256.0 / 2.0;
+    ue->enabled = 0;
 }
 
 
-void uade_effect_gain_set_amount(float amount)
+void uade_effect_disable(struct uade_effect *ue, uade_effect_t effect)
+{
+    ue->enabled &= ~(1 << effect);
+}
+
+
+void uade_effect_enable(struct uade_effect *ue, uade_effect_t effect)
+{
+    ue->enabled |= 1 << effect;
+}
+
+
+/* Returns 1 if effect is enabled, and zero otherwise. Ignores
+   UADE_EFFECT_ALLOW. */
+int uade_effect_is_enabled(struct uade_effect *ue, uade_effect_t effect)
+{
+    return  (ue->enabled & (1 << effect)) != 0;
+}
+
+
+void uade_effect_run(struct uade_effect *ue, int16_t *samples, int frames)
+{
+    if (ue->enabled & (1 << UADE_EFFECT_ALLOW)) {
+	if (ue->enabled & (1 << UADE_EFFECT_PAN))
+	    pan(ue->pan, samples, frames);
+	if (ue->enabled & (1 << UADE_EFFECT_HEADPHONES))
+	    headphones(samples, frames);
+	if (ue->enabled & (1 << UADE_EFFECT_GAIN))
+	    gain(ue->gain, samples, frames);
+    }
+}
+
+
+void uade_effect_toggle(struct uade_effect *ue, uade_effect_t effect)
+{
+    ue->enabled ^= 1 << effect;
+}
+
+
+void uade_effect_set_defaults(struct uade_effect *ue)
+{
+    uade_effect_disable_all(ue);
+    uade_effect_enable(ue, UADE_EFFECT_ALLOW);
+    uade_effect_gain_set_amount(ue, 1.0);
+    uade_effect_pan_set_amount(ue, 0.7);
+}
+
+
+void uade_effect_gain_set_amount(struct uade_effect *ue, float amount)
 {
     assert(amount >= 0.0 && amount <= 128.0);
-    gain_amount = amount * 256.0;
+    ue->gain = amount * 256.0;
 }
 
 
-static void gain(int16_t *sm, int frames)
+void uade_effect_pan_set_amount(struct uade_effect *ue, float amount)
+{
+    assert(amount >= 0.0 && amount <= 2.0);
+    ue->pan = amount * 256.0 / 2.0;
+}
+
+
+static void gain(int gain_amount, int16_t *sm, int frames)
 {
     int i;
     for (i = 0; i < 2 * frames;  i+= 1)
@@ -87,7 +111,7 @@ static void gain(int16_t *sm, int frames)
 
 
 /* Panning effect. Turns stereo into mono in a specific degree */
-static void pan(int16_t *sm, int frames)
+static void pan(int pan_amount, int16_t *sm, int frames)
 {
   int i, l, r, m;
   for (i = 0; i < frames; i += 1) {

@@ -28,7 +28,7 @@
 #include <strlrep.h>
 #include <uadeconf.h>
 #include <effects.h>
-#include <postprocessing.h>
+
 
 #include "plugin.h"
 #include "subsongseek.h"
@@ -90,6 +90,7 @@ static char configname[PATH_MAX];
 static char curmd5[33];
 static int curplaytime;
 static pthread_t decode_thread;
+static struct uade_effect effects;
 static int filter_state;
 static int filter_type;
 static int force_led;
@@ -133,12 +134,8 @@ static void set_defaults(void)
   silence_timeout = 20;
   subsong_timeout = 512;
   timeout = -1;
-  uade_use_panning = 0;
-  uade_gain_value = 1.0;
-  uade_panning_value = 0.7;
-  uade_use_postprocessing = 0;
-  uade_use_headphones = 0;
-  uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
+
+  uade_effect_set_defaults(&effects);
 
   filter_state = 0;
   force_led = 0;
@@ -178,12 +175,12 @@ static void load_config(void)
     filter_type = 0;
 
   if (uc.gain != 1.0) {
-    uade_gain_value = uc.gain;
-    uade_postprocessing_setup(UADE_GAIN_ENABLE);
+    uade_effect_gain_set_amount(&effects, uc.gain);
+    uade_effect_enable(&effects, UADE_EFFECT_GAIN);
   }
 
   if (uc.headphones)
-    uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
+    uade_effect_enable(&effects, UADE_EFFECT_HEADPHONES);
 
   if (uc.ignore_player_check)
     ignore_player_check = 1;
@@ -194,9 +191,9 @@ static void load_config(void)
   if (uc.one_subsong)
     one_subsong_per_file = 1;
 
-  uade_panning_value = uc.panning;
+  uade_effect_pan_set_amount(&effects, uc.panning);
   if (uc.panning != 0.0)
-    uade_postprocessing_setup(UADE_PANNING_ENABLE);
+    uade_effect_enable(&effects, UADE_EFFECT_PAN);
 
   if (uc.silence_timeout)
     silence_timeout = uc.silence_timeout;
@@ -516,7 +513,7 @@ static void *play_loop(void *arg)
 	  xmms_usleep(10000);
 	}
 
-	uade_effect_run((int16_t *) um->data, play_bytes / framesize);
+	uade_effect_run(&effects, (int16_t *) um->data, play_bytes / framesize);
 
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 

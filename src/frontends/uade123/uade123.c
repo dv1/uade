@@ -32,7 +32,7 @@
 #include <uadeconfig.h>
 #include <eagleplayer.h>
 #include <uadeconf.h>
-#include <postprocessing.h>
+
 
 #include "uade123.h"
 #include "playlist.h"
@@ -43,6 +43,7 @@
 #include "amigafilter.h"
 
 int uade_debug_trigger;
+struct uade_effect uade_effects;
 int uade_force_filter;
 int uade_filter_state;
 int uade_ignore_player_check;
@@ -71,7 +72,6 @@ static char basedir[PATH_MAX];
 static int debug_mode;
 static char md5name[PATH_MAX];
 static time_t md5_load_time;
-static struct uade_config uadeconf;
 static pid_t uadepid;
 static char uadename[PATH_MAX];
 
@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
   int timeout_forced = 0;
   char *home;
   struct stat st;
+  struct uade_config uadeconf;
 
   enum {
     OPT_FILTER = 0x100,
@@ -179,6 +180,8 @@ int main(int argc, char *argv[])
     {"verbose", 0, NULL, 'v'},
     {NULL, 0, NULL, 0}
   };
+
+  uade_effect_set_defaults(&uade_effects);
 
   if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "Can not initialize playlist.\n");
@@ -429,8 +432,6 @@ int main(int argc, char *argv[])
   if (!audio_init())
     goto cleanup;
 
-  uade_postprocessing_setup(UADE_POSTPROCESSING_ENABLE);
-
   while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
     int nplayers;
     ssize_t filesize;
@@ -494,11 +495,11 @@ int main(int argc, char *argv[])
 	  }
 	  /* Command line should be able to override these */
 	  if (es->flags & ES_NO_HEADPHONES)
-	    uade_postprocessing_setup(UADE_HEADPHONES_DISABLE);
+	    uade_effect_disable(&uade_effects, UADE_EFFECT_HEADPHONES);
 	  if (es->flags & ES_NO_PANNING)
-	    uade_postprocessing_setup(UADE_PANNING_DISABLE);
+	    uade_effect_disable(&uade_effects, UADE_EFFECT_PAN);
 	  if (es->flags & ES_NO_POSTPROCESSING)
-	    uade_postprocessing_setup(UADE_POSTPROCESSING_DISABLE);
+	    uade_effect_disable(&uade_effects, UADE_EFFECT_ALLOW);
 	  if (es->flags & ES_NTSC)
 	    fprintf(stderr, "NTSC not implemented.\n");
 	  if (es->subsongs)

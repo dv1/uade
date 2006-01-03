@@ -14,7 +14,6 @@
 
 #include "config.h"
 #include "uade123.h"
-#include "postprocessing.h"
 
 
 void post_config(struct uade_config *uc)
@@ -31,12 +30,12 @@ void post_config(struct uade_config *uc)
   }
 
   if (uc->gain != 1.0) {
-    uade_gain_value = uc->gain;
-    uade_postprocessing_setup(UADE_GAIN_ENABLE);
+    uade_effect_gain_set_amount(&uade_effects, uc->gain);
+    uade_effect_enable(&uade_effects, UADE_EFFECT_GAIN);
   }
 
   if (uc->headphones)
-    uade_postprocessing_setup(UADE_HEADPHONES_ENABLE);
+    uade_effect_enable(&uade_effects, UADE_EFFECT_HEADPHONES);
 
   if (uc->ignore_player_check)
     uade_ignore_player_check = 1;
@@ -51,8 +50,8 @@ void post_config(struct uade_config *uc)
     uade_one_subsong_per_file = 1;
 
   if (uc->panning != 0.0) {
-    uade_panning_value = uc->panning;
-    uade_postprocessing_setup(UADE_PANNING_ENABLE);
+    uade_effect_pan_set_amount(&uade_effects, uc->panning);
+    uade_effect_enable(&uade_effects, UADE_EFFECT_PAN);
   }
 
   if (uc->random_play)

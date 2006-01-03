@@ -9,8 +9,9 @@
 	  from command line options, uade.conf, eagleplayer.conf and
 	  song.conf that is easy. All the setting must be storable and
 	  restorable through that mechanism. Currently that is broken,
-	  incomplete and messy. It will probably take many cleanup steps
-	  to achieve this.
+	  incomplete and messy. The functionality is even duplicated between
+	  frontends :( It will probably take many cleanup steps to achieve
+	  the goal.
 
 2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a configure bug that occured when --with-xmms was specified.

@@ -20,8 +20,6 @@
 #include <uadeconf.h>
 
 #include "uade123.h"
-#include "effects.h"
-#include "postprocessing.h"
 #include "audio.h"
 #include "terminal.h"
 #include "playlist.h"
@@ -155,8 +153,8 @@ int play_loop(void)
 	  uade_send_filter_command(uade_use_filter, uade_filter_state, uade_force_filter);
 	  break;
 	case 'g':
-	  uade_postprocessing_setup(UADE_GAIN_TOGGLE);
-	  tprintf("\nGain effect %s %s\n", uade_use_gain ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_gain == 1 ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(&uade_effects, UADE_EFFECT_GAIN);
+	  tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'h':
 	  tprintf("\n\n");
@@ -164,20 +162,20 @@ int play_loop(void)
 	  tprintf("\n");
 	  break;
 	case 'H':
-	  uade_postprocessing_setup(UADE_HEADPHONES_TOGGLE);
-	  tprintf("\nHeadphones effect %s %s\n", uade_use_headphones ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_headphones == 1 ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(&uade_effects, UADE_EFFECT_HEADPHONES);
+	  tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case '\n':
 	case 'n':
 	  uade_song_end_trigger = 1;
 	  break;
 	case 'p':
-	  uade_postprocessing_setup(UADE_POSTPROCESSING_TOGGLE);
-	  tprintf("\nPostprocessing effects %s\n", uade_use_postprocessing ? "ON" : "OFF");
+	  uade_effect_toggle(&uade_effects, UADE_EFFECT_ALLOW);
+	  tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
 	  break;
 	case 'P':
-	  uade_postprocessing_setup(UADE_PANNING_TOGGLE);
-	  tprintf("\nPanning effect %s %s\n", uade_use_panning ? "ON" : "OFF", uade_use_postprocessing == 0 && uade_use_panning == 1 ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(&uade_effects, UADE_EFFECT_PAN);
+	  tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'q':
 	  tprintf("\n");
@@ -325,7 +323,7 @@ int play_loop(void)
 	  }
 	}
 
-	uade_effect_run((int16_t *) um->data, playbytes / framesize);
+	uade_effect_run(&uade_effects, (int16_t *) um->data, playbytes / framesize);
 
 	if (!audio_play(um->data, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");
