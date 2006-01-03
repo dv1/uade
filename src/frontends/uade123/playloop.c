@@ -404,7 +404,7 @@ int play_loop(void)
 	  uade_song_end_trigger = 1;
 	}
 	i = 0;
-	reason = ((char *) um->data) + 8;
+	reason = (char *) &um->data[8];
 	while (reason[i] && i < (um->size - 8))
 	  i++;
 	if (reason[i] != 0 || (i != (um->size - 9))) {
