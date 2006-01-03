@@ -1,3 +1,17 @@
+2006-01-03  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cleaned up post-processing of sound data. Removed postprocessing.[ch]
+	  because it was redundant functionality and added necessary
+	  functionality into effects.[ch]. Also, moved effect state out of
+	  effects.c by creating 'struct uade_effect'. This allows easy
+	  loading and storing of state.
+
+	  The goal is to have a unified mechanism for handling information
+	  from command line options, uade.conf, eagleplayer.conf and
+	  song.conf that is easy. All the setting must be storable and
+	  restorable through that mechanism. Currently that is broken,
+	  incomplete and messy. It will probably take many cleanup steps
+	  to achieve this.
+
 2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a configure bug that occured when --with-xmms was specified.
 	  (Michal Januszewski <spock@gentoo.org>)
