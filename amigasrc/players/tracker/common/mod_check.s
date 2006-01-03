@@ -762,11 +762,18 @@ mod_SubSongRange:
 ; mod_probe_subsongs
 ; input:  a0=Songdata  
 ;
-; FIXME: reports way too much Subsongs for songs playing backwards :(
+; FIXME: reports way too many Subsongs for songs playing backwards :(
 
 mod_probe_subsongs:
-		moveq	#0,D0
+		lea.l	pfx(pc),a1
+		move.w	maxpattern,d0
+		cmp.w	$0b*2(a1),d0		; Hack for weird some mods
+		bgt	.probe_subs		; using posjmp to go beserk :)
+		move.l	#1,SubSongs
+		rts
 
+.probe_subs
+		moveq	#0,D0
 		lea	952(A0),A1
 		suba.w	pt_seqadj(pc),a1	; adjust for 15instr
 		lea	1084(A0),A2
@@ -781,7 +788,7 @@ mod_probe_subsongs:
 
 		moveq	#0,D3
 		moveq	#0,D4
-		move.w	#$ff,D5
+		moveq	#0,D5
 NextPos
 		moveq	#0,D1
 		move.b	(A1)+,D1
@@ -792,7 +799,12 @@ NextPos
 		addq.l	#2,A0
 NextPatPos
     		move.b	(A0),D1
+		move.b	1(a0),d3
 		and.b	#$0F,D1
+		cmp.b	#$0e,d1
+		bne	.chkposjmp
+		
+.chkposjmp
 		cmp.b	#$0B,D1
 		beq.b	SubFound
 noSubfound:	addq.l	#4,A0
@@ -801,32 +813,41 @@ noSubfound:	addq.l	#4,A0
 		addq.l	#1,D4			; count pattern one up
 back
 		dbf	D2,NextPos
-	    
-		tst.l	D0
-		bne.b	LoopOK
-OnlyOne
-		moveq	#1,D0
-LoopOK
+
+		tst.l	d0
+		bne.b	LoopEnd
+		moveq	#1,d0
+LoopEnd:	    
 		move.l	d0,SubSongs
 		rts
 
-SubFound
-		cmp.w	#$ff,D5
-		bne.b	NoFirst
 
-		move.b	1(A0),D5
-		bra.b	SkipFirst
-NoFirst
-		move.b	1(a0),d3
-		cmp.b	d3,D5
-		beq.b	OnlyOne
-		;cmp.w	d3,D5
-		;bgt	NoSubFound
-SkipFirst
+
+SubFound	; d1 = fx
+		; d3 = fxarg
+		; d4 = position counter
+		
+		move.b	1(a0),d3	; fxarg
+
+		move.w	d4,d5
+		addq.w	#1,d5
+
+		cmp.w	d5,d3		; jump ahead
+		bgt	noSubfound
+
+		move.w	d0,d3
+
+		lea.l	SongTable+1(PC),a5
+.loop		cmp.w	(a5,d3.w),d5	; no doubles
+		beq	noSubfound
+		dbra	d3,.loop
+		
+.subsong_found
 		addq.l	#1,D4
-		move.b	D4,(A6)+
-		addq.l	#1,D0
-		bra.b	back
+		move.b	D4,(A6)+	; set starting position
+		addq.l	#1,D0		; num of subsongs ++
+		bra.b	back		; next one
+
 
 ;--------------------------------------------------------------------------
 ; mod_set_subsong

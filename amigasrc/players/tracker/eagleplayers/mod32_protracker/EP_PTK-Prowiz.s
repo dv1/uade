@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2005-12-21',0
+	dc.b '$VER: Protracker 3.0b player 2006-01-03',0
 	even
 
 PlayerTagArray
@@ -1217,8 +1217,8 @@ pt_speednull:
 pt_settempo:
 		move.l	pt_timervalue(pc),d2
 		and.w	#$ff,d0
-		cmp.w	#$ff,d0
-		beq	pt_settempoend		; for mod.coolspot
+		;cmp.w	#$ff,d0
+		;beq	pt_settempoend		; for mod.coolspot
 		divu.w	d0,d2
 
 		move.w	d2,d0

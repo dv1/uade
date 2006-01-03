@@ -48,7 +48,7 @@ static size_t nccalloc;
 static size_t nccused;
 static int ccmodified;
 
-static uint8_t fileformat_buf[8192];
+static uint8_t fileformat_buf[508192];
 static struct eagleplayerstore *playerstore;
 
 static int nsongs;
