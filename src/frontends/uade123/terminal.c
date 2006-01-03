@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
-#include <sys/poll.h>
 #include <errno.h>
+#include <sys/select.h>
 
 #include "uade123.h"
 
@@ -18,12 +18,14 @@ static void uade_restore_terminal(void)
 
 void pause_terminal(void)
 {
-  struct pollfd pfd = {.fd = 0, .events = POLLIN};
   char c;
   int ret;
+  fd_set rfds;
   tprintf("\nPaused. Press any key to continue...\n");
   while (uade_terminated == 0) {
-    ret = poll(&pfd, 1, -1);
+    FD_ZERO(&rfds);
+    FD_SET(0, &rfds);
+    ret = select(1, &rfds, NULL, NULL, NULL);
     if (ret < 0) {
       if (errno == EINTR)
 	continue;
@@ -45,10 +47,14 @@ void pause_terminal(void)
 
 int poll_terminal(void)
 {
-  struct pollfd pfd = {.fd = 0, .events = POLLIN};
+  fd_set rfds;
   char c = 0;
   int ret;
-  ret = poll(&pfd, 1, 0);
+
+  FD_ZERO(&rfds);
+  FD_SET(0, &rfds);
+  ret = select(1, &rfds, NULL, NULL, & (struct timeval) {.tv_sec = 0});
+
   if (ret > 0) {
     ret = read(0, &c, 1);
     if (ret <= 0)
