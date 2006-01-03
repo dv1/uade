@@ -17,6 +17,8 @@
 	- Improved (hopefully) subsong detection for mods and similar. Now
 	  there should be less false positives in PTK-Prowiz than there
 	  used to be.(mld) 
+	- Removed 255 BPM SetTempo fix for mod.loader from Coolspot to
+	  fix mod.alkupala by jorma... *sigh* (mld)
 
 2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a configure bug that occured when --with-xmms was specified.
