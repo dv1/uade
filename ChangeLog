@@ -2,7 +2,8 @@
 	- Changed -I./include/ to be -I./include in src/Makefile.in to make
 	  it compatible with mingw.
 	- PTK-Prowiz now accepts mods with max 1KB trailing garbage...
-	  Nevertheless use 100%, people!(mld)
+	  Nevertheless use 100% good rips, people!(mld)
+	- fixed spelling mistake in PTK-Prowiz *g* (mld)
 
 2006-01-04  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.01
