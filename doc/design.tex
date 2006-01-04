@@ -123,19 +123,23 @@ data back to the client. This is a reply for the \emph{read}-command.
 
 \subsection{Message format}
 All messages are sent as finite sized byte sequences. Each message begins
-with a header:
+with a header shown in Table \ref{tab:message_header}.
 
+\begin{table}
 \begin{center}
+\caption{Messages header}
+\label{tab:message_header}
 \begin{tabular}{|r|l|}
 \hline
 \textbf{uint32\_t} & msgtype \\
 \hline
 \textbf{uint32\_t} & size \\
 \hline
-\textbf{uint8\_t} & data[] \\
+\textbf{uint8\_t[]} & data \\
 \hline
 \end{tabular}
 \end{center}
+\end{table}
 
 \emph{msgtype} field is simply an unsigned 32-bit integer in a packed
 binary structure. Its C language definition is simply:
@@ -147,7 +151,7 @@ struct uade_msg {
 } __attribute__((packed));
 \end{verbatim}
 
-The \emph{size} field is 32-bit length of the bytes coming after the header.
+The \textbf{size} field is 32-bit length of the bytes coming after the header.
 Notice the use of C99 empty record in a structure (excuse the annoying GCC
 feature there that forces the structure to be tightly packed). It has zero
 size and thus the whole message size in memory is $8 + size$ bytes.
@@ -157,10 +161,32 @@ messages. Each follow the given low-level format but the contents differs.
 
 \subsubsection{Short message}
 
-Short message has the value $0$ in \emph{size} field implying that there is
+Short message has the value $0$ in \textbf{size} field implying that there is
 no special payload with the message. Sending a token, for example, is such
-a message. All messages being short messages are:
+a message. Short messages are sent with \textbf{uade\_send\_short\_message}
+and received with \textbf{uade\_receive\_short\_message}. The structure
+of short message is shown in Table \ref{tab:short_message}.
+
+\begin{table}
 \begin{center}
+\caption{Short message}
+\label{tab:short_message}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & msgtype \\
+\hline
+\textbf{uint32\_t} & 0 \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Table \ref{tab:short_messages} shows all short messages.
+
+\begin{table}
+\begin{center}
+\caption{Short messages}
+\label{tab:short_messages}
 \begin{tabular}{|r|l|}
 \hline
 Command & Activate debugger\\
@@ -181,6 +207,31 @@ Reply & Can't play\\
 \hline
 \end{tabular}
 \end{center}
+\end{table}
+
+\subsubsection{String message}
+
+String message is a message containing one zero-terminated text string.
+A string message is sent by \textbf{uade\_send\_string} and received by
+\textbf{uade\_receive\_string}. Table \ref{tab:string_message} shows
+the structure of a string message.
+
+\begin{table}
+\begin{center}
+\caption{String message}
+\label{tab:string_message}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & msgtype \\
+\hline
+\textbf{uint32\_t} & $x + 1$, where \textbf{x} is the number of letters.\\
+\hline
+\textbf{uint8\_t[]} & $x + 1$ bytes.\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
 
 \begin{figure}
 \centering
