@@ -11,9 +11,7 @@
 \date{}
 \maketitle
 
-\section{Introduction}
-
-\subsection{History}
+\section{History}
 
 UADE 1.xx was written to be a stand-alone program that had separate code
 for each possible \emph{frontend} (\emph{user interface}), but there was
@@ -32,7 +30,7 @@ It was a clear design problem that needed to be fixed. To force the separation
 of frontend and \emph{uadecore} (emulator), UADE 2.xx removed all user
 interface issues from the uadecore.
 
-\subsection{Message-passing protocol}
+\section{Message-passing protocol}
 In UADE 2.xx the emulator (uadecore) became an independent process without
 any user interfaces. Any frontend, or client, that wants to use its services
 must communicate with the uadecore by using a token-passing based messaging
@@ -52,7 +50,12 @@ messages and uadecore sends replies. Both of them have to send the token back
 sometimes. The party that doesn't have the token must reply to all commands
 sent by the other party.
 
-The messaging protocol has following commands:
+\subsection{Messaging protocol commands}
+
+The messaging protocol has following commands which are only sent by
+the client. There is an exception, however. The uadecore may send a
+\emph{token}-command, but it is not really considered a command.
+All the commands can be found from the file \mbox{src/include/uademsg.h}.
 
 \begin{description}
 \item [Config] command is used to pass a file name of the emulation
@@ -87,9 +90,13 @@ if ever).
 \item [Activate debugger] command is not necessary.
 
 \item [Token] command is used to pass back the token for the other party.
-
 \end{description}
-Messages are answered by following replies:
+
+\subsection{Messaging protocol replies for commands}
+
+Messages are answered by following replies.
+All the replies can be found from the file \mbox{src/include/uademsg.h}.
+
 \begin{description}
 \item [MSG] reply is just any random text string message that the client should
 know. Could be spam, blackmailing, empty threats or last words of a dying
@@ -104,14 +111,14 @@ has ended.
 subsongs contained in the song. This happens a short while after playback
 has started, or usually during the first fraction of a second since
 playback has been started.
-\item [Player name] is a reply containing the human readable player name
-that is decoded by the eagleplayer plugin,
+\item [Player name] is a reply containing the human (geek?) readable player
+name that is decoded by the eagleplayer plugin,
 \item [Module name] is a reply containing the human readable form of the
 module name decoded by the eagleplayer plugin.
-\item [Format name] is a reply containing the human (geek?) readable form
+\item [Format name] is a reply containing the human readable form
 of the song format that is being played.
 \item [Data] reply is issued by the uadecore to pass synthesized sample
-data back to the client. This is a reply for the \emph{Read} command.
+data back to the client. This is a reply for the \emph{read}-command.
 \end{description}.
 
 \begin{figure}
