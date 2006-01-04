@@ -344,8 +344,12 @@ mcheck_calc_modlen:
 
 			;--- Check file len ---
 			cmp.l	d1,d5
-			bne	.mcheck_bad_length
+			bgt	.mcheck_bad_length	; file too short
 
+			sub.l	d5,d1
+			cmp.l	#1024,d1		; filesize +1KB is ok
+			bgt	.mcheck_bad_length
+			
 .mcheck_good_length:	moveq	#0,d0
 			bra	.mcheck_end			
 

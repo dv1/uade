@@ -14,11 +14,11 @@ fname=`echo $2| sed -e s/["file:"]*//`
 
 case $1 in
         play)
-		if [ "$3" == "0" ]; then
-		  subsong=""
-		else
-		  subsong="--subsong $3"
-		fi
+		#if [ "$3" == "0" ]; then
+		#  subsong=""
+		#else
+		#  subsong="--subsong $3"
+		#fi
 		$UADEPREFIX/uade123 $subsong -e raw  -f /dev/stdout --ignore --no-keys --stderr 2>/dev/null "$fname"
                 exit 0
                 ;;

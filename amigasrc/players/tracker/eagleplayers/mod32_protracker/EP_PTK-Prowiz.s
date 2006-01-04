@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-01-03',0
+	dc.b '$VER: Protracker 3.0b player 2006-01-04',0
 	even
 
 PlayerTagArray
@@ -45,10 +45,10 @@ Format			dc.b	"type: "
 FName			ds.b	31
 			dc.b	0
 
-PName			dc.b 'Protracker and derivates',0
+PName			dc.b 'Protracker and family',0
 CName			dc.b 'Protracker 3.0b replay by Welder/Divine',10
 			dc.b 'replay fixes deriving from EP 2.04 by Eagleeye',10
-        		dc.b 'subsong detection by Don Adan/Wanted Team',10
+        		dc.b 'subsong detection based on work by Don Adan/Wanted Team',10
 			dc.b 'PTCalcTime V1.1 by H. Pedersen',10,10
 			dc.b 'adapted for UADE by mld and shd',10
 			dc.b '----------------------------------------------',10
