@@ -28,14 +28,48 @@ frontends:
 \end{itemize}
 
 It was a clear design problem that needed to be fixed. To force the separation
-of frontend and emulator UADE 2.xx removed all user interface issues from
-the emulator. Token-passing based messaging system was implemented into
-the emulator. The frontend would communicate with the emulator through a
-token-passing based messaging protocol that has following commands:
-\begin{itemize}
-\item foo
-\end{itemize}
-
+of frontend and \emph{uadecore} (emulator), UADE 2.xx removed all user
+interface issues from the uadecore. Token-passing based messaging system was
+implemented into the uadecore. A frontend would communicate with uadecore
+through a token-passing based messaging protocol. The messaging protocol
+has following commands:
+\begin{description}
+\item [Config] command is used to pass a file name of the emulation
+configuration file. The file is named \emph{uaerc}.
+\item [Score] command is used to pass file name of a binary run-time in M68k
+machine language for the emulator. The binary run-time is called
+\emph{score} or \emph{sound core}. The sound core contains implementations of
+\emph{Eagleplayer} and \emph{AmigaOS} APIs.
+\item [Player] command is used to pass a file name of a binary player plugin
+in M68k machine language for the sound core. This is also called an
+\emph{Eagleplayer plugin}.
+\item [Module] command is used to pass a file name of a song to be played by
+the associated Eagleplayer plugin.
+\item [Read]
+\item [Reboot]
+\item [Set subsong]
+\item [Ignore check]
+\item [Song end not possible]
+\item [Set ntsc]
+\item [Filter]
+\item [Set interpolation mode]
+\item [Speed hack]
+\item [Change subsong]
+\item [Activate debugger]
+\item [Token] command
+\end{description}
+Messages are answered by following replies:
+\begin{description}
+\item [MSG]
+\item [Can't play]
+\item [Can play]
+\item [Song end]
+\item [Subsong info]
+\item [Player name]
+\item [Module name]
+\item [Format name]
+\item [Data]
+\end{description}.
 
 \begin{figure}
 \centering

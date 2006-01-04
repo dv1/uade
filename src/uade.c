@@ -725,8 +725,7 @@ void uade_reset(void)
     fprintf(stderr, "uadecore: Invalid input. Expected module name.\n");
     exit(-1);
   }
-  if (um->msgtype != UADE_COMMAND_MODULE)
-    assert(0);
+  assert(um->msgtype == UADE_COMMAND_MODULE);
   if (um->size == 0) {
     song.modulename[0] = 0;
   } else {
