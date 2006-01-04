@@ -1,4 +1,8 @@
 2006-01-04  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed -I./include/ to be -I./include in src/Makefile.in to make
+	  it compatible with mingw.
+
+2006-01-04  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.01
 	- Compatibility fixes for OpenLSD and Mac OS X to make UADE compile
 	- Added 'cm.' prefix for CustomMade format (Ron Klaren)
