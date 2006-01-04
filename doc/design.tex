@@ -121,6 +121,67 @@ of the song format that is being played.
 data back to the client. This is a reply for the \emph{read}-command.
 \end{description}.
 
+\subsection{Message format}
+All messages are sent as finite sized byte sequences. Each message begins
+with a header:
+
+\begin{center}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & msgtype \\
+\hline
+\textbf{uint32\_t} & size \\
+\hline
+\textbf{uint8\_t} & data[] \\
+\hline
+\end{tabular}
+\end{center}
+
+\emph{msgtype} field is simply an unsigned 32-bit integer in a packed
+binary structure. Its C language definition is simply:
+\begin{verbatim}
+struct uade_msg {
+  uint32_t msgtype;
+  uint32_t size;
+  uint8_t data[];
+} __attribute__((packed));
+\end{verbatim}
+
+The \emph{size} field is 32-bit length of the bytes coming after the header.
+Notice the use of C99 empty record in a structure (excuse the annoying GCC
+feature there that forces the structure to be tightly packed). It has zero
+size and thus the whole message size in memory is $8 + size$ bytes.
+
+There are 3 types of messages: short messages, string messages and custom
+messages. Each follow the given low-level format but the contents differs.
+
+\subsubsection{Short message}
+
+Short message has the value $0$ in \emph{size} field implying that there is
+no special payload with the message. Sending a token, for example, is such
+a message. All messages being short messages are:
+\begin{center}
+\begin{tabular}{|r|l|}
+\hline
+Command & Activate debugger\\
+\hline
+Command & Ignore check\\
+\hline
+Command & Reboot \\
+\hline
+Command & Song end not possible \\
+\hline
+Command & Speed hack \\
+\hline
+Command & Token \\
+\hline
+Reply & Can play\\
+\hline
+Reply & Can't play\\
+\hline
+\end{tabular}
+\end{center}
+
 \begin{figure}
 \centering
 \includegraphics[scale=0.25]{play_loop_state_diagram.eps}
