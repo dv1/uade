@@ -124,6 +124,30 @@ data back to the client. This is a reply for the \emph{read}-command.
 \subsection{Message format}
 All messages are sent as finite sized byte sequences. Each message begins
 with a header shown in Table \ref{tab:message_header}.
+\textbf{msgtype} field is simply an unsigned 32-bit integer in a packed
+binary structure. The integer is sent in network byte-order aka big-endian
+format. All integers are sent in big-endian format.
+The \textbf{size} field is 32-bit length of the bytes coming after the header
+(which is in big-endian format).
+Notice the use of C99 empty record in a structure (excuse the annoying GCC
+feature there that forces the structure to be tightly packed) called
+\textbf{data}. \textbf{data} has zero
+size and thus the whole message size in memory is $8 + size$ bytes. The
+full size must not be over $4096$ bytes, and thus \textbf{size} can be
+at most $4088$.
+
+There are 3 types of messages: short messages, string messages and custom
+messages. Each follow the given low-level format but the contents differs.
+
+Messages C language definition is:
+\begin{verbatim}
+struct uade_msg {
+  uint32_t msgtype;
+  uint32_t size;
+  uint8_t data[];
+} __attribute__((packed));
+\end{verbatim}
+
 
 \begin{table}
 \begin{center}
@@ -140,27 +164,6 @@ with a header shown in Table \ref{tab:message_header}.
 \end{tabular}
 \end{center}
 \end{table}
-
-\emph{msgtype} field is simply an unsigned 32-bit integer in a packed
-binary structure. The integer is sent in network byte-order aka big-endian
-format. All integers are sent in big-endian format.
-Its C language definition is simply:
-\begin{verbatim}
-struct uade_msg {
-  uint32_t msgtype;
-  uint32_t size;
-  uint8_t data[];
-} __attribute__((packed));
-\end{verbatim}
-
-The \textbf{size} field is 32-bit length of the bytes coming after the header
-(which is in big-endian format).
-Notice the use of C99 empty record in a structure (excuse the annoying GCC
-feature there that forces the structure to be tightly packed). It has zero
-size and thus the whole message size in memory is $8 + size$ bytes.
-
-There are 3 types of messages: short messages, string messages and custom
-messages. Each follow the given low-level format but the contents differs.
 
 \subsubsection{Short message}
 
@@ -386,12 +389,63 @@ data bytes.\\
 \end{center}
 \end{table}
 
+\section{Interaction example}
 
+To illustrate the dialog between client and server, look at the following log
+between uade123 and uadecore:
+\begin{verbatim}
+<This is done once during client startup>
+uade123: sending string 1 (command: config)
 
-\section{Play loop interaction}
+<Here begins play back of new song. this is done for each song.>
+uade123: sending string 2 (command: score)
+uade123: sending string 3 (command: player)
+uade123: sending string 4 (command: module)
+uade123: sending message 16 (token pass)
+
+<Now the uadecore is pondering whether or not the thing can be played>
+uadecore: sending message 19 (reply: can play)
+uadecore: sending message 16 (token pass back)
+
+<It's okay to play, so send some additional commands for uadecore>
+uade123: sending message 11 (command: filter. not needed.)
+uade123: sending string 12 (command: interpolation. not needed.)
+
+<Then start audio synthesis by issuing read command>
+uade123: sending message 5 (command: read)
+uade123: sending message 16 (token pass)
+
+<uadecore starts to synthesize and floods back messages>
+uadecore: sending string 17 (reply: message. don't care.)
+uadecore: sending string 22 (reply: player name back. don't care.)
+uadecore: sending string 23 (reply: module name back. don't care.)
+uadecore: sending message 21 (reply: subsong info)
+uadecore: sending string 17 (reply: birthday congratulation message)
+uadecore: sending message 25 (reply: data)
+uadecore: sending message 25 (reply: data)
+uadecore: sending message 16 (token back as all the requested data has been sent)
+
+<Okay, the first round of messages was good. Next read then..>
+uade123: sending message 5 (command: read. 2nd one actually.)
+uade123: sending message 16 (token pass)
+uadecore: sending message 25 (reply: data)
+uadecore: sending message 25 (replay: data)
+...
+\end{verbatim}
+
+Based on that log and previous explanation of messages, you should be able
+to write an independent frontend by doing little reverse-engineering into
+uade headers. More specifically, you need following information:
+\begin{itemize}
+\item Message type numbers (see \mbox{src/include/uademsg.h})
+\item Filter setting codes (see \mbox{src/include/amigafilter.h})
+\item something else you will find out..
+\end{itemize}
 
 Figure \ref{fig:playloop} shows play loop interaction from client
-perspective.
+perspective. That is, song initialization has already happened which means
+that uadecore configuration, score, player and module names and other
+options have been sent already.
 
 \begin{figure}
 \centering
