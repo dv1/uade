@@ -131,9 +131,9 @@ with a header shown in Table \ref{tab:message_header}.
 \label{tab:message_header}
 \begin{tabular}{|r|l|}
 \hline
-\textbf{uint32\_t} & msgtype \\
+\textbf{uint32\_t} & msgtype (big-endian) \\
 \hline
-\textbf{uint32\_t} & size \\
+\textbf{uint32\_t} & size (big-endian)\\
 \hline
 \textbf{uint8\_t[]} & data \\
 \hline
@@ -142,7 +142,9 @@ with a header shown in Table \ref{tab:message_header}.
 \end{table}
 
 \emph{msgtype} field is simply an unsigned 32-bit integer in a packed
-binary structure. Its C language definition is simply:
+binary structure. The integer is sent in network byte-order aka big-endian
+format. All integers are sent in big-endian format.
+Its C language definition is simply:
 \begin{verbatim}
 struct uade_msg {
   uint32_t msgtype;
@@ -151,7 +153,8 @@ struct uade_msg {
 } __attribute__((packed));
 \end{verbatim}
 
-The \textbf{size} field is 32-bit length of the bytes coming after the header.
+The \textbf{size} field is 32-bit length of the bytes coming after the header
+(which is in big-endian format).
 Notice the use of C99 empty record in a structure (excuse the annoying GCC
 feature there that forces the structure to be tightly packed). It has zero
 size and thus the whole message size in memory is $8 + size$ bytes.
@@ -174,7 +177,7 @@ Table \ref{tab:short_messages} shows all short messages.
 \label{tab:short_message}
 \begin{tabular}{|r|l|}
 \hline
-\textbf{uint32\_t} & msgtype \\
+\textbf{uint32\_t} & msgtype\\
 \hline
 \textbf{uint32\_t} & 0 \\
 \hline
@@ -222,7 +225,7 @@ all string messages.
 \label{tab:string_message}
 \begin{tabular}{|r|l|}
 \hline
-\textbf{uint32\_t} & msgtype \\
+\textbf{uint32\_t} & msgtype\\
 \hline
 \textbf{uint32\_t} & $x + 1$, where \textbf{x} is the number of letters.\\
 \hline
@@ -263,6 +266,132 @@ Reply & Player name\\
 \subsubsection{Custom message}
 
 Custom message is any kind of message which is not short or string message.
+We quickly present all different custom messages in following tables.
+
+Table \ref{tab:reply_data} shows format of sound data reply message.
+Table \ref{tab:reply_subsong_info} shows format of subsong info reply message.
+Table \ref{tab:reply_song_end} shows format of song end reply message.
+Table \ref{tab:command_read} shows format of read command message.
+Table \ref{tab:command_filter} shows format of filter command message.
+Table \ref{tab:command_subsong} shows format of subsong command messages
+which are set subsong and change subsong.
+
+\begin{table}
+\begin{center}
+\caption{Data reply message}
+\label{tab:reply_data}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Reply: Data \\
+\hline
+\textbf{uint32\_t} & $x$, where \textbf{x} is the number of sample
+data bytes.\\
+\hline
+\textbf{uint8\_t[]} & $x$ sample data bytes. The format is 16-bit interleaved\\
+& PCM stereo (big-endian).\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Subsong info reply message}
+\label{tab:reply_subsong_info}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Reply: Subsong info \\
+\hline
+\textbf{uint32\_t} & 12\\
+\hline
+\textbf{uint32\_t} & Minimum subsong (big-endian)\\
+\hline
+\textbf{uint32\_t} & Maximum subsong (big-endian)\\
+\hline
+\textbf{uint32\_t} & Current subsong (big-endian)\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Song end reply message}
+\label{tab:reply_song_end}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Reply: Song end\\
+\hline
+\textbf{uint32\_t} & $8 + x + 1$, where \textbf{x} is length of an explanation string.\\
+\hline
+\textbf{uint32\_t} & Number of bytes of sample data valid in the next data reply (big-endian)\\
+\hline
+\textbf{uint32\_t} & Unintentional end: 0 or 1. 0 means unintentional.\\
+ & 1 means an error resulted into the song end. (big-endian)\\
+\hline
+\textbf{uint8\_t[]} & $x + 1$ bytes containing a textual reason for song end.\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Read command message}
+\label{tab:command_read}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Command: Read\\
+\hline
+\textbf{uint32\_t} & 4\\
+\hline
+\textbf{uint32\_t} & Number of bytes of sample data to be read (big-endian)\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Filter command message}
+\label{tab:command_filter}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Command: Filter\\
+\hline
+\textbf{uint32\_t} & 8\\
+\hline
+\textbf{uint32\_t} & Filter type. See \mbox{src/include/amigafilter.h} for values (big-endian).\\
+\hline
+\textbf{uint32\_t} & $2x+y$, where \textbf{x} means whether or not filter state should be forced\\
+ & and \textbf{y} is filter state to be set. Both $x$ and $y$ are either 0 or 1. (big-endian)\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Subsong command message}
+\label{tab:command_subsong}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Command: change subsong or set subsong\\
+\hline
+\textbf{uint32\_t} & 4\\
+\hline
+\textbf{uint32\_t} & New subsong number (big-endian).\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+
+\section{Play loop interaction}
+
+Figure \ref{fig:playloop} shows play loop interaction from client
+perspective.
 
 \begin{figure}
 \centering
