@@ -70,19 +70,24 @@ in M68k machine language for the uadecore. This is also called an
 \item [Module] command is used to pass a file name of a song to be played
 for the uadecore.
 
-\item [Read] command is used to request more sound data
+\item [Read] command is used to request more sound data from the uadecore.
 
-\item [Reboot]
-\item [Set subsong]
-\item [Ignore check]
-\item [Song end not possible]
-\item [Set ntsc]
-\item [Filter]
-\item [Set interpolation mode]
-\item [Speed hack]
-\item [Change subsong]
-\item [Activate debugger]
-\item [Token] command
+\item [Reboot] command is used to halt playback synthesis of uadecore.
+
+\item [Set subsong] command is used to set the initial subsong for playback.
+
+\item [Ignore check] command is not necessary (will be documented later,
+if ever).
+\item [Song end not possible] command is not necessary.
+\item [Set ntsc] command is not necessary.
+\item [Filter] command is not necessary.
+\item [Set interpolation mode] command is not necessary.
+\item [Speed hack] command is not necessary.
+\item [Change subsong] command is not necessary.
+\item [Activate debugger] command is not necessary.
+
+\item [Token] command is used to pass back the token for the other party.
+
 \end{description}
 Messages are answered by following replies:
 \begin{description}
