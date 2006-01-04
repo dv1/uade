@@ -2,6 +2,7 @@
 \usepackage{graphicx}
 
 \setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
 
 \begin{document}
 
@@ -29,23 +30,48 @@ frontends:
 
 It was a clear design problem that needed to be fixed. To force the separation
 of frontend and \emph{uadecore} (emulator), UADE 2.xx removed all user
-interface issues from the uadecore. Token-passing based messaging system was
-implemented into the uadecore. A frontend would communicate with uadecore
-through a token-passing based messaging protocol. The messaging protocol
-has following commands:
+interface issues from the uadecore.
+
+\subsection{Message-passing protocol}
+In UADE 2.xx the emulator (uadecore) became an independent process without
+any user interfaces. Any frontend, or client, that wants to use its services
+must communicate with the uadecore by using a token-passing based messaging
+protocol. The protocol is of course implemented by interprocess communication
+(IPC).
+
+The basic idea of the protocol is that the frontend is the client
+who issues commands for the server (uadecore). Uadecore may not send any
+commands at all. Uadecore only sends replies to commands issued by the
+client. Also, the client never replies anything back to the
+uadecore.
+
+The communication protocol is based on the concept of
+\emph{tokens}. Only the party that has a token (there is only one) may
+send messages. Messages are either commands or replies. Client sends
+messages and uadecore sends replies. Both of them have to send the token back
+sometimes. The party that doesn't have the token must reply to all commands
+sent by the other party.
+
+The messaging protocol has following commands:
+
 \begin{description}
 \item [Config] command is used to pass a file name of the emulation
-configuration file. The file is named \emph{uaerc}.
+configuration file for the uadecore. The file is named \emph{uaerc}.
+
 \item [Score] command is used to pass file name of a binary run-time in M68k
-machine language for the emulator. The binary run-time is called
+machine language for the uadecore. The binary run-time is called
 \emph{score} or \emph{sound core}. The sound core contains implementations of
 \emph{Eagleplayer} and \emph{AmigaOS} APIs.
+
 \item [Player] command is used to pass a file name of a binary player plugin
-in M68k machine language for the sound core. This is also called an
+in M68k machine language for the uadecore. This is also called an
 \emph{Eagleplayer plugin}.
-\item [Module] command is used to pass a file name of a song to be played by
-the associated Eagleplayer plugin.
-\item [Read]
+
+\item [Module] command is used to pass a file name of a song to be played
+for the uadecore.
+
+\item [Read] command is used to request more sound data
+
 \item [Reboot]
 \item [Set subsong]
 \item [Ignore check]
