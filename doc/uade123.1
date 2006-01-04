@@ -23,8 +23,20 @@ UADE \- Unix Amiga Delitracker Emulator
 .SH "DESCRIPTION"
 .BR uade123
 plays old amiga music formats by emulating Amiga hardware. It
-re-uses Amiga Eagleplayer plugins to play different formats. Therefore 
-Eagleplayer API and parts of AmigaOS have been implemented in uade.
+re-uses Amiga Eagleplayer plugins to play different formats. Eagleplayer
+plugins require an implementation of the Eagleplayer API and AmigaOS APIs
+to run on. Therefore Eagleplayer API and parts of AmigaOS have been
+implemented in uade.
+
+uade123 is a command line player that can be used to play Amiga songs. It's
+options and behavior are documented here. There is also a plugin for the
+.BR xmms
+(1).
+
+Section
+.BR FILE\ FORMAT\ DETECTION
+explains hardships of recognizing amiga formats and consequently problems it
+may cause for the user (and authors).
 
 Section
 .BR COMMAND\ LINE\ OPTIONS
@@ -49,6 +61,25 @@ song.conf is used for song specific configurations which can be used to change
 sound effects or avoid problems.
 uade.conf is the main configuration file that can be used to set defaults for
 variables. Command line options will always override uade.conf options.
+
+.SH "FILE FORMAT DETECTION"
+Creating file detection heuristics for 200 formats is difficult and most of
+those formats are undocumented or otherwise not easily recognizable. Therefore
+we have to detect some formats by file name prefixes and postfixes which
+can easily cause problems. For example, many different protracker variants
+are named with 'mod' prefix and the format lacks version number inside
+the data file making it rather hard to recognize proper mod variant. 
+Sound output can be buggy with some unrecognizable mod variants. When file
+format can not be deduced based on file contents, a heuristics based on the
+file name must be used. This may sound strange, but many of the
+m68k machine language player plugins are black boxes which have no reliable
+mechanism to validate whether a given file belongs to them or not.
+In uade123 the filename based heuristics may cause
+unrecognized songs and in XMMS it can cause conflicts with other plugins.
+.BR contrib/uadexmmsadd
+script can be used to add uade:// prefixed playlist entries into XMMS to
+avoid conflicts with some of the existing mod plugins for XMMS. However,
+we recommend disabling conflicting XMMS plugins if convenient.
 
 .SH "COMMAND LINE OPTIONS"
 
