@@ -166,6 +166,7 @@ no special payload with the message. Sending a token, for example, is such
 a message. Short messages are sent with \textbf{uade\_send\_short\_message}
 and received with \textbf{uade\_receive\_short\_message}. The structure
 of short message is shown in Table \ref{tab:short_message}.
+Table \ref{tab:short_messages} shows all short messages.
 
 \begin{table}
 \begin{center}
@@ -180,8 +181,6 @@ of short message is shown in Table \ref{tab:short_message}.
 \end{tabular}
 \end{center}
 \end{table}
-
-Table \ref{tab:short_messages} shows all short messages.
 
 \begin{table}
 \begin{center}
@@ -214,7 +213,8 @@ Reply & Can't play\\
 String message is a message containing one zero-terminated text string.
 A string message is sent by \textbf{uade\_send\_string} and received by
 \textbf{uade\_receive\_string}. Table \ref{tab:string_message} shows
-the structure of a string message.
+the structure of a string message. Table \ref{tab:string_messages} shows
+all string messages.
 
 \begin{table}
 \begin{center}
@@ -232,6 +232,37 @@ the structure of a string message.
 \end{center}
 \end{table}
 
+\begin{table}
+\begin{center}
+\caption{String messages}
+\label{tab:string_messages}
+\begin{tabular}{|r|l|}
+\hline
+Command & Config\\
+\hline
+Command & Module\\
+\hline
+Command & Player\\
+\hline
+Command & Score\\
+\hline
+Command & Set interpolation mode\\
+\hline
+Reply & Format name\\
+\hline
+Reply & Module name\\
+\hline
+Reply & MSG\\
+\hline
+Reply & Player name\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsubsection{Custom message}
+
+Custom message is any kind of message which is not short or string message.
 
 \begin{figure}
 \centering
