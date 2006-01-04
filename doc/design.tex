@@ -91,15 +91,27 @@ if ever).
 \end{description}
 Messages are answered by following replies:
 \begin{description}
-\item [MSG]
-\item [Can't play]
-\item [Can play]
-\item [Song end]
-\item [Subsong info]
-\item [Player name]
-\item [Module name]
-\item [Format name]
-\item [Data]
+\item [MSG] reply is just any random text string message that the client should
+know. Could be spam, blackmailing, empty threats or last words of a dying
+process.
+\item [Can't play] reply is issued by the uadecore if it is not able to play
+a given triplet of score, player and module.
+\item [Can play] reply is issued by the uadecore if it can play a given
+triplet of score, player and module.
+\item [Song end] reply is issued by the uadecore to indicate that playback
+has ended.
+\item [Subsong info] is issued by the uadecore when it knows the amount of
+subsongs contained in the song. This happens a short while after playback
+has started, or usually during the first fraction of a second since
+playback has been started.
+\item [Player name] is a reply containing the human readable player name
+that is decoded by the eagleplayer plugin,
+\item [Module name] is a reply containing the human readable form of the
+module name decoded by the eagleplayer plugin.
+\item [Format name] is a reply containing the human (geek?) readable form
+of the song format that is being played.
+\item [Data] reply is issued by the uadecore to pass synthesized sample
+data back to the client. This is a reply for the \emph{Read} command.
 \end{description}.
 
 \begin{figure}
