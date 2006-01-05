@@ -33,7 +33,7 @@ static int uade_test_silence(void *buf, size_t size)
   int nsamples;
   static int64_t silence_count = 0;
 
-  if (uade_silence_timeout < 0)
+  if (uadeconf.silence_timeout < 0)
     return 0;
 
   exceptioncounter = 0;
@@ -52,7 +52,7 @@ static int uade_test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / UADE_BYTES_PER_SECOND >= uade_silence_timeout) {
+    if (silence_count / UADE_BYTES_PER_SECOND >= uadeconf.silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -86,10 +86,6 @@ int play_loop(void)
   int jump_sub = 0;
 
   int have_subsong_info = 0;
-
-  int old_use_filter = uade_use_filter;
-  int old_force_filter = uade_force_filter;
-  int old_filter_state = uade_filter_state;
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
 
@@ -146,11 +142,11 @@ int play_loop(void)
 	  pause_terminal();
 	  break;
 	case 'f':
-	  uade_use_filter = uade_get_filter_type(NULL);
-	  uade_force_filter = 1;
-	  uade_filter_state ^= 1;
-	  tprintf("\nForcing LED %s\n", (uade_filter_state & 1) ? "ON" : "OFF");
-	  uade_send_filter_command(uade_use_filter, uade_filter_state, uade_force_filter);
+	  uadeconf.filter_type = uade_get_filter_type(NULL);
+	  uadeconf.led_forced = 1;
+	  uadeconf.led_state ^= 1;
+	  tprintf("\nForcing LED %s\n", (uadeconf.led_state & 1) ? "ON" : "OFF");
+	  uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced);
 	  break;
 	case 'g':
 	  uade_effect_toggle(&uade_effects, UADE_EFFECT_GAIN);
@@ -238,7 +234,7 @@ int play_loop(void)
       }
 
       if (subsong_end && uade_song_end_trigger == 0) {
-	if (jump_sub || (uade_one_subsong_per_file == 0 && cur_sub != -1 && max_sub != -1)) {
+	if (jump_sub || (uadeconf.one_subsong == 0 && cur_sub != -1 && max_sub != -1)) {
 	  cur_sub++;
 	  jump_sub = 0;
 	  if (cur_sub > max_sub) {
@@ -306,10 +302,10 @@ int play_loop(void)
 	time_bytes += playbytes;
 
 	/* FIX ME */
-	if (uade_timeout != -1)
+	if (uadeconf.timeout != -1)
 	  total_bytes += playbytes;
 
-	if (uade_subsong_timeout != -1)
+	if (uadeconf.subsong_timeout != -1)
 	  subsong_bytes += playbytes;
 
 	if (skip_bytes > 0) {
@@ -331,19 +327,19 @@ int play_loop(void)
 	}
 
 	/* FIX ME */
-	if (uade_timeout != -1 && uade_no_timeouts == 0) {
+	if (uadeconf.timeout != -1 && uadeconf.always_ends == 0) {
 	  if (uade_song_end_trigger == 0) {
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= uade_timeout) {
-	      fprintf(stderr, "\nSong end (timeout %ds)\n", uade_timeout);
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= uadeconf.timeout) {
+	      fprintf(stderr, "\nSong end (timeout %ds)\n", uadeconf.timeout);
 	      uade_song_end_trigger = 1;
 	    }
 	  }
 	}
 
-	if (uade_subsong_timeout != -1 && uade_no_timeouts == 0) {
+	if (uadeconf.subsong_timeout != -1 && uadeconf.always_ends == 0) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uade_subsong_timeout) {
-	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uade_subsong_timeout);
+	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uadeconf.subsong_timeout) {
+	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uadeconf.subsong_timeout);
 	      subsong_end = 1;
 	    }
 	  }
@@ -351,7 +347,7 @@ int play_loop(void)
 
 	if (uade_test_silence(um->data, playbytes)) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uade_silence_timeout);
+	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uadeconf.silence_timeout);
 	    subsong_end = 1;
 	  }
 	}
@@ -457,10 +453,6 @@ int play_loop(void)
       return 0;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
-
-  uade_use_filter = old_use_filter;
-  uade_force_filter = old_force_filter;
-  uade_filter_state = old_filter_state;
 
   tprintf("\n");
   return 1;

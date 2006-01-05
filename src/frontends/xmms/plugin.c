@@ -90,23 +90,13 @@ static char configname[PATH_MAX];
 static char curmd5[33];
 static int curplaytime;
 static pthread_t decode_thread;
+static struct uade_config config;
 static struct uade_effect effects;
-static int filter_state;
-static int filter_type;
-static int force_led;
 static char gui_filename[PATH_MAX];
 static int gui_info_set;
-static int ignore_player_check;
-static char *interpolation_mode;
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
-static int no_song_end;
-static int one_subsong_per_file;
 static int plugin_disabled;
-static int silence_timeout;
-static int speed_hack;
-static int subsong_timeout;
-static int timeout;
 static int total_bytes_valid; /* Lock before use */
 static int total_bytes;       /* Lock before use */
 static pid_t uadepid;
@@ -128,27 +118,14 @@ static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
 
 static void set_defaults(void)
 {
-  ignore_player_check = 0;
-  no_song_end = 0;
-  one_subsong_per_file = 0;
-  silence_timeout = 20;
-  subsong_timeout = 512;
-  timeout = -1;
-
+  uade_config_set_defaults(&config);
   uade_effect_set_defaults(&effects);
-
-  filter_state = 0;
-  force_led = 0;
-  filter_type = FILTER_MODEL_A500E;
-  interpolation_mode = NULL;
-  speed_hack = 0;
 }
 
 
 static void load_config(void)
 {
   struct stat st;
-  struct uade_config uc;
 
   if (stat(configname, &st))
     return;
@@ -160,49 +137,21 @@ static void load_config(void)
   config_load_time = st.st_mtime;
 
   set_defaults();
-  
-  uade_load_config(&uc, configname);
 
-  if (uc.filter)
-    filter_type = uc.filter;
+  uade_load_config(&config, configname);
 
-  if (uc.force_led) {
-    force_led = 1;
-    filter_state = uc.force_led & 1;
-  }
-
-  if (uc.no_filter)
-    filter_type = 0;
-
-  if (uc.gain != 1.0) {
-    uade_effect_gain_set_amount(&effects, uc.gain);
+  if (config.gain_enable) {
+    uade_effect_gain_set_amount(&effects, config.gain);
     uade_effect_enable(&effects, UADE_EFFECT_GAIN);
   }
 
-  if (uc.headphones)
+  if (config.headphones)
     uade_effect_enable(&effects, UADE_EFFECT_HEADPHONES);
 
-  if (uc.ignore_player_check)
-    ignore_player_check = 1;
-
-  if (uc.interpolator)
-    interpolation_mode = strdup(uc.interpolator);
-
-  if (uc.one_subsong)
-    one_subsong_per_file = 1;
-
-  uade_effect_pan_set_amount(&effects, uc.panning);
-  if (uc.panning != 0.0)
+  if (config.panning_enable) {
+    uade_effect_pan_set_amount(&effects, config.panning);
     uade_effect_enable(&effects, UADE_EFFECT_PAN);
-
-  if (uc.silence_timeout)
-    silence_timeout = uc.silence_timeout;
-
-  if (uc.subsong_timeout)
-    subsong_timeout = uc.subsong_timeout;
-
-  if (uc.timeout)
-    timeout = uc.timeout;
+  }
 }
 
 
@@ -353,7 +302,7 @@ static int initialize_song(char *filename)
     return FALSE;
   }
 
-  if (ignore_player_check) {
+  if (config.ignore_player_check) {
     if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
       fprintf(stderr, "Can not send ignore check message.\n");
       plugin_disabled = 1;
@@ -361,7 +310,7 @@ static int initialize_song(char *filename)
     }
   }
 
-  if (no_song_end) {
+  if (config.no_song_end) {
     if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
       fprintf(stderr, "Can not send 'song end not possible'.\n");
       plugin_disabled = 1;
@@ -369,10 +318,10 @@ static int initialize_song(char *filename)
     }
   }
 
-  uade_send_filter_command(filter_type, filter_state, force_led);
-  uade_send_interpolation_command(interpolation_mode);
+  uade_send_filter_command(config.filter_type, config.led_state, config.led_forced);
+  uade_send_interpolation_command(config.interpolator);
 
-  if (speed_hack) {
+  if (config.speed_hack) {
     if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
       fprintf(stderr, "Can not send speed hack command.\n");
       plugin_disabled = 1;
@@ -521,18 +470,18 @@ static void *play_loop(void *arg)
 
       nowrite:
 
-	if (timeout != -1) {
+	if (config.timeout != -1) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= timeout)
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= config.timeout)
 	      song_end_trigger = 1;
 	    uade_unlock();
 	  }
 	}
 
-	if (subsong_timeout != -1) {
+	if (config.subsong_timeout != -1) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
-	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= subsong_timeout) {
+	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= config.subsong_timeout) {
 	      subsong_end = 1;
 	    }
 	  }
@@ -662,7 +611,7 @@ static int test_silence(void *buf, size_t size)
   int nsamples;
   static int64_t silence_count = 0;
 
-  if (silence_timeout < 0)
+  if (config.silence_timeout < 0)
     return 0;
 
   exceptioncounter = 0;
@@ -681,7 +630,7 @@ static int test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / UADE_BYTES_PER_SECOND >= silence_timeout) {
+    if (silence_count / UADE_BYTES_PER_SECOND >= config.silence_timeout) {
       silence_count = 0;
       return 1;
     }

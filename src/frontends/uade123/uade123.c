@@ -38,34 +38,23 @@
 #include "playlist.h"
 #include "playloop.h"
 #include "audio.h"
-#include "config.h"
 #include "terminal.h"
 #include "amigafilter.h"
 
 int uade_debug_trigger;
+struct uade_config uadeconf;
 struct uade_effect uade_effects;
-int uade_force_filter;
-int uade_filter_state;
-int uade_ignore_player_check;
 int uade_info_mode;
-char *uade_interpolation_mode;
 double uade_jump_pos = 0.0;
 int uade_no_output;
-int uade_no_timeouts;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
-int uade_one_subsong_per_file;
 struct playlist uade_playlist;
 int uade_playtime;
-int uade_recursivemode;
-int uade_terminated;
 FILE *uade_terminal_file;
 int uade_terminal_mode = 1;
-int uade_use_filter = FILTER_MODEL_A500E;
-int uade_silence_timeout = 20; /* -1 is infinite */
+int uade_terminated;
 int uade_song_end_trigger;
-int uade_subsong_timeout = 512;
-int uade_timeout = -1;
 int uade_verbose_mode;
 
 static char basedir[PATH_MAX];
@@ -131,13 +120,11 @@ int main(int argc, char *argv[])
   int have_modules = 0;
   int ret;
   char *endptr;
-  int uade_no_song_end = 0;
   int config_loaded;
-  int speed_hack = 0;
-  int timeout_forced = 0;
   char *home;
   struct stat st;
-  struct uade_config uadeconf;
+  struct uade_effect uade_effects_backup;
+  struct uade_config uadeconf_backup;
 
   enum {
     OPT_FILTER = 0x100,
@@ -181,6 +168,7 @@ int main(int argc, char *argv[])
     {NULL, 0, NULL, 0}
   };
 
+  uade_config_set_defaults(&uadeconf);
   uade_effect_set_defaults(&uade_effects);
 
   if (!playlist_init(&uade_playlist)) {
@@ -265,6 +253,7 @@ int main(int argc, char *argv[])
       break;
     case 'G':
       uadeconf.gain = uade_convert_to_double(optarg, 1.0, 0.0, 128.0, "gain");
+      uadeconf.gain_enable = 1;
       break;
     case 'h':
       print_help();
@@ -293,6 +282,7 @@ int main(int argc, char *argv[])
       break;
     case 'p':
       uadeconf.panning = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
+      uadeconf.panning_enable = 1;
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -314,7 +304,7 @@ int main(int argc, char *argv[])
       break;
     case 't':
       uadeconf.timeout = uade_get_timeout(optarg);
-      timeout_forced = 1;
+      uadeconf.timeout_forced = 1;
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -323,7 +313,7 @@ int main(int argc, char *argv[])
       uade_verbose_mode = 2;
       break;
     case 'w':
-      timeout_forced = 1;
+      uadeconf.timeout_forced = 1;
       uadeconf.subsong_timeout = uade_get_subsong_timeout(optarg);
       break;
     case 'y':
@@ -336,15 +326,15 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      uadeconf.filter = uade_get_filter_type(optarg);
+      uadeconf.filter_type = uade_get_filter_type(optarg);
       break;
     case OPT_FORCE_LED:
-      uade_filter_state = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || uade_filter_state < 0 || uade_filter_state > 1) {
+      uadeconf.led_state = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || uadeconf.led_state < 0 || uadeconf.led_state > 1) {
 	fprintf(stderr, "Invalid filter state: %s (must 0 or 1)\n", optarg);
 	exit(-1);
       }
-      uadeconf.force_led = 2 | (uade_filter_state ? 1 : 0);
+      uadeconf.led_forced = 1;
       break;
     case OPT_INTERPOLATOR:
       uadeconf.interpolator = strdup(optarg);
@@ -353,10 +343,10 @@ int main(int argc, char *argv[])
       uade_terminal_file = stderr;
       break;
     case OPT_NO_SONG_END:
-      uade_no_song_end = 1;
+      uadeconf.no_song_end = 1;
       break;
     case OPT_SPEED_HACK:
-      speed_hack = 1;
+      uadeconf.speed_hack = 1;
       break;
     case OPT_BASEDIR:
       GET_OPT_STRING(basedir);
@@ -370,12 +360,32 @@ int main(int argc, char *argv[])
     }
   }
 
-  post_config(&uadeconf);
-
   for (i = optind; i < argc; i++) {
-    playlist_add(&uade_playlist, argv[i], uade_recursivemode);
+    playlist_add(&uade_playlist, argv[i], uadeconf.recursive_mode);
     have_modules = 1;
   }
+
+  if (uadeconf.gain_enable) {
+    uade_effect_gain_set_amount(&uade_effects, uadeconf.gain);
+    uade_effect_enable(&uade_effects, UADE_EFFECT_GAIN);
+  }
+
+  if (uadeconf.headphones)
+    uade_effect_enable(&uade_effects, UADE_EFFECT_HEADPHONES);
+
+  if (uadeconf.no_filter) {
+    uadeconf.filter_type = 0;
+    uadeconf.led_forced = 0;
+    uadeconf.led_state = 0;
+  }
+
+  if (uadeconf.panning_enable) {
+    uade_effect_pan_set_amount(&uade_effects, uadeconf.panning);
+    uade_effect_enable(&uade_effects, UADE_EFFECT_PAN);
+  }
+
+  if (uadeconf.random_play)
+    playlist_random(&uade_playlist, 1);
 
   if (have_modules == 0) {
     print_help();
@@ -432,13 +442,15 @@ int main(int argc, char *argv[])
   if (!audio_init())
     goto cleanup;
 
+  uade_effects_backup = uade_effects;
+  uadeconf_backup = uadeconf;
+
   while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
     int nplayers;
     ssize_t filesize;
-    int speed_hack_override = 0;
-    int filter_override = 0;
 
-    uade_no_timeouts = 0;
+    uade_effects = uade_effects_backup;
+    uadeconf = uadeconf_backup;
 
     if (access(modulename, R_OK)) {
       fprintf(stderr, "Can not read %s: %s\n", modulename, strerror(errno));
@@ -460,38 +472,40 @@ int main(int argc, char *argv[])
       }
       debug("Player candidate: %s\n", candidate->playername);
 
-      speed_hack_override = (candidate->attributes & EP_SPEED_HACK) ? 1 : 0;
-      if (speed_hack_override)
+      if (candidate->attributes & EP_SPEED_HACK) {
+	uadeconf.speed_hack = 1;
 	debug("eagleplayer.conf specifies speed hack.\n");
+      }
 
-      uade_no_timeouts = (candidate->attributes & EP_ALWAYS_ENDS) ? 1 : 0;
-      if (uade_no_timeouts)
+      if (candidate->attributes & EP_ALWAYS_ENDS) {
+	uadeconf.always_ends = 1;
 	debug("eagleplayer.conf specifies always ends.\n");
-      if (timeout_forced)
-	uade_no_timeouts = 0;
+      }
 
-      if (candidate->attributes & EP_A500)
-	filter_override = FILTER_MODEL_A500;
-      if (candidate->attributes & EP_A1200)
-	filter_override = FILTER_MODEL_A1200;
-      if (filter_override)
-	debug("eagleplayer.conf specifies filter model %d\n", filter_override);
+      if (candidate->attributes & EP_A500) {
+	uadeconf.filter_type = FILTER_MODEL_A500;
+	debug("eagleplayer.conf specifies filter model %d\n",uadeconf.filter_type);
+      }
+      if (candidate->attributes & EP_A1200) {
+	uadeconf.filter_type = FILTER_MODEL_A1200;
+	debug("eagleplayer.conf specifies filter model %d\n",uadeconf.filter_type);
+      }
 
       if (uade_file_md5(md5, modulename, sizeof md5)) {
 	struct eaglesong *es = uade_analyze_song(md5);
 	if (es) {
 	  fprintf(stderr, "Warning: song.conf is not implemented properly. Effects are permanent rather than file specific :(\n");
 	  if (es->flags & ES_A500)
-	    filter_override = FILTER_MODEL_A500;
+	    uadeconf.filter_type = FILTER_MODEL_A500;
 	  if (es->flags & ES_A1200)
-	    filter_override = FILTER_MODEL_A1200;
+	    uadeconf.filter_type = FILTER_MODEL_A1200;
 	  if (es->flags & ES_LED_OFF) {
-	    uade_force_filter = 1;
-	    uade_filter_state = 0;
+	    uadeconf.led_forced = 1;
+	    uadeconf.led_state = 0;
 	  }
 	  if (es->flags & ES_LED_ON) {
-	    uade_force_filter = 1;
-	    uade_filter_state = 1;
+	    uadeconf.led_forced = 1;
+	    uadeconf.led_state = 1;
 	  }
 	  /* Command line should be able to override these */
 	  if (es->flags & ES_NO_HEADPHONES)
@@ -551,14 +565,14 @@ int main(int argc, char *argv[])
       exit(-1);
     }
 
-    if (uade_ignore_player_check) {
+    if (uadeconf.ignore_player_check) {
       if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
 	fprintf(stderr, "Can not send ignore check message.\n");
 	exit(-1);
       }
     }
 
-    if (uade_no_song_end) {
+    if (uadeconf.no_song_end) {
       if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
 	fprintf(stderr, "Can not send 'song end not possible'.\n");
 	exit(-1);
@@ -568,11 +582,9 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       uade_set_subsong(subsong);
 
-    uade_send_filter_command(filter_override ? filter_override : uade_use_filter,
-			     uade_filter_state, uade_force_filter);
-    uade_send_interpolation_command(uade_interpolation_mode);
-
-    if (speed_hack || speed_hack_override) {
+    uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced);
+    uade_send_interpolation_command(uadeconf.interpolator);
+    if (uadeconf.speed_hack) {
       if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
 	fprintf(stderr, "Can not send speed hack command.\n");
 	exit(-1);

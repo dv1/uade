@@ -43,6 +43,19 @@ static char *nextnonspace(const char *foo)
 }
 
 
+void uade_config_set_defaults(struct uade_config *uc)
+{
+  memset(uc, 0, sizeof(*uc));
+  uc->action_keys = 1;
+  uc->filter_type = uade_get_filter_type(NULL);
+  uc->gain = 1.0;
+  uc->panning = 0.7;
+  uc->silence_timeout = 20;
+  uc->subsong_timeout = 512;
+  uc->timeout = -1;
+}
+
+
 int uade_get_filter_type(const char *model)
 {
   int filter = FILTER_MODEL_A500E;
@@ -142,11 +155,6 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   char *value;
   int linenumber = 0;
 
-  memset(uc, 0, sizeof(*uc));
-
-  uc->filter = uade_get_filter_type(NULL);
-  uc->gain = 1.0;
-
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
 
@@ -169,22 +177,25 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     if (strncmp(key, "action_keys", 6) == 0) {
       if (value != NULL) {
 	if (strcasecmp(value, "on") == 0) {
-	  uc->action_keys = 2 | 1;
+	  uc->action_keys = 1;
 	} else if (strcasecmp(value, "off") == 0) {
-	  uc->action_keys = 2 | 0;
+	  uc->action_keys = 0;
 	} else {
 	  fprintf(stderr, "uade.conf: Unknown setting for action keys: %s\n", value);
 	}
       }
     } else if (strncmp(key, "filter", 6) == 0) {
-      uc->filter = uade_get_filter_type(value);
+      uc->filter_type = uade_get_filter_type(value);
       uc->no_filter = 0;
     } else if (strncmp(key, "force_led_off", 12) == 0) {
-      uc->force_led = 2 | 0;
+      uc->led_forced = 1;
+      uc->led_state = 0;
     } else if (strncmp(key, "force_led_on", 12) == 0) {
-      uc->force_led = 2 | 1;
+      uc->led_forced = 1;
+      uc->led_state = 1;
     } else if (strcmp(key, "gain") == 0) {
       uc->gain = uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
+      uc->gain_enable = 1;
     } else if (strncmp(key, "headphones", 4) == 0) {
       uc->headphones = 1;
     } else if (strncmp(key, "ignore_player_check", 6) == 0) {
@@ -196,12 +207,13 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 	uc->interpolator = strdup(value);
       }
     } else if (strncmp(key, "no_filter", 9) == 0) {
-      uc->filter = 0;
+      uc->filter_type = 0;
       uc->no_filter = 1;
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uc->one_subsong = 1;
     } else if (strncmp(key, "panning_value", 3) == 0) {
       uc->panning = uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
+      uc->panning_enable = 1;
     } else if (strncmp(key, "random_play", 6) == 0) {
       uc->random_play = 1;
     } else if (strncmp(key, "recursive_mode", 9) == 0) {

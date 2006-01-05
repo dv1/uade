@@ -1,3 +1,9 @@
+2006-01-05  Heikki Orsila <heikki.orsila@iki.fi>
+	- Continued cleaning up run-time configuration issues. uade123 and
+	  XMMS plugin do not duplicate settings anymore. Most configuration
+	  and command line options are stored inside 'struct uade_config'
+	  which is defined in src/frontends/common/uadeconf.h.
+
 2006-01-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed -I./include/ to be -I./include in src/Makefile.in to make
 	  it compatible with mingw.
