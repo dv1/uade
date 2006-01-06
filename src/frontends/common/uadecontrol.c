@@ -168,7 +168,6 @@ void uade_spawn(pid_t *uadepid, const char *uadename, const char *configname,
 {
   int forwardfds[2];
   int backwardfds[2];
-  char url[64];
 
   if (pipe(forwardfds) != 0 || pipe(backwardfds) != 0) {
     fprintf(stderr, "Can not create pipes: %s\n", strerror(errno));
@@ -215,15 +214,15 @@ void uade_spawn(pid_t *uadepid, const char *uadename, const char *configname,
     exit(-1);
   }
 
-  /* write destination */
-  snprintf(url, sizeof(url), "fd://%d", forwardfds[1]);
-  uade_set_output_destination(url);
-  /* read source */
-  snprintf(url, sizeof(url), "fd://%d", backwardfds[0]);
-  uade_set_input_source(url);
+  do {
+    char input[64], output[64];
+    snprintf(output, sizeof output, "fd://%d", forwardfds[1]);
+    snprintf(input, sizeof input, "fd://%d", backwardfds[0]);
+    uade_set_peer(1, input, output);
+  } while (0);
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname)) {
-    fprintf(stderr, "Can not send config name.\n");
+    fprintf(stderr, "Can not send config name: %s\n", strerror(errno));
     kill(*uadepid, SIGTERM);
     *uadepid = 0;
     exit(-1);

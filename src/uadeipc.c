@@ -24,17 +24,27 @@
 #include <unixatomic.h>
 
 
-unsigned int uade_inputbytes = 0;
-static char uade_inputbuffer[UADE_MAX_MESSAGE_SIZE];
+struct uade_ipc {
+  unsigned int inputbytes;
+  char inputbuffer[UADE_MAX_MESSAGE_SIZE];
+  int input_fd; /* stdin */
+  int output_fd; /* stdout */
+  enum uade_control_state state;
+};
 
-int uade_input_fd = 0; /* stdin */
-int uade_output_fd = 1; /* stdout */
 
-static int uade_control_state = UADE_INITIAL_STATE;
+static pid_t server_pid;
+static struct uade_ipc ipcc[2];
 
 
-static int uade_url_to_fd(const char *url, int flags, mode_t mode);
-static int uade_valid_message(struct uade_msg *uc);
+static int url_to_fd(const char *url, int flags, mode_t mode);
+static int valid_message(struct uade_msg *uc);
+
+
+static struct uade_ipc *get_peer(void)
+{
+  return &ipcc[(getpid() == server_pid) ? 0 : 1];
+}
 
 
 void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
@@ -61,52 +71,53 @@ void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
 }
 
 
-static ssize_t get_more(size_t bytes)
+static ssize_t get_more(size_t bytes, struct uade_ipc *ipc)
 {
-  if (uade_inputbytes < bytes) {
-    ssize_t s = atomic_read(uade_input_fd, &uade_inputbuffer[uade_inputbytes], bytes - uade_inputbytes);
+  if (ipc->inputbytes < bytes) {
+    ssize_t s = atomic_read(ipc->input_fd, &ipc->inputbuffer[ipc->inputbytes], bytes - ipc->inputbytes);
     if (s <= 0)
       return -1;
-    uade_inputbytes += s;
+    ipc->inputbytes += s;
   }
   return 0;
 }
 
 
-static void uade_copy_from_inputbuffer(void *dst, int bytes)
+static void copy_from_inputbuffer(void *dst, int bytes, struct uade_ipc *ipc)
 {
-  if (uade_inputbytes < bytes) {
+  if (ipc->inputbytes < bytes) {
     fprintf(stderr, "not enough bytes in input buffer\n");
     exit(-1);
   }
-  memcpy(dst, uade_inputbuffer, bytes);
-  memmove(uade_inputbuffer, &uade_inputbuffer[bytes], uade_inputbytes - bytes);
-  uade_inputbytes -= bytes;
+  memcpy(dst, ipc->inputbuffer, bytes);
+  memmove(ipc->inputbuffer, &ipc->inputbuffer[bytes], ipc->inputbytes - bytes);
+  ipc->inputbytes -= bytes;
 }
 
 
 int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 {
   size_t fullsize;
+  struct uade_ipc *ipc = get_peer();
 
-  if (uade_control_state == UADE_INITIAL_STATE) {
-    uade_control_state = UADE_R_STATE;
-  } else if (uade_control_state == UADE_S_STATE) {
+  if (ipc->state == UADE_INITIAL_STATE) {
+    ipc->state = UADE_R_STATE;
+  } else if (ipc->state == UADE_S_STATE) {
     fprintf(stderr, "protocol error: receiving in S state is forbidden\n");
     return -1;
   }
 
-  if (uade_inputbytes < sizeof(*um)) {
-    if (get_more(sizeof(*um)))
+  if (ipc->inputbytes < sizeof(*um)) {
+    if (get_more(sizeof(*um), ipc))
       return 0;
   }
 
-  uade_copy_from_inputbuffer(um, sizeof(*um));
+  copy_from_inputbuffer(um, sizeof(*um), ipc);
 
   um->msgtype = ntohl(um->msgtype);
   um->size = ntohl(um->size);
 
-  if (!uade_valid_message(um))
+  if (!valid_message(um))
     return -1;
 
   fullsize = um->size + sizeof(*um);
@@ -114,14 +125,14 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
     fprintf(stderr, "too big a command: %zu\n", fullsize);
     return -1;
   }
-  if (uade_inputbytes < um->size) {
-    if (get_more(um->size))
+  if (ipc->inputbytes < um->size) {
+    if (get_more(um->size, ipc))
       return -1;
   }
-  uade_copy_from_inputbuffer(&um->data, um->size);
+  copy_from_inputbuffer(&um->data, um->size, ipc);
 
   if (um->msgtype == UADE_COMMAND_TOKEN)
-    uade_control_state = UADE_S_STATE;
+    ipc->state = UADE_S_STATE;
 
   return 1;
 }
@@ -130,10 +141,11 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 int uade_receive_short_message(enum uade_msgtype msgtype)
 {
   struct uade_msg um;
+  struct uade_ipc *ipc = get_peer();
 
-  if (uade_control_state == UADE_INITIAL_STATE) {
-    uade_control_state = UADE_R_STATE;
-  } else if (uade_control_state == UADE_S_STATE) {
+  if (ipc->state == UADE_INITIAL_STATE) {
+    ipc->state = UADE_R_STATE;
+  } else if (ipc->state == UADE_S_STATE) {
     fprintf(stderr, "protocol error: receiving (%d) in S state is forbidden\n", msgtype);
     return -1;
   }
@@ -153,10 +165,11 @@ int uade_receive_string(char *s, enum uade_msgtype com,
   uint8_t commandbuf[COMLEN];
   struct uade_msg *um = (struct uade_msg *) commandbuf;
   int ret;
+  struct uade_ipc *ipc = get_peer();
 
-  if (uade_control_state == UADE_INITIAL_STATE) {
-    uade_control_state = UADE_R_STATE;
-  } else if (uade_control_state == UADE_S_STATE) {
+  if (ipc->state == UADE_INITIAL_STATE) {
+    ipc->state = UADE_R_STATE;
+  } else if (ipc->state == UADE_S_STATE) {
     fprintf(stderr, "protocol error: receiving in S state is forbidden\n");
     return -1;
   }
@@ -178,21 +191,22 @@ int uade_receive_string(char *s, enum uade_msgtype com,
 int uade_send_message(struct uade_msg *um)
 {
   uint32_t size = um->size;
+  struct uade_ipc *ipc = get_peer();
 
-  if (uade_control_state == UADE_INITIAL_STATE) {
-    uade_control_state = UADE_S_STATE;
-  } else if (uade_control_state == UADE_R_STATE) {
+  if (ipc->state == UADE_INITIAL_STATE) {
+    ipc->state = UADE_S_STATE;
+  } else if (ipc->state == UADE_R_STATE) {
     fprintf(stderr, "protocol error: sending in R state is forbidden\n");
     return -1;
   }
 
-  if (!uade_valid_message(um))
+  if (!valid_message(um))
     return -1;
   if (um->msgtype == UADE_COMMAND_TOKEN)
-    uade_control_state = UADE_R_STATE;
+    ipc->state = UADE_R_STATE;
   um->msgtype = htonl(um->msgtype);
   um->size = htonl(um->size);
-  if (atomic_write(uade_output_fd, um, sizeof(*um) + size) < 0)
+  if (atomic_write(ipc->output_fd, um, sizeof(*um) + size) < 0)
     return -1;
 
   return 0;
@@ -213,44 +227,63 @@ int uade_send_string(enum uade_msgtype com, const char *str)
 {
   uint32_t size = strlen(str) + 1;
   struct uade_msg um = {.msgtype = ntohl(com), .size = ntohl(size)};
+  struct uade_ipc *ipc = get_peer();
 
-  if (uade_control_state == UADE_INITIAL_STATE) {
-    uade_control_state = UADE_S_STATE;
-  } else if (uade_control_state == UADE_R_STATE) {
+  if (ipc->state == UADE_INITIAL_STATE) {
+    ipc->state = UADE_S_STATE;
+  } else if (ipc->state == UADE_R_STATE) {
     fprintf(stderr, "protocol error: sending in R state is forbidden\n");
     return -1;
   }
 
   if ((sizeof(um) + size) > UADE_MAX_MESSAGE_SIZE)
     return -1;
-  if (atomic_write(uade_output_fd, &um, sizeof(um)) < 0)
+  if (atomic_write(ipc->output_fd, &um, sizeof(um)) < 0)
     return -1;
-  if (atomic_write(uade_output_fd, str, size) < 0)
+  if (atomic_write(ipc->output_fd, str, size) < 0)
     return -1;
 
   return 0;
 }
 
 
-void uade_set_input_source(const char *input_source)
+static void set_input_source(const char *input_source, struct uade_ipc *ipc)
 {
-  if ((uade_input_fd = uade_url_to_fd(input_source, O_RDONLY, 0)) < 0) {
+  if ((ipc->input_fd = url_to_fd(input_source, O_RDONLY, 0)) < 0) {
     fprintf(stderr, "can not open input file %s: %s\n", input_source, strerror(errno));
     exit(-1);
   }
 }
 
 
-void uade_set_output_destination(const char *output_destination)
+static void set_output_destination(const char *output_destination, struct uade_ipc *ipc)
 {
-  if ((uade_output_fd = uade_url_to_fd(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
+  if ((ipc->output_fd = url_to_fd(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
     fprintf(stderr, "can not open output file %s: %s\n", output_destination, strerror(errno));
     exit(-1);
   }
 }
 
 
-static int uade_url_to_fd(const char *url, int flags, mode_t mode)
+void uade_set_peer(int peer_is_client, const char *input, const char *output)
+{
+  struct uade_ipc *ipc;
+  assert(peer_is_client == 0 || peer_is_client == 1);
+  assert(input != NULL);
+  assert(output != NULL);
+
+  if (peer_is_client == 0)
+    server_pid = getpid();
+
+  ipc = get_peer();
+  *ipc = (struct uade_ipc) {.state = UADE_INITIAL_STATE};
+
+  set_input_source(input, ipc);
+  set_output_destination(output, ipc);
+}
+
+
+static int url_to_fd(const char *url, int flags, mode_t mode)
 {
   int fd;
   if (strncmp(url, "fd://", 5) == 0) {
@@ -273,7 +306,7 @@ static int uade_url_to_fd(const char *url, int flags, mode_t mode)
 }
 
 
-static int uade_valid_message(struct uade_msg *um)
+static int valid_message(struct uade_msg *um)
 {
   if (um->msgtype <= UADE_MSG_FIRST || um->msgtype >= UADE_MSG_LAST) {
     fprintf(stderr, "unknown command: %d\n", um->msgtype);

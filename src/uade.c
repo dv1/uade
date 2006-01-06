@@ -517,6 +517,8 @@ void uade_option(int argc, char **argv)
   int cfg_loaded = 0;
   char optionsfile[UADE_PATH_MAX];
   int ret;
+  char *input = NULL;
+  char *output = NULL;
 
   /* network byte order is the big endian order */
   uade_big_endian = (htonl(0x1234) == 0x1234);
@@ -552,7 +554,7 @@ void uade_option(int argc, char **argv)
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
-	uade_set_input_source(argv[i + 1]);
+	input = argv[i + 1];
 	i += 2;
 
       } else if (!strcmp(argv[i], "-o")) {
@@ -561,7 +563,7 @@ void uade_option(int argc, char **argv)
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(-1);
 	}
-	uade_set_output_destination(argv[i + 1]);
+	output = argv[i + 1];
 	i += 2;
 
       } else if (!strcmp(argv[i], "--")) {
@@ -577,6 +579,8 @@ void uade_option(int argc, char **argv)
     }
   }
   s_argv[s_argc] = NULL;
+
+  uade_set_peer(0, input, output);
 
   ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
   if (ret == 0) {
