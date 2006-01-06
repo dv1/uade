@@ -224,8 +224,7 @@ void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, 
   assert(input != NULL);
   assert(output != NULL);
 
-  *ipc = (struct uade_ipc) {.is_client = peer_is_client,
-			    .state = UADE_INITIAL_STATE,
+  *ipc = (struct uade_ipc) {.state = UADE_INITIAL_STATE,
 			    .input= uade_ipc_set_input(input),
 			    .output = uade_ipc_set_output(output)};
 }

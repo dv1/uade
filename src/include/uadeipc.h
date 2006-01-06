@@ -12,7 +12,6 @@ enum uade_control_state {
 };
 
 struct uade_ipc {
-  int is_client;
   void *input;
   void *output;
   unsigned int inputbytes;
