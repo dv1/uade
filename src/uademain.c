@@ -283,8 +283,6 @@ void write_log_standard (const char *fmt, ...)
 
 int uade_main (int argc, char **argv)
 {
-    FILE *hf;
-
     default_prefs (&currprefs);
 
     uade_option (argc, argv);
