@@ -6,12 +6,7 @@
   * Copyright 1996 Bernd Schmidt
   */
 
-extern void do_start_program (void);
-extern void do_leave_program (void);
-extern void start_program (void);
-extern void leave_program (void);
-extern void usage (void);
-
+extern int uade_main (int argc, char **argv);
 extern void uae_quit (void);
 
 extern int quit_program;

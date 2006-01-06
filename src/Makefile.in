@@ -18,7 +18,7 @@ CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7
 OBJS = main.o newcpu.o memory.o custom.o cia.o readcpu.o cpudefs.o audio.o \
        compiler.o cpustbl.o missing.o sd-sound.o md-support.o cfgfile.o fpp.o \
        debug.o $(CPUEMUOBJS) uade.o players.o strlrep.o uadeipc.o \
-       unixatomic.o ossupport.o ipcsupport.o
+       unixatomic.o ossupport.o ipcsupport.o uademain.o
 
 all:	uadecore
 
@@ -96,7 +96,8 @@ touch:
 build68k.o: include/readcpu.h
 readcpu.o: include/readcpu.h
 
-main.o: 
+main.o:	include/uae.h
+uademain.o:	include/uae.h
 cia.o: include/events.h
 custom.o: include/events.h
 newcpu.o: newcpu.c include/uade.h include/events.h include/uademsg.h
