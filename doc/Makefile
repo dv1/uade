@@ -1,6 +1,9 @@
 
 all:	design.ps
 
+design.pdf:	design.dvi
+	dvipdf $<
+
 design.ps:	design.dvi
 	dvips -o $@ $<
 
