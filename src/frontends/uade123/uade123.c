@@ -44,6 +44,7 @@
 int uade_debug_trigger;
 struct uade_config uadeconf;
 struct uade_effect uade_effects;
+struct uade_ipc uadeipc;
 int uade_info_mode;
 double uade_jump_pos = 0.0;
 int uade_no_output;
@@ -437,7 +438,7 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  uade_spawn(&uadepid, uadename, configname, debug_mode);
+  uade_spawn(&uadeipc, &uadepid, uadename, configname, debug_mode);
 
   if (!audio_init())
     goto cleanup;
@@ -554,7 +555,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
     }
 
-    if ((ret = uade_song_initialization(scorename, playername, modulename))) {
+    if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc))) {
       if (ret == UADECORE_INIT_ERROR) {
 	goto cleanup;
       } else if (ret == UADECORE_CANT_PLAY) {
@@ -566,26 +567,26 @@ int main(int argc, char *argv[])
     }
 
     if (uadeconf.ignore_player_check) {
-      if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK) < 0) {
+      if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, &uadeipc) < 0) {
 	fprintf(stderr, "Can not send ignore check message.\n");
 	exit(-1);
       }
     }
 
     if (uadeconf.no_song_end) {
-      if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE) < 0) {
+      if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, &uadeipc) < 0) {
 	fprintf(stderr, "Can not send 'song end not possible'.\n");
 	exit(-1);
       }
     }
 
     if (subsong >= 0)
-      uade_set_subsong(subsong);
+      uade_set_subsong(subsong, &uadeipc);
 
-    uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced);
-    uade_send_interpolation_command(uadeconf.interpolator);
+    uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced, &uadeipc);
+    uade_send_interpolation_command(uadeconf.interpolator, &uadeipc);
     if (uadeconf.speed_hack) {
-      if (uade_send_short_message(UADE_COMMAND_SPEED_HACK)) {
+      if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, &uadeipc)) {
 	fprintf(stderr, "Can not send speed hack command.\n");
 	exit(-1);
       }

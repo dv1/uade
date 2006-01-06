@@ -344,6 +344,14 @@ cat > src/include/ossupport.h <<EOF
 EOF
 OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 
+cat > src/ipcsupport.c <<EOF
+#include "unixipc.c"
+EOF
+cat > src/include/ipcsupport.h <<EOF
+#include <unixipc.h>
+EOF
+IPCSUPPORTMODULES="unixipc.c include/unixipc.h"
+
 conffile=src/include/uadeconfig.h
 echo > "$conffile"
 if test "$user" = "yes" ; then
@@ -409,6 +417,7 @@ for file in src/Makefile.in src/frontends/*/Makefile.in ; do
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
 	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
 	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
+	-e "s|{IPCSUPPORTMODULES}|$IPCSUPPORTMODULES|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
 	"$file" > "$dst"
 done

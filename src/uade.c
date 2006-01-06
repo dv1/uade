@@ -81,6 +81,9 @@ static const int SCORE_CUR_SUBSONG   = 0x20C;
 static const int SCORE_OUTPUT_MSG    = 0x300;
 
 
+struct uade_ipc uadeipc;
+
+
 int uade_audio_skip;
 int uade_audio_output;
 int uade_debug = 0;
@@ -167,7 +170,7 @@ void uade_check_sound_buffers(int bytes)
   um->msgtype = UADE_REPLY_DATA;
   um->size = bytes;
   memcpy(um->data, sndbuffer, bytes);
-  if (uade_send_message(um)) {
+  if (uade_send_message(um, &uadeipc)) {
     fprintf(stderr, "uadecore: Could not send sample data.\n");
     exit(-1);
   }
@@ -177,7 +180,7 @@ void uade_check_sound_buffers(int bytes)
 
   if (uade_read_size == 0) {
     /* if all requested data has been sent, move to S state */
-    if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+    if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
       fprintf(stderr, "uadecore: Could not send token (after samples).\n");
       exit(-1);
     }
@@ -195,7 +198,7 @@ void uade_send_debug(const char *fmt, ...)
   va_list ap;
   va_start (ap, fmt);
   vsnprintf(dmsg, sizeof(dmsg), fmt, ap);
-  if (uade_send_string(UADE_REPLY_MSG, dmsg)) {
+  if (uade_send_string(UADE_REPLY_MSG, dmsg, &uadeipc)) {
     fprintf(stderr, "uadecore %s:%d: Could not send debug message.\n", __FILE__, __LINE__);
   }
 }
@@ -244,7 +247,7 @@ void uade_get_amiga_message(void)
     u32ptr[0] = htonl(mins);
     u32ptr[1] = htonl(maxs);
     u32ptr[2] = htonl(curs);
-    if (uade_send_message(um)) {
+    if (uade_send_message(um, &uadeipc)) {
       fprintf(stderr, "uadecore: Could not send subsong info message.\n");
       exit(-1);
     }
@@ -252,17 +255,17 @@ void uade_get_amiga_message(void)
 
   case AMIGAMSG_PLAYERNAME:
     strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
-    uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr);
+    uade_send_string(UADE_REPLY_PLAYERNAME, tmpstr, &uadeipc);
     break;
 
   case AMIGAMSG_MODULENAME:
     strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
-    uade_send_string(UADE_REPLY_MODULENAME, tmpstr);
+    uade_send_string(UADE_REPLY_MODULENAME, tmpstr, &uadeipc);
     break;
 
   case AMIGAMSG_FORMATNAME:
     strlcpy(tmpstr, (char *) get_real_address(0x204), sizeof tmpstr);
-    uade_send_string(UADE_REPLY_FORMATNAME, tmpstr);
+    uade_send_string(UADE_REPLY_FORMATNAME, tmpstr, &uadeipc);
     break;
 
   case AMIGAMSG_GENERALMSG:
@@ -398,7 +401,7 @@ void uade_handle_r_state(void)
 
   while (1) {
 
-    ret = uade_receive_message(um, sizeof(space));
+    ret = uade_receive_message(um, sizeof(space), &uadeipc);
     if (ret == 0) {
       fprintf(stderr, "uadecore: No more input. Exiting succesfully.\n");
       exit(0);
@@ -580,9 +583,9 @@ void uade_option(int argc, char **argv)
   }
   s_argv[s_argc] = NULL;
 
-  uade_set_peer(0, input, output);
+  uade_set_peer(&uadeipc, 0, input, output);
 
-  ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile));
+  ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile), &uadeipc);
   if (ret == 0) {
     fprintf(stderr, "uadecore: No config file passed as a message.\n");
     exit(-1);
@@ -698,7 +701,7 @@ void uade_reset(void)
 
   song.cur_subsong = song.min_subsong = song.max_subsong = 0;
 
-  ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename));
+  ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename), &uadeipc);
   if (ret == 0) {
     fprintf(stderr, "uadecore: No more songs to play.\n");
     exit(0);
@@ -707,7 +710,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_string(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername));
+  ret = uade_receive_string(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername), &uadeipc);
   if (ret == 0) {
     fprintf(stderr, "uadecore: Expected player name. Got nothing.\n");
     exit(-1);
@@ -721,7 +724,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_message(um, maxcommand);
+  ret = uade_receive_message(um, maxcommand, &uadeipc);
   if (ret == 0) {
     fprintf(stderr,"uadecore: Expected module name. Got nothing.\n");
     exit(-1);
@@ -859,16 +862,16 @@ void uade_reset(void)
 
   old_ledstate = gui_ledstate;
 
-  if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
+  if (uade_receive_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
     exit(-1);
   }
 
-  if (uade_send_short_message(UADE_REPLY_CAN_PLAY)) {
+  if (uade_send_short_message(UADE_REPLY_CAN_PLAY, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send 'CAN_PLAY' reply.\n");
     exit(-1);
   }
-  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+  if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
     exit(-1);
   }
@@ -877,16 +880,16 @@ void uade_reset(void)
  skiptonextsong:
   fprintf(stderr, "uadecore: Can not play. Reboot.\n");
 
-  if (uade_receive_short_message(UADE_COMMAND_TOKEN)) {
+  if (uade_receive_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
     exit(-1);
   }
 
-  if (uade_send_short_message(UADE_REPLY_CANT_PLAY)) {
+  if (uade_send_short_message(UADE_REPLY_CANT_PLAY, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send 'CANT_PLAY' reply.\n");
     exit(-1);
   }
-  if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+  if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
     exit(-1);
   }
@@ -1002,7 +1005,7 @@ void uade_song_end(char *reason, int kill_it)
   ((uint32_t *) um->data)[1] = htonl(kill_it);
   strlcpy((char *) um->data + 8, reason, 256);
   um->size = 8 + strlen(reason) + 1;
-  if (uade_send_message(um)) {
+  if (uade_send_message(um, &uadeipc)) {
     fprintf(stderr, "uadecore: Could not send song end message.\n");
     exit(-1);
   }

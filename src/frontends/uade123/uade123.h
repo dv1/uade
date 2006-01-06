@@ -13,6 +13,7 @@
 
 extern int uade_debug_trigger;
 extern struct uade_config uadeconf;
+extern struct uade_ipc uadeipc;
 extern struct uade_effect uade_effects;
 extern int uade_info_mode;
 extern double uade_jump_pos;

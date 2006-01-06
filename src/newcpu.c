@@ -1317,7 +1317,7 @@ void m68k_go (void)
     }
 
     if (uade_reboot) {
-      if (uade_send_short_message(UADE_COMMAND_TOKEN) < 0) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc) < 0) {
 	fprintf(stderr, "can not send reboot ack token\n");
 	exit(-1);
       }

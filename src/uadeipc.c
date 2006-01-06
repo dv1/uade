@@ -10,41 +10,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/poll.h>
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <netinet/in.h>
 
 #include <uadeipc.h>
 #include <strlrep.h>
-#include <unixatomic.h>
+#include <ipcsupport.h>
 
 
-struct uade_ipc {
-  unsigned int inputbytes;
-  char inputbuffer[UADE_MAX_MESSAGE_SIZE];
-  int input_fd; /* stdin */
-  int output_fd; /* stdout */
-  enum uade_control_state state;
-};
-
-
-static pid_t server_pid;
-static struct uade_ipc ipcc[2];
-
-
-static int url_to_fd(const char *url, int flags, mode_t mode);
 static int valid_message(struct uade_msg *uc);
-
-
-static struct uade_ipc *get_peer(void)
-{
-  return &ipcc[(getpid() == server_pid) ? 0 : 1];
-}
 
 
 void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
@@ -74,7 +50,7 @@ void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
 static ssize_t get_more(size_t bytes, struct uade_ipc *ipc)
 {
   if (ipc->inputbytes < bytes) {
-    ssize_t s = atomic_read(ipc->input_fd, &ipc->inputbuffer[ipc->inputbytes], bytes - ipc->inputbytes);
+    ssize_t s = uade_ipc_read(ipc->input, &ipc->inputbuffer[ipc->inputbytes], bytes - ipc->inputbytes);
     if (s <= 0)
       return -1;
     ipc->inputbytes += s;
@@ -95,10 +71,9 @@ static void copy_from_inputbuffer(void *dst, int bytes, struct uade_ipc *ipc)
 }
 
 
-int uade_receive_message(struct uade_msg *um, size_t maxbytes)
+int uade_receive_message(struct uade_msg *um, size_t maxbytes, struct uade_ipc *ipc)
 {
   size_t fullsize;
-  struct uade_ipc *ipc = get_peer();
 
   if (ipc->state == UADE_INITIAL_STATE) {
     ipc->state = UADE_R_STATE;
@@ -138,10 +113,9 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes)
 }
 
 
-int uade_receive_short_message(enum uade_msgtype msgtype)
+int uade_receive_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc)
 {
   struct uade_msg um;
-  struct uade_ipc *ipc = get_peer();
 
   if (ipc->state == UADE_INITIAL_STATE) {
     ipc->state = UADE_R_STATE;
@@ -150,7 +124,7 @@ int uade_receive_short_message(enum uade_msgtype msgtype)
     return -1;
   }
 
-  if (uade_receive_message(&um, sizeof(um)) <= 0) {
+  if (uade_receive_message(&um, sizeof(um), ipc) <= 0) {
     fprintf(stderr, "can not receive short message: %d\n", msgtype);
     return -1;
   }
@@ -159,13 +133,12 @@ int uade_receive_short_message(enum uade_msgtype msgtype)
 
 
 int uade_receive_string(char *s, enum uade_msgtype com,
-				size_t maxlen)
+			size_t maxlen, struct uade_ipc *ipc)
 {
   const size_t COMLEN = 4096;
   uint8_t commandbuf[COMLEN];
   struct uade_msg *um = (struct uade_msg *) commandbuf;
   int ret;
-  struct uade_ipc *ipc = get_peer();
 
   if (ipc->state == UADE_INITIAL_STATE) {
     ipc->state = UADE_R_STATE;
@@ -174,7 +147,7 @@ int uade_receive_string(char *s, enum uade_msgtype com,
     return -1;
   }
 
-  ret = uade_receive_message(um, COMLEN);
+  ret = uade_receive_message(um, COMLEN, ipc);
   if (ret <= 0)
     return ret;
   if (um->msgtype != com)
@@ -188,10 +161,9 @@ int uade_receive_string(char *s, enum uade_msgtype com,
 }
 
 
-int uade_send_message(struct uade_msg *um)
+int uade_send_message(struct uade_msg *um, struct uade_ipc *ipc)
 {
   uint32_t size = um->size;
-  struct uade_ipc *ipc = get_peer();
 
   if (ipc->state == UADE_INITIAL_STATE) {
     ipc->state = UADE_S_STATE;
@@ -206,16 +178,16 @@ int uade_send_message(struct uade_msg *um)
     ipc->state = UADE_R_STATE;
   um->msgtype = htonl(um->msgtype);
   um->size = htonl(um->size);
-  if (atomic_write(ipc->output_fd, um, sizeof(*um) + size) < 0)
+  if (uade_ipc_write(ipc->output, um, sizeof(*um) + size) < 0)
     return -1;
 
   return 0;
 }
 
 
-int uade_send_short_message(enum uade_msgtype msgtype)
+int uade_send_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc)
 {
-  if (uade_send_message(& (struct uade_msg) {.msgtype = msgtype})) {
+  if (uade_send_message(& (struct uade_msg) {.msgtype = msgtype}, ipc)) {
     fprintf(stderr, "can not send short message: %d\n", msgtype);
     return -1;
   }
@@ -223,11 +195,10 @@ int uade_send_short_message(enum uade_msgtype msgtype)
 }
 
 
-int uade_send_string(enum uade_msgtype com, const char *str)
+int uade_send_string(enum uade_msgtype com, const char *str, struct uade_ipc *ipc)
 {
   uint32_t size = strlen(str) + 1;
   struct uade_msg um = {.msgtype = ntohl(com), .size = ntohl(size)};
-  struct uade_ipc *ipc = get_peer();
 
   if (ipc->state == UADE_INITIAL_STATE) {
     ipc->state = UADE_S_STATE;
@@ -238,71 +209,25 @@ int uade_send_string(enum uade_msgtype com, const char *str)
 
   if ((sizeof(um) + size) > UADE_MAX_MESSAGE_SIZE)
     return -1;
-  if (atomic_write(ipc->output_fd, &um, sizeof(um)) < 0)
+  if (uade_ipc_write(ipc->output, &um, sizeof(um)) < 0)
     return -1;
-  if (atomic_write(ipc->output_fd, str, size) < 0)
+  if (uade_ipc_write(ipc->output, str, size) < 0)
     return -1;
 
   return 0;
 }
 
 
-static void set_input_source(const char *input_source, struct uade_ipc *ipc)
+void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, const char *output)
 {
-  if ((ipc->input_fd = url_to_fd(input_source, O_RDONLY, 0)) < 0) {
-    fprintf(stderr, "can not open input file %s: %s\n", input_source, strerror(errno));
-    exit(-1);
-  }
-}
-
-
-static void set_output_destination(const char *output_destination, struct uade_ipc *ipc)
-{
-  if ((ipc->output_fd = url_to_fd(output_destination, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-    fprintf(stderr, "can not open output file %s: %s\n", output_destination, strerror(errno));
-    exit(-1);
-  }
-}
-
-
-void uade_set_peer(int peer_is_client, const char *input, const char *output)
-{
-  struct uade_ipc *ipc;
   assert(peer_is_client == 0 || peer_is_client == 1);
   assert(input != NULL);
   assert(output != NULL);
 
-  if (peer_is_client == 0)
-    server_pid = getpid();
-
-  ipc = get_peer();
-  *ipc = (struct uade_ipc) {.state = UADE_INITIAL_STATE};
-
-  set_input_source(input, ipc);
-  set_output_destination(output, ipc);
-}
-
-
-static int url_to_fd(const char *url, int flags, mode_t mode)
-{
-  int fd;
-  if (strncmp(url, "fd://", 5) == 0) {
-    char *endptr;
-    if (url[5] == 0)
-      return -1;
-    fd = strtol(&url[5], &endptr, 10);
-    if (*endptr != 0)
-      return -1;
-  } else {
-    if (flags & O_WRONLY) {
-      fd = open(url, flags, mode);
-    } else {
-      fd = open(url, flags);
-    }
-  }
-  if (fd < 0)
-    fd = -1;
-  return fd;
+  *ipc = (struct uade_ipc) {.is_client = peer_is_client,
+			    .state = UADE_INITIAL_STATE,
+			    .input= uade_ipc_set_input(input),
+			    .output = uade_ipc_set_output(output)};
 }
 
 

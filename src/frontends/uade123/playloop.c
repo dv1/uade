@@ -146,7 +146,7 @@ int play_loop(void)
 	  uadeconf.led_forced = 1;
 	  uadeconf.led_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uadeconf.led_state & 1) ? "ON" : "OFF");
-	  uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced);
+	  uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced, &uadeipc);
 	  break;
 	case 'g':
 	  uade_effect_toggle(&uade_effects, UADE_EFFECT_GAIN);
@@ -220,7 +220,7 @@ int play_loop(void)
       }
 
       if (uade_debug_trigger == 1) {
-	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER)) {
+	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER, &uadeipc)) {
 	  fprintf(stderr, "\nCan not active debugger\n");
 	  return 0;
 	}
@@ -243,7 +243,7 @@ int play_loop(void)
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 	    time_bytes = 0;
-	    uade_change_subsong(cur_sub);
+	    uade_change_subsong(cur_sub, &uadeipc);
 	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
 	  }
 	} else {
@@ -254,17 +254,17 @@ int play_loop(void)
       /* Check if control-c was pressed */
       if (uade_song_end_trigger) {
 	next_song = 1;
-	if (uade_send_short_message(UADE_COMMAND_REBOOT)) {
+	if (uade_send_short_message(UADE_COMMAND_REBOOT, &uadeipc)) {
 	  fprintf(stderr, "\nCan not send reboot\n");
 	  return 0;
 	}
 	goto sendtoken;
       }
 
-      left = uade_read_request();
+      left = uade_read_request(&uadeipc);
 
     sendtoken:
-      if (uade_send_short_message(UADE_COMMAND_TOKEN)) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
 	fprintf(stderr, "\nCan not send token\n");
 	return 0;
       }
@@ -274,7 +274,7 @@ int play_loop(void)
 
       /* receive state */
 
-      if (uade_receive_message(um, sizeof(space)) <= 0) {
+      if (uade_receive_message(um, sizeof(space), &uadeipc) <= 0) {
 	fprintf(stderr, "\nCan not receive events from uade\n");
 	return 0;
       }
@@ -443,7 +443,7 @@ int play_loop(void)
   }
 
   do {
-    ret = uade_receive_message(um, sizeof(space));
+    ret = uade_receive_message(um, sizeof(space), &uadeipc);
     if (ret < 0) {
       fprintf(stderr, "\nCan not receive events (TOKEN) from uade.\n");
       return 0;

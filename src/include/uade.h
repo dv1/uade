@@ -1,6 +1,8 @@
 #ifndef _UADE_MAIN_H_
 #define _UADE_MAIN_H_
 
+#include <uadeipc.h>
+
 #define UADE_PATH_MAX (1024)
 
 struct uade_song {
@@ -34,5 +36,7 @@ extern int uade_local_sound;
 extern int uade_read_size;
 extern int uade_reboot;
 extern int uade_time_critical;
+
+extern struct uade_ipc uadeipc;
 
 #endif
