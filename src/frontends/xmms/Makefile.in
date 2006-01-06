@@ -45,7 +45,7 @@ uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -c $<
 
-unixipc.o:	../../unixipc.c ../../include/unixipc.h
+unixipc.o:	../../unixipc.c ../../include/ipcsupport.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:	

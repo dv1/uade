@@ -347,10 +347,7 @@ OSSUPPORTMODULES="unixsupport.c include/unixsupport.h"
 cat > src/ipcsupport.c <<EOF
 #include "unixipc.c"
 EOF
-cat > src/include/ipcsupport.h <<EOF
-#include <unixipc.h>
-EOF
-IPCSUPPORTMODULES="unixipc.c include/unixipc.h"
+IPCSUPPORTMODULES="unixipc.c"
 
 conffile=src/include/uadeconfig.h
 echo > "$conffile"

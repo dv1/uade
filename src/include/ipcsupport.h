@@ -1,5 +1,5 @@
-#ifndef _UNIXIPC_H_
-#define _UNIXIPC_H_
+#ifndef _IPC_SUPPORT_H_
+#define _IPC_SUPPORT_H_
 
 #include <stdlib.h>
 #include <stdio.h>
