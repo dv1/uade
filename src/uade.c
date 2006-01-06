@@ -45,6 +45,8 @@ enum print_help {
 };
 
 
+static void change_subsong(int subsong);
+
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end);
 static int uade_get_u32(int addr);
 static void uade_print_help(enum print_help problemcode, char *progname);
@@ -104,6 +106,15 @@ static int uade_speed_hack = 0;
 static int voltestboolean = 0;
 
 
+static void change_subsong(int subsong)
+{
+  song.cur_subsong = subsong;
+  uade_put_long(SCORE_SUBSONG, subsong);
+  uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
+  flush_sound();
+}
+
+
 static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
 {
   uae_u32 offset;
@@ -138,15 +149,6 @@ static int uade_calc_reloc_size(uae_u32 *src, uae_u32 *end)
   if (((int) offset) <= 0 || ((int) offset) >= uade_highmem)
     return 0;
   return ((int) offset);
-}
-
-
-void uade_change_subsong(int subsong)
-{
-  song.cur_subsong = subsong;
-  uade_put_long(SCORE_SUBSONG, subsong);
-  uade_send_amiga_message(AMIGAMSG_SETSUBSONG);
-  flush_sound();
 }
 
 
@@ -427,7 +429,7 @@ void uade_handle_r_state(void)
 	exit(-1);
       }
       x = ntohl(* (uint32_t *) um->data);
-      uade_change_subsong(x);
+      change_subsong(x);
       break;
 
     case UADE_COMMAND_FILTER:

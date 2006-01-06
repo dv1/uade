@@ -1,6 +1,6 @@
 #include <uae.h>
 
-int main(char *argc, char **argv)
+int main(int argc, char **argv)
 {
     return uade_main(argc, argv);
 }
