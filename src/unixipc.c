@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <unixipc.h>
+#include <ipcsupport.h>
 #include <unixatomic.h>
 
 
