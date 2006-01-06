@@ -293,6 +293,8 @@ int play_loop(void)
 	}
 
 	if (subsong_end) {
+	  /* We can only rely on 'tailbytes' amount which was determined
+	     earlier when UADE_REPLY_SONG_END happened */
 	  playbytes = tailbytes;
 	  tailbytes = 0;
 	} else {
