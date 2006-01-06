@@ -1,4 +1,4 @@
-#include <sys/poll.h>
+#include <sys/select.h>
 #include <errno.h>
 
 #include <unixatomic.h>
@@ -43,8 +43,11 @@ ssize_t atomic_read(int fd, const void *buf, size_t count)
       if (errno == EINTR)
         continue;
       if (errno == EAGAIN) {
-	if (poll(& (struct pollfd) {.fd = fd, .events = POLLIN}, 1, -1) == 0)
-	  fprintf(stderr, "atomic_read: very strange. infinite poll() returned 0. report this!\n");
+	fd_set s;
+	FD_ZERO(&s);
+	FD_SET(fd, &s);
+	if (select(fd + 1, &s, NULL, NULL, NULL) == 0)
+	  fprintf(stderr, "atomic_read: very strange. infinite select() returned 0. report this!\n");
 	continue;
       }
       return -1;
@@ -68,10 +71,11 @@ ssize_t atomic_write(int fd, const void *buf, size_t count)
       if (errno == EINTR)
         continue;
       if (errno == EAGAIN) {
-	fprintf(stderr, "polling\n");
-	if (poll(& (struct pollfd) {.fd = fd, .events = POLLOUT}, 1, -1) == 0)
-	  fprintf(stderr, "atomic_write: very strange. infinite poll() returned 0. report this!\n");
-	fprintf(stderr, "pollexit\n");
+	fd_set s;
+	FD_ZERO(&s);
+	FD_SET(fd, &s);
+	if (select(fd + 1, NULL, &s, NULL, NULL) == 0)
+	  fprintf(stderr, "atomic_write: very strange. infinite select() returned 0. report this!\n");
 	continue;
       }
       return -1;

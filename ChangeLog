@@ -1,6 +1,8 @@
 2006-01-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made uadeipc() re-entrant so that uadecore and a frontend could in
 	  theory be run in the same process but different threads.
+	- Replaced poll() with select() in unixatomic.c to be compatible with
+	  weak systems.
 
 2006-01-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continued cleaning up run-time configuration issues. uade123 and
