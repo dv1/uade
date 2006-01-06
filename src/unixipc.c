@@ -34,6 +34,8 @@ static int url_to_fd(const char *url, int flags, mode_t mode)
 }
 
 
+/* This must read the full size_t count if it can, and therefore we use
+   atomic_read() */
 ssize_t uade_ipc_read(void *f, const void *buf, size_t count)
 {
   int fd = (intptr_t) f;
@@ -41,6 +43,8 @@ ssize_t uade_ipc_read(void *f, const void *buf, size_t count)
 }
 
 
+/* This must write the full size_t count if it can, and therefore we use
+   atomic_write() */
 ssize_t uade_ipc_write(void *f, const void *buf, size_t count)
 {
   int fd = (intptr_t) f;
