@@ -1,11 +1,16 @@
 CC = {CC}
+NATIVECC = {NATIVECC}
 
 ARCHFLAGS = {ARCHFLAGS}
 ARCHLIBS = {ARCHLIBS}
 DEBUGFLAGS = {DEBUGFLAGS}
 
-CFLAGS	= -fomit-frame-pointer -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS) -g
+CFLAGS = -fomit-frame-pointer -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(ARCHFLAGS) -g
 LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
+
+# Native flags are used to build tools that generate new code that is then
+# compiled with the target compiler.
+NATIVECFLAGS = -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -fno-exceptions -fno-strength-reduce -O2 -g
 
 .SUFFIXES: .a .o .c .h .S
 
@@ -15,32 +20,53 @@ INCLUDES=-I. -I./include
 
 CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7.o cpuemu8.o
 
-OBJS = main.o newcpu.o memory.o custom.o cia.o readcpu.o cpudefs.o audio.o \
-       compiler.o cpustbl.o missing.o sd-sound.o md-support.o cfgfile.o fpp.o \
-       debug.o $(CPUEMUOBJS) uade.o players.o strlrep.o uadeipc.o \
-       unixatomic.o ossupport.o ipcsupport.o uademain.o
+OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
+       missing.o sd-sound.o md-support.o cfgfile.o fpp.o debug.o \
+       readcpu.o cpudefs.o $(CPUEMUOBJS) \
+       uade.o players.o strlrep.o uadeipc.o unixatomic.o ossupport.o \
+       ipcsupport.o uademain.o
 
 all:	uadecore
 
-uadecore:	$(OBJS) $(DECOBJS)
-	$(CC) $(ARCHFLAGS) $(OBJS) $(DECOBJS) -o uadecore $(DEBUGFLAGS) $(LIBRARIES) $(MATHLIB)
+uadecore:	$(OBJS)
+	$(CC) $(ARCHFLAGS) $(DEBUGFLAGS) $(LIBRARIES) $(MATHLIB) -o $@ $(OBJS)
 
 clean:
 	-rm -f $(OBJS) *.o uade
-	-rm -f gencpu cpudefs.c cpuopti
+	-rm -f gencpu cpudefs.c
 	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
 
+# First native builds
+
 build68k: build68k.o
-	$(CC) $(ARCHFLAGS) -o build68k build68k.o
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o build68k build68k.o
 
-cpuopti: cpuopti.o
-	$(CC) $(ARCHFLAGS) -o cpuopti cpuopti.o
+gencpu:	gencpu.o nativereadcpu.o nativecpudefs.o nativemissing.o
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o gencpu gencpu.o nativereadcpu.o nativecpudefs.o nativemissing.o
 
-gencpu: gencpu.o readcpu.o cpudefs.o missing.o
-	$(CC) $(ARCHFLAGS) -o gencpu gencpu.o readcpu.o missing.o cpudefs.o
+build68k.o:	build68k.c include/readcpu.h
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c $<
+
+gencpu.o:	gencpu.c include/readcpu.h
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c $<
+
+nativereadcpu.o:	readcpu.c include/readcpu.h
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c -o $@ $<
+
+nativemissing.o:	missing.c
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c -o $@ $<
 
 cpuemu.c cputbl.h cpustbl.c: gencpu
 	./gencpu
+
+nativecpudefs.o:	cpudefs.c include/readcpu.h
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c -o $@ $<
+
+cpudefs.c:	build68k table68k
+	./build68k <./table68k >cpudefs.c
+
+
+# Then target builds
 
 cpustbl.o: cpuemu.c
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) -o $@ cpustbl.c
@@ -71,9 +97,6 @@ cpuemu8.o: cpuemu.c
 
 custom.o:	include/audio.h
 
-cpudefs.c:	build68k table68k
-	./build68k <./table68k >cpudefs.c
-
 .rc.res:
 	$(WRC) $(INCLUDES) $<
 .m.o:
@@ -90,11 +113,11 @@ cpudefs.c:	build68k table68k
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) $< -o $@
 
 # Saves recompiling...
-touch:
-	touch *.o; touch build68k; touch cpudefs.c; touch cpudefs.o; touch gencpu; touch cpuemu.c; touch cpuopti.o cpuopti cpuemu*.o cpufast.o
+touch:	
+	touch *.o; touch build68k; touch cpudefs.c; touch cpudefs.o; touch gencpu; touch cpuemu.c; touch cpuemu*.o cpufast.o
 
-build68k.o: include/readcpu.h
-readcpu.o: include/readcpu.h
+cpudefs.o:	cpudefs.c include/readcpu.h
+readcpu.o:	readcpu.c include/readcpu.h
 
 main.o:	include/uae.h
 uademain.o:	include/uae.h
