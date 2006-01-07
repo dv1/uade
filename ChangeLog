@@ -1,3 +1,6 @@
+2006-01-07  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed fopen() to use "b" flag for porting to Windows environment.
+	
 2006-01-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made uadeipc() re-entrant so that uadecore and a frontend could in
 	  theory be run in the same process but different threads.

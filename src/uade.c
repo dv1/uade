@@ -647,7 +647,7 @@ static int uade_safe_load_name(int vaddr, char *name, const char *expl,
 {
   int bytesread;
   FILE *file;
-  file = fopen(name, "r");
+  file = fopen(name, "rb");
   if (!file) {
     fprintf(stderr, "uadecore: Could not load %s %s.\n", expl, name);
     return 0;
@@ -818,7 +818,7 @@ void uade_reset(void)
   }
 
   /* load sound core (score) */
-  if ((file = fopen(song.scorename, "r"))) {
+  if ((file = fopen(song.scorename, "rb"))) {
     bytesread = uade_safe_load(scoreaddr, file, uade_highmem - scoreaddr);
     fclose(file);
   } else {
