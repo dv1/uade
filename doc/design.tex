@@ -11,11 +11,54 @@
 \date{}
 \maketitle
 
+\section{Introduction}
+
+UADE (\emph{Unix Amiga Delitracker Emulator}) plays various
+Amiga music formats by hardware and software emulation.
+Approximately 200 formats are known to work more or less properly.
+
+Despite
+considerable performance requirements of emulating hardware and software,
+UADE requires only approximately $5$\% CPU resources with a current
+(2006-01-01) computer system ($2.0$ GHz AMD64).
+
+The full system consists of $4$ layers shown in Figure
+\ref{fig:layers}. The frontend layer handles all user-interface and high-level
+control issues. The frontend relays user-induced commands for the emulator.
+The emulator is programmed to emulate a reduced Amiga 500 model and load
+boot software and data for it. The Amiga model is called reduced because 
+it lacks
+functionality of some peripheral devices and custom graphics chips. It only
+needs to run MC68000 software to produce sound through Amigas audio
+chip. The loaded software consists of 2 two components, which are the sound
+core (\emph{score}) and some eagleplayer plugin. The loaded data is a song to
+be played by the eagleplayer plugin.
+The emulated machine is booted after this.
+Boot procedure starts execution from the score, which initializes emulated
+hardware and setups an environment that contains some essential features
+from AmigaOS and Eagleplayer APIs.
+The score executes the eagleplayer plugin to play the music with the data
+that was loaded. The eagleplayer plugin can load additional
+data files from the native host operating system if required.
+
+This document explains internal issues between the frontend and the emulator.
+Interaction between the emulated and native software is not documented.
+ 
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{layers.eps}
+\caption{UADE software layers}
+\label{fig:layers}
+\end{figure}
+
 \section{History}
 
-UADE 1.xx was written to be a stand-alone program that had separate code
-for each possible \emph{frontend} (\emph{user interface}), but there was
-no internal structure to implement different frontends easily. By much
+UADE 1.xx (2000-04-09) was written to be a stand-alone program without
+consideration to implementing many different user interfaces
+(\emph{frontends}) for it. There was
+no internal structure to implement different frontends easily, which
+became rapidly a big problem because users requested many different kinds
+of interfaces. By much
 hacking some kind of pseudo-interface was created to facilitate following
 frontends:
 \begin{itemize}
@@ -26,9 +69,9 @@ frontends:
   \item XMMS plugin
 \end{itemize}
 
-It was a clear design problem that needed to be fixed. To force the separation
-of frontend and \emph{uadecore} (emulator), UADE 2.xx removed all user
-interface issues from the uadecore.
+To force the separation of user interface and effective functionality,
+UADE 2.00 (2006-01-01) removed all the user interface code from the
+emulator part (\emph{uadecore}).
 
 \section{Message-passing protocol}
 In UADE 2.xx the emulator (uadecore) became an independent process without
@@ -455,5 +498,36 @@ options have been sent already.
 \caption{Play loop interaction from client (frontend) perspective}
 \label{fig:playloop}
 \end{figure}
+
+\section{Portability considerations}
+
+Language requirements:
+\begin{itemize}
+\item Limited C99 compiler that has:
+  \begin{itemize}
+  \item Anonymous initializers for structures: \mbox{struct foo bar = (struct foo) \{.x = y\};}
+  \item Portable integer types from stdint.h.
+  \end{itemize}
+\end{itemize}
+
+Architecture specific parts that need to be implemented:
+\begin{itemize}
+\item User-interface (frontend)
+\item IPC between a frontend and the emulator
+  may have to implemented. The unixipc.c module implements the IPC for UNIX
+  systems. The interface for IPC is generic and an implementation must
+  follow ipcsupport.h headers. However, the interface can be changed if it
+  causes too much problems for some system.
+\end{itemize}
+
+Other issues:
+\begin{itemize}
+\item File modes of C fopen() calls. Windows systems have binary and
+  non-binary modes which is different to UNIX systems. UNIX systems only
+  have the binary mode. Some fopen() calls may open files without the ``b''
+  flag which means non-binary mode for Windows. As a result there may be
+  data corrupt when reading binary files such as eagleplayer plugins. Please
+  check that all fopen calls have the ``b'' flag set.
+\end{itemize}
 
 \end{document}
