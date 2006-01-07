@@ -22,6 +22,6 @@ int uade_song_initialization(const char *scorename,
 			     const char *modulename,
 			     struct uade_ipc *ipc);
 void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
-		const char *configname, int debug_mode);
+		const char *configname);
 
 #endif

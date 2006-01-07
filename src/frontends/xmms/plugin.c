@@ -674,7 +674,7 @@ static void uade_play_file(char *filename)
   if (!uadepid) {
     char configname[PATH_MAX];
     snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
-    uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname, 0);
+    uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname);
   }
 
   if (!uade_ip.output->open_audio(sample_format, UADE_FREQUENCY, UADE_CHANNELS)) {

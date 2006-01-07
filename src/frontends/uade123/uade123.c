@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  uade_spawn(&uadeipc, &uadepid, uadename, configname, debug_mode);
+  uade_spawn(&uadeipc, &uadepid, uadename, configname);
 
   if (!audio_init())
     goto cleanup;

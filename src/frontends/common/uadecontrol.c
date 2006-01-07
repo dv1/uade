@@ -166,7 +166,7 @@ int uade_song_initialization(const char *scorename,
 
 
 void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
-		const char *configname, int debug_mode)
+		const char *configname)
 {
   int forwardfds[2];
   int backwardfds[2];
@@ -199,11 +199,7 @@ void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
     /* give in/out fds as command line parameters to the uade process */
     snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
     snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
-    if (debug_mode) {
-      execlp(uadename, uadename, "-d", "-i", instr, "-o", outstr, (char *) NULL);
-    } else {
-      execlp(uadename, uadename, "-i", instr, "-o", outstr, (char *) NULL);
-    }
+    execlp(uadename, uadename, "-i", instr, "-o", outstr, (char *) NULL);
     fprintf(stderr, "Execlp failed: %s\n", strerror(errno));
     abort();
   }

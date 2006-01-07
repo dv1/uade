@@ -645,7 +645,7 @@ static void uade_print_help(enum print_help problemcode, char *progname)
 static int uade_safe_load_name(int vaddr, char *name, const char *expl,
 			       int maxlen)
 {
-  int bytesread, status;
+  int bytesread;
   FILE *file;
   file = fopen(name, "r");
   if (!file) {
