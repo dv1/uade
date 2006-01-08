@@ -265,6 +265,14 @@ int play_loop(void)
 
       left = uade_read_request(&uadeipc);
 
+    sendtoken:
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
+	fprintf(stderr, "\nCan not send token\n");
+	return 0;
+      }
+
+      state = UADE_R_STATE;
+
       if (what_was_left) {
 	if (subsong_end) {
 	  /* We can only rely on 'tailbytes' amount which was determined
@@ -328,13 +336,6 @@ int play_loop(void)
 	  }
 	}
       }
-
-    sendtoken:
-      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
-	fprintf(stderr, "\nCan not send token\n");
-	return 0;
-      }
-      state = UADE_R_STATE;
 
     } else {
 
