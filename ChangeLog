@@ -3,6 +3,10 @@
 	  (Michal Januszewski <spock@gentoo.org>).
 	- Added some more b-flags for fopen(). This time in code in
 	  src/frontends/common.
+	- Cleaned up sound data buffering code in uadeipc.c, uade.c and
+	  audio.c. Removed uademsg.h as being useless.
+	- Changed uadecontrol.c to uadeipc.c in src/Makefile.in because
+	  uadecontrol.c is long gone.
 
 2006-01-07  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed fopen() to use "b" flag for porting to Windows environment.

@@ -232,12 +232,14 @@ void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, 
 
 static int valid_message(struct uade_msg *um)
 {
+  size_t len;
   if (um->msgtype <= UADE_MSG_FIRST || um->msgtype >= UADE_MSG_LAST) {
     fprintf(stderr, "unknown command: %d\n", um->msgtype);
     return 0;
   }
-  if ((sizeof(*um) + um->size) > UADE_MAX_MESSAGE_SIZE) {
-    fprintf(stderr, "too long a message\n");
+  len = sizeof(*um) + um->size;
+  if (len > UADE_MAX_MESSAGE_SIZE) {
+    fprintf(stderr, "too long a message: %zd\n", len);
     return 0;
   }
   return 1;

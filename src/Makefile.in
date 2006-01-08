@@ -123,7 +123,7 @@ main.o:	include/uae.h
 uademain.o:	include/uae.h
 cia.o: include/events.h
 custom.o: include/events.h
-newcpu.o: newcpu.c include/uade.h include/events.h include/uademsg.h
+newcpu.o: newcpu.c include/uade.h include/events.h include/uadeipc.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
 sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
@@ -132,9 +132,9 @@ memory.o:
 debug.o: 
 fpp.o: 
 
-uade.o: include/uade.h sd-sound.h include/uademsg.h include/uadeconstants.h
+uade.o: include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h
 
-uadecontrol.o:	include/uadecontrol.h include/uademsg.h
+uadeipc.o:	include/uadeipc.h
 
 players.o:	players.c players.h
 

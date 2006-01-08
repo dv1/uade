@@ -44,7 +44,7 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uademsg.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h
+uade123.o:	uade123.c uade123.h ../../include/uadeipc.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/eagleplayer.h ../common/amifilemagic.h ../common/uadecontrol.h ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
 uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h
@@ -53,7 +53,7 @@ uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h
 uadecontrol.o:	../common/uadecontrol.c ../common/uadecontrol.h
 	$(CC) $(CFLAGS) -c $<
 
-uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
+uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h
 	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h

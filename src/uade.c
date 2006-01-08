@@ -478,7 +478,7 @@ void uade_handle_r_state(void)
 	exit(-1);
       }
       uade_read_size = ntohl(* (uint32_t *) um->data);
-      if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE) {
+      if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE || (uade_read_size & 3) != 0) {
 	fprintf(stderr, "uadecore: Invalid read size: %d\n", uade_read_size);
 	exit(-1);
       }
@@ -673,8 +673,7 @@ void uade_reset(void)
   FILE *file;
   int bytesread;
 
-  const int maxcommand = 4096;
-  uint8_t command[maxcommand];
+  uint8_t command[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) command;
 
   int ret;
@@ -726,7 +725,7 @@ void uade_reset(void)
     exit(-1);
   }
 
-  ret = uade_receive_message(um, maxcommand, &uadeipc);
+  ret = uade_receive_message(um, sizeof command, &uadeipc);
   if (ret == 0) {
     fprintf(stderr,"uadecore: Expected module name. Got nothing.\n");
     exit(-1);

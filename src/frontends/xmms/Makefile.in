@@ -39,7 +39,7 @@ uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h
 uadecontrol.o:	../common/uadecontrol.c ../common/uadecontrol.h
 	$(CC) $(CFLAGS) -c $<
 
-uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h ../../include/uademsg.h
+uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h
 	$(CC) $(CFLAGS) -c $<
 
 unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h

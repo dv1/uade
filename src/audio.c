@@ -150,8 +150,8 @@ static void check_sound_buffers (void)
     assert(uade_read_size > 0);
     intptr_t bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
     if (uade_audio_output) {
-	if (bytes == 2048 || bytes == uade_read_size) {
-	    uade_check_sound_buffers(uade_read_size > 2048 ? 2048 : uade_read_size);
+	if (bytes == uade_read_size) {
+	    uade_check_sound_buffers(uade_read_size);
 	    sndbufpt = sndbuffer;
 	}
     } else {
