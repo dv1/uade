@@ -130,7 +130,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   static int warnings = 1;
   size_t bufsize;
 
-  if ((f = fopen(modulename, "r")) == NULL) {
+  if ((f = fopen(modulename, "rb")) == NULL) {
     fprintf(stderr, "Can not open module: %s\n", modulename);
     return NULL;
   }
@@ -239,7 +239,7 @@ int uade_file_md5(char *asciimd5, const char *filename, size_t len)
 
   if (len < 33)
     return 0;
-  if ((f = fopen(filename, "r")) == NULL)
+  if ((f = fopen(filename, "rb")) == NULL)
     return 0;
 
   MD5Init(&ctx);
