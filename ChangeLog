@@ -7,6 +7,13 @@
 	  audio.c. Removed uademsg.h as being useless.
 	- Changed uadecontrol.c to uadeipc.c in src/Makefile.in because
 	  uadecontrol.c is long gone.
+	- Optimized uade123 to issue next song data request for the uadecore
+	  before passing sample data to libao. This way the uadecore may
+	  do useful work while libao is blocked on sound device. This didn't
+	  solve the underrun problem completely but effect of improving
+	  behavior is clearly observable with 'top'. Before this change, top
+	  showed only 0.4% CPU usage for uadecore, but after the change it
+	  shows 3.3% CPU usage, and the latter reflects reality much better.
 
 2006-01-07  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed fopen() to use "b" flag for porting to Windows environment.

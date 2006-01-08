@@ -70,7 +70,10 @@ int play_loop(void)
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
 
-  int left;
+  uint8_t sampledata[UADE_MAX_MESSAGE_SIZE];
+  int left = 0;
+  int what_was_left = 0;
+
   int subsong_end = 0;
   int next_song = 0;
   int ret;
@@ -97,7 +100,6 @@ int play_loop(void)
 
   test_song_end_trigger(); /* clear a pending SIGINT */
 
-  left = 0;
   enum uade_control_state state = UADE_S_STATE;
 
   while (next_song == 0) {
@@ -263,42 +265,14 @@ int play_loop(void)
 
       left = uade_read_request(&uadeipc);
 
-    sendtoken:
-      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
-	fprintf(stderr, "\nCan not send token\n");
-	return 0;
-      }
-      state = UADE_R_STATE;
-
-    } else {
-
-      /* receive state */
-
-      if (uade_receive_message(um, sizeof(space), &uadeipc) <= 0) {
-	fprintf(stderr, "\nCan not receive events from uade\n");
-	return 0;
-      }
-      
-      switch (um->msgtype) {
-
-      case UADE_COMMAND_TOKEN:
-	state = UADE_S_STATE;
-	break;
-
-      case UADE_REPLY_DATA:
-	sm = (uint16_t *) um->data;
-	for (i = 0; i < um->size; i += 2) {
-	  *sm = ntohs(*sm);
-	  sm++;
-	}
-
+      if (what_was_left) {
 	if (subsong_end) {
 	  /* We can only rely on 'tailbytes' amount which was determined
 	     earlier when UADE_REPLY_SONG_END happened */
 	  playbytes = tailbytes;
 	  tailbytes = 0;
 	} else {
-	  playbytes = um->size;
+	  playbytes = what_was_left;
 	}
 
 	time_bytes += playbytes;
@@ -316,14 +290,14 @@ int play_loop(void)
 	    playbytes = 0;
 	  } else {
 	    playbytes -= skip_bytes;
-	    memmove(um->data, ((uint8_t *) um->data) + skip_bytes, playbytes);
+	    memmove(sampledata, sampledata + skip_bytes, playbytes);
 	    skip_bytes = 0;
 	  }
 	}
 
-	uade_effect_run(&uade_effects, (int16_t *) um->data, playbytes / framesize);
+	uade_effect_run(&uade_effects, (int16_t *) sampledata, playbytes / framesize);
 
-	if (!audio_play(um->data, playbytes)) {
+	if (!audio_play(sampledata, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");
 	  return 0;
 	}
@@ -353,9 +327,44 @@ int play_loop(void)
 	    subsong_end = 1;
 	  }
 	}
+      }
 
-	assert (left >= um->size);
-	left -= um->size;
+    sendtoken:
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
+	fprintf(stderr, "\nCan not send token\n");
+	return 0;
+      }
+      state = UADE_R_STATE;
+
+    } else {
+
+      /* receive state */
+
+      if (uade_receive_message(um, sizeof(space), &uadeipc) <= 0) {
+	fprintf(stderr, "\nCan not receive events from uade\n");
+	return 0;
+      }
+      
+      switch (um->msgtype) {
+
+      case UADE_COMMAND_TOKEN:
+	state = UADE_S_STATE;
+	break;
+
+      case UADE_REPLY_DATA:
+	sm = (uint16_t *) um->data;
+	for (i = 0; i < um->size; i += 2) {
+	  *sm = ntohs(*sm);
+	  sm++;
+	}
+
+	assert (left == um->size);
+	assert (sizeof sampledata >= um->size);
+
+	memcpy(sampledata, um->data, um->size);
+
+	what_was_left = left;
+	left = 0;
 	break;
 	
       case UADE_REPLY_FORMATNAME:
