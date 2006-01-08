@@ -35,7 +35,7 @@ md5.o:	../common/md5.c ../common/md5.h
 playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<
 
-playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../common/uadeconf.h
+playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../common/uadeconf.h ../../include/uadeipc.h
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h
@@ -50,7 +50,7 @@ uade123.o:	uade123.c uade123.h ../../include/uadeipc.h ../../include/uadeconfig.
 uadeconf.o:	../common/uadeconf.c ../common/uadeconf.h
 	$(CC) $(CFLAGS) -c $<
 
-uadecontrol.o:	../common/uadecontrol.c ../common/uadecontrol.h
+uadecontrol.o:	../common/uadecontrol.c ../common/uadecontrol.h ../../include/uadeipc.h
 	$(CC) $(CFLAGS) -c $<
 
 uadeipc.o:	../../uadeipc.c ../../include/uadeipc.h
