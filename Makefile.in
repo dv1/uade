@@ -14,6 +14,7 @@ DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 XMMSPLUGINDIR= {PACKAGEPREFIX}{XMMSPLUGINDIR}
+AUDACIOUSPLUGINDIR= {PACKAGEPREFIX}{AUDACIOUSPLUGINDIR}
 
 UADECORE={UADECORE}
 UADECORENAME={UADECORENAME}
@@ -23,6 +24,8 @@ UADE123NAME={UADE123NAME}
 UADE123INSTALL={UADE123INSTALL}
 XMMSPLUGIN={XMMSPLUGIN}
 XMMSPLUGININSTALL={XMMSPLUGININSTALL}
+AUDACIOUSPLUGIN={AUDACIOUSPLUGIN}
+AUDACIOUSPLUGININSTALL={AUDACIOUSPLUGININSTALL}
 
 all:	src/include/uadeconfig.h $(UADECORE) $(UADE123) $(XMMSPLUGIN)
 
@@ -54,6 +57,14 @@ xmmsplugininstall:	$(XMMSPLUGIN)
 	install src/frontends/xmms/libuade2.so "$(XMMSPLUGINDIR)"
 	install contrib/uadexmmsadd "$(BINDIR)"/
 
+audaciousplugin:	
+	$(MAKE) -C src/frontends/audacious
+
+audaciousplugininstall:	$(AUDACIOUSPLUGIN)
+	mkdir -p "$(AUDACIOUSPLUGINDIR)" "$(BINDIR)"
+	install src/frontends/audacious/libuade2.so "$(AUDACIOUSPLUGINDIR)"
+	install contrib/uadexmmsadd "$(BINDIR)"/
+
 src/include/uadeconfig.h:	
 	@echo ""
 	@echo "Run ./configure first!"
@@ -78,12 +89,13 @@ install:
 installagain:	$(UADECOREINSTALL)
 	@true
 
-feinstall:	$(UADE123INSTALL) $(XMMSPLUGININSTALL)
+feinstall:	$(UADE123INSTALL) $(XMMSPLUGININSTALL) $(AUDACIOUSPLUGININSTALL)
 	@true
 
 feclean:	
 	$(MAKE) -C src/frontends/uade123 clean
 	$(MAKE) -C src/frontends/xmms clean
+	$(MAKE) -C src/frontends/audacious clean
 
 clean:	
 	$(MAKE) -C src clean
