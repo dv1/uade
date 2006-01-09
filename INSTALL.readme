@@ -11,7 +11,7 @@ frontends you want to use:
  uade123        | Command line   	| libao: http://www.xiph.org/ao/
  xmms		| XMMS plugin	 	| XMMS
  audacious	| Audacious plugin	| Audacious:
-					  http:/audacious-media-player.org
+					| http:/audacious-media-player.org
 
 
 * Compiling and installation
@@ -77,6 +77,7 @@ To install necessary dependencies for Gentoo, execute:
 
 	emerge -u libao		(the dependency for uade123)
 	emerge -u xmms
+	emerge -u audacious
 
 In Debian/Ubuntu, the required libraries can be downloaded by:
 
