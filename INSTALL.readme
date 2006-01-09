@@ -6,10 +6,13 @@ General Instructions for Installing UADE
 Compiling and running UADE requires some libraries depending on which
 frontends you want to use:
 
- Frontend name  | Type           | Dependencies
- ----------------------------------------------
- uade123        | Command line   | libao: http://www.xiph.org/ao/
- xmms		| XMMS plugin	 | XMMS
+ Frontend name  | Type           	| Dependencies
+ -----------------------------------------------------------------------
+ uade123        | Command line   	| libao: http://www.xiph.org/ao/
+ xmms		| XMMS plugin	 	| XMMS
+ audacious	| Audacious plugin	| Audacious:
+					  http:/audacious-media-player.org
+
 
 * Compiling and installation
 
@@ -75,6 +78,13 @@ To install necessary dependencies for Gentoo, execute:
 	emerge -u libao		(the dependency for uade123)
 	emerge -u xmms
 
-In Debian, the required libraries can be downloaded by:
+In Debian/Ubuntu, the required libraries can be downloaded by:
 
-	apt-get install libao-dev xmms-dev
+    for uade123:
+	apt-get install libao-dev
+    for xmms:
+        apt-get install xmms-dev
+    for audacious:
+	apt-get install audacious-dev (get a mirror from
+	                               audacious-mediaplayer.org)
+
