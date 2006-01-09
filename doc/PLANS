@@ -1,5 +1,7 @@
 Ideas of things to do for UADE 2:
 
+2006-01-10: Implement uade:// prefixed scanning into XMMS and Audacious
+	    plugins (shd)
 2006-01-09: Remember manually toggled postprocessing settings (alankila)
 2006-01-04: Write a tool to truncate overly long modules. (shd)
 2005-12-23: Add subsong text "[x/x]" into XMMS plugin scroller / playlist text
