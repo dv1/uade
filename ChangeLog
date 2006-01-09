@@ -1,3 +1,7 @@
+2006-01-08  Michael Doering <mldoering@gmx.net>
+	- commited audacious input plugin based on xmms plugin
+	  (http://audacious.nenoload.net)
+
 2006-01-08  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed XMMS plugin installation which didn't obey package prefix
 	  (Michal Januszewski <spock@gentoo.org>).
