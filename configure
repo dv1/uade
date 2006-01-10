@@ -194,7 +194,7 @@ fi
 
 if test "$useaudacious" = "auto" -o "$useaudacious" = "yes" ; then
     if test -n "$PKG_CONFIG" ; then
-	useaudacious="yes"
+	useaudacious="no"
 	if test -n "`$PKG_CONFIG audacious --libs 2>/dev/null`"; then
 		useaudacious="yes"
 		AUDACIOUSFLAGS="`$PKG_CONFIG audacious --cflags`"
