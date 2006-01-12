@@ -1,5 +1,5 @@
 To be solved:
-
+2006-01-12: Vis freezes after changing subsongs in xmms plugin. (mld)
 2006-01-02: Subsong detection for PT mods might be broken. Maybe we need an
 	    option to uade.conf for not having them at all. (shd)
 2006-01-01: Song.conf is somewhat broken in uade123 and totally broken in
