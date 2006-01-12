@@ -139,10 +139,12 @@ Force eagleplayer to play the song.
 \fB\-\-interpolator=\fRs
 Set interpolator to
 .BR s .
-It should be
+It can be
 .BR default
+(anti),
+.BR anti
 or
-.BR anti .
+.BR none .
 .TP
 \fB\-j\fR x\fB, \-\-jump=\fRx
 Jump to song position of x seconds.
@@ -353,7 +355,7 @@ may contain at most one command. The valid commands are:
                        value. The default value is 1.0.
 .br
     interpolator x     Set interpolator to x which is either default
-                       or anti.
+                       (anti), anti or none.
 .br
     subsong_timeout x  Set subsong timeout value to x. The unit is
                        seconds.

@@ -410,14 +410,14 @@ void check_prefs_changed_audio (void)
 
 void select_audio_interpolator(char *name)
 {
-  /* This is the new system (a user should give the interpolation mode as a
-     human-readable string) */
   if (name == NULL || strcasecmp(name, "default") == 0) {
-    sample_handler = sample16s_handler;
+    sample_handler = sample16si_anti_handler;
   } else if (strcasecmp(name, "anti") == 0) {
     sample_handler = sample16si_anti_handler;
-  } else {
+  } else if (strcasecmp(name, "none") == 0) {
     sample_handler = sample16s_handler;
+  } else {
+    sample_handler = sample16si_anti_handler;
     fprintf(stderr, "\nUnknown interpolation mode: %s. Using default.\n", name);
   }
 }
