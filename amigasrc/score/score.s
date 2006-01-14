@@ -489,7 +489,7 @@ noinputmsgs
 	lea	virginaudioints(pc),a0	* audio ints are virgins again
 	clr.l	(a0)
 
-	* call nextsongfunc or prevsongfunc if necessary
+change_subsong	* call nextsongfunc or prevsongfunc if necessary
 	move.l	adjacentsubfunc(pc),d0
 	beq.b	notadjacentsub
 	lea	eaglebase(pc),a5
@@ -499,10 +499,11 @@ noinputmsgs
 	lea	eaglebase(pc),a5
 	move	dtg_SndNum(a5),(a0)
 	bra.b	adjacentsub
-notadjacentsub	bsr	call_init_sound
-	* Calling start_int is very dubious, because we haven't called
-	* stop_int. However, it has worked for a long time.
-	bsr	call_start_int
+notadjacentsub
+	bsr	call_stop_int
+	bsr	call_end_sound
+	bsr	call_init_sound
+	bsr	set_player_interrupt
 adjacentsub	move	#$c000,intena+custom
 dontchangesubs
 
@@ -517,7 +518,7 @@ dontchangesubs
 nosongendcheck
 
 	* call dtp_interrupt if dtp_startint function hasn't been inited
-	move.l	useciabplayer(pc),d0
+	move.l	useciatimer(pc),d0
 	bne.b	dontcallintfunc
 
 	move.l	intfunc(pc),d0
@@ -540,19 +541,9 @@ end_song	* FIRST: report that song has ended
 	bsr	report_song_end
 
 	* THEN do the deinit stuff...
+	bsr	call_stop_int
+	bsr	call_end_sound
 
-	move.l	stopintfunc(pc),d0
-	beq.b	nostopintfunc
-	move.l	d0,a0
-	lea	eaglebase(pc),a5
-	jsr	(a0)
-nostopintfunc
-	move.l	endfunc(pc),d0
-	beq.b	noendsound
-	move.l	d0,a0
-	lea	eaglebase(pc),a5
-	jsr	(a0)
-noendsound
 	* wait for late change of subsong
 	lea	songendbit(pc),a0
 	clr.l	(a0)
@@ -565,8 +556,10 @@ subsongseqloop
 	bsr	inputmessagehandler
 	lea	changesubsongbit(pc),a0
 	tst	(a0)
-	bne	playloop
-	bra.b	subsongseqloop
+	beq.b	subsongseqloop
+	bsr	call_init_sound
+	bsr	set_player_interrupt
+	bra	playloop
 
 dontplay	* report that score is dead
 	bsr	set_message_traps
@@ -773,7 +766,30 @@ call_start_int	push	all
 intfuncexists	pull	all
 	rts
 
+
+call_stop_int	push	all
+	move.l	stopintfunc(pc),d0
+	beq.b	nostopintfunc
+	move.l	d0,a0
+	lea	eaglebase(pc),a5
+	jsr	(a0)
+nostopintfunc
+	* Disable player interrupt, if any.
+	move.l	intfunc(pc),d0
+	beq.b	do_not_disable_player_interrupt
+	lea	rem_ciaa_interrupt(pc),a0
+	move.l	cia_chip_sel(pc),d0
+	beq.b	its_ciaa_2
+	lea	rem_ciab_interrupt(pc),a0
+its_ciaa_2	move.l	cia_timer_sel(pc),d0
+	jsr	(a0)
+do_not_disable_player_interrupt
+	pull	all
+	rts
+
+
 messagetrap	rte
+
 
 inputmessagehandler
 	push	all
@@ -1264,13 +1280,9 @@ settimer	push	all
 
 set_player_interrupt
 	push	all
-	move.l	startintfunc(pc),d0
-	beq.b	no_start_int
-	* call startint (player initializes own interrupts here)
-	bsr	call_start_int
-	pull	all
-	rts
-no_start_int	lea	useciabplayer(pc),a0
+	move.l	intfunc(pc),d0
+	beq.b	try_start_int
+	lea	useciatimer(pc),a0
 	st	(a0)
 	lea	add_ciaa_interrupt(pc),a0
 	move.l	cia_chip_sel(pc),d0
@@ -1280,6 +1292,12 @@ its_ciaa	lea	tempciabtimerstruct(pc),a1
 	move.l	intfunc(pc),$12(a1)
 	move.l	cia_timer_sel(pc),d0
 	jsr	(a0)
+	pull	all
+	rts
+try_start_int	move.l	startintfunc(pc),d0
+	beq	dontplay
+	* call startint (player initializes own interrupts here)
+	bsr	call_start_int
 	pull	all
 	rts
 
@@ -1499,6 +1517,7 @@ ReportSubSongs	move	minsubsong(pc),d0
 subsonginfo	dc.l	UADE_SUBSINFO
 	dc.l	0,0,0
 
+
 SetSubSong	push	d0-d1/a0-a2/a5
 	lea	cursubsong(pc),a0
 	lea	eaglebase(pc),a5
@@ -1534,6 +1553,23 @@ nointenaproblem	tst.l	d0
 	rts
 intenamsg	dc.b	'Stupid deliplayer: disables interrupts',0
 	even
+
+
+call_end_sound	push	all
+	move.l	endfunc(pc),d0
+	beq.b	noendsound
+	move.l	d0,a0
+	lea	eaglebase(pc),a5
+	jsr	(a0)
+	pull	all
+	rts
+noendsound	move	#15,dmacon+custom
+	move	#0,aud0vol+custom
+	move	#0,aud1vol+custom
+	move	#0,aud2vol+custom
+	move	#0,aud3vol+custom
+	pull	all
+	rts
 
 
 endsongfunc	pushr	a0
@@ -2625,7 +2661,7 @@ ciaaresjmptabl	move.l	a1,2(a0)
 	lea	ciaaresource(pc),a0
 	lea	sys_add_ciaa_interrupt(pc),a1
 	move.l	a1,_LVOAddICRVector+2(a0)
-	lea	ciaa_remint(pc),a1
+	lea	rem_ciaa_interrupt(pc),a1
 	move.l	a1,_LVORemICRVector+2(a0)
 	lea	ciaaresource(pc),a0
 	move.l	a0,d0
@@ -2640,7 +2676,7 @@ ciabresjmptabl	move.l	a1,2(a0)
 	lea	ciabresource(pc),a0
 	lea	add_ciab_interrupt(pc),a1
 	move.l	a1,_LVOAddICRVector+2(a0)
-	lea	ciab_remint(pc),a1
+	lea	rem_ciab_interrupt(pc),a1
 	move.l	a1,_LVORemICRVector+2(a0)
 	lea	ciab_seticr(pc),a1
 	move.l	a1,_LVOSetICR+2(a0)
@@ -2738,19 +2774,30 @@ bit0zero
 	moveq	#0,d0
 	rts
 
-ciaa_remint	lea	mylevel2(pc),a0
-	move.l	a0,$68.w
-	move	#$0008,intena+custom
-	move	#$0008,intreq+custom
+
+rem_ciaa_interrupt
+	push	all
+	lea	ciaadatas(pc),a2
+	lea	ciaaints(pc),a3
+	lea	$bfe001,a4
+	bra.b	ciaremint
+
+rem_ciab_interrupt
+	push	all
+	lea	ciabdatas(pc),a2
+	lea	ciabints(pc),a3
+	lea	$bfd000,a4
+ciaremint	and	#1,d0
+	moveq	#1,d1
+	lsl	d0,d1
+	move.b	d1,$d00(a4)		* Disable A or B timer in ICR
+	lsl	#2,d0
+	move.l	#0,(a2,d0)
+	move.l	#0,(a3,d0)
+	pull	all
 	moveq	#0,d0
 	rts
 
-ciab_remint	lea	mylevel6(pc),a0
-	move.l	a0,$78.w
-	move	#$2000,intena+custom
-	move	#$2000,intreq+custom
-	moveq	#0,d0
-	rts
 
 * register setup for calling ciab interrupt
 * a1 = ciab interrupt data pointer
@@ -3183,7 +3230,7 @@ int_vec_error	lea	intvecmsg(pc),a0
 	bsr	put_string
 	bra	dontplay
 int_level_ok
-	move	#$c000,d6
+	move	#$8000,d6
 	bset	d0,d6		* enabling value for intena
 	lea	vectab(pc),a0	* table containing vector addresses
 	lea	irqlines(pc),a2	* table containing vectors
@@ -3427,7 +3474,7 @@ timerioptr	dc.l	0
 
 vbi_hz	dc	50	* PAL 50Hz is default
 
-useciabplayer	dc.l	0
+useciatimer	dc.l	0
 
 voltestbit	dc.l	0
 modulechange_disabled	dc.l	0
@@ -3500,6 +3547,7 @@ debug_info	debuginfo	'uade debug info', debug_info
 	debuginfo	'ciab int', ciab_interrupt
 	debuginfo	'set player interrupt', set_player_interrupt
 	debuginfo	'superstate', exec_superstate
+	debuginfo	'change subsong', change_subsong
 	dc.l	0
 
 * dos.library
