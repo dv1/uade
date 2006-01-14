@@ -9,9 +9,13 @@
 #ifndef _UADE_AUDIO_H_
 #define _UADE_AUDIO_H_
 
-
 #define AUDIO_DEBUG 0
+#define SINC_QUEUE_MAX_AGE 4096
+#define SINC_QUEUE_LENGTH 64
 
+typedef struct {
+    int age, output;
+} sinc_queue_t;
 
 extern struct audio_channel_data {
     unsigned long adk_mask;
@@ -20,8 +24,10 @@ extern struct audio_channel_data {
     uaecptr lc, pt;
 
     int state, wper, wlen;
-    int current_sample, last_sample[3];
+    int current_sample;
     int sample_accum, sample_accum_time;
+    sinc_queue_t sinc_queue[SINC_QUEUE_LENGTH];
+    int sinc_queue_length;
     int vol;
     uae_u16 dat, nextdat, per, len;    
 

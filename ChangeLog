@@ -1,3 +1,6 @@
+2006-01-14  Heikki Orsila <heikki.orsila@iki.fi>
+	- Merged sinc interpolator patch (alankila)
+
 2006-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made anti (accumulator) interpolator to be the default.
 

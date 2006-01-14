@@ -448,9 +448,6 @@ static void DMACON (uae_u16 v)
 	} else {
 	    if (cdp->state == 1 || cdp->state == 5) {
 		cdp->state = 0;
-		cdp->last_sample[0] = 0;
-		cdp->last_sample[1] = 0;
-		cdp->last_sample[2] = 0;
 		cdp->current_sample = 0;
 	    }
 	}
