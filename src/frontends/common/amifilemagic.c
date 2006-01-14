@@ -884,7 +884,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 	     buf[0x2b] == '_' && buf[0x2c] == 'K' && buf[0x2d] == 'L' &&
 	     buf[0x2e] == 'A' && buf[0x2f] == 'R' && buf[0x30] == 'E' &&
 	     buf[0x31] == 'N') {
-    strcpy(pre, "RK");		/* Ron Klaren (CustomMade) */
+    strcpy(pre, "CM");		/* Ron Klaren (CustomMade) */
 
   } else if (buf[0x3e] == 'A' && buf[0x3f] == 'C' && buf[0x40] == 'T'
 	     && buf[0x41] == 'I' && buf[0x42] == 'O' && buf[0x43] == 'N'

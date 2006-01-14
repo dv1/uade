@@ -57,7 +57,7 @@
 	* UADE 2.01
 	- Compatibility fixes for OpenLSD and Mac OS X to make UADE compile
 	- Added 'cm.' prefix for CustomMade format (Ron Klaren)
-	- PTK-Prowiz subsong scanning was improved
+	- PTK-Prowiz subsong scanning was improved (mld)
 
 2006-01-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up post-processing of sound data. Removed postprocessing.[ch]
