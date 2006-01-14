@@ -24,6 +24,8 @@
 #include "amigafilter.h"
 #include "uade.h"
 
+/* Look at contrib/sinc-integral.py to see how winsinc_integral[] table is
+   computed. */
 static int winsinc_integral[4096] = {
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,

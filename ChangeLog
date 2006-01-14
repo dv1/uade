@@ -3,6 +3,8 @@
 	- Changed RK to CM prefix in amifilemagic. This affects custom made
 	  format. Old RK and RKB prefixes are still supported but they may
 	  be removed in the future.
+	- Added contrib/sinc-integral.py which computes the sinc antialiasing
+	  window for audio.c synthesis. (alankila)
 
 2006-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made anti (accumulator) interpolator to be the default.
