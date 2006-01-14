@@ -6,11 +6,11 @@
 	- Added contrib/sinc-integral.py which computes the sinc antialiasing
 	  window for audio.c synthesis. (alankila)
 	- Made huge changes into sound cores subsong restart and interrupt
-	  logic. 4ch MED formats got temporarily broken so that when a
-	  subsong is changed the player goes silent. In the same process,
-	  some formats were fixed with respect to subsong changing. Try
-	  Monkey Island now. The tempo should be correct after subsong
-	  change.
+	  logic. Some formats were fixed with respect to subsong changing.
+	  Try Monkey Island now. The tempo should be correct after subsong
+	  change. 4ch MED/OctaMED is still broken. Try changing to subsong
+	  9 in DaveNinja.med (some channels do not get re-initialized and
+	  a disturbing sound plays on the background).
 
 2006-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made anti (accumulator) interpolator to be the default.
