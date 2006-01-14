@@ -630,7 +630,7 @@ static void anti_sinc_prehandler(unsigned long best_evtime)
 		for (j = acd->sinc_queue_length-1; j > 0; j -= 1) {
 		    acd->sinc_queue[j] = acd->sinc_queue[j-1];
 		}
-		acd->sinc_queue[0].age = 0;
+		acd->sinc_queue[0].age = best_evtime;
 		acd->sinc_queue[0].output = output;
 	    }
 	}

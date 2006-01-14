@@ -1,4 +1,8 @@
 To be solved:
+
+2006-01-14: cust.Plague and cust.Wings don't work. (shd)
+2006-01-14: cust.Swords_of_twilight is really broken. Is there something
+	    in sound core that could be done to make it work? (shd)
 2006-01-12: Vis freezes after changing subsongs in xmms plugin. (mld)
 2006-01-02: Subsong detection for PT mods might be broken. Maybe we need an
 	    option to uade.conf for not having them at all. (shd)
