@@ -310,7 +310,9 @@ void uade_get_amiga_message(void)
       len = uade_safe_load(dst, file, uade_highmem - dst);
       fclose(file); file = 0;
       uade_put_long(0x20C, len);
-      /* fprintf(stderr, "uadecore: load: %s: ptr = 0x%x size = 0x%x\n", nameptr, dst, len); */
+      uade_send_debug("load success: %s ptr 0x%x size 0x%x", nameptr, dst, len);
+    } else {
+      uade_send_debug("load: file not found: %s", nameptr);
     }
     break;
 
@@ -324,7 +326,6 @@ void uade_get_amiga_message(void)
     dst = uade_get_u32(0x208);
     off = uade_get_u32(0x20C);
     len = uade_get_u32(0x210);
-    /* fprintf(stderr,"uadecore: read: '%s' dst = 0x%x off = 0x%x len = 0x%x\n", nameptr, dst, off, len); */
     if ((file = uade_open_amiga_file((char *) nameptr, uade_player_dir))) {
       if (fseek(file, off, SEEK_SET)) {
 	perror("can not fseek to position");
@@ -335,9 +336,10 @@ void uade_get_amiga_message(void)
 	  x = len;
       }
       fclose(file);
+      uade_send_debug("read %s dst 0x%x off 0x%x len 0x%x res 0x%x", nameptr, dst, off, len, x);
       uade_put_long(0x214, x);
     } else {
-      fprintf(stderr, "uadecore: Read error with '%s'\n", nameptr);
+      uade_send_debug("read: file not found: %s", nameptr);
       uade_put_long(0x214, 0);
     }
     break;
@@ -355,10 +357,11 @@ void uade_get_amiga_message(void)
       fclose(file);
       uade_put_long(0x208, len);
       uade_put_long(0x20C, -1);
+      uade_send_debug("filesize: file %s res 0x%x", nameptr, len);
     } else {
-      uade_send_debug("Can not get file size for '%s'\n", nameptr);
       uade_put_long(0x208, 0);
       uade_put_long(0x20C, 0);
+      uade_send_debug("filesize: file not found: %s", nameptr);
     }
     break;
 

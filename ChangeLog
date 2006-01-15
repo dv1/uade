@@ -1,3 +1,8 @@
+2006-01-15  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added more debug messages into the interface between emulator and
+	  sound core. Now Amiga file loading events will give informative
+	  message to the frontend. Use uade123 with -v to see all the spam.
+
 2006-01-14  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged sinc interpolator patch (alankila)
 	- Changed RK to CM prefix in amifilemagic. This affects custom made
