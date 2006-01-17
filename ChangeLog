@@ -1,8 +1,8 @@
 2006-01-17  Michael Doering <mldoering@gmx.net>
-	- (hopefully) fixed broken subsong detection for Digital Illusion
-	  mods. (mld)
-	- fixed unallocating timer resourcens when changing subsong in
-	  MED/Octamed replayer
+	- (hopefully) Fixed broken subsong detection for Digital Illusion
+	  mods.
+	- Fixed unallocating timer resourcens when changing subsong in
+	  MED/Octamed replayer.
 
 2006-01-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added more debug messages into the interface between emulator and
@@ -21,7 +21,20 @@
 	  Try Monkey Island now. The tempo should be correct after subsong
 	  change. 4ch MED/OctaMED is still broken. Try changing to subsong
 	  9 in DaveNinja.med (some channels do not get re-initialized and
-	  a disturbing sound plays on the background).
+	  a disturbing sound plays on the background). The changes are:
+	    1. Earlier we didn't call StopInt and EndSound in subsong change,
+	       but now we do. The old procedure just called InitSound and
+	       StartInt because our allocators in sound core were robust
+	       against double allocation.
+	    2. Implemented unallocation for CIA resources. See
+	       rem_cia[ab]_interrupt functions.
+	    3. StopInt unallocates the CIA resource used for the player
+	       interrupt. Set_player_interrupt allocates the player interrupt
+	       and calls StartInt.
+	    4. EndSound has a default code now which turns off audio DMA and
+	       sets volumes to zero.
+	    5. exec.library/SetIntVector() does not enable interrupts anymore.
+	       If interrupts are disabled they stay disabled.
 
 2006-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Made anti (accumulator) interpolator to be the default.
