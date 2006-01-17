@@ -45,8 +45,10 @@
 
 
 static int initialize_song(char *filename);
+static void set_defaults(void);
 static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
+static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static int uade_get_time(void);
 static void uade_init(void);
@@ -60,7 +62,7 @@ static void uade_stop(void);
 /* GLOBAL VARIABLE DECLARATIONS */
 
 static InputPlugin uade_ip = {
-  .description = "UADE2 " UADE_VERSION,
+  .description = "UADE " UADE_VERSION,
   .init = uade_init,
   .is_our_file = uade_is_our_file,
   .play_file = uade_play_file,
@@ -95,7 +97,10 @@ static pthread_t decode_thread;
 static struct uade_config config;
 static struct uade_effect effects;
 static char gui_filename[PATH_MAX];
+static char gui_formatname[256];
 static int gui_info_set;
+static char gui_modulename[256];
+static char gui_playername[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
 static int plugin_disabled;
@@ -117,13 +122,6 @@ int uade_select_sub;          /* Lock before use */
 
 
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
-
-
-static void set_defaults(void)
-{
-  uade_config_set_defaults(&config);
-  uade_effect_set_defaults(&effects);
-}
 
 
 static void load_config(void)
@@ -155,6 +153,71 @@ static void load_config(void)
     uade_effect_pan_set_amount(&effects, config.panning);
     uade_effect_enable(&effects, UADE_EFFECT_PAN);
   }
+}
+
+
+static void load_content_db(void)
+{
+  struct stat st;
+  time_t curtime = time(NULL);
+  char name[PATH_MAX];
+
+  if (curtime)
+    md5_load_time = curtime;
+
+  if (md5name[0] == 0) {
+    char *home = getenv("HOME");
+    if (home)
+      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
+  }
+
+  if (md5name[0]) {
+    /* Try home directory first */
+    if (stat(md5name, &st) == 0) {
+      if (uade_read_content_db(md5name))
+	return;
+    } else {
+      FILE *f = fopen(md5name, "w");
+      if (f)
+	fclose(f);
+      uade_read_content_db(md5name);
+    }
+  }
+
+  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+  if (stat(name, &st) == 0)
+    uade_read_content_db(name);
+}
+
+
+static void set_defaults(void)
+{
+  uade_config_set_defaults(&config);
+  uade_effect_set_defaults(&effects);
+}
+
+
+static void uade_cleanup(void)
+{
+  if (uadepid)
+    kill(uadepid, SIGTERM);
+
+  if (md5name[0]) {
+    struct stat st;
+    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
+      uade_save_content_db(md5name);
+  }
+}
+
+
+void uade_file_info(char *filename)
+{
+  int adder = 0;
+
+  if (strncmp(filename, "uade://", 7) == 0)
+    adder = 7;
+  uade_gui_file_info(filename + adder, gui_modulename, gui_playername, gui_formatname);
+
 }
 
 
@@ -191,40 +254,6 @@ int uade_get_min_subsong(int def)
     if (subsong == -1)
 	subsong = def;
     return subsong;
-}
-
-
-static void load_content_db(void)
-{
-  struct stat st;
-  time_t curtime = time(NULL);
-  char name[PATH_MAX];
-
-  if (curtime)
-    md5_load_time = curtime;
-
-  if (md5name[0] == 0) {
-    char *home = getenv("HOME");
-    if (home)
-      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
-  }
-
-  if (md5name[0]) {
-    /* Try home directory first */
-    if (stat(md5name, &st) == 0) {
-      if (uade_read_content_db(md5name))
-	return;
-    } else {
-      FILE *f = fopen(md5name, "w");
-      if (f)
-	fclose(f);
-      uade_read_content_db(md5name);
-    }
-  }
-
-  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
-  if (stat(name, &st) == 0)
-    uade_read_content_db(name);
 }
 
 
@@ -283,19 +312,6 @@ static void uade_init(void)
   fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
   fprintf(stderr, "HOME/.uade2/uade.conf in the future.\n");
   snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
-}
-
-
-static void uade_cleanup(void)
-{
-  if (uadepid)
-    kill(uadepid, SIGTERM);
-
-  if (md5name[0]) {
-    struct stat st;
-    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
-      uade_save_content_db(md5name);
-  }
 }
 
 
@@ -538,12 +554,12 @@ static void *play_loop(void *arg)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Format name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_formatname, um->data, sizeof gui_formatname);
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Module name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_modulename, um->data, sizeof gui_modulename);
 	break;
 
       case UADE_REPLY_MSG:
@@ -553,7 +569,7 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Player name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_playername, um->data, sizeof gui_playername);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -708,6 +724,9 @@ static void uade_play_file(char *filename)
     t = filename;
   strlcpy(gui_filename, t, sizeof gui_filename);
   gui_info_set = 0;
+  gui_formatname[0] = 0;
+  gui_modulename[0] = 0;
+  gui_playername[0] = 0;
 
   if (!uadepid) {
     char configname[PATH_MAX];

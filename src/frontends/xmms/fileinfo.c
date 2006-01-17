@@ -48,7 +48,7 @@ static void file_info_update(void);
 
 /* File Info Window */
 
-void uade_file_info(char *filename)
+void uade_gui_file_info(char *filename, char *modulename, char *playername, char *formatname)
 {
     GtkWidget *fileinfo_base_vbox;
     GtkWidget *fileinfo_frame;
@@ -75,13 +75,9 @@ void uade_file_info(char *filename)
 
     if (filename) {
 	if (fileinfowin == NULL) {
-	    char *playername = "Goatse player";
-	    char *formatname = "Goatse format";
-
-
 	    fileinfo_tooltips = gtk_tooltips_new();
 	    fileinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	    gtk_window_set_title(GTK_WINDOW(fileinfowin), "UADE Fileinfo");
+	    gtk_window_set_title(GTK_WINDOW(fileinfowin), "UADE file info");
 	    gtk_window_set_position(GTK_WINDOW(fileinfowin),
 				    GTK_WIN_POS_MOUSE);
 	    gtk_container_set_border_width(GTK_CONTAINER(fileinfowin), 10);
@@ -100,9 +96,9 @@ void uade_file_info(char *filename)
 	    gtk_container_add(GTK_CONTAINER(fileinfowin),
 			      fileinfo_base_vbox);
 
-	    /* Start of FileInfo frame, text and option widgets */
+	    /* Start of File info frame, text and option widgets */
 
-	    fileinfo_frame = gtk_frame_new("FileInfo: ");
+	    fileinfo_frame = gtk_frame_new("File info: ");
 	    gtk_box_pack_start(GTK_BOX(fileinfo_base_vbox), fileinfo_frame,
 			       TRUE, TRUE, 0);
 
@@ -412,7 +408,7 @@ void file_info_update(void)
 
 void uade_player_info(void)
 {
-    char *playername = "Goatse player";
+    char *playername = "Changed player";
     char player_filename[1024] = "";
     char credits[4096] = "";
     GtkWidget *playerinfo_button_box;
@@ -448,7 +444,7 @@ void uade_player_info(void)
 
 	strlcpy(player_filename, playername, sizeof player_filename);
 	/* process_eagleplayer(credits, player_filename, sizeof(credits)); */
-	strcpy(credits, "My bad player!\n");
+	strcpy(credits, "Player info here.\n");
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(playerinfo_base_vbox),
@@ -496,7 +492,7 @@ void uade_player_info(void)
 
 void uade_mod_info(void)
 {
-    char *modulefilename = "Goatse module";
+    char *modulefilename = "Changed module";
     char mod_filename[1024] = "\0";
     char credits[2048] = "\0";
     GtkWidget *modinfo_button_box;
@@ -529,7 +525,7 @@ void uade_mod_info(void)
 
 	strlcpy(mod_filename, modulefilename, sizeof mod_filename);
 	/* processmodule(credits, mod_filename, sizeof(credits)); */
-	strcpy(credits, "My bad module!\n");
+	strcpy(credits, "Module info here.\n");
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(modinfo_base_vbox),
