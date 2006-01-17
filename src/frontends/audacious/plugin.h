@@ -10,6 +10,7 @@
 #include <gtk/gtk.h>
 #include <audacious/plugin.h>
 #include <audacious/util.h>
+#include <audacious/output.h>
 
 extern int uade_cur_sub;
 extern int uade_is_paused;

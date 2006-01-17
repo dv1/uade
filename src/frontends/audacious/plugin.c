@@ -58,7 +58,7 @@ static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
-
+static int uade_going;
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
@@ -471,7 +471,7 @@ static void *play_loop(void *arg)
 
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
-	uade_ip.output->write_audio(um->data, play_bytes);
+	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_going);
 
       nowrite:
 
@@ -682,9 +682,9 @@ static void uade_play_file(char *filename)
   }
 
   if (!uade_ip.output->open_audio(sample_format, UADE_FREQUENCY, UADE_CHANNELS)) {
-    abort_playing = 1;
-    return;
-  }
+       abort_playing = 1;
+     return;
+   }
 
   if (plugin_disabled) {
     fprintf(stderr, "An error has occured. uade plugin is internally disabled.\n");
@@ -730,6 +730,7 @@ static void uade_play_file(char *filename)
   }
 
   uade_thread_running = 1;
+  uade_going=1;
 
   return;
 
@@ -749,6 +750,7 @@ static void uade_stop(void)
 
   /* Wait for playing thread to finish */
   if (uade_thread_running) {
+    uade_going=0;
     pthread_join(decode_thread, 0);
     uade_thread_running = 0;
   }
@@ -760,8 +762,8 @@ static void uade_stop(void)
     play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
     if (curmd5[0] != 0)
       uade_add_playtime(curmd5, play_time, 1);
+        uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
   }
-  uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
   uade_unlock();
 
   uade_ip.output->close_audio();
