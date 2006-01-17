@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-01-04',0
+	dc.b '$VER: Protracker 3.0b player 2006-01-17',0
 	even
 
 PlayerTagArray
@@ -142,7 +142,7 @@ Chk_ok_MName:
 	move.w	#20,d1
 	bsr	strncpy
 
-	*move.l	song,a0
+	;move.l	song,a0
 	bsr	mod_probe_subsongs
 	sf	pt_chkfail
 	moveq	#0,d0

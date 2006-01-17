@@ -770,7 +770,7 @@ mod_SubSongRange:
 
 mod_probe_subsongs:
 		lea.l	pfx(pc),a1
-		move.w	maxpattern,d0
+		move.w	#127,d0
 		cmp.w	$0b*2(a1),d0		; Hack for weird some mods
 		bgt	.probe_subs		; using posjmp to go beserk :)
 		move.l	#1,SubSongs
@@ -822,7 +822,12 @@ back
 		bne.b	LoopEnd
 		moveq	#1,d0
 LoopEnd:	    
-		move.l	d0,SubSongs
+		;move.w	maxpattern,d1
+		;cmp.w	d0,d1		; another Hack for weird some mods
+		;bgt	.sub_ok		; using posjmp to go beserk :)
+		;move.l	#1,SubSongs
+		;rts
+.sub_ok		move.l	d0,SubSongs
 		rts
 
 
