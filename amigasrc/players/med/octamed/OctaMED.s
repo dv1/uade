@@ -6,7 +6,7 @@
 	include	"misc/DeliPlayer.i"
 
 	PLAYERHEADER PlayerTagArray
-	dc.b	'$VER: MED/Octamed 8ch player V0.2.2 for UADE (Jan 2004)',0
+	dc.b	'$VER: MED/Octamed 8ch player for UADE (Jan 2006)',0
 	even
 
 PlayerTagArray
@@ -87,6 +87,9 @@ InitPly
 EndPly
 	move.l	dtg_AudioFree(a5),a0
 	jmp	(a0)
+	bsr	_AudioRem
+	rts
+	
 
 InitSnd:
 	bsr	uade_playtable_cls
@@ -102,7 +105,7 @@ StartInt:
 	rts
 
 StopInt:
-	jsr  _RemPlayer8
+	bsr.s	_StopPlayer8
 	move.w	#$f,$dff096
 	rts
 
@@ -2204,7 +2207,7 @@ SP_nomod    bra.w   _End8Play
 ; *************************************************************************
 ; RemPlayer8() -- free interrupt, audio, serial port etc..
 ; *************************************************************************
-_RemPlayer8:    bsr.s   _StopPlayer8
+_RemPlayer8:    ;bsr.s   _StopPlayer8
 ;       vvvvvvvvvvvvvvvv  to _AudioRem
 ; *************************************************************************
 _AudioRem:  movem.l a5-a6,-(sp)

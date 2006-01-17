@@ -6,7 +6,7 @@
 	include	"misc/DeliPlayer.i"
 
 	PLAYERHEADER PlayerTagArray
-	dc.b	'$VER: MED/Octamed 4ch player V0.2.2 for UADE (Jan 2004)',0
+	dc.b	'$VER: MED/Octamed 4ch player for UADE (Jan 2006)',0
 	even
 
 PlayerTagArray
@@ -90,7 +90,9 @@ InitPly
 
 EndPly
 	move.l	dtg_AudioFree(a5),a0
-	jmp	(a0)
+	jsr	(a0)
+	bsr	_AudioRem
+	rts
 
 InitSnd:
 	bsr uade_playtable_cls
@@ -105,8 +107,10 @@ StartInt:
 	rts
 
 StopInt:
-	bsr  _RemPlayer
-	move.w	#$f,$dff096
+	move.b	_timeropen,d0
+	beq.s	.si		;timer is not ours
+	bsr.s	_StopPlayer
+.si	move.w	#$f,$dff096
 	rts
 
 SubSongrange:
