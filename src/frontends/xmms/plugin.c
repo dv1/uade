@@ -32,6 +32,7 @@
 
 #include "plugin.h"
 #include "subsongseek.h"
+#include "fileinfo.h"
 
 
 #define PLUGIN_DEBUG 1
@@ -68,7 +69,8 @@ static InputPlugin uade_ip = {
   .seek = uade_seek,
   .get_time = uade_get_time,
   .cleanup = uade_cleanup,
-  .get_song_info = uade_get_song_info
+  .get_song_info = uade_get_song_info,
+  .file_info_box = uade_file_info,
 };
 
 static const AFormat sample_format = FMT_S16_NE;
@@ -153,6 +155,42 @@ static void load_config(void)
     uade_effect_pan_set_amount(&effects, config.panning);
     uade_effect_enable(&effects, UADE_EFFECT_PAN);
   }
+}
+
+
+int uade_get_cur_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uade_cur_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
+}
+
+
+int uade_get_max_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uade_max_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
+}
+
+
+int uade_get_min_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uade_min_sub;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
 }
 
 

@@ -20,6 +20,9 @@ extern int uade_select_sub;
 extern int uade_thread_running;
 
 InputPlugin *get_iplugin_info(void);
+int uade_get_cur_subsong(int def);
+int uade_get_max_subsong(int def);
+int uade_get_min_subsong(int def);
 void uade_lock(void);
 void uade_unlock(void);
 

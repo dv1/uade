@@ -6,7 +6,7 @@ CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) -g $(XMMSFLAGS) -I../common -I../../inc
 CLIBS = $(XMMSLIBS)
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \
-	unixipc.o
+	unixipc.o fileinfo.o
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -18,6 +18,9 @@ eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h ../common/md5.h
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	../common/effects.c ../common/effects.h
+	$(CC) $(CFLAGS) -c $<
+
+fileinfo.o:	fileinfo.c
 	$(CC) $(CFLAGS) -c $<
 
 md5.o:	../common/md5.c ../common/md5.h

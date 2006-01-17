@@ -12,9 +12,6 @@ static GtkWidget *seekpopup = NULL;
 static GtkObject *subsong_adj;
 
 
-static int get_cur_subsong(int def);
-static int get_max_subsong(int def);
-static int get_min_subsong(int def);
 static void uade_seek_directly(void);
 static void uade_seek_next(void);
 static void uade_seek_previous(void);
@@ -31,7 +28,7 @@ static int get_next_subsong(void)
     uade_unlock();
     if (ispaused == 0) {
 	int newsubsong;
-	newsubsong = get_cur_subsong(-1);
+	newsubsong = uade_get_cur_subsong(-1);
 	if (newsubsong == -1)
 	    return -1;
 	newsubsong++;
@@ -49,51 +46,15 @@ static int get_previous_subsong(void)
     uade_unlock();
     if (ispaused == 0) {
 	int newsubsong;
-	newsubsong = get_cur_subsong(-1);
+	newsubsong = uade_get_cur_subsong(-1);
 	if (newsubsong == -1)
 	    return -1;
-	if (newsubsong > get_min_subsong(-1)) {
+	if (newsubsong > uade_get_min_subsong(-1)) {
 	    newsubsong--;
 	    return newsubsong;
 	}
     }
     return -1;
-}
-
-
-static int get_cur_subsong(int def)
-{
-    int subsong;
-    uade_lock();
-    subsong = uade_cur_sub;
-    uade_unlock();
-    if (subsong == -1)
-	subsong = def;
-    return subsong;
-}
-
-
-static int get_max_subsong(int def)
-{
-    int subsong;
-    uade_lock();
-    subsong = uade_max_sub;
-    uade_unlock();
-    if (subsong == -1)
-	subsong = def;
-    return subsong;
-}
-
-
-static int get_min_subsong(int def)
-{
-    int subsong;
-    uade_lock();
-    subsong = uade_min_sub;
-    uade_unlock();
-    if (subsong == -1)
-	subsong = def;
-    return subsong;
 }
 
 
@@ -140,19 +101,19 @@ void uade_gui_seek_subsong(int to)
 
         /* define Slider code, will be used by all styles of the popup */
 
-	if (get_max_subsong(-1) >= 0) {
+	if (uade_get_max_subsong(-1) >= 0) {
 
 	    subsong_adj =
-		gtk_adjustment_new(get_cur_subsong(0), get_min_subsong(0),
-				   get_max_subsong(0), 1, 0, 0);	/*our scale for the subsong slider */
+		gtk_adjustment_new(uade_get_cur_subsong(0), uade_get_min_subsong(0),
+				   uade_get_max_subsong(0), 1, 0, 0);	/*our scale for the subsong slider */
 	    maxsong_label =
-		gtk_label_new(g_strdup_printf("%d", get_max_subsong(0))); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
+		gtk_label_new(g_strdup_printf("%d", uade_get_max_subsong(0))); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
 	    gtk_widget_set_usize(maxsong_label, 24, -1);
 
 	} else {
 	    subsong_adj =
-		gtk_adjustment_new(get_cur_subsong(0), get_min_subsong(0),
-				   (get_max_subsong(0)) + 10, 1, 0, 0);	/*our scale for the subsong slider */
+		gtk_adjustment_new(uade_get_cur_subsong(0), uade_get_min_subsong(0),
+				   (uade_get_max_subsong(0)) + 10, 1, 0, 0);	/*our scale for the subsong slider */
 	    /*currently: min - min+10  */
 	    maxsong_label = gtk_label_new("..."); /* until we can't get the reliable maximum number of subsongs this has to do :-) */
 	    gtk_widget_set_usize(maxsong_label, 24, -1);
@@ -266,7 +227,7 @@ static void uade_seek_directly(void)
 {
     /* get the subsong the user selected from scale */
     int subsong = (gint) GTK_ADJUSTMENT(subsong_adj)->value;
-    int cursub = get_cur_subsong(-1);
+    int cursub = uade_get_cur_subsong(-1);
     if (cursub >= 0 && cursub != subsong)
 	uade_select_sub = subsong;
 }
