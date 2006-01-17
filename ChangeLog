@@ -2,9 +2,10 @@
 	- (hopefully) Fixed broken subsong detection for Digital Illusion
 	  mods.
 	- Fixed unallocating timer resourcens when changing subsong in
-	  MED/Octamed replayer.
+	  MED/Octamed replayer. As a consequence, changing subsongs works
+	  again.
 	- Removed sinc table from audio.c and put it into a separate file
-	  named sinctable.c.
+	  named sinctable.c. (alankila)
 
 2006-01-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added more debug messages into the interface between emulator and
