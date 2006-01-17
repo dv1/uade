@@ -58,7 +58,6 @@ static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
-static int uade_going;
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
@@ -471,7 +470,7 @@ static void *play_loop(void *arg)
 
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
-	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_going);
+	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
 
       nowrite:
 
@@ -730,7 +729,6 @@ static void uade_play_file(char *filename)
   }
 
   uade_thread_running = 1;
-  uade_going=1;
 
   return;
 
@@ -750,7 +748,6 @@ static void uade_stop(void)
 
   /* Wait for playing thread to finish */
   if (uade_thread_running) {
-    uade_going=0;
     pthread_join(decode_thread, 0);
     uade_thread_running = 0;
   }
