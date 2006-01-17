@@ -1,7 +1,8 @@
 2006-01-17  Michael Doering <mldoering@gmx.net>
 	- (hopefully) fixed broken subsong detection for Digital Illusion
 	  mods. (mld)
-	- fixed disabling IRQs when changing subsong in MED/Octamed replayer
+	- fixed unallocating timer resourcens when changing subsong in
+	  MED/Octamed replayer
 
 2006-01-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added more debug messages into the interface between emulator and
