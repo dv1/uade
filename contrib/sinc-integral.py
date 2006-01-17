@@ -39,9 +39,10 @@ def hanning(x):
     return 0.50 + 0.50*math.cos(x * math.pi * 2)
 
 def blackman(x):
-    return 0.42 - 0.5*math.cos((x+0.5) * math.pi * 2) + 0.08*math.cos((x+0.5) * math.pi * 4);
+    return 0.42-0.5*math.cos((x+0.5) * math.pi * 2)+0.08*math.cos((x+0.5) * math.pi * 4)
 
 sinwin = blackman
+#sinwin=hanning
 
 def sinc(x):
     if x == 0:
@@ -49,31 +50,44 @@ def sinc(x):
     return math.sin(x * math.pi) / (x * math.pi)
 
 convolution_size = 4096
-sampling_freq = 3540000
-stopfreq = 21000
-ratio = sampling_freq / stopfreq / 2.0
+sampling_freq = 3541200
+stopfreq = 20000
+valuerange = 65536
+ratio = float(sampling_freq) / stopfreq / 2
 
 def make_table():
-    acc = 0.0;
+    table = []
+    acc = -0.5
     for _ in range(convolution_size):
         x = _ - convolution_size/2
-        newval1  = sinc( x        / ratio) * sinwin( x        / float(convolution_size))
-        newval15 = sinc((x + 0.5) / ratio) * sinwin((x + 0.5) / float(convolution_size))
-        newval2  = sinc((x + 1  ) / ratio) * sinwin((x + 1  ) / float(convolution_size))
-        acc += (newval1 + 2*newval15 + newval2) / 4 / ratio;
-        print ("%5d," % (acc * 65536)),
-        if _ % 12 == 11:
-            print
+        acc += sinc(x / ratio) * sinwin(x / float(convolution_size)) / ratio
+        aprx = acc * valuerange * 2
+        if aprx < 0:
+            aprx = int(aprx - 0.5)
+        else:
+            aprx = int(aprx + 0.5)
+        table.append(aprx)
+    return table
 
 def make_spectrum():
+    table = make_table();
     acc = []
-    for _ in range(convolution_size):
-        x = _ - convolution_size/2
-        acc.append(sinc(x / ratio) * sinwin(x / float(convolution_size)))
+    oldx = table[0]
+    for x in table:
+        acc.append(float(oldx - x) / (table[-1] - table[0]))
+        oldx = x
 
-    acc = abs(fft(acc))
+    acc = abs(fft(acc))**2
     for x in range(0, convolution_size/2):
-        print "%d %f" % (x / float(convolution_size) * sampling_freq, acc[x])
+        print "%f %f" % (x / float(convolution_size) * sampling_freq, math.log(acc[x]) / math.log(10) * 10)
 
-make_table()
+def print_table(table):
+    _ = 0
+    for x in table:
+        print ("%6d," % x),
+        if _ % 10 == 9:
+            print
+        _ += 1
+
+print_table(make_table())
 #make_spectrum()

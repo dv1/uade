@@ -24,7 +24,7 @@ OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
        missing.o sd-sound.o md-support.o cfgfile.o fpp.o debug.o \
        readcpu.o cpudefs.o $(CPUEMUOBJS) \
        uade.o players.o strlrep.o uadeipc.o unixatomic.o ossupport.o \
-       ipcsupport.o uademain.o
+       ipcsupport.o uademain.o sinctable.o
 
 all:	uadecore
 
@@ -127,7 +127,8 @@ newcpu.o: newcpu.c include/uade.h include/events.h include/uadeipc.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $(DEBUGFLAGS) newcpu.c
 
 sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
-audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h {SOUNDHEADER}
+audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h include/sinctable.h {SOUNDHEADER}
+sinctable.o:	include/sinctable.h
 memory.o: 
 debug.o: 
 fpp.o: 
