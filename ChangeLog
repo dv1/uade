@@ -1,6 +1,7 @@
 2006-01-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a simple and broken XMMS file info window. Module info
 	  displays a hexdump of the first 1024 bytes of the module.
+	- Fixed #include issues with FreeBSD in unixatomic.c.
 
 2006-01-17  Michael Doering <mldoering@gmx.net>
 	- (hopefully) Fixed broken subsong detection for Digital Illusion

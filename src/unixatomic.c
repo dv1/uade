@@ -1,5 +1,15 @@
+#include <stdlib.h>
+#include <stdio.h>
+
+#if !defined(__FreeBSD__)
 #include <sys/select.h>
 #include <errno.h>
+#else
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <strings.h>
+#endif
 
 #include <unixatomic.h>
 
