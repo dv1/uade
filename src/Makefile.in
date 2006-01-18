@@ -142,3 +142,5 @@ players.o:	players.c players.h
 ossupport.o:	include/uade.h ossupport.c {OSSUPPORTMODULES}
 
 ipcsupport.o:	include/uade.h ipcsupport.c include/ipcsupport.h {IPCSUPPORTMODULES}
+
+unixatomic.o:	include/sysincludes.h include/unixatomic.h

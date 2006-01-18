@@ -11,7 +11,7 @@
 
 #define AUDIO_DEBUG 0
 #define SINC_QUEUE_MAX_AGE 4096
-#define SINC_QUEUE_LENGTH 64
+#define SINC_QUEUE_LENGTH 96
 
 typedef struct {
     int age, output;

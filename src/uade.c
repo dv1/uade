@@ -10,7 +10,6 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <sys/types.h>
-#include <netinet/in.h>
 #include <time.h>
 #include <limits.h>
 
@@ -36,6 +35,7 @@
 #include "players.h"
 #include "uadeipc.h"
 #include "ossupport.h"
+#include "sysincludes.h"
 
 
 enum print_help {

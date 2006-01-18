@@ -233,17 +233,14 @@ static void sample16si_sinc_handler (void)
     int datas[4];
     
     for (i = 0; i < 4; i += 1) {
-        int j, pos=0, sum=0;
+        int j, val=winsinc_integral[0], sum=0;
         struct audio_channel_data *acd = &audio_channel[i];
 
         /* this computes the sinc convolution for the stored samples in buffer */ 
         for (j = 0; j < acd->sinc_queue_length; j += 1) {
-            int newpos = acd->sinc_queue[j].age;
-            int output = acd->sinc_queue[j].output;
-            if (newpos > SINC_QUEUE_MAX_AGE-1)
-                newpos = SINC_QUEUE_MAX_AGE-1;
-            sum += (winsinc_integral[newpos] - winsinc_integral[pos]) * output;
-            pos = newpos;
+            int newval = winsinc_integral[acd->sinc_queue[j].age];
+            sum += (newval - val) * acd->sinc_queue[j].output;
+            val = newval;
         }
         datas[i] = sum >> 17;
     }
@@ -261,33 +258,36 @@ static void anti_sinc_prehandler(unsigned long best_evtime)
     for (i = 0; i < 4; i++) {
 	acd = &audio_channel[i];
 	output = (acd->current_sample * acd->vol) & acd->adk_mask;
-	acd->sample_accum += output * best_evtime;
-	acd->sample_accum_time += best_evtime;
 
 	if (sample_handler == sample16si_sinc_handler) {
-
-	    /* age the sinc queue and truncate it when necessary */
-	    for (j = 0; j < SINC_QUEUE_LENGTH; j += 1) {
-		if (acd->sinc_queue[j].age >= SINC_QUEUE_MAX_AGE) {
-		    acd->sinc_queue_length = j+1;
-		    break;
-		}
-		acd->sinc_queue[j].age += best_evtime;
-	    }
-	    /* if the output state changes, put the new state into the pipeline */
-	    if (acd->sinc_queue[0].output != output) {
+	    /* if the output state changes, put the new state into the pipeline.
+             * the first term is to prevent queue overflow when player routines use
+             * low period values like 16 that produce ultrasonic sounds. */
+	    if (acd->sinc_queue[0].age > SINC_QUEUE_MAX_AGE/SINC_QUEUE_LENGTH+1
+                    && acd->sinc_queue[0].output != output) {
 		acd->sinc_queue_length += 1;
 		if (acd->sinc_queue_length > SINC_QUEUE_LENGTH) {
-		    fprintf(stderr, "warning, sinc queue truncated. Last age: %d.\n", acd->sinc_queue[SINC_QUEUE_LENGTH-1].age);
+		    fprintf(stderr, "warning: sinc queue truncated. Last age: %d.\n", acd->sinc_queue[SINC_QUEUE_LENGTH-1].age);
 		    acd->sinc_queue_length = SINC_QUEUE_LENGTH;
 		}
 		/* make room for new and add the new value */
-		for (j = acd->sinc_queue_length-1; j > 0; j -= 1) {
-		    acd->sinc_queue[j] = acd->sinc_queue[j-1];
-		}
-		acd->sinc_queue[0].age = best_evtime;
+                memmove(&acd->sinc_queue[1], &acd->sinc_queue[0],
+                        sizeof(acd->sinc_queue[0]) * (acd->sinc_queue_length - 1));
+		acd->sinc_queue[0].age = 0;
 		acd->sinc_queue[0].output = output;
 	    }
+	    /* age the sinc queue and truncate it when necessary */
+	    for (j = 0; j < SINC_QUEUE_LENGTH; j += 1) {
+		acd->sinc_queue[j].age += best_evtime;
+		if (acd->sinc_queue[j].age > SINC_QUEUE_MAX_AGE-1) {
+                    acd->sinc_queue[j].age = SINC_QUEUE_MAX_AGE-1;
+		    acd->sinc_queue_length = j+1;
+		    break;
+		}
+	    }
+	} else {
+            acd->sample_accum += output * best_evtime;
+            acd->sample_accum_time += best_evtime;
 	}
     }
 }

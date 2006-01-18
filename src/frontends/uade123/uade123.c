@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <dirent.h>
 #include <limits.h>
-#include <netinet/in.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,6 +31,7 @@
 #include <uadeconfig.h>
 #include <eagleplayer.h>
 #include <uadeconf.h>
+#include <sysincludes.h>
 
 
 #include "uade123.h"

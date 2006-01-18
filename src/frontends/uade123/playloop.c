@@ -18,6 +18,7 @@
 #include <uadecontrol.h>
 #include <uadeconstants.h>
 #include <uadeconf.h>
+#include <sysincludes.h>
 
 #include "uade123.h"
 #include "audio.h"

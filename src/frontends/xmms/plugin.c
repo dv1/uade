@@ -12,8 +12,6 @@
 #include <libgen.h>
 #include <assert.h>
 #include <stdint.h>
-
-#include <netinet/in.h>
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -28,6 +26,7 @@
 #include <strlrep.h>
 #include <uadeconf.h>
 #include <effects.h>
+#include <sysincludes.h>
 
 
 #include "plugin.h"

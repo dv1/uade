@@ -13,11 +13,11 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
-#include <netinet/in.h>
 
 #include <uadeipc.h>
 #include <strlrep.h>
 #include <ipcsupport.h>
+#include <sysincludes.h>
 
 
 static int valid_message(struct uade_msg *uc);

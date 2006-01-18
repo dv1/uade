@@ -11,9 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-
 #include <errno.h>
-#include <netinet/in.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -21,6 +19,7 @@
 #include <uadecontrol.h>
 #include <uadeipc.h>
 #include <unixatomic.h>
+#include <sysincludes.h>
 
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
