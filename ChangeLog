@@ -12,6 +12,7 @@
 	- audacious pluging: changed legacy uade_ip audio output from xmms 
 	  to audacious 0.2 produce_audio(); Seems to work here, but I'm not
 	  sure if it's 100% ok... So give it a test and report back.
+	- Fixed strlrep.h to #include <strings.h> to have size_t type (shd)
 
 2006-01-15  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added more debug messages into the interface between emulator and
