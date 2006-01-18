@@ -681,9 +681,9 @@ static void uade_play_file(char *filename)
   }
 
   if (!uade_ip.output->open_audio(sample_format, UADE_FREQUENCY, UADE_CHANNELS)) {
-       abort_playing = 1;
-     return;
-   }
+    abort_playing = 1;
+    return;
+  }
 
   if (plugin_disabled) {
     fprintf(stderr, "An error has occured. uade plugin is internally disabled.\n");
@@ -759,7 +759,7 @@ static void uade_stop(void)
     play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
     if (curmd5[0] != 0)
       uade_add_playtime(curmd5, play_time, 1);
-        uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+    uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
   }
   uade_unlock();
 
