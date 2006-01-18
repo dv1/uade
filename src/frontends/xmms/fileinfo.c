@@ -427,9 +427,13 @@ void uade_player_info(void)
 
     GtkWidget *uadeplay_scrolledwindow;
     GtkWidget *uadeplay_txt;
+    GtkStyle  *style;
 
 
     if (!playerinfowin) {
+	style=gtk_style_new();
+	gdk_font_unref (style->font);
+	style->font = gdk_font_load ("fixed");
 
 
 	playerinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -465,6 +469,8 @@ void uade_player_info(void)
 				       GTK_POLICY_ALWAYS);
 
 	uadeplay_txt = gtk_text_new(NULL, NULL);
+	gtk_widget_set_style (uadeplay_txt, style);
+
 	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
 			  uadeplay_txt);
 	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
@@ -509,9 +515,14 @@ void uade_mod_info(void)
 
     GtkWidget *uadeplay_scrolledwindow;
     GtkWidget *uadeplay_txt;
+    GtkStyle  *style;
 
 
     if (!modinfowin) {
+	style=gtk_style_new();
+	gdk_font_unref (style->font);
+	style->font = gdk_font_load ("fixed");
+
 	modinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(modinfowin), "UADE Modinfo");
 	gtk_window_set_position(GTK_WINDOW(modinfowin), GTK_WIN_POS_MOUSE);
@@ -533,6 +544,7 @@ void uade_mod_info(void)
 	    snprintf(credits, sizeof credits, "Unable to process file %s\n", fileinfo_filename);
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
+
 	gtk_container_add(GTK_CONTAINER(modinfo_base_vbox),
 			  uadeplay_scrolledwindow);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
@@ -541,6 +553,7 @@ void uade_mod_info(void)
 				       GTK_POLICY_ALWAYS);
 
 	uadeplay_txt = gtk_text_new(NULL, NULL);
+	gtk_widget_set_style (uadeplay_txt, style);
 	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
 			  uadeplay_txt);
 	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
