@@ -3,6 +3,9 @@
 	  displays a hexdump of the first 1024 bytes of the module.
 	- Fixed #include issues with FreeBSD in unixatomic.c.
 	- Optimized sinc interpolator (alankila)
+	- Changed fileinfo.c to allow many different types of infos for
+	  modules. Hexdump is the current default since nothing else has
+	  been implemented.
 
 2006-01-17  Michael Doering <mldoering@gmx.net>
 	- (hopefully) Fixed broken subsong detection for Digital Illusion

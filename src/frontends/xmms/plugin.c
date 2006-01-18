@@ -99,7 +99,8 @@ static char gui_filename[PATH_MAX];
 static char gui_formatname[256];
 static int gui_info_set;
 static char gui_modulename[256];
-static char gui_playername[PATH_MAX];
+static char gui_playername[256];
+static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
 static int plugin_disabled;
@@ -215,7 +216,7 @@ void uade_file_info(char *filename)
 
   if (strncmp(filename, "uade://", 7) == 0)
     adder = 7;
-  uade_gui_file_info(filename + adder, gui_modulename, gui_playername, gui_formatname);
+  uade_gui_file_info(filename + adder, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
 
 }
 
@@ -343,8 +344,10 @@ static int initialize_song(char *filename)
   if (strcmp(ep->playername, "custom") == 0) {
     strlcpy(playername, modulename, sizeof playername);
     modulename[0] = 0;
+    gui_player_filename[0] = 0;
   } else {
     snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
+    strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
   }
 
   ret = uade_song_initialization(scorename, playername, modulename, &uadeipc);

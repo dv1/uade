@@ -23,8 +23,7 @@ static void asciiline(char *dst, unsigned char *buf)
 }
 
 
-/* Returns zero on success, non-zero otherwise. */
-int uade_song_info(char *info, char *filename, size_t maxlen)
+static int hexdump(char *info, size_t maxlen, char *filename)
 {
   FILE *f = fopen(filename, "rb");
   size_t rb, ret;
@@ -100,3 +99,19 @@ int uade_song_info(char *info, char *filename, size_t maxlen)
   return rb == 0;
 }
 
+/* Returns zero on success, non-zero otherwise. */
+int uade_song_info(char *info, size_t maxlen, char *filename,
+		   enum song_info_type type)
+{
+  switch (type) {
+  case UADE_MODULE_INFO:
+    snprintf(info, maxlen, "Not supported yet.\n");
+    return 1;
+  case UADE_HEX_DUMP_INFO:
+    return hexdump(info, maxlen, filename);
+  default:
+    fprintf(stderr, "Illegal info requested.\n");
+    exit(-1);
+  }
+  return 0;
+}

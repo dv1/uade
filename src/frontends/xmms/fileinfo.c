@@ -38,7 +38,8 @@
 #include "plugin.h"
 
 
-static char fileinfo_filename[PATH_MAX];
+static char module_filename[PATH_MAX];
+static char player_filename[PATH_MAX];
 
 static GtkWidget *fileinfowin = NULL;
 static GtkWidget *playerinfowin = NULL;
@@ -58,7 +59,7 @@ static void file_info_update(void);
 
 /* File Info Window */
 
-void uade_gui_file_info(char *filename, char *modulename, char *playername, char *formatname)
+void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulename, char *playername, char *formatname)
 {
     GtkWidget *fileinfo_base_vbox;
     GtkWidget *fileinfo_frame;
@@ -83,7 +84,8 @@ void uade_gui_file_info(char *filename, char *modulename, char *playername, char
 
     GtkTooltips *fileinfo_tooltips;
 
-    strlcpy(fileinfo_filename, filename, sizeof fileinfo_filename);
+    strlcpy(module_filename, filename, sizeof module_filename);
+    strlcpy(player_filename, gui_player_filename, sizeof player_filename);
 
     if (fileinfowin == NULL) {
 	fileinfo_tooltips = gtk_tooltips_new();
@@ -418,9 +420,7 @@ void file_info_update(void)
 
 void uade_player_info(void)
 {
-    char *playername = "Changed player";
-    char player_filename[1024] = "";
-    char credits[4096] = "";
+    char credits[8192];
     GtkWidget *playerinfo_button_box;
     GtkWidget *close_button;
     GtkWidget *playerinfo_base_vbox;
@@ -456,9 +456,9 @@ void uade_player_info(void)
 			  playerinfo_base_vbox);
 
 
-	strlcpy(player_filename, playername, sizeof player_filename);
-	/* process_eagleplayer(credits, player_filename, sizeof(credits)); */
-	strcpy(credits, "Player info here.\n");
+	if ((uade_song_info(credits, sizeof credits, player_filename, UADE_HEX_DUMP_INFO))) {
+	  strcpy(credits, "No info for player.\n");
+	}
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
 	gtk_container_add(GTK_CONTAINER(playerinfo_base_vbox),
@@ -477,7 +477,7 @@ void uade_player_info(void)
 			-1);
 
 	gtk_text_set_word_wrap(GTK_TEXT(uadeplay_txt), TRUE);
-	gtk_widget_set_usize(uadeplay_scrolledwindow, 400, 240);
+	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
 
 
 // Start of Close Button Box
@@ -540,8 +540,8 @@ void uade_mod_info(void)
 	gtk_container_add(GTK_CONTAINER(modinfowin), modinfo_base_vbox);
 
 
-	if (uade_song_info(credits, fileinfo_filename, sizeof credits))
-	    snprintf(credits, sizeof credits, "Unable to process file %s\n", fileinfo_filename);
+	if (uade_song_info(credits, sizeof credits, module_filename, UADE_HEX_DUMP_INFO))
+	    snprintf(credits, sizeof credits, "Unable to process file %s\n", module_filename);
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
 
