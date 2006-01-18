@@ -13,7 +13,7 @@ static void asciiline(char *dst, unsigned char *buf)
   int i, c;
   for (i = 0; i < 16; i++) {
     c = buf[i];
-    if ((isgraph(c) && !isspace(c)) || c == ' ') {
+    if (isgraph(c) || c == ' ') {
       dst[i] = c;
     } else {
       dst[i] = '.';
