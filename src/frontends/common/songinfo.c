@@ -104,11 +104,46 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   return rb == 0;
 }
 
+/* helper functions */
+static unsigned int readbig_w(char *ptr)
+{
+  unsigned char *p = (unsigned char *) ptr;
+  unsigned int x = p[1] + (p[0] << 8);
+  return x;
+}
+
+/* Get the info out of the AHX  module data*/
+static void process_ahx_mod(char *credits, int credits_len,
+			    unsigned char *buf, int modfilelen, char tmpstr[] )
+{
+  int i, offset;
+
+  offset = readbig_w(buf + 4);
+
+  if (offset < modfilelen) {
+    snprintf(tmpstr, 256,"\nSongtitle:\t%s\n", buf + offset);
+    strlcat(credits, tmpstr, credits_len);
+
+    for (i = 0; i < buf[12]; i++) {
+      offset = offset + 1 + strlen(buf + offset);
+      if (offset < modfilelen) {
+
+         snprintf(tmpstr, 256,"\n\t\t%s", buf + offset);
+         strlcat(credits, tmpstr, credits_len);
+      }
+    }
+  }
+}
+
 /* Get the info out of the protracker module data*/
 static void process_ptk_mod(char *credits, int credits_len, int inst,
 			    unsigned char *buf, int len, char tmpstr[])
 {
   int i;
+
+      snprintf(tmpstr, 32,"\nSongtitle:\t%s\n", buf);
+      strlcat(credits, tmpstr, credits_len);
+
 
   if (inst == 31) {
     if (len >= 0x43c) {
@@ -127,10 +162,10 @@ static void process_ptk_mod(char *credits, int credits_len, int inst,
   if (len >= (0x14 + inst * 0x1e)) {
     for (i = 0; i < inst; i++) {
       if (i < 10) {
-        snprintf(tmpstr, 256,"\ninstr #0%d:  ", i);
+        snprintf(tmpstr, 256,"\ninstr #0%d:\t", i);
         strlcat(credits, tmpstr, credits_len);
       } else {
-        snprintf(tmpstr, 256,"\ninstr #%d:  ", i);
+        snprintf(tmpstr, 256,"\ninstr #%d:\t", i);
         strlcat(credits, tmpstr, credits_len);
       }
       snprintf(tmpstr, 22,buf + 0x14 + (i * 0x1e));
@@ -193,9 +228,14 @@ static int process_module(char *credits, size_t credits_len,char *filename)
   snprintf(tmpstr, 256,"File prefix:\t%s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
 
-  /* DM2 */
   if (strcasecmp(pre, "DM2") == 0) {
+  /* DM2 */
     process_dm2_mod(credits, credits_len, buf, tmpstr);	/*DM2 */
+
+  } else if ((strcasecmp(pre, "AHX") == 0) ||
+	     (strcasecmp(pre, "THX") == 0)) {
+    /* AHX */
+    process_ahx_mod(credits, credits_len, buf, modfilelen, tmpstr);
 
   } else if ((strcasecmp(pre, "MOD15") == 0) ||
 	     (strcasecmp(pre, "MOD15_UST") == 0) ||
