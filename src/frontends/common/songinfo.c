@@ -5,8 +5,13 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <songinfo.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
+#include <strlrep.h>
+#include <songinfo.h>
+#include <amifilemagic.h>
 
 static void asciiline(char *dst, unsigned char *buf)
 {
@@ -99,14 +104,134 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   return rb == 0;
 }
 
+/* Get the info out of the protracker module data*/
+static void process_ptk_mod(char *credits, int credits_len, int inst,
+			    unsigned char *buf, int len, char tmpstr[])
+{
+  int i;
+
+  if (inst == 31) {
+    if (len >= 0x43c) {
+
+      snprintf(tmpstr, 256,"max positions:  %d\n", buf[0x3b6]);
+      strlcat(credits, tmpstr, credits_len);
+
+    }
+  } else {
+    if (len >= 0x1da) {
+      snprintf(tmpstr, 256,"max positions:  %d\n", buf[0x1d6]);
+      strlcat(credits, tmpstr, credits_len);
+    }
+  }
+
+  if (len >= (0x14 + inst * 0x1e)) {
+    for (i = 0; i < inst; i++) {
+      if (i < 10) {
+        snprintf(tmpstr, 256,"\ninstr #0%d:  ", i);
+        strlcat(credits, tmpstr, credits_len);
+      } else {
+        snprintf(tmpstr, 256,"\ninstr #%d:  ", i);
+        strlcat(credits, tmpstr, credits_len);
+      }
+      snprintf(tmpstr, 22,buf + 0x14 + (i * 0x1e));
+      strlcat(credits, tmpstr, credits_len);
+    }
+  }
+}
+
+/* 
+ * Get the info out of the Deltamusic 2 module data
+ */
+static void process_dm2_mod(char *credits, int credits_len,
+			    unsigned char *buf, char tmpstr[])
+{
+  snprintf(tmpstr, 256,"\nRemarks:\n%s", buf + 0x148);
+  strlcat(credits, tmpstr, credits_len);
+}
+
+
+static int process_module(char *credits, size_t credits_len,char *filename)
+{
+  FILE *modfile;
+  struct stat st;
+  int modfilelen;
+  unsigned char *buf;
+  char pre[11];
+  char tmpstr[256];
+  int ret;
+
+  if (!(modfile = fopen(filename, "rb")))
+    return 0;
+
+  fstat(fileno(modfile), &st);
+  modfilelen = st.st_size;
+
+  if (!(buf = malloc(modfilelen))) {
+    fprintf(stderr, "can't allocate mem");
+    fclose(modfile);
+    return 0;
+  }
+
+  ret = fread(buf, 1, modfilelen, modfile); /*Reading file over network? Bad
+                                              luck :) we read the truth but the
+                                              whole truth*/
+  fclose(modfile);
+
+  if (ret < modfilelen) {
+    fprintf(stderr, "uade: song info could not read %s fully\n",
+	    filename);
+    free(buf);
+    return 0;
+  }
+
+  snprintf(tmpstr, 256,"UADE2 MODINFO:\n\nFile name:\t%s\nFile length:\t%d bytes\n", filename, modfilelen);
+  strlcpy (credits, tmpstr,credits_len);
+
+  /* here we go */
+  uade_filemagic(buf,modfilelen,pre,modfilelen); /*get filetype in pre*/
+
+  snprintf(tmpstr, 256,"File prefix:\t%s.*\n", pre);
+  strlcat (credits, tmpstr,credits_len);
+
+  /* DM2 */
+  if (strcasecmp(pre, "DM2") == 0) {
+    process_dm2_mod(credits, credits_len, buf, tmpstr);	/*DM2 */
+
+  } else if ((strcasecmp(pre, "MOD15") == 0) ||
+	     (strcasecmp(pre, "MOD15_UST") == 0) ||
+	     (strcasecmp(pre, "MOD15_MST") == 0) ||
+	     (strcasecmp(pre, "MOD15_ST-IV") == 0)) {
+    /*MOD15 */
+    process_ptk_mod(credits, credits_len, 15, buf, modfilelen, tmpstr);
+
+  } else if ((strcasecmp(pre, "MOD") == 0) ||
+
+	     (strcasecmp(pre, "MOD_DOC") == 0) ||
+	     (strcasecmp(pre, "MOD_NTK1") == 0) ||
+	     (strcasecmp(pre, "MOD_NTK2") == 0) ||
+	     (strcasecmp(pre, "MOD_FLT4") == 0) ||
+	     (strcasecmp(pre, "MOD_FLT8") == 0) ||
+	     (strcasecmp(pre, "MOD_ADSC4") == 0) ||
+	     (strcasecmp(pre, "MOD_ADSC8") == 0) ||
+	     (strcasecmp(pre, "MOD_PTKCOMP") == 0) ||
+	     (strcasecmp(pre, "MOD_NTKAMP") == 0) ||
+  	     (strcasecmp(pre, "PPK") == 0) ||
+	     (strcasecmp(pre, "MOD_PC") == 0) ||
+	     (strcasecmp(pre, "ICE") == 0) ||
+	     (strcasecmp(pre, "ADSC") == 0)) {
+    /*MOD*/
+    process_ptk_mod(credits, credits_len, 31, buf, modfilelen,tmpstr);
+  }
+  return 0;
+}
+
 /* Returns zero on success, non-zero otherwise. */
 int uade_song_info(char *info, size_t maxlen, char *filename,
 		   enum song_info_type type)
 {
   switch (type) {
   case UADE_MODULE_INFO:
-    snprintf(info, maxlen, "Not supported yet.\n");
-    return 1;
+    return process_module(info,maxlen,filename);
   case UADE_HEX_DUMP_INFO:
     return hexdump(info, maxlen, filename);
   default:
@@ -115,3 +240,4 @@ int uade_song_info(char *info, size_t maxlen, char *filename,
   }
   return 0;
 }
+
