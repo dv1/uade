@@ -209,7 +209,10 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 	if (modulename[0] == 0) {
 	    fileinfo_modulename_txt = gtk_label_new(basename(filename));
 	} else {
-	    fileinfo_modulename_txt = gtk_label_new(modulename);
+	    fileinfo_modulename_txt = gtk_label_new(g_strdup_printf("%s\n(%s)",
+							    modulename,
+							    basename(filename)
+							    ));
 	}
 
 	gtk_label_set_justify(GTK_LABEL(fileinfo_modulename_txt),
@@ -419,7 +422,8 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename, char
     			   g_strdup_printf("%s", basename(gui_module_filename)));
         } else {
     	    gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
-    			   g_strdup_printf("%s", basename(gui_modulename)));
+    			   g_strdup_printf("%s\n(%s)", gui_modulename,
+						basename(gui_module_filename)));
 	}
 
 	gtk_widget_show(fileinfo_modulename_txt);
