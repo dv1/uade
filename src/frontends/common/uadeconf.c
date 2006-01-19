@@ -232,3 +232,49 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   fclose(f);
   return 1;
 }
+
+
+void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
+{
+  if (ep->attributes & EP_ALWAYS_ENDS)
+    uc->always_ends = 1;
+
+  if (ep->attributes & EP_A500)
+    uc->filter_type = FILTER_MODEL_A500;
+
+  if (ep->attributes & EP_A1200)
+    uc->filter_type = FILTER_MODEL_A1200;
+
+  if (ep->attributes & EP_SPEED_HACK)
+    uc->speed_hack = 1;
+}
+
+
+void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
+			      struct uade_song *us)
+{
+  if (us->flags & ES_A500)
+    uc->filter_type = FILTER_MODEL_A500;
+  if (us->flags & ES_A1200)
+    uc->filter_type = FILTER_MODEL_A1200;
+  if (us->flags & ES_LED_OFF) {
+    uc->led_forced = 1;
+    uc->led_state = 0;
+  }
+  if (us->flags & ES_LED_ON) {
+    uc->led_forced = 1;
+    uc->led_state = 1;
+  }
+
+  if (us->flags & ES_NO_HEADPHONES)
+    uade_effect_disable(ue, UADE_EFFECT_HEADPHONES);
+  if (us->flags & ES_NO_PANNING)
+    uade_effect_disable(ue, UADE_EFFECT_PAN);
+  if (us->flags & ES_NO_POSTPROCESSING)
+    uade_effect_disable(ue, UADE_EFFECT_ALLOW);
+
+  if (us->flags & ES_NTSC)
+    fprintf(stderr, "NTSC not implemented.\n");
+  if (us->subsongs)
+    fprintf(stderr, "Subsongs not implemented.\n");
+}

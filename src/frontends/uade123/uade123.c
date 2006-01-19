@@ -51,7 +51,6 @@ int uade_no_output;
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 struct playlist uade_playlist;
-int uade_playtime;
 FILE *uade_terminal_file;
 int uade_terminal_mode = 1;
 int uade_terminated;
@@ -112,7 +111,6 @@ int main(int argc, char *argv[])
 {
   int i;
   char configname[PATH_MAX] = "";
-  char modulename[PATH_MAX] = "";
   char playername[PATH_MAX] = "";
   char scorename[PATH_MAX] = "";
   int playernamegiven = 0;
@@ -446,120 +444,85 @@ int main(int argc, char *argv[])
   uade_effects_backup = uade_effects;
   uadeconf_backup = uadeconf;
 
-  while (playlist_get_next(modulename, sizeof(modulename), &uade_playlist)) {
-    int nplayers;
+  while (1) {
     ssize_t filesize;
+    struct uade_song *us;
+    /* modulename and songname are a bit different. modulename is the name
+       of the song from uadecore's point of view and songname is the
+       name of the song from user point of view. Sound core considers all
+       custom songs to be players (instead of modules) and therefore modulename
+       will become a zero-string with custom songs. */
+    char modulename[PATH_MAX];
+    char songname[PATH_MAX];
+
+    if (!playlist_get_next(modulename, sizeof modulename, &uade_playlist))
+      break;
 
     uade_effects = uade_effects_backup;
     uadeconf = uadeconf_backup;
 
-    if (access(modulename, R_OK)) {
-      fprintf(stderr, "Can not read %s: %s\n", modulename, strerror(errno));
-      continue;
-    }
-
-    nplayers = 1;
     if (playernamegiven == 0) {
-      struct eagleplayer *candidate;
-      char md5[33];
+      struct eagleplayer *ep;
 
       debug("\n");
 
-      candidate = uade_analyze_file_format(modulename, basedir, uade_verbose_mode);
-
-      if (candidate == NULL) {
+      ep = uade_analyze_file_format(modulename, basedir, uade_verbose_mode);
+      if (ep == NULL) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
 	continue;
       }
-      debug("Player candidate: %s\n", candidate->playername);
+      debug("Player candidate: %s\n", ep->playername);
 
-      if (candidate->attributes & EP_SPEED_HACK) {
-	uadeconf.speed_hack = 1;
-	debug("eagleplayer.conf specifies speed hack.\n");
-      }
+      /* Command line overrides are needed here. NOT IMPLEMENTED. */
 
-      if (candidate->attributes & EP_ALWAYS_ENDS) {
-	uadeconf.always_ends = 1;
-	debug("eagleplayer.conf specifies always ends.\n");
-      }
+      uade_set_ep_attributes(&uadeconf, ep);
 
-      if (candidate->attributes & EP_A500) {
-	uadeconf.filter_type = FILTER_MODEL_A500;
-	debug("eagleplayer.conf specifies filter model %d\n",uadeconf.filter_type);
-      }
-      if (candidate->attributes & EP_A1200) {
-	uadeconf.filter_type = FILTER_MODEL_A1200;
-	debug("eagleplayer.conf specifies filter model %d\n",uadeconf.filter_type);
-      }
-
-      if (uade_file_md5(md5, modulename, sizeof md5)) {
-	struct eaglesong *es = uade_analyze_song(md5);
-	if (es) {
-	  fprintf(stderr, "Warning: song.conf is not implemented properly. Effects are permanent rather than file specific :(\n");
-	  if (es->flags & ES_A500)
-	    uadeconf.filter_type = FILTER_MODEL_A500;
-	  if (es->flags & ES_A1200)
-	    uadeconf.filter_type = FILTER_MODEL_A1200;
-	  if (es->flags & ES_LED_OFF) {
-	    uadeconf.led_forced = 1;
-	    uadeconf.led_state = 0;
-	  }
-	  if (es->flags & ES_LED_ON) {
-	    uadeconf.led_forced = 1;
-	    uadeconf.led_state = 1;
-	  }
-	  /* Command line should be able to override these */
-	  if (es->flags & ES_NO_HEADPHONES)
-	    uade_effect_disable(&uade_effects, UADE_EFFECT_HEADPHONES);
-	  if (es->flags & ES_NO_PANNING)
-	    uade_effect_disable(&uade_effects, UADE_EFFECT_PAN);
-	  if (es->flags & ES_NO_POSTPROCESSING)
-	    uade_effect_disable(&uade_effects, UADE_EFFECT_ALLOW);
-	  if (es->flags & ES_NTSC)
-	    fprintf(stderr, "NTSC not implemented.\n");
-	  if (es->subsongs)
-	    fprintf(stderr, "Subsongs not implemented.\n");
-	}
-      }
-
-      uade_playtime = uade_find_playtime(md5);
-      if (uade_playtime <= 0)
-	uade_playtime = -1;
-
-      if (strcmp(candidate->playername, "custom") == 0) {
+      if (strcmp(ep->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof playername);
 	modulename[0] = 0;
       } else {
-	snprintf(playername, sizeof playername, "%s/players/%s", basedir, candidate->playername);
+	snprintf(playername, sizeof playername, "%s/players/%s", basedir, ep->playername);
       }
     }
 
-    if (playername[0]) {
-      if (access(playername, R_OK)) {
-	fprintf(stderr, "Can not read %s: %s\n", playername, strerror(errno));
-	continue;
-      }
+    if (playername[0] == 0) {
+      fprintf(stderr, "Empty playername.\n");
+      goto cleanup;
+    }
+
+    if (access(playername, R_OK)) {
+      fprintf(stderr, "Can not read %s: %s\n", playername, strerror(errno));
+      continue;
     }
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not stat player: %s\n", playername);
       continue;
     }
-    if (uade_verbose_mode || modulename[0] == 0)
-      fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
-    if (modulename[0] != 0) {
-      if ((filesize = stat_file_size(modulename)) < 0) {
-	fprintf(stderr, "Can not stat module: %s\n", modulename);
-	continue;
-      }
-      fprintf(stderr, "Module: %s (%zd bytes)\n", modulename, filesize);
+
+    strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
+
+    if ((us = uade_alloc_song(songname)) == NULL) {
+      fprintf(stderr, "Can not read %s: %s\n", songname, strerror(errno));
+      continue;
     }
+
+    /* Command line overrides are needed here. NOT IMPLEMENTED. */
+
+    uade_set_song_attributes(&uadeconf, &uade_effects, us);
+
+    if (uade_verbose_mode)
+      fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
+
+    fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
 
     if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc))) {
       if (ret == UADECORE_INIT_ERROR) {
+	free(us);
 	goto cleanup;
       } else if (ret == UADECORE_CANT_PLAY) {
 	debug("Uadecore refuses to play the song.\n");
+	free(us);
 	continue;
       }
       fprintf(stderr, "Unknown error from uade_song_initialization()\n");
@@ -592,8 +555,12 @@ int main(int argc, char *argv[])
       }
     }
 
-    if (!play_loop())
+    if (!play_loop(us)) {
+      free(us);
       goto cleanup;
+    }
+
+    free(us);
   }
 
   debug("Killing child (%d).\n", uadepid);

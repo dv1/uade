@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <limits.h>
 
 #define EP_A500              (1 << 0)
 #define EP_A1200             (1 << 1)
@@ -22,6 +23,7 @@
 #define ES_SPEED_HACK        (1 <<  9)
 #define ES_VBLANK            (1 << 10)
 
+
 struct eagleplayer {
   char *playername;
   size_t nextensions;
@@ -29,10 +31,12 @@ struct eagleplayer {
   int attributes;
 };
 
+
 struct eagleplayermap {
   char *extension;
   struct eagleplayer *player;
 };
+
 
 struct eagleplayerstore {
   size_t nplayers;
@@ -41,18 +45,34 @@ struct eagleplayerstore {
   struct eagleplayermap *map;
 };
 
-struct eaglesong {
+
+struct uade_song {
   int flags;
   int nsubsongs;
   uint8_t *subsongs;
   char md5[33];
+
+  char module_filename[PATH_MAX];
+
+  char playername[256]; /* Eagleplayer name in players directory */
+  char modulename[256]; /* From score */
+  char formatname[256];
+
+  int playtime;
+
+  uint8_t *buf;
+  size_t bufsize;
+
+  int min_subsong;
+  int max_subsong;
+  int cur_subsong;
 };
 
+
 int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
+struct uade_song *uade_alloc_song(const char *filename);
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     const char *basedir, int verbose);
-struct eaglesong *uade_analyze_song(const char *asciimd5);
-int uade_file_md5(char *asciimd5, const char *filename, size_t len);
 int uade_find_playtime(const char *md5);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);

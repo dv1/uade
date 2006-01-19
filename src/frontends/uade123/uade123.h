@@ -21,7 +21,6 @@ extern int uade_no_output;
 extern char uade_output_file_format[16];
 extern char uade_output_file_name[PATH_MAX];
 extern struct playlist uade_playlist;
-extern int uade_playtime;
 extern int uade_song_end_trigger;
 extern int uade_terminated;
 extern FILE *uade_terminal_file;
