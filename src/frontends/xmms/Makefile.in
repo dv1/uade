@@ -26,7 +26,7 @@ fileinfo.o:	fileinfo.c fileinfo.h
 md5.o:	../common/md5.c ../common/md5.h
 	$(CC) $(CFLAGS) -c $<
 
-plugin.o:	plugin.c plugin.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h ../common/uadeconf.h ../common/effects.h ../common/md5.h
+plugin.o:	plugin.c plugin.h subsongseek.h fileinfo.h ../common/eagleplayer.h ../common/uadecontrol.h ../../include/uadeipc.h ../../include/uadeconstants.h subsongseek.h ../../include/uadeconfig.h ../common/uadeconf.h ../common/effects.h ../common/md5.h
 
 	$(CC) $(CFLAGS) -c $<
 
