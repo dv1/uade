@@ -550,8 +550,8 @@ void uade_player_info(void)
     } else {
 	gdk_window_raise(playerinfowin->window);
     }
-
 }
+
 void uade_mod_info_hex(void)
 {
     uade_mod_info(UADE_HEX_DUMP_INFO);

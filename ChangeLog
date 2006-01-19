@@ -4,6 +4,8 @@
 	  of songs that are played. Modified uade123 and XMMS plugin to use
 	  it. The transition is not completed yet. Many fields are still
 	  unused and those fields unnecessarily duplicated in frontends.
+	- Fixed merging conflicts between latest frontend modularization
+	  effort and mlds mod/fileinfo changes.
 
 2006-01-19  Michael Doering <mldoering@gmx.net>
 	- Improved vblank detection in Protracker replay for mod.slow_motion
