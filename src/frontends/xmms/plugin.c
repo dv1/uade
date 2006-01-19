@@ -99,6 +99,7 @@ static char gui_filename[PATH_MAX];
 static char gui_formatname[256];
 static int gui_info_set;
 static char gui_modulename[256];
+static char gui_module_filename[256];
 static char gui_playername[256];
 static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
@@ -338,6 +339,7 @@ static int initialize_song(char *filename)
     return FALSE;
 
   strlcpy(modulename, filename, sizeof modulename);
+  strlcpy(gui_module_filename, filename, sizeof gui_module_filename);
 
   snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
 
@@ -862,6 +864,7 @@ static int uade_get_time(void)
       uade_ip.set_info(gui_filename, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     }
     uade_unlock();
+    file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
     gui_info_set = 1;
   }
 
