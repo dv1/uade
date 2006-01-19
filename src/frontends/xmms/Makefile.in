@@ -20,7 +20,7 @@ eagleplayer.o:	../common/eagleplayer.c ../common/eagleplayer.h ../common/md5.h
 effects.o:	../common/effects.c ../common/effects.h
 	$(CC) $(CFLAGS) -c $<
 
-fileinfo.o:	fileinfo.c
+fileinfo.o:	fileinfo.c fileinfo.h
 	$(CC) $(CFLAGS) -c $<
 
 md5.o:	../common/md5.c ../common/md5.h
