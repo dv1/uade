@@ -206,7 +206,12 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 			 (GtkAttachOptions) (GTK_FILL),
 			 (GtkAttachOptions) (0), 0, 0);
 	
-	fileinfo_modulename_txt = gtk_label_new(basename(filename));
+	if (modulename[0] == 0) {
+	    fileinfo_modulename_txt = gtk_label_new(basename(filename));
+	} else {
+	    fileinfo_modulename_txt = gtk_label_new(modulename);
+	}
+
 	gtk_label_set_justify(GTK_LABEL(fileinfo_modulename_txt),
 			      GTK_JUSTIFY_LEFT);
 	gtk_label_set_line_wrap(GTK_LABEL(fileinfo_modulename_txt),
@@ -408,10 +413,16 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename, char
 	strlcpy(player_filename, gui_player_filename, sizeof player_filename);
 
 	gdk_window_raise(fileinfowin->window);
-        gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
-		       g_strdup_printf("%s", gui_modulename));
-	gtk_widget_show(fileinfo_modulename_txt);
 
+        if (gui_modulename[0] == 0) {
+    	    gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
+    			   g_strdup_printf("%s", basename(gui_module_filename)));
+        } else {
+    	    gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
+    			   g_strdup_printf("%s", basename(gui_modulename)));
+	}
+
+	gtk_widget_show(fileinfo_modulename_txt);
 
         if (gui_formatname[0] == 0) {
     	    gtk_label_set_text(GTK_LABEL(fileinfo_playername_txt),
@@ -446,6 +457,7 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename, char
 			     NULL);
 
 	gtk_widget_show(fileinfo_moduleinfo_button);
+	xmms_usleep (10000);
     }
 }
 
