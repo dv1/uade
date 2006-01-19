@@ -23,6 +23,8 @@
 #include <assert.h>
 #include <strings.h>
 #include <limits.h>
+#include <libgen.h>
+
 
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -52,7 +54,10 @@ static GtkWidget *fileinfo_minsubsong_txt;
 static GtkWidget *fileinfo_subsong_txt;
 
 
-static void uade_mod_info(void);
+static void uade_mod_info(int modinfo_mode);
+static void uade_mod_info_hex(void);
+static void uade_mod_info_module(void);
+
 static void uade_player_info(void);
 static void file_info_update(void);
 
@@ -66,6 +71,7 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
     GtkWidget *fileinfo_table;
 
     GtkWidget *fileinfo_modulename_label;
+    GtkWidget *fileinfo_hexinfo_button;
     GtkWidget *fileinfo_moduleinfo_button;
     GtkWidget *fileinfo_modulename_hbox;
     GtkWidget *fileinfo_hrule1;
@@ -200,7 +206,7 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 			 (GtkAttachOptions) (GTK_FILL),
 			 (GtkAttachOptions) (0), 0, 0);
 	
-	fileinfo_modulename_txt = gtk_label_new(filename);
+	fileinfo_modulename_txt = gtk_label_new(basename(filename));
 	gtk_label_set_justify(GTK_LABEL(fileinfo_modulename_txt),
 			      GTK_JUSTIFY_LEFT);
 	gtk_label_set_line_wrap(GTK_LABEL(fileinfo_modulename_txt),
@@ -209,7 +215,27 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 			       0.5);
 	gtk_misc_set_padding(GTK_MISC(fileinfo_modulename_txt), 5, 5);
 	
-	fileinfo_moduleinfo_button = gtk_button_new_with_label("?");
+
+	fileinfo_hexinfo_button = gtk_button_new_with_label("hex");
+	GTK_WIDGET_SET_FLAGS(fileinfo_hexinfo_button,
+			     GTK_CAN_DEFAULT);
+	gtk_widget_ref(fileinfo_hexinfo_button);
+	gtk_object_set_data_full(GTK_OBJECT(fileinfowin),
+				 "fileinfo_hexinfo_button",
+				 fileinfo_hexinfo_button,
+				 (GtkDestroyNotify) gtk_widget_unref);
+	gtk_tooltips_set_tip(fileinfo_tooltips,
+			     fileinfo_hexinfo_button,
+			     g_strdup_printf("%s", filename),
+			     NULL);
+	
+	gtk_signal_connect_object(GTK_OBJECT
+				  (fileinfo_hexinfo_button),
+				  "clicked",
+				  GTK_SIGNAL_FUNC(uade_mod_info_hex), NULL);
+	
+
+	fileinfo_moduleinfo_button = gtk_button_new_with_label("Info");
 	GTK_WIDGET_SET_FLAGS(fileinfo_moduleinfo_button,
 			     GTK_CAN_DEFAULT);
 	
@@ -227,11 +253,13 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 	gtk_signal_connect_object(GTK_OBJECT
 				  (fileinfo_moduleinfo_button),
 				  "clicked",
-				  GTK_SIGNAL_FUNC(uade_mod_info), NULL);
-	
+				  GTK_SIGNAL_FUNC(uade_mod_info_module), NULL);
+
 	
 	gtk_box_pack_start(GTK_BOX(fileinfo_modulename_hbox),
 			   fileinfo_modulename_txt, TRUE, TRUE, 0);
+	gtk_box_pack_start_defaults(GTK_BOX(fileinfo_modulename_hbox),
+				    fileinfo_hexinfo_button);
 	gtk_box_pack_start_defaults(GTK_BOX(fileinfo_modulename_hbox),
 				    fileinfo_moduleinfo_button);
 	
@@ -505,8 +533,17 @@ void uade_player_info(void)
     }
 
 }
+void uade_mod_info_hex(void)
+{
+    uade_mod_info(UADE_HEX_DUMP_INFO);
+}
 
-void uade_mod_info(void)
+void uade_mod_info_module(void)
+{
+    uade_mod_info(UADE_MODULE_INFO);
+}
+
+void uade_mod_info(int modinfo_mode)
 {
     char credits[8192];
     GtkWidget *modinfo_button_box;
@@ -540,7 +577,7 @@ void uade_mod_info(void)
 	gtk_container_add(GTK_CONTAINER(modinfowin), modinfo_base_vbox);
 
 
-	if (uade_song_info(credits, sizeof credits, module_filename, UADE_HEX_DUMP_INFO))
+	if (uade_song_info(credits, sizeof credits, module_filename, modinfo_mode))
 	    snprintf(credits, sizeof credits, "Unable to process file %s\n", module_filename);
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
@@ -586,5 +623,4 @@ void uade_mod_info(void)
     } else {
 	gdk_window_raise(modinfowin->window);
     }
-
 }

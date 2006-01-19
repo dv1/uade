@@ -2,7 +2,7 @@
 	- improved vblank detection in Protracker replay for mod.slow_motion
 	  by Jogeir Liljedahl. (mld)
 	- started work on backporting modinfo from uade 1. Ideally all
-	  frontends should be able to use it. So far none does *g* (mld)
+	  frontends should be able to use it. (mld)
 
 2006-01-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a simple and broken XMMS file info window. Module info
