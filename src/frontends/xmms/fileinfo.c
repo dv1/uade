@@ -65,8 +65,7 @@ static void uade_player_info();
 
 /* File Info Window */
 
-void uade_gui_file_info(char *filename, char *gui_player_filename,
-			char *modulename, char *playername, char *formatname)
+void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulename, char *playername, char *formatname)
 {
     GtkWidget *fileinfo_base_vbox;
     GtkWidget *fileinfo_frame;
@@ -87,6 +86,7 @@ void uade_gui_file_info(char *filename, char *gui_player_filename,
 
     GtkWidget *fileinfo_button_box;
     GtkWidget *ok_button;
+
 
     strlcpy(module_filename, filename, sizeof module_filename);
     strlcpy(player_filename, gui_player_filename, sizeof player_filename);
@@ -406,9 +406,7 @@ void uade_gui_file_info(char *filename, char *gui_player_filename,
     }
 }
 
-void file_info_update(char *gui_module_filename, char *gui_player_filename,
-		      char *gui_modulename, char *gui_playername,
-		      char *gui_formatname)
+void file_info_update(char *gui_module_filename, char *gui_player_filename, char *gui_modulename, char *gui_playername ,char *gui_formatname)
 {
 
     if (fileinfowin != NULL) {
