@@ -1,3 +1,7 @@
+2006-01-19  Michael Doering <mldoering@gmx.net>
+	- improved vblank detection in Protracker replay for mod.slow_motion
+	  by Jogeir Liljedahl. (mld)
+
 2006-01-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a simple and broken XMMS file info window. Module info
 	  displays a hexdump of the first 1024 bytes of the module.

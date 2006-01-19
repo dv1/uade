@@ -232,7 +232,27 @@ mcheck_is_ptk:
 			cmp.l	#0,d0			; playtime in hours?
 			bgt	.mcheck_end
 			move.l	4(a1),d0
-			cmp.l	#28,d0			; more than 28 minutes?
+			cmp.l	#20,d0			; more than 20 minutes?
+			bgt	.mcheck_maybe_vblank
+			move.l #mod_PTK,modtag	
+			rts
+.mcheck_maybe_vblank:
+			moveq.l	#0,d0
+			move.l	#25000/50,d1		; 50Hz
+			moveq.l	#0,d2			; vblank
+			move.l	song,a0
+
+			lea.l	Timer2,a1
+			bsr	PTCalcTime
+
+			lea.l	Timer2,a1
+			move.l	4(a1),d1		; vblank minutes
+			mulu	#2,d1
+
+			lea.l	Timer,a1
+			move.l	4(a1),d0			; cia minutes
+			
+			cmp.l	d1,d0			; more than double?
 			bgt	.mcheck_end
 			move.l #mod_PTK,modtag	
 .mcheck_end		rts
@@ -760,8 +780,11 @@ mod_SubSongRange:
 	        moveq	#1,d0
 	        move.l	SubSongs,d1
 	        rts
-
-
+* Debug vblankT
+*		lea.l	Timer,a1
+*		move.l	(a1),d0
+*		move.l	4(a1),d1
+*		rts
 ;--------------------------------------------------------------------------
 ; mod_probe_subsongs
 ; input:  a0=Songdata  
@@ -890,6 +913,7 @@ SongTable:		ds.b	128
 			
 maxpattern:		dc.w	0
 Timer:			dc.l	0,0,0,0			; Hours, Minutes, secs
+Timer2:			dc.l	0,0,0,0			; Hours, Minutes, secs
 header:			dc.l	0
 modtag:			dc.l	0
 pfx			dcb.w	32,0
