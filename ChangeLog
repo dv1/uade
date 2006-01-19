@@ -3,6 +3,7 @@
 	  by Jogeir Liljedahl. (mld)
 	- started work on backporting modinfo from uade 1. Ideally all
 	  frontends should be able to use it. (mld)
+	- experimental "update fileinfo window on songchange" feature...
 
 2006-01-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a simple and broken XMMS file info window. Module info

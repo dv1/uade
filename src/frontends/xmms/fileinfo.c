@@ -46,6 +46,9 @@ static char player_filename[PATH_MAX];
 static GtkWidget *fileinfowin = NULL;
 static GtkWidget *playerinfowin = NULL;
 static GtkWidget *modinfowin = NULL;
+static GtkTooltips *fileinfo_tooltips;
+static GtkWidget *fileinfo_hexinfo_button;
+static GtkWidget *fileinfo_moduleinfo_button;
 
 static GtkWidget *fileinfo_modulename_txt;
 static GtkWidget *fileinfo_playername_txt;
@@ -58,8 +61,8 @@ static void uade_mod_info(int modinfo_mode);
 static void uade_mod_info_hex(void);
 static void uade_mod_info_module(void);
 
-static void uade_player_info(void);
-static void file_info_update(void);
+static void uade_player_info();
+void file_info_update(char *gui_module_filename, char *gui_player_filename, char *gui_modulename, char *gui_playername ,char *gui_formatname);
 
 
 /* File Info Window */
@@ -71,8 +74,6 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
     GtkWidget *fileinfo_table;
 
     GtkWidget *fileinfo_modulename_label;
-    GtkWidget *fileinfo_hexinfo_button;
-    GtkWidget *fileinfo_moduleinfo_button;
     GtkWidget *fileinfo_modulename_hbox;
     GtkWidget *fileinfo_hrule1;
     GtkWidget *fileinfo_playername_hbox;
@@ -88,7 +89,6 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
     GtkWidget *fileinfo_button_box;
     GtkWidget *ok_button;
 
-    GtkTooltips *fileinfo_tooltips;
 
     strlcpy(module_filename, filename, sizeof module_filename);
     strlcpy(player_filename, gui_player_filename, sizeof player_filename);
@@ -396,54 +396,57 @@ void uade_gui_file_info(char *filename, char *gui_player_filename, char *modulen
 	gtk_widget_show_all(fileinfowin);
 	
     } else {
-	fprintf(stderr, "Would update fileinfo.\n");
-	file_info_update();
+	gdk_window_raise(fileinfowin->window);
     }
 }
 
-void file_info_update(void)
+void file_info_update(char *gui_module_filename, char *gui_player_filename, char *gui_modulename, char *gui_playername ,char *gui_formatname)
 {
-    char *playername;
-    char *formatname;
-    char *modulename = "goatse modname";
 
-    gdk_window_raise(fileinfowin->window);
+    if (fileinfowin != NULL) {
+	strlcpy(module_filename, gui_module_filename, sizeof module_filename);
+	strlcpy(player_filename, gui_player_filename, sizeof player_filename);
 
-    gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
-		       g_strdup_printf("%s", modulename));
-    gtk_widget_show(fileinfo_modulename_txt);
+	gdk_window_raise(fileinfowin->window);
+        gtk_label_set_text(GTK_LABEL(fileinfo_modulename_txt),
+		       g_strdup_printf("%s", gui_modulename));
+	gtk_widget_show(fileinfo_modulename_txt);
 
-/*  gtk_label_set_text(GTK_LABEL(fileinfo_modulepath_txt),
-		     g_strdup_printf("%s", fileinfo_modulepath));
-		     gtk_widget_show(fileinfo_modulepath_txt);
-*/
 
-    formatname = "Goatse format";
-    playername = "Goatse player";
+        if (gui_formatname[0] == 0) {
+    	    gtk_label_set_text(GTK_LABEL(fileinfo_playername_txt),
+    			   g_strdup_printf("%s", gui_playername));
+        } else {
+    	    gtk_label_set_text(GTK_LABEL(fileinfo_playername_txt),
+			   g_strdup_printf("%s\n%s", gui_playername,
+						    gui_formatname));
+	}
 
-    if (formatname[0] == 0) {
-	gtk_label_set_text(GTK_LABEL(fileinfo_playername_txt),
-			   g_strdup_printf("%s", playername));
-    } else {
-	gtk_label_set_text(GTK_LABEL(fileinfo_playername_txt),
-			   g_strdup_printf("%s\n%s", playername,
-					   formatname));
-
-    }
-
-    gtk_widget_show(fileinfo_playername_txt);
-    gtk_label_set_text(GTK_LABEL(fileinfo_subsong_txt),
+	gtk_widget_show(fileinfo_playername_txt);
+	gtk_label_set_text(GTK_LABEL(fileinfo_subsong_txt),
 		       g_strdup_printf("%d", uade_get_cur_subsong(0)));
-    gtk_widget_show(fileinfo_subsong_txt);
+	gtk_widget_show(fileinfo_subsong_txt);
 
-    gtk_label_set_text(GTK_LABEL(fileinfo_minsubsong_txt),
+	gtk_label_set_text(GTK_LABEL(fileinfo_minsubsong_txt),
 		       g_strdup_printf("%d", uade_get_min_subsong(0)));
-    gtk_widget_show(fileinfo_minsubsong_txt);
+	gtk_widget_show(fileinfo_minsubsong_txt);
 
-    gtk_label_set_text(GTK_LABEL(fileinfo_maxsubsong_txt),
+	gtk_label_set_text(GTK_LABEL(fileinfo_maxsubsong_txt),
 		       g_strdup_printf("%d", uade_get_max_subsong(0)));
-    gtk_widget_show(fileinfo_maxsubsong_txt);
+	gtk_widget_show(fileinfo_maxsubsong_txt);
 
+	gtk_tooltips_set_tip(fileinfo_tooltips,
+			     fileinfo_hexinfo_button,
+			     g_strdup_printf("%s", gui_module_filename),
+			     NULL);
+
+	gtk_tooltips_set_tip(fileinfo_tooltips,
+			     fileinfo_moduleinfo_button,
+			     g_strdup_printf("%s", gui_module_filename),
+			     NULL);
+
+	gtk_widget_show(fileinfo_moduleinfo_button);
+    }
 }
 
 void uade_player_info(void)

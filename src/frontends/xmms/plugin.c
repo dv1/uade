@@ -864,8 +864,9 @@ static int uade_get_time(void)
       uade_ip.set_info(gui_filename, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     }
     uade_unlock();
-    file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
     gui_info_set = 1;
+    file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
+    
   }
 
   return uade_ip.output->output_time();
