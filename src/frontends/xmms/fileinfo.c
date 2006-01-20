@@ -461,7 +461,6 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename,
 			     NULL);
 
 	gtk_widget_show(fileinfo_moduleinfo_button);
-	xmms_usleep (10000);
     }
 }
 
