@@ -71,7 +71,10 @@ static int hexdump(char *info, size_t maxlen, char *filename)
 	break;
 
       if (roff + 16 > rb) {
-	snprintf(&info[woff], maxlen - woff, "Aligned line  ");
+	iret = snprintf(&info[woff], maxlen - woff, "Aligned line  ");
+	assert(iret > 0);
+	woff += iret;
+
       } else {
 	char dbuf[17];
 	asciiline(dbuf, &buf[roff]);
@@ -104,71 +107,92 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   return rb == 0;
 }
 
-/* helper functions */
-static unsigned int readbig_w(char *ptr)
+
+static uint16_t read_be_u16(uint8_t *ptr)
 {
-  unsigned char *p = (unsigned char *) ptr;
-  unsigned int x = p[1] + (p[0] << 8);
+  uint16_t x = ptr[1] + (ptr[0] << 8);
   return x;
 }
 
-/* Get the info out of the AHX  module data*/
-static void process_ahx_mod(char *credits, int credits_len,
-			    unsigned char *buf, int modfilelen, char tmpstr[] )
+
+static int string_checker(char *str, size_t off, size_t maxoff)
 {
-  int i, offset;
+  assert(maxoff > 0);
+  while (off < maxoff) {
+    if (*str == 0)
+      return 1;
+    off++;
+    str++;
+  }
+  return 0;
+}
 
-  offset = readbig_w(buf + 4);
 
-  if (offset < modfilelen) {
-    snprintf(tmpstr, 256,"\nSongtitle:\t%s\n", buf + offset);
-    strlcat(credits, tmpstr, credits_len);
+/* Get the info out of the AHX  module data*/
+static void process_ahx_mod(char *credits, size_t credits_len,
+			    unsigned char *buf, size_t len)
+{
+  int i;
+  size_t offset;
+  char tmpstr[256];
 
-    for (i = 0; i < buf[12]; i++) {
-      offset = offset + 1 + strlen(buf + offset);
-      if (offset < modfilelen) {
+  if (len < 13)
+    return;
 
-         snprintf(tmpstr, 256,"\n\t\t%s", buf + offset);
-         strlcat(credits, tmpstr, credits_len);
-      }
+  offset = read_be_u16(buf + 4);
+
+  if (offset >= len)
+    return;
+
+  if (!string_checker(buf, offset, len))
+    return;
+
+  snprintf(tmpstr, sizeof tmpstr, "\nSongtitle:\t%s\n", buf + offset);
+  strlcat(credits, tmpstr, credits_len);
+
+  for (i = 0; i < buf[12]; i++) {
+    if (!string_checker(buf, offset, len))
+      break;
+    offset = offset + 1 + strlen(buf + offset);
+    if (offset < len) {
+      snprintf(tmpstr, 256,"\n\t\t%s", buf + offset);
+      strlcat(credits, tmpstr, credits_len);
     }
   }
 }
 
 /* Get the info out of the protracker module data*/
-static void process_ptk_mod(char *credits, int credits_len, int inst,
-			    unsigned char *buf, int len, char tmpstr[])
+static void process_ptk_mod(char *credits, size_t credits_len, int inst,
+			    uint8_t *buf, size_t len)
 {
   int i;
+  char tmpstr[256];
 
-      snprintf(tmpstr, 32,"\nSongtitle:\t%s\n", buf);
-      strlcat(credits, tmpstr, credits_len);
+  if (!string_checker(buf, 0, len))
+    return;
 
+  snprintf(tmpstr, 32, "\nSongtitle:\t%s\n", buf);
+  strlcat(credits, tmpstr, credits_len);
 
   if (inst == 31) {
     if (len >= 0x43c) {
-
-      snprintf(tmpstr, 256,"max positions:  %d\n", buf[0x3b6]);
+      snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[0x3b6]);
       strlcat(credits, tmpstr, credits_len);
-
     }
   } else {
     if (len >= 0x1da) {
-      snprintf(tmpstr, 256,"max positions:  %d\n", buf[0x1d6]);
+      snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[0x1d6]);
       strlcat(credits, tmpstr, credits_len);
     }
   }
 
   if (len >= (0x14 + inst * 0x1e)) {
     for (i = 0; i < inst; i++) {
-      if (i < 10) {
-        snprintf(tmpstr, 256,"\ninstr #0%d:\t", i);
-        strlcat(credits, tmpstr, credits_len);
-      } else {
-        snprintf(tmpstr, 256,"\ninstr #%d:\t", i);
-        strlcat(credits, tmpstr, credits_len);
-      }
-      snprintf(tmpstr, 22,buf + 0x14 + (i * 0x1e));
+      if (!string_checker(buf, 0x14 + i * 0x1e, len))
+	break;
+      snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
+      strlcat(credits, tmpstr, credits_len);
+      snprintf(tmpstr, 22, buf + 0x14 + (i * 0x1e));
       strlcat(credits, tmpstr, credits_len);
     }
   }
@@ -177,10 +201,13 @@ static void process_ptk_mod(char *credits, int credits_len, int inst,
 /* 
  * Get the info out of the Deltamusic 2 module data
  */
-static void process_dm2_mod(char *credits, int credits_len,
-			    unsigned char *buf, char tmpstr[])
+static void process_dm2_mod(char *credits, size_t credits_len,
+			    unsigned char *buf, size_t len)
 {
-  snprintf(tmpstr, 256,"\nRemarks:\n%s", buf + 0x148);
+  char tmpstr[256];
+  if (!string_checker(buf, 0x148, len))
+    return;
+  snprintf(tmpstr, sizeof tmpstr, "\nRemarks:\n%s", buf + 0x148);
   strlcat(credits, tmpstr, credits_len);
 }
 
@@ -189,60 +216,66 @@ static int process_module(char *credits, size_t credits_len,char *filename)
 {
   FILE *modfile;
   struct stat st;
-  int modfilelen;
+  size_t modfilelen;
   unsigned char *buf;
   char pre[11];
   char tmpstr[256];
-  int ret;
+  size_t rb;
 
   if (!(modfile = fopen(filename, "rb")))
     return 0;
 
-  fstat(fileno(modfile), &st);
+  if (fstat(fileno(modfile), &st))
+    return 0;
+
   modfilelen = st.st_size;
 
-  if (!(buf = malloc(modfilelen))) {
+  if ((buf = malloc(modfilelen)) == NULL) {
     fprintf(stderr, "can't allocate mem");
     fclose(modfile);
     return 0;
   }
 
-  ret = fread(buf, 1, modfilelen, modfile); /*Reading file over network? Bad
-                                              luck :) we read the truth but the
-                                              whole truth*/
+  rb = 0;
+  while (rb < modfilelen) {
+    size_t ret = fread(&buf[rb], 1, modfilelen - rb, modfile);
+    if (ret == 0)
+      break;
+    rb += ret;
+  }
+
   fclose(modfile);
 
-  if (ret < modfilelen) {
-    fprintf(stderr, "uade: song info could not read %s fully\n",
-	    filename);
+  if (rb < modfilelen) {
+    fprintf(stderr, "uade: song info could not read %s fully\n", filename);
     free(buf);
     return 0;
   }
 
-  snprintf(tmpstr, 256,"UADE2 MODINFO:\n\nFile name:\t%s\nFile length:\t%d bytes\n", filename, modfilelen);
+  snprintf(tmpstr, sizeof tmpstr, "UADE2 MODINFO:\n\nFile name:\t%s\nFile length:\t%zd bytes\n", filename, modfilelen);
   strlcpy (credits, tmpstr,credits_len);
 
   /* here we go */
   uade_filemagic(buf,modfilelen,pre,modfilelen); /*get filetype in pre*/
 
-  snprintf(tmpstr, 256,"File prefix:\t%s.*\n", pre);
+  snprintf(tmpstr, sizeof tmpstr, "File prefix:\t%s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
 
   if (strcasecmp(pre, "DM2") == 0) {
   /* DM2 */
-    process_dm2_mod(credits, credits_len, buf, tmpstr);	/*DM2 */
+    process_dm2_mod(credits, credits_len, buf, modfilelen);	/*DM2 */
 
   } else if ((strcasecmp(pre, "AHX") == 0) ||
 	     (strcasecmp(pre, "THX") == 0)) {
     /* AHX */
-    process_ahx_mod(credits, credits_len, buf, modfilelen, tmpstr);
+    process_ahx_mod(credits, credits_len, buf, modfilelen);
 
   } else if ((strcasecmp(pre, "MOD15") == 0) ||
 	     (strcasecmp(pre, "MOD15_UST") == 0) ||
 	     (strcasecmp(pre, "MOD15_MST") == 0) ||
 	     (strcasecmp(pre, "MOD15_ST-IV") == 0)) {
     /*MOD15 */
-    process_ptk_mod(credits, credits_len, 15, buf, modfilelen, tmpstr);
+    process_ptk_mod(credits, credits_len, 15, buf, modfilelen);
 
   } else if ((strcasecmp(pre, "MOD") == 0) ||
 
@@ -260,7 +293,7 @@ static int process_module(char *credits, size_t credits_len,char *filename)
 	     (strcasecmp(pre, "ICE") == 0) ||
 	     (strcasecmp(pre, "ADSC") == 0)) {
     /*MOD*/
-    process_ptk_mod(credits, credits_len, 31, buf, modfilelen,tmpstr);
+    process_ptk_mod(credits, credits_len, 31, buf, modfilelen);
   }
   return 0;
 }
