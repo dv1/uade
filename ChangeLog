@@ -4,6 +4,8 @@
 	  of songs that are played. Modified uade123 and XMMS plugin to use
 	  it. The transition is not completed yet. Many fields are still
 	  unused and those fields unnecessarily duplicated in frontends.
+	  Notice that audacious plugin is broken because of this, but it's
+	  also in a transition phase.
 	- Fixed merging conflicts between latest frontend modularization
 	  effort and mlds mod/fileinfo changes.
 	- Fixed bugs in songinfo.c. Some file checking could have read over
