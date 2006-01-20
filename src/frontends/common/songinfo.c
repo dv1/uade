@@ -147,7 +147,7 @@ static void process_ahx_mod(char *credits, size_t credits_len,
   if (!string_checker(buf, offset, len))
     return;
 
-  snprintf(tmpstr, sizeof tmpstr, "\nSongtitle:\t%s\n", buf + offset);
+  snprintf(tmpstr, sizeof tmpstr, "\nSong title:\t%s\n", buf + offset);
   strlcat(credits, tmpstr, credits_len);
 
   for (i = 0; i < buf[12]; i++) {
@@ -171,7 +171,7 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
   if (!string_checker(buf, 0, len))
     return;
 
-  snprintf(tmpstr, 32, "\nSongtitle:\t%s\n", buf);
+  snprintf(tmpstr, 32, "\nSong title:\t%s\n", buf);
   strlcat(credits, tmpstr, credits_len);
 
   if (inst == 31) {
@@ -193,6 +193,37 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
       snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
       strlcat(credits, tmpstr, credits_len);
       snprintf(tmpstr, 22, buf + 0x14 + (i * 0x1e));
+      strlcat(credits, tmpstr, credits_len);
+    }
+  }
+}
+
+/* Get the info out of the digibooster module data*/
+static void process_digi_mod(char *credits, size_t credits_len,
+						    uint8_t *buf, size_t len)
+{
+  int i;
+  char tmpstr[256];
+
+  if (len < (642 +0x30 * 0x1e))
+    return;
+
+  if (!string_checker(buf, 610, len))
+    return;
+
+  snprintf(tmpstr, 0x2f, "\nSong title:\t%s \n", buf+610);
+  strlcat(credits, tmpstr, credits_len);
+
+  snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[47]);
+  strlcat(credits, tmpstr, credits_len);
+
+  if (len >= (642 + 0x1f * 0x1e)) {
+    for (i = 0; i < 0x1f; i++) {
+      if (!string_checker(buf, 642 + i * 0x1e, len))
+	break;
+      snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
+      strlcat(credits, tmpstr, credits_len);
+      snprintf(tmpstr, 0x1e, buf + 642 + (i * 0x1e));
       strlcat(credits, tmpstr, credits_len);
     }
   }
@@ -263,7 +294,11 @@ static int process_module(char *credits, size_t credits_len,char *filename)
 
   if (strcasecmp(pre, "DM2") == 0) {
   /* DM2 */
-    process_dm2_mod(credits, credits_len, buf, modfilelen);	/*DM2 */
+    process_dm2_mod(credits, credits_len, buf, modfilelen);
+
+  } else if (strcasecmp(pre, "DIGI") == 0) {
+  /* DIGIBooster */
+    process_digi_mod(credits, credits_len, buf, modfilelen);
 
   } else if ((strcasecmp(pre, "AHX") == 0) ||
 	     (strcasecmp(pre, "THX") == 0)) {

@@ -8,6 +8,7 @@
 	  effort and mlds mod/fileinfo changes.
 	- Fixed bugs in songinfo.c. Some file checking could have read over
 	  over memory boundary causing a segfault (but nothing else).
+	- Backported fileinfo for DIGI-Booster mods. (mld)
 
 2006-01-19  Michael Doering <mldoering@gmx.net>
 	- Improved vblank detection in Protracker replay for mod.slow_motion
