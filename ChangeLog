@@ -11,7 +11,7 @@
 	- Backported fileinfo for DIGI-Booster mods. (mld)
 	- Fixed a bug in XMMS plugin that it stopped a subsong too early
 	  if there was another subsong to play. The sound data that was
-	  buffered in audio output plugin was discarded. Thanks to Ctulhu
+	  buffered in audio output plugin was discarded. Thanks to Cthulhu
 	  (the old one) for the bug report.
 
 

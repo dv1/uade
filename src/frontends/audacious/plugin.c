@@ -391,6 +391,8 @@ static void *play_loop(void *arg)
 	    song_end_trigger = 1;
 	  } else {
 	    uade_change_subsong(uade_cur_sub, &uadeipc);
+	    while (uade_ip.output->buffer_playing())
+	      xmms_usleep(10000);
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	    subsong_bytes = 0;
