@@ -9,6 +9,11 @@
 	- Fixed bugs in songinfo.c. Some file checking could have read over
 	  over memory boundary causing a segfault (but nothing else).
 	- Backported fileinfo for DIGI-Booster mods. (mld)
+	- Fixed a bug in XMMS plugin that it stopped a subsong too early
+	  if there was another subsong to play. The sound data that was
+	  buffered in audio output plugin was discarded. Thanks to Ctulhu
+	  (the old one) for the bug report.
+
 
 2006-01-19  Michael Doering <mldoering@gmx.net>
 	- Improved vblank detection in Protracker replay for mod.slow_motion
