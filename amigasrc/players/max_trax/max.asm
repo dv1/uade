@@ -32,6 +32,8 @@
 			include 'exec/ports.i'
 			include 'exec/lists.i'
 			include 'exec/memory.i'
+                        include 'LVO3.0/dos_lib.i'
+                        include 'LVO3.0/exec_lib.i'
 			include 'devices/audio.i'
 			include 'graphics/gfxbase.i'
 			include 'hardware/intbits.i'
@@ -46,7 +48,7 @@ C_ENTRY			equ		0
 DO_DMACHECK		equ		0
 
 JSRLIB		macro
-			xref	_LVO\1
+;			xref	_LVO\1
 			jsr		_LVO\1(a6)
 			endm
 
@@ -162,12 +164,9 @@ _scoremax	dc.w	0
 _microtonal	ds.w	128
 		endc
 
-vblank_name	dc.b	'MaxTrax_VBlank',0
-			ds.w	0
-music_name	dc.b	'MT_Music',0
-			ds.w	0
-extra_name	dc.b	'MT_Extra',0
-			ds.w	0
+vblank_name	dc.b	'MaxTrax_VBlank',0,0
+music_name	dc.b	'MT_Music',0,0
+extra_name	dc.b	'MT_Extra',0,0
 
 			DEFX	_vblank_server
 			DEFX	_music_server
@@ -272,7 +271,7 @@ InitMusicTagList
 			move.l	a0,a2								; save taglist (if any)
 
 			tst.l	_globaldata+glob_FrameUnit			; already inited?
-			bne		99$									; tell them OK
+			bne		.l99									; tell them OK
 
 			move.w	d0,_scoremax						; maximum scores
 			mulu.w	#score_sizeof,d0					; allocate score buffers
@@ -283,7 +282,7 @@ InitMusicTagList
 			JSRLIB	AllocMem
 			lea		_audio_play,a0
 			move.l	d0,(a0)								; audio_play buffers
-			beq		98$									; if zero, error
+			beq		.l98									; if zero, error
 
 			move.l	d0,a1
 
@@ -311,16 +310,16 @@ InitMusicTagList
 			move.b	VBlankFrequency(a6),d1				; get VBlankFreq
 
 			move.l	a2,d0								; tag list?
-			beq.s	10$
+			beq.s	.l10
 			move.l	a2,a0
 			moveq	#MAXTRAX_VBLANKFREQ,d0
 			bsr		FindTag
 			tst.l	d0
-			beq.s	10$
+			beq.s	.l10
 			move.l	d0,a0
 			move.w	6(a0),d1							; get user VBlankFreq
 
-10$			lea		_globaldata,a0
+.l10			lea		_globaldata,a0
 			move.w	d1,glob_Frequency(a0)				; save VBlankFreq
 			move.l	#(1000<<8),d0						; calc FrameUnit
 			move.l	a0,-(sp)
@@ -341,23 +340,23 @@ InitMusicTagList
 * set ColorClocks
 
 			cmp.w	#36,LIB_VERSION(a6)					; which version of OS?
-			bpl.s	1$
+			bpl.s	.l1
 
 			move.l	#NTSC_CLOCKS,glob_ColorClocks(a0)	; KS1.3, check GfxBase
 			move.l	_GfxBase,a1
 			btst.b	#PALn,gb_DisplayFlags+1(a1)
-			beq.s	2$
+			beq.s	.l2
 			move.l	#PAL_CLOCKS,glob_ColorClocks(a0)
-			beq.s	2$
+			beq.s	.l2
 
-1$			move.l	ex_EClockFrequency(a6),d0			; KS2.0, check ExecBase
+.l1			move.l	ex_EClockFrequency(a6),d0			; KS2.0, check ExecBase
 			move.l	d0,d1
 			add.l	d1,d1
 			add.l	d1,d1
 			add.l	d1,d0
 			move.l	d0,glob_ColorClocks(a0)
 
-2$			lea		_xchannel,a0
+.l2			lea		_xchannel,a0
 			move.b	#16,chan_Number(a0)
 			move.b	#0,chan_Flags(a0)
 			move.b	#0,chan_VoicesActive(a0)
@@ -376,11 +375,11 @@ InitMusicTagList
 			lea		StdCloseFunc,a1
 			move.l	a1,_maxtrax+mxtx_CloseFunc
 
-99$			moveq	#MEV_ERR_NONE,d0					; no problem
+.l99			moveq	#MEV_ERR_NONE,d0					; no problem
 			movem.l	(sp)+,a2/a6
 			rts
 
-98$			jsr		FreeMusic
+.l98			jsr		FreeMusic
 			moveq	#MEV_ERR_NO_MEMORY,d0				; problem!
 			movem.l	(sp)+,a2/a6
 			rts
@@ -409,7 +408,7 @@ FreeMusic
 * remove vblank server
 
 			tst.l	_globaldata+glob_FrameUnit			; interrupt active?
-			beq.s	1$									; no, skip
+			beq.s	.l1									; no, skip
 
 			moveq	#INTB_VERTB,d0						; add vblank server
 			lea		_vblank_server,a1
@@ -417,8 +416,8 @@ FreeMusic
 
 			clr.l	_globaldata+glob_FrameUnit
 
-1$			move.l	_audio_play,d0						; audio blocks allocated?
-			beq.s	2$									; no, skip
+.l1			move.l	_audio_play,d0						; audio blocks allocated?
+			beq.s	.l2									; no, skip
 
 			move.l	d0,a1								; free score buffers
 			moveq	#0,d0								; & audio blocks
@@ -430,7 +429,7 @@ FreeMusic
 
 			clr.l	_audio_play
 
-2$			move.l	(sp)+,a6
+.l2			move.l	(sp)+,a6
 			rts
 
 *==========================================================================*
@@ -441,8 +440,7 @@ FreeMusic
 *
 *==========================================================================*
 
-audio_name	dc.b	'audio.device',0
-			ds.w	0
+audio_name	dc.b	'audio.device',0,0
 
 			xdef	_OpenMusic
 _OpenMusic
@@ -450,7 +448,7 @@ OpenMusic
 			movem.l	d2/a2/a3/a6,-(sp)
 
 			tst.l	_AudioDevice						; if music already open
-			bne		99$									;	done...
+			bne		.l99									;	done...
 
 			jsr		GetAudioFilter						; save filter state
 			move.b	d0,_globaldata+glob_SaveFilter
@@ -463,32 +461,32 @@ OpenMusic
 			moveq	#NUM_CHANNELS-1,d2					; init all channels
 			move.l	#_channel+(NUM_CHANNELS-1)*chan_sizeof,a2
 			move.l	#_patch+(NUM_CHANNELS-1)*patch_sizeof,a3
-1$			move.l	a3,chan_Patch(a2)					; set patch number
+.l1			move.l	a3,chan_Patch(a2)					; set patch number
 			lea		-patch_sizeof(a3),a3
 			move.b	d2,chan_Number(a2)					; set channel number
 			clr.w	chan_RPN(a2)						; set RPN to 0
 			move.l	a2,a0
 			bsr		ResetChannel						; reset channel
 			lea		-chan_sizeof(a2),a2
-			dbra	d2,1$								; loop
+			dbra	d2,.l1								; loop
 
 * init patches
 
 			moveq	#NUM_PATCHES-1,d2					; init all patches
 			move.l	#_patch+(NUM_PATCHES-1)*patch_sizeof,a3
-4$			move.b	d2,patch_Number(a3)					; set patch number
+.l4			move.b	d2,patch_Number(a3)					; set patch number
 			lea		-patch_sizeof(a3),a3
-			dbra	d2,4$								; loop
+			dbra	d2,.l4								; loop
 
 * init voices
 
 			moveq	#NUM_VOICES-1,d2
 			move.l	#_voice+(NUM_VOICES-1)*voice_sizeof,a2
-3$			clr.l	voice_Channel(a2)					; no channel
+.l3			clr.l	voice_Channel(a2)					; no channel
 			clr.b	voice_Status(a2)					; ENV_FREE
 			move.b	d2,voice_Number(a2)					; voice number
 			lea		-voice_sizeof(a2),a2
-			dbra	d2,3$								; loop
+			dbra	d2,.l3								; loop
 
 * initialize message ports
 
@@ -517,7 +515,7 @@ OpenMusic
 			addq.w	#2,sp								; clean-up stack
 			
 			tst.l	d0									; if not zero, an error
-			bne		98$
+			bne		.l98
 
 			move.l	_audio_ctrl,a1
 			move.l	IO_DEVICE(a1),d0
@@ -536,7 +534,7 @@ OpenMusic
 
 			moveq	#3*NUM_VOICES-1,d2
 			move.l	_audio_play,a3
-2$			move.l	a2,a0								; copy data to play iob
+.l2			move.l	a2,a0								; copy data to play iob
 			move.l	a3,a1
 			moveq	#ioa_SIZEOF,d0
 			JSRLIB	CopyMem
@@ -544,7 +542,7 @@ OpenMusic
 			move.l	a3,a1
 			JSRLIB	ReplyMsg							; put on port
 			lea		ioa_SIZEOF(a3),a3
-			dbra	d2,2$								; loop
+			dbra	d2,.l2								; loop
 
 			move.l	a2,a0								; copy data to env iob
 			move.l	_audio_env,a3
@@ -560,11 +558,11 @@ OpenMusic
 ;			xref	_init_ahandler
 ;			jsr		_init_ahandler
 
-99$			moveq	#MEV_ERR_NONE,d0
+.l99			moveq	#MEV_ERR_NONE,d0
 			movem.l	(sp)+,d2/a2/a3/a6
 			rts
 
-98$			moveq	#MEV_ERR_AUDIODEV,d0
+.l98			moveq	#MEV_ERR_AUDIODEV,d0
 			movem.l	(sp)+,d2/a2/a3/a6
 			rts
 
@@ -583,7 +581,7 @@ CloseMusic
 			movem.l	d2/a2/a6,-(sp)
 
 			tst.l	_AudioDevice					; music open?
-			beq.s	99$								; no, so don't close
+			beq.s	.l99								; no, so don't close
 
 			bclr.b	#MUSICB_PLAYING,_globaldata+glob_Flags	; turn music off
 			bclr.b	#MUSICB_PLAYING,_maxtrax+mxtx_Flags	; turn music off
@@ -595,13 +593,13 @@ CloseMusic
 
 			move.w	#NUM_VOICES-1,d2
 			lea		_voice,a2
-2$			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)
-			beq.s	1$
+.l2			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)
+			beq.s	.l1
 			move.w	d2,d0
 			bsr		stop_audio
-1$			clr.b	voice_Flags(a2)
+.l1			clr.b	voice_Flags(a2)
 			lea		voice_sizeof(a2),a2
-			dbra	d2,2$
+			dbra	d2,.l2
 
 			moveq	#0,d0								; restore audio filter
 			move.b	_globaldata+glob_SaveFilter,d0
@@ -618,7 +616,7 @@ CloseMusic
 
 			clr.l	_AudioDevice
 
-99$			movem.l	(sp)+,d2/a2/a6
+.l99			movem.l	(sp)+,d2/a2/a6
 			rts
 
 *==========================================================================*
@@ -644,84 +642,84 @@ NoteOn
 
 		ifne HAS_MICROTONAL
 			move.w	chan_Microtonal(a2),d1				; microtinal setting?
-			bmi		1$									; no, skip
+			bmi		.l1									; no, skip
 			moveq	#0,d0
 			move.b	(a3),d0								; note #
 			add.w	d0,d0
 			lea		_microtonal,a5
 			move.w	d1,0(a5,d0.w)						; set microtonal table
-1$
+.l1
 		endc
 
 			tst.b	1(a1)								; vol = 0 -> NOTE OFF
-			beq		99$									; just ignore
+			beq		.l99									; just ignore
 
 			move.l	chan_Patch(a2),a5					; get patch ptr
 			tst.l	patch_Sample(a5)					; no sample, exit
-			beq		99$
+			beq		.l99
 
 			btst.b	#CHANB_MONO,chan_Flags(a2)			; in mono mode?
-			beq.s	2$									; no, skip mono stuff
+			beq.s	.l2									; no, skip mono stuff
 			tst.b	chan_VoicesActive(a2)				; already voice on?
-			beq.s	2$									; no, skip mono stuff
+			beq.s	.l2									; no, skip mono stuff
 
 			lea		_voice,a5
 			moveq	#NUM_VOICES-1,d0
-3$			cmp.l	voice_Channel(a5),a2		; any voice REALLY on channel
-			beq.s	4$
+.l3			cmp.l	voice_Channel(a5),a2		; any voice REALLY on channel
+			beq.s	.l4
 			lea		voice_sizeof(a5),a5
-			dbra	d0,3$
+			dbra	d0,.l3
 
-4$			tst.w	d0									; if none, error
-			bmi		99$
+.l4			tst.w	d0									; if none, error
+			bmi		.l99
 
 			cmp.b	#ENV_SUSTAIN,voice_Status(a5)		; sustain or earlier?
-			bmi.s	5$									; no, skip porta code
+			bmi.s	.l5									; no, skip porta code
 			btst.b	#CHANB_PORTAMENTO,chan_Flags(a2)	; portamento?
-			beq.s	5$									; no, skip porta code
+			beq.s	.l5									; no, skip porta code
 
 			clr.l	voice_PortaTicks(a5)				; init portamento
 
 			bset.b	#VOICEB_PORTAMENTO,voice_Flags(a5)	; set & test
-			beq.s	24$							; not already portamento, skip
+			beq.s	.l24							; not already portamento, skip
 
 			move.b	voice_EndNote(a5),voice_BaseNote(a5) ; leap to old end note
 			
-24$			move.b	(a3),voice_EndNote(a5)
+.l24			move.b	(a3),voice_EndNote(a5)
 			move.b	(a3),chan_LastNote(a2)				; remember note
 
 			move.w	#128,d1								; default note velocity
 			btst.b	#MUSICB_VELOCITY,_globaldata+glob_Flags	; handling note vel?
-			beq.s	22$									; no, just use 128
+			beq.s	.l22									; no, just use 128
 			moveq	#0,d1
 			move.b	1(a3),d1							; get note volume
 			addq.b	#1,d1
-22$			move.w	d1,voice_NoteVolume(a5)				; set note volume
+.l22			move.w	d1,voice_NoteVolume(a5)				; set note volume
 
 			bset.b	#MUSICB_ADDED_NOTE,_globaldata+glob_Flags
 			move.b	voice_Number(a5),_globaldata+glob_LastVoice
-			bra		99$
+			bra		.l99
 
-2$			moveq	#LEFT_0,d0
+.l2			moveq	#LEFT_0,d0
 			btst.b	#CHANB_PAN,chan_Flags(a2)			; pan set?
-			beq.s	6$									; no, left voice
+			beq.s	.l6									; no, left voice
 			moveq	#RIGHT_0,d0							; yes, right voice
-6$			move.w	d2,d1
+.l6			move.w	d2,d1
 			bsr		pick_voice							; pick a voice
 			tst.l	d0
-			beq		99$									; no voice, exit
+			beq		.l99									; no voice, exit
 			move.l	d0,a5
 
-5$			tst.l	voice_Channel(a5)				; if voice in use, kill it
-			beq.s	7$
+.l5			tst.l	voice_Channel(a5)				; if voice in use, kill it
+			beq.s	.l7
 
 			move.l	a5,a0
 			bsr		KillVoice
 			move.b	#VOICE_STOLEN,voice_Flags(a5)		; mark as stolen
-			bra.s	8$
-7$			clr.b	voice_Flags(a5)
+			bra.s	.l8
+.l7			clr.b	voice_Flags(a5)
 
-8$			move.l	a2,voice_Channel(a5)				; setup voice data
+.l8			move.l	a2,voice_Channel(a5)				; setup voice data
 			move.l	chan_Patch(a2),voice_Patch(a5)
 
 			move.b	(a3),voice_BaseNote(a5)
@@ -734,37 +732,37 @@ NoteOn
 			move.b	#ENV_START,voice_Status(a5)
 			move.w	#128,d1								; default note velocity
 			btst.b	#MUSICB_VELOCITY,_globaldata+glob_Flags	; handling note vel?
-			beq.s	23$									; no, just use 128
+			beq.s	.l23									; no, just use 128
 			moveq	#0,d1
 			move.b	1(a3),d1
 			addq.b	#1,d1
 
-23$
+.l23
 		ifeq HAS_FULLCHANVOL
 			moveq	#0,d0
 			move.b	chan_Volume(a2),d0				; get channel volume
-			bmi.s	25$								; if vol >= 128, skip
+			bmi.s	.l25								; if vol >= 128, skip
 			mulu.w	d0,d1							; multiply into volume
 			lsr.w	#7,d1							; scale by 128
 		endc
 
-25$			move.w	d1,voice_NoteVolume(a5)
+.l25			move.w	d1,voice_NoteVolume(a5)
 			clr.w	voice_BaseVolume(a5)
 			clr.l	voice_LastTicks(a5)
 
 			move.w	voice_LastPeriod(a5),d5
-			bne.s	9$
+			bne.s	.l9
 			move.w	#1000,d5
 
-9$			move.l	d3,a0
+.l9			move.l	d3,a0
 			tst.l	samp_AttackSize(a0)					; any attack wave?
-			beq.s	10$									; no, skip
+			beq.s	.l10									; no, skip
 
 			move.l	_SysBase,a6							; get an audio block
 			move.l	_play_port,a0
 			JSRLIB	GetMsg
 			tst.l	d0
-			beq		98$									; error, undo voice init
+			beq		.l98									; error, undo voice init
 
 			move.l	d0,a1								; set-uo audio request
 			move.w	#CMD_WRITE,IO_COMMAND(a1)
@@ -788,23 +786,23 @@ NoteOn
 
 			move.l	d4,a1
 			tst.b	IO_ERROR(a1)						; any error?
-			beq.s	51$									; no, skip error code
+			beq.s	.l51									; no, skip error code
 
 			move.l	_SysBase,a6
 			JSRLIB	ReplyMsg							; put message back
-			bra		98$									; goto error code
+			bra		.l98									; goto error code
 
-51$			DMACHECK
+.l51			DMACHECK
 
-10$			move.l	d3,a0
+.l10			move.l	d3,a0
 			tst.l	samp_SustainSize(a0)				; any sustain wave?
-			beq		11$									; no, skip
+			beq		.l11									; no, skip
 
 			move.l	_SysBase,a6							; get an audio block
 			move.l	_play_port,a0
 			JSRLIB	GetMsg
 			tst.l	d0
-			beq		98$									; error, undo voice init
+			beq		.l98									; error, undo voice init
 
 			move.l	d0,a1								; set-uo audio request
 			move.w	#CMD_WRITE,IO_COMMAND(a1)
@@ -823,66 +821,66 @@ NoteOn
 			move.l	d0,ioa_Data(a1)
 
 			tst.l	samp_AttackSize(a0)					; was there an attack?
-			bne.s	12$									; yes, so ready
+			bne.s	.l12									; yes, so ready
 
 			move.b	#ADIOF_PERVOL|IOF_QUICK,IO_FLAGS(a1)	; no, do full set-up
 			clr.w	ioa_Volume(a1)
 			move.w	d5,ioa_Period(a1)
 
-12$			move.l	a1,d4								; save ptr to audio block
+.l12			move.l	a1,d4								; save ptr to audio block
 			move.l	_AudioDevice,a6
 			JSRDEV	BEGINIO
 
 			move.l	d4,a1
 			tst.b	IO_ERROR(a1)						; any error?
-			beq.s	52$									; no, skip error code
+			beq.s	.l52									; no, skip error code
 
 			move.l	_SysBase,a6
 			JSRLIB	ReplyMsg							; put message back
 
 			move.l	d3,a0
 			tst.l	samp_AttackSize(a0)					; was there an attack?
-			beq.s	98$									; yes, so do error code
-;			bra.s	11$
+			beq.s	.l98									; yes, so do error code
+;			bra.s	.l11
 
-52$			DMACHECK
+.l52			DMACHECK
 
-11$			addq.b	#1,chan_VoicesActive(a2)			; up voices active
+.l11			addq.b	#1,chan_VoicesActive(a2)			; up voices active
 			addq.b	#1,_globaldata+glob_VoicesActive
 
 			cmp.b	#16,chan_Number(a2)					; xchannel?
-			beq.s	13$									; yes, skip normal code
+			beq.s	.l13									; yes, skip normal code
 
 			btst.b	#CHANB_MONO,chan_Flags(a2)			; mono mode?
-			beq.s	14$									; no, skip porta stuff
+			beq.s	.l14									; no, skip porta stuff
 			btst.b	#CHANB_PORTAMENTO,chan_Flags(a2)	; portamento on?
-			beq.s	14$									; no, skip porta stuff
+			beq.s	.l14									; no, skip porta stuff
 			move.b	chan_LastNote(a2),d0
-			bmi.s	14$									; bit 7 set means no
+			bmi.s	.l14									; bit 7 set means no
 			cmp.b	voice_BaseNote(a5),d0				; Last Note == BaseNote
-			beq.s	14$									; yes, no need for porta
+			beq.s	.l14									; yes, no need for porta
 
 			clr.l	voice_PortaTicks(a5)				; init portamento
 			move.b	voice_BaseNote(a5),voice_EndNote(a5)	; EndNote = BaseNote
 			move.b	d0,voice_BaseNote(a5)				; BaseNote = LastNote
 			bset.b	#VOICEB_PORTAMENTO,voice_Flags(a5)
 
-14$			btst.b	#CHANB_PORTAMENTO,chan_Flags(a2)	; portamento on?
-			beq.s	13$									; no, skip
+.l14			btst.b	#CHANB_PORTAMENTO,chan_Flags(a2)	; portamento on?
+			beq.s	.l13									; no, skip
 			move.b	(a3),chan_LastNote(a2)				; remember note
 
-13$			bset.b	#MUSICB_ADDED_NOTE,_globaldata+glob_Flags
+.l13			bset.b	#MUSICB_ADDED_NOTE,_globaldata+glob_Flags
 			move.b	voice_Number(a5),_globaldata+glob_LastVoice
 
-99$			movem.l	(sp)+,d2-d5/a2/a3/a5/a6
+.l99			movem.l	(sp)+,d2-d5/a2/a3/a5/a6
 			rts
 
-98$			clr.l	voice_Channel(a5)					; un-init voice
+.l98			clr.l	voice_Channel(a5)					; un-init voice
 			clr.b	voice_Status(a5)
 			clr.b	voice_Flags(a5)
 			clr.b	voice_Priority(a5)
 			clr.l	voice_UniqueID(a5)
-			bra		99$
+			bra		.l99
 
 * this is a temporary hack that will become a better, permanent hack later
 
@@ -891,26 +889,26 @@ dma_check
 			move.l	a1,d0
 			move.l	_AudioDevice,a1						; use BeginIO
 			cmp.w	#36,LIB_VERSION(a1)					; if KS v35 or less, skip
-			bmi.s	3$
+			bmi.s	.l3
 
 			move.l	d0,a1
 
 			move.w	$dff000+vhposr,d0					; wait 1 scanline
 			and.w	#$ff00,d0
-1$			move.w	$dff000+vhposr,d1
+.l1			move.w	$dff000+vhposr,d1
 			and.w	#$ff00,d1
 			cmp.w	d0,d1
-			beq.s	1$
+			beq.s	.l1
 
 			move.w	#139,d0
-2$			move.w	$dff000+vhposr,d1
-			dbra	d0,2$
+.l2			move.w	$dff000+vhposr,d1
+			dbra	d0,.l2
 
 			move.w	IO_UNIT+2(a1),d0					; be sure note on!
 			or.w	#$8000,d0
 			move.w	d0,$dff000+dmacon
 
-3$			rts
+.l3			rts
 		endc
 
 *==========================================================================*
@@ -933,7 +931,7 @@ NoteOff
 			move.l	a2,-(sp)
 
 			tst.b	chan_VoicesActive(a0)			; any voices on channel?
-			beq.s	99$								; no, exit
+			beq.s	.l99								; no, exit
 
 			lea		_voice,a2						; calc voice to release
 			moveq	#0,d0
@@ -942,34 +940,34 @@ NoteOff
 			add.w	d0,a2
 
 			cmp.l	voice_Channel(a2),a0			; if channel wrong, exit
-			bne.s	99$
+			bne.s	.l99
 
 			cmp.b	#ENV_RELEASE,voice_Status(a2)	; if already released, exit
-			ble.s	99$
+			ble.s	.l99
 
 * confirm correct note based on portamento setting
 
 			move.b	(a1),d0							; note to check
 
 			btst.b	#VOICEB_PORTAMENTO,voice_Flags(a2)
-			beq.s	1$
+			beq.s	.l1
 
 			cmp.b	voice_EndNote(a2),d0			; does note match EndNote?
-			bne.s	99$								; no, exit
-			bra.s	2$								; yes, continue
+			bne.s	.l99								; no, exit
+			bra.s	.l2								; yes, continue
 
-1$			cmp.b	voice_BaseNote(a2),d0			; does note match BaseNote?
-			bne.s	99$								; no, exit
+.l1			cmp.b	voice_BaseNote(a2),d0			; does note match BaseNote?
+			bne.s	.l99								; no, exit
 
-2$			btst.b	#CHANB_DAMPER,chan_Flags(a0)	; 'damper pedal' down?
-			bne.s	3$								; yes, do damper code
+.l2			btst.b	#CHANB_DAMPER,chan_Flags(a0)	; 'damper pedal' down?
+			bne.s	.l3								; yes, do damper code
 
 			move.b	#ENV_RELEASE,voice_Status(a2)	; release note
-			bra.s	99$
+			bra.s	.l99
 
-3$			bset.b	#VOICEB_DAMPER,voice_Flags(a2)	; mark as dampered
+.l3			bset.b	#VOICEB_DAMPER,voice_Flags(a2)	; mark as dampered
 
-99$			move.l	(sp)+,a2
+.l99			move.l	(sp)+,a2
 			rts
 
 *==========================================================================*
@@ -987,24 +985,24 @@ _AllNotesOff
 		endc
 AllNotesOff
 			tst.b	chan_VoicesActive(a0)			; no voices active, exit
-			beq.s	99$
+			beq.s	.l99
 
 			lea		_voice,a1						; go through all voices
 			moveq	#NUM_VOICES-1,d0
-1$			cmp.l	voice_Channel(a1),a0			; on this channel?
-			bne.s	2$								; no, skip
+.l1			cmp.l	voice_Channel(a1),a0			; on this channel?
+			bne.s	.l2								; no, skip
 
 			btst.b	#CHANB_DAMPER,chan_Flags(a0)	; 'damper pedal' down
-			beq.s	3$								; no, goto release
+			beq.s	.l3								; no, goto release
 			bset.b	#VOICEB_DAMPER,voice_Flags(a1)	; mark voice as dampered
-			bra.s	2$
+			bra.s	.l2
 
-3$			move.b	#ENV_RELEASE,voice_Status(a1)	; set status to RELEASE
+.l3			move.b	#ENV_RELEASE,voice_Status(a1)	; set status to RELEASE
 
-2$			lea		voice_sizeof(a1),a1				; next voice
-			dbra	d0,1$
+.l2			lea		voice_sizeof(a1),a1				; next voice
+			dbra	d0,.l1
 
-99$			rts
+.l99			rts
 
 *==========================================================================*
 *
@@ -1021,7 +1019,7 @@ _AllSoundsOff
 		endc
 AllSoundsOff
 			tst.b	chan_VoicesActive(a0)			; no voices active, exit
-			beq.s	99$
+			beq.s	.l99
 
 			movem.l	d2/a2/a3,-(sp)
 
@@ -1029,18 +1027,18 @@ AllSoundsOff
 			lea		_voice,a2						; go through all voices
 			moveq	#NUM_VOICES-1,d2
 
-1$			cmp.l	voice_Channel(a2),a3			; on this channel?
-			bne.s	2$								; no, skip
+.l1			cmp.l	voice_Channel(a2),a3			; on this channel?
+			bne.s	.l2								; no, skip
 
 			move.l	a2,a0
 			bsr		KillVoice
 
-2$			lea		voice_sizeof(a2),a2				; next voice
-			dbra	d2,1$
+.l2			lea		voice_sizeof(a2),a2				; next voice
+			dbra	d2,.l1
 
 			movem.l	(sp)+,d2/a2/a3
 
-99$			rts
+.l99			rts
 
 *==========================================================================*
 *
@@ -1059,24 +1057,24 @@ SystemReset
 
 			lea		_voice,a2
 			moveq	#NUM_VOICES-1,d2
-1$			tst.l	voice_Channel(a2)
-			beq.s	2$
+.l1			tst.l	voice_Channel(a2)
+			beq.s	.l2
 			move.l	a2,a0
 			bsr		KillVoice
-2$			lea		voice_sizeof(a2),a2
-			dbra	d2,1$
+.l2			lea		voice_sizeof(a2),a2
+			dbra	d2,.l1
 
 * reset all channels
 
 			lea		_channel,a2
 			moveq	#NUM_CHANNELS-1,d2
-3$			move.l	a2,a0
+.l3			move.l	a2,a0
 			bsr		ResetChannel
 			bclr.b	#CHANB_MONO,chan_Flags(a2)
 			moveq	#-1,d0
 			move.b	d0,chan_LastNote(a2)				; no last note
 			lea		chan_sizeof(a2),a2
-			dbra	d2,3$
+			dbra	d2,.l3
 
 		ifne HAS_MICROTONAL
 
@@ -1085,9 +1083,9 @@ SystemReset
 			lea		_microtonal,a2
 			moveq	#128-1,d2
 			moveq	#0,d0
-4$			move.w	d0,(a2)+
+.l4			move.w	d0,(a2)+
 			add.w	#$0100,d0
-			dbra	d2,4$
+			dbra	d2,.l4
 		endc
 
 			movem.l	(sp)+,d2/a2
@@ -1198,10 +1196,10 @@ SetAudioFilter
 			move.w	d0,d1
 			bsr.s	GetAudioFilter
 			tst.w	d1								; test single argument
-			bne.s	1$
+			bne.s	.l1
 			bset	#1,$bfe001
 			rts
-1$			bclr	#1,$bfe001
+.l1			bclr	#1,$bfe001
 			rts
 
 *==========================================================================*
@@ -1217,10 +1215,10 @@ _GetAudioFilter
 GetAudioFilter
 			move.b	$bfe001,d0						; check hardware
 			btst	#1,d0
-			bne.s	1$								; if bit set, filter is OFF
+			bne.s	.l1								; if bit set, filter is OFF
 			moveq	#1,d0							; else it's ON
 			rts
-1$			moveq	#0,d0							; it's OFF
+.l1			moveq	#0,d0							; it's OFF
 			rts
 
 *==========================================================================*
@@ -1245,7 +1243,7 @@ MusicServer
 			lea		_globaldata,a4					; preload address of _globaldata
 
 			tst.b	mxtx_Changed(a5)
-			beq.s	30$
+			beq.s	.l30
 
 			moveq	#0,d0
 			move.b	mxtx_Volume(a5),d0				; copy over volume
@@ -1257,16 +1255,16 @@ MusicServer
 
 			lea		_voice+voice_Channel,a0			; mark all used channels ALTERED
 			moveq	#NUM_VOICES-1,d2
-31$			move.l	(a0),d0							; d0 <-- channel data pointer
-			beq.s	32$								; if no channel data, skip
+.l31			move.l	(a0),d0							; d0 <-- channel data pointer
+			beq.s	.l32								; if no channel data, skip
 			move.l	d0,a1							; a1 <-- channel data pointer
 			bset.b	#CHANB_ALTERED,chan_Flags(a1)	; set channel as altered
-32$			lea		voice_sizeof(a0),a0				; go to next voice
-			dbra	d2,31$							; and loop
+.l32			lea		voice_sizeof(a0),a0				; go to next voice
+			dbra	d2,.l31							; and loop
 
 			clr.b	mxtx_Changed(a5)
 
-30$			move.l	glob_TickUnit(a4),d0			; add TickUnit to Ticks
+.l30			move.l	glob_TickUnit(a4),d0			; add TickUnit to Ticks
 			add.l	d0,glob_Ticks(a4)
 
 			move.l	glob_Ticks(a4),d4				; shifted clock value
@@ -1281,20 +1279,20 @@ MusicServer
 
 ; look at the table of note-offs (one for each audio channel)
 
-1$			move.b	d5,glob_LastVoice(a4)			; set last voice
+.l1			move.b	d5,glob_LastVoice(a4)			; set last voice
 			tst.l	voice_Channel(a3)				; voice playing something?
-			beq.s	2$								; no, skip
+			beq.s	.l2								; no, skip
 			move.b	sev_Command(a2),d0				; get note # (error ??)
-			bmi.s	2$								; high bit set, no note
+			bmi.s	.l2								; high bit set, no note
 
 			moveq	#0,d1
 			move.b	sev_Data(a2),d1					; channel #
 			cmp.b	#16,d1							; is it the extra channel?
-			beq.s	3$								; yes, do that instead
+			beq.s	.l3								; yes, do that instead
 
 			move.l	glob_TickUnit(a4),d3			; get TickUnit
 			sub.l	d3,sev_StopTime(a2)				; subtract from stoptime
-			bgt.s	2$								; still time left, skip
+			bgt.s	.l2								; still time left, skip
 
 ; why is this needed?
 
@@ -1306,14 +1304,14 @@ MusicServer
 			move.l	sp,a1
 			bsr		NoteOff							; do a NoteOff
 			move.b	#$ff,sev_Command(a2)			; set stop event to not used
-			bra.s	2$
+			bra.s	.l2
 
-;4$			sub.l	d3,sev_StopTime(a2)				; subtract TickUnit
-;			bra.s	2$
+;.l4			sub.l	d3,sev_StopTime(a2)				; subtract TickUnit
+;			bra.s	.l2
 
-3$			move.l	glob_FrameUnit(a4),d3			; get FrameUnit
+.l3			move.l	glob_FrameUnit(a4),d3			; get FrameUnit
 			sub.l	d3,sev_StopTime(a2)				; subtract from stoptime
-			bgt.s	2$								; still time left, skip
+			bgt.s	.l2								; still time left, skip
 
 			move.b	d0,(sp)							; set-up NoteOff
 			clr.b	1(sp)
@@ -1322,13 +1320,13 @@ MusicServer
 			bsr		NoteOff							; do a NoteOff
 			move.b	#$ff,sev_Command(a2)			; set stop event to not used
 
-2$			addq.w	#1,d5
+.l2			addq.w	#1,d5
 			lea		sev_sizeof(a2),a2
 			lea		voice_sizeof(a3),a3
-			dbra	d2,1$
+			dbra	d2,.l1
 
 			btst.b	#MUSICB_PLAYING,glob_Flags(a4)	; music playing?
-			beq		20$								; no, skip sequencer code
+			beq		.l20								; no, skip sequencer code
 													; also skipping tempo code
 
 			;COLOR0	$00f0
@@ -1338,18 +1336,18 @@ MusicServer
 *	Here is a real serious kludge to keep from having to much time spent
 *	in this interupt...
 
-5$			move.w	$00dff000+vhposr,d0				; get beam position
-			bmi		60$								; if >= 128, prematurely end
+.l5			move.w	$00dff000+vhposr,d0				; get beam position
+			bmi		.l60								; if >= 128, prematurely end
 
 			moveq	#0,d0
 			move.w	cev_StartTime(a2),d0
 			add.l	glob_CurrentTime(a4),d0			; calc new CurrrentTime
 			cmp.l	d0,d4							; compare event time w/clocks
-			bmi		60$								; if greater, stop processing
+			bmi		.l60								; if greater, stop processing
 
 			move.l	d0,glob_CurrentTime(a4)			; store new CurrentTime
 			move.b	cev_Command(a2),d1				; get command
-			bmi.s	7$								; not a note, skip ahead
+			bmi.s	.l7								; not a note, skip ahead
 
 													; reset note added flag
 			bclr.b	#MUSICB_ADDED_NOTE,glob_Flags(a4)
@@ -1376,7 +1374,7 @@ MusicServer
 			COLOR0	$0f0f
 													; was a note added?
 			btst.b	#MUSICB_ADDED_NOTE,glob_Flags(a4)
-			beq		70$								; nope, skip
+			beq		.l70								; nope, skip
 
 			moveq	#0,d0
 			move.b	glob_LastVoice(a4),d0
@@ -1394,24 +1392,24 @@ MusicServer
 			sub.l	d4,d0							; sub low word Ticks
 			lsl.l	#8,d0							; put into TickUnit units
 			move.l	d0,sev_StopTime(a0)				; store it!
-			bra		70$
+			bra		.l70
 
-7$			cmp.b	#COMMAND_TEMPO,d1					; tempo event?
-			bne.s	8$									; no, skip
+.l7			cmp.b	#COMMAND_TEMPO,d1					; tempo event?
+			bne.s	.l8									; no, skip
 
 			move.l	glob_TickUnit(a4),d0
 			lsr.l	#8,d0
 			cmp.w	cev_StopTime(a2),d0					; is length < TickUnit?
-			bmi.s	9$									; no, do continuous
+			bmi.s	.l9									; no, do continuous
 
 			moveq	#0,d0
 			move.b	cev_Data(a2),d0
 			lsl.w	#4,d0
 			bsr		SetTempo							; set tempo immediately
 			clr.l	glob_TempoTime(a4)					; clear tempo time
-			bra		70$
+			bra		.l70
 
-9$			move.w	glob_CurrentTempo(a4),d0
+.l9			move.w	glob_CurrentTempo(a4),d0
 			move.w	d0,glob_StartTempo(a4)				; StartTempo = CurrentTempo
 			moveq	#0,d1
 			move.b	cev_Data(a2),d1
@@ -1424,25 +1422,25 @@ MusicServer
 			lsl.l	#8,d0
 			move.l	d0,glob_TempoTime(a4)				; length of tempo change
 			clr.l	glob_TempoTicks(a4)					; reset tick count
-			bra		70$
+			bra		.l70
 
-8$			cmp.b	#COMMAND_END,d1						; end event?
-			bne.s	10$									; no, skip to next
+.l8			cmp.b	#COMMAND_END,d1						; end event?
+			bne.s	.l10									; no, skip to next
 
 			btst.b	#MUSICB_LOOP,glob_Flags(a4)			; looping score?
-			beq.s	11$									; no, cut off
+			beq.s	.l11									; no, cut off
 
 			move.l	glob_CurrentScore(a4),a0			; get start of score
 			move.l	score_Data(a0),a2					; make it current event
 			clr.l	glob_Ticks(a4)						; reset clocks
 			clr.l	glob_CurrentTime(a4)
-			bra		60$									; process no more events
+			bra		.l60									; process no more events
 
-11$			bclr.b	#MUSICB_PLAYING,glob_Flags(a4)		; stop music
-			bra		60$									; process no more events
+.l11			bclr.b	#MUSICB_PLAYING,glob_Flags(a4)		; stop music
+			bra		.l60									; process no more events
 
-10$			cmp.b	#COMMAND_BEND,d1					; pitch bend command?
-			bne.s	12$									; no, skip to next
+.l10			cmp.b	#COMMAND_BEND,d1					; pitch bend command?
+			bne.s	.l12									; no, skip to next
 
 			move.b	cev_StopTime+1(a2),d0				; LSB of bend
 			and.b	#$7f,d0
@@ -1458,10 +1456,10 @@ MusicServer
 			add.w	d0,a0
 			move.l	sp,a1								; MIDI stream
 			bsr		PitchBend
-			bra		70$
+			bra		.l70
 
-12$			cmp.b	#COMMAND_CONTROL,d1					; control change command?
-			bne.s	13$									; no, skip to next
+.l12			cmp.b	#COMMAND_CONTROL,d1					; control change command?
+			bne.s	.l13									; no, skip to next
 
 			move.b	cev_StopTime(a2),(sp)				; control #
 			move.b	cev_StopTime+1(a2),1(sp)			; value
@@ -1473,10 +1471,10 @@ MusicServer
 			add.w	d0,a0
 			move.l	sp,a1								; MIDI stream
 			bsr		ControlCh
-			bra		70$
+			bra		.l70
 
-13$			cmp.b	#COMMAND_PROGRAM,d1					; program change command?
-			bne.s	14$									; no, skip to next
+.l13			cmp.b	#COMMAND_PROGRAM,d1					; program change command?
+			bne.s	.l14									; no, skip to next
 
 			move.b	cev_StopTime+1(a2),(sp)				; program #
 
@@ -1487,20 +1485,20 @@ MusicServer
 			add.w	d0,a0
 			move.l	sp,a1								; MIDI stream
 			bsr		ProgramCh
-			bra		70$
+			bra		.l70
 
-14$			cmp.b	#COMMAND_SPECIAL,d1					; program change command?
-			bne		70$									; no, that's all
+.l14			cmp.b	#COMMAND_SPECIAL,d1					; program change command?
+			bne		.l70									; no, that's all
 
 			moveq	#0,d1
 			move.b	cev_StopTime+1(a2),d1
 			move.b	cev_StopTime(a2),d0
 
 			cmp.b	#SPECIAL_SYNC,d0					; sync event?
-			bne.s	15$									; no, skip to next
+			bne.s	.l15									; no, skip to next
 
 			move.l	glob_SyncTask(a4),d0				; is there a sync task?
-			beq		70$
+			beq		.l70
 
 			move.l	d0,a1								; put in right register
 			move.l	glob_SyncSig(a4),d0					; get signal
@@ -1508,15 +1506,15 @@ MusicServer
 
 			move.l	_SysBase,a6
 			JSRLIB	Signal								; signal task
-			bra.s	70$
+			bra.s	.l70
 
-15$			cmp.b	#SPECIAL_BEGINREP,d0				; begin repeat event?
-			bne.s	16$									; no, skip to next
+.l15			cmp.b	#SPECIAL_BEGINREP,d0				; begin repeat event?
+			bne.s	.l16									; no, skip to next
 
 			moveq	#0,d0
 			move.b	glob_RepeatTotal(a4),d0				; get repeat total
 			cmp.b	#NUM_REPEATS,d0						; test against max
-			beq.s	70$									; oops, too many
+			beq.s	.l70									; oops, too many
 
 			addq.b	#1,glob_RepeatTotal(a4)				; increment total
 
@@ -1529,19 +1527,19 @@ MusicServer
 			add.w	d0,a0
 			lea		cev_sizeof(a2),a1					; get event + 1
 			move.l	a1,(a0)								; store in RepeatPoint
-			bra.s	70$
+			bra.s	.l70
 
-16$			cmp.b	#SPECIAL_ENDREP,d0					; begin repeat event?
-			bne.s	70$									; no, that's all
+.l16			cmp.b	#SPECIAL_ENDREP,d0					; begin repeat event?
+			bne.s	.l70									; no, that's all
 
 			moveq	#0,d0
 			move.b	glob_RepeatTotal(a4),d0				; get repeat total
-			beq.s	70$									; ain't any?? oh, well
+			beq.s	.l70									; ain't any?? oh, well
 
 			subq.w	#1,d0								; find right entry
 			lea		glob_RepeatCount(a4),a0
 			tst.b	0(a0,d0.w)							; test repeat count
-			beq.s	17$									; last loop, skip ahead
+			beq.s	.l17									; last loop, skip ahead
 
 			subq.b	#1,0(a0,d0.w)						; reduce count
 			lea		glob_RepeatPoint(a4),a0				; get repeat point
@@ -1552,35 +1550,35 @@ MusicServer
 
 			clr.l	glob_Ticks(a4)						; reset clocks
 			clr.l	glob_CurrentTime(a4)
-			bra.s	60$
+			bra.s	.l60
 
-17$			move.b	d0,glob_RepeatTotal(a4)				; reduce total
-			bra		70$									; continue
+.l17			move.b	d0,glob_RepeatTotal(a4)				; reduce total
+			bra		.l70									; continue
 
-70$			lea		cev_sizeof(a2),a2					; go to next event
-			bra		5$									; and loop
+.l70			lea		cev_sizeof(a2),a2					; go to next event
+			bra		.l5									; and loop
 
-60$			move.l	a2,glob_Current(a4)					; store last ev checked
+.l60			move.l	a2,glob_Current(a4)					; store last ev checked
 
 			;COLOR0	$0f00
 
-80$			move.l	glob_TempoTime(a4),d0				; cont. tempo on?
-			beq.s	20$									; nope...
+.l80			move.l	glob_TempoTime(a4),d0				; cont. tempo on?
+			beq.s	.l20									; nope...
 
 			move.l	glob_TempoTicks(a4),d1				; adjust TempoTicks
 			add.l	glob_TickUnit(a4),d1
 			move.l	d1,glob_TempoTicks(a4)
 
 			cmp.l	d0,d1
-			bmi.s	21$
+			bmi.s	.l21
 
 			move.w	glob_StartTempo(a4),d0
 			add.w	glob_DeltaTempo(a4),d0
 			bsr		SetTempo
 			clr.l	glob_TempoTime(a4)					; clear tempo time
-			bra.s	20$
+			bra.s	.l20
 
-21$			moveq	#0,d0
+.l21			moveq	#0,d0
 			move.w	glob_DeltaTempo(a4),d0
 			jsr		mulu								; DeltaTempo * TempoTicks
 			move.l	glob_TempoTime(a4),d1
@@ -1588,7 +1586,7 @@ MusicServer
 			add.w	glob_StartTempo(a4),d0
 			bsr		SetTempo
 
-20$			move.l	glob_FrameUnit(a4),d0				; do envelopes
+.l20			move.l	glob_FrameUnit(a4),d0				; do envelopes
 ;			COLOR0	$0fff
 			bsr		EnvelopeManager
 ;			COLOR0	$0777
@@ -1599,24 +1597,24 @@ MusicServer
 
 			lea		_voice,a2
 			moveq	#NUM_VOICES-1,d2
-22$			tst.l	voice_Channel(a2)
-			beq.s	23$
+.l22			tst.l	voice_Channel(a2)
+			beq.s	.l23
 			bclr.b	#MUSICB_SILENT,glob_Flags(a4)
-			bra.s	24$
+			bra.s	.l24
 
-23$			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)		; voice blocked?
-			beq.s	24$									; no, so don't check
+.l23			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)		; voice blocked?
+			beq.s	.l24									; no, so don't check
 			move.l	a2,a0
 			bsr		check_sound
-24$			lea		voice_sizeof(a2),a2
-			dbra	d2,22$
+.l24			lea		voice_sizeof(a2),a2
+			dbra	d2,.l22
 
 			bclr.b	#MUSICB_PLAYNOTE,_maxtrax+mxtx_Flags
 			tst.b	_xchannel+chan_VoicesActive
-			beq.s	25$
+			beq.s	.l25
 			bset.b	#MUSICB_PLAYNOTE,_maxtrax+mxtx_Flags
 
-25$			move.b	glob_Flags(a4),d0
+.l25			move.b	glob_Flags(a4),d0
 			and.b	#(MUSIC_PLAYING|MUSIC_SILENT|MUSIC_LOOP),d0
 			and.b	#~(MUSIC_PLAYING|MUSIC_SILENT|MUSIC_LOOP),mxtx_Flags(a5)
 			or.b	d0,mxtx_Flags(a5)
@@ -1648,29 +1646,29 @@ _advance_song
 advance_song
 			move.l	_globaldata+glob_Current,a0			; current location
 			move.l	a0,a1								; scan location
-			bra.s	1$
+			bra.s	.l1
 
-2$			cmp.b	#COMMAND_END,cev_Command(a1)		; is it an END event?
-			bne.s	3$									; no, skip
+.l2			cmp.b	#COMMAND_END,cev_Command(a1)		; is it an END event?
+			bne.s	.l3									; no, skip
 			
 			move.l	_globaldata+glob_CurrentScore,a1	; else, reset to start
 			move.l	score_Data(a1),a0
 			move.l	a0,a1
-			bra.s	1$									; and goto outer loop
+			bra.s	.l1									; and goto outer loop
 
-3$			cmp.b	#COMMAND_SPECIAL,cev_Command(a1)	; is it MARK event?
-			bne.s	4$									; no, skip
+.l3			cmp.b	#COMMAND_SPECIAL,cev_Command(a1)	; is it MARK event?
+			bne.s	.l4									; no, skip
 			cmp.b	#SPECIAL_MARK,cev_StopTime(a1)
-			bne.s	4$									; no, skip
+			bne.s	.l4									; no, skip
 
 			lea		cev_sizeof(a1),a1					; advance scan
 			move.l	a1,a0								; set start to scan
-			bra.s	1$									; and goto outer loop
+			bra.s	.l1									; and goto outer loop
 
-4$			lea		cev_sizeof(a1),a1					; advance scan
-			bra		2$									; continue inner loop
+.l4			lea		cev_sizeof(a1),a1					; advance scan
+			bra		.l2									; continue inner loop
 
-1$			dbra	d0,2$								; loop
+.l1			dbra	d0,.l2								; loop
 
 			move.l	a0,_globaldata+glob_Current			; location = start
 			rts
@@ -1691,8 +1689,8 @@ AdvanceSong
 			JSRLIB	Cause
 			move.l	(sp)+,a6
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 
 			move.l	_extra_data,d0						; get result
 			rts
@@ -1716,7 +1714,7 @@ PlaySong
 
 			jsr		OpenMusic							; open music
 			tst.l	d0
-			bne		98$									; if not 0, error
+			bne		.l98									; if not 0, error
 
 			bclr.b	#MUSICB_PLAYING,_globaldata+glob_Flags	; turn music off
 			bclr.b	#MUSICB_PLAYING,_maxtrax+mxtx_Flags	; turn music off
@@ -1758,7 +1756,7 @@ PlaySong
 			moveq	#1,d0
 			rts
 
-98$			move.w	(sp)+,d2
+.l98			move.w	(sp)+,d2
 			moveq	#0,d0
 			rts
 
@@ -1777,9 +1775,9 @@ _LoopSong
 			xdef	LoopSong
 LoopSong
 			jsr		PlaySong							; condition codes set
-			beq.s	98$
+			beq.s	.l98
 			bset.b	#MUSICB_LOOP,_globaldata+glob_Flags	; looping
-98$			rts
+.l98			rts
 
 *==========================================================================*
 *
@@ -1800,12 +1798,12 @@ StopSong
 
 			lea		_voice,a2								; kill voices
 			moveq	#NUM_VOICES-1,d2
-1$			tst.l	voice_Channel(a2)
-			beq.s	2$
+.l1			tst.l	voice_Channel(a2)
+			beq.s	.l2
 			move.l	a2,a0
 			bsr		KillVoice
-2$			lea		voice_sizeof(a2),a2
-			dbra	d2,1$
+.l2			lea		voice_sizeof(a2),a2
+			dbra	d2,.l1
 
 			movem.l	(sp)+,d2/a2
 			rts
@@ -1841,7 +1839,7 @@ _SelectScore
 			xdef	SelectScore
 SelectScore
 			cmp.w	_globaldata+glob_TotalScores,d0
-			bpl.s	98$
+			bpl.s	.l98
 
 			bclr.b	#MUSICB_PLAYING,_globaldata+glob_Flags	; turn music off
 			bclr.b	#MUSICB_PLAYING,_maxtrax+mxtx_Flags	; turn music on!
@@ -1855,7 +1853,7 @@ SelectScore
 			moveq	#1,d0
 			rts
 
-98$			moveq	#0,d0
+.l98			moveq	#0,d0
 			rts
 
 *==========================================================================*
@@ -1894,8 +1892,8 @@ pn_merge
 			lea		_extra_server,a1
 			JSRLIB	Cause
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 
 			move.l	_extra_data,d0						; get result
 			add.w	#nblk_sizeof,sp
@@ -1939,8 +1937,8 @@ ps_merge
 			lea		_extra_server,a1
 			JSRLIB	Cause
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 
 			move.l	_extra_data,d0						; get result
 			add.w	#sblk_sizeof,sp
@@ -1970,8 +1968,8 @@ StopSound
 			JSRLIB	Cause
 			move.l	(sp)+,a6
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 			rts
 
 *==========================================================================*
@@ -1995,13 +1993,13 @@ check_sound
 			move.l	a0,a2
 
 			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)		; voice blocked?
-			beq.s	1$									; no, so don't check
+			beq.s	.l1									; no, so don't check
 
 			move.l	_SysBase,a6							; get an audio block
 			move.l	_play_port,a0
 			JSRLIB	GetMsg
 			tst.l	d0
-			beq.s	1$									; failed!
+			beq.s	.l1									; failed!
 
 			move.l	d0,a3								; set up audio read call
 			move.w	#CMD_READ,IO_COMMAND(a3)
@@ -2018,27 +2016,27 @@ check_sound
 			JSRDEV	BEGINIO
 
 			tst.b	IO_ERROR(a3)		; check conditions matching sound done 
-			bne.s	2$
+			bne.s	.l2
 			tst.l	ioa_Data(a3)
-			beq.s	2$
+			beq.s	.l2
 
 			moveq	#1,d2								; voice still going
-			bra.s	1$
+			bra.s	.l1
 
-2$			bclr.b	#VOICEB_BLOCKED,voice_Flags(a2)		; unblock voice
+.l2			bclr.b	#VOICEB_BLOCKED,voice_Flags(a2)		; unblock voice
 			clr.b	voice_Priority(a2)					; clear priority
 			clr.l	voice_UniqueID(a2)					; clear id
 			moveq	#0,d0
 			move.b	voice_Link(a2),d0
 			cmp.b	voice_Number(a2),d0					; is this stereo?
-			beq.s	1$									; no, skip
+			beq.s	.l1									; no, skip
 
 			SCALE	voice_sizeof,d0					; check sound on link
 			lea		_voice,a0
 			add.w	d0,a0
 			jsr		check_sound
 
-1$			move.l	d2,d0
+.l1			move.l	d2,d0
 			movem.l	(sp)+,d2/a2/a3/a6
 			rts
 
@@ -2051,7 +2049,7 @@ xcheck_sound
 			move.l	_play_port,a0
 			JSRLIB	GetMsg
 			tst.l	d0
-			beq.s	1$									; failed!
+			beq.s	.l1									; failed!
 
 			move.l	d0,a3								; set up audio read call
 			move.w	#CMD_READ,IO_COMMAND(a3)
@@ -2068,14 +2066,14 @@ xcheck_sound
 			JSRDEV	BEGINIO
 
 			tst.b	IO_ERROR(a3)		; check conditions matching sound done 
-			bne.s	2$
+			bne.s	.l2
 			tst.l	ioa_Data(a3)
-			beq.s	2$
+			beq.s	.l2
 
 			moveq	#1,d2								; voice still going
-			bra.s	1$
+			bra.s	.l1
 
-2$			move.l	voice_Channel(a2),a0				; get channel
+.l2			move.l	voice_Channel(a2),a0				; get channel
 
 			subq.b	#1,chan_VoicesActive(a0)			; -1 active voice
 		ifeq IN_MUSICX
@@ -2089,7 +2087,7 @@ xcheck_sound
 			clr.b	voice_Priority(a2)
 			clr.l	voice_UniqueID(a2)
 
-1$			move.l	d2,d0
+.l1			move.l	d2,d0
 			movem.l	(sp)+,d2/a2/a3/a6
 			rts
 
@@ -2108,8 +2106,8 @@ CheckSound
 			JSRLIB	Cause
 			move.l	(sp)+,a6
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 
 			move.l	_extra_data,d0						; get result
 			rts
@@ -2129,8 +2127,8 @@ CheckNote
 			JSRLIB	Cause
 			move.l	(sp)+,a6
 
-1$			tst.w	_extra_op							; busy loop until OS
-			bne		1$									;	notices softint
+.l1			tst.w	_extra_op							; busy loop until OS
+			bne		.l1									;	notices softint
 
 			move.l	_extra_data,d0						; get result
 			rts
@@ -2153,22 +2151,22 @@ ExtraServer
 *	PlayNote
 
 			cmp.w	#EXTRA_NOTE,d2						; PlayNote operation?
-			bne		1$									; no
+			bne		.l1									; no
 
 			move.l	_extra_data,a2						; get extra data
 			clr.l	_extra_data							; init result to false
 
 			bsr		OpenMusic							; be sure driver active
 			tst.l	d0
-			bne		99$									; if not zero, error
+			bne		.l99									; if not zero, error
 
 			lea		_xchannel,a0
 			clr.b	chan_Flags(a0)						; clear xchannel flags
 			tst.w	nblk_Pan(a2)						; pan?
-			beq.s	2$									; no, skip
+			beq.s	.l2									; no, skip
 			move.b	#CHAN_PAN,chan_Flags(a0)			; set to CHAN_PAN
 
-2$			move.w	nblk_Patch(a2),d0					; which patch?
+.l2			move.w	nblk_Patch(a2),d0					; which patch?
 			lea		_patch,a1
 			SCALE	patch_sizeof,d0
 			add.w	d0,a1								; get address of patch
@@ -2186,7 +2184,7 @@ ExtraServer
 			bsr		NoteOn								; note on (channel in a0)
 
 			btst.b	#MUSICB_ADDED_NOTE,_globaldata+glob_Flags	; note added?
-			beq.s	3$									; nope...
+			beq.s	.l3									; nope...
 
 			moveq	#0,d0								; add note off on voice
 			move.b	_globaldata+glob_LastVoice,d0
@@ -2206,13 +2204,13 @@ ExtraServer
 			addq.b	#1,d0
 			move.l	d0,_extra_data						; indicate ok (voice+1)
 
-3$			addq.w	#2,sp								; clean up stack
-			bra		99$									; done
+.l3			addq.w	#2,sp								; clean up stack
+			bra		.l99									; done
 
 *	PlaySound
 
-1$			cmp.w	#EXTRA_PLAYSOUND,d2					; PlaySound operation?
-			bne		4$									; no
+.l1			cmp.w	#EXTRA_PLAYSOUND,d2					; PlaySound operation?
+			bne		.l4									; no
 
 *	a2		= sound block
 *	a3/d3	= audio blocks
@@ -2223,25 +2221,25 @@ ExtraServer
 
 			bsr		OpenMusic							; be sure driver active
 			tst.l	d0
-			bne		99$									; if not zero, error
+			bne		.l99									; if not zero, error
 
 			move.w	sblk_Pan(a2),d1						; get pan value
 			moveq	#1,d4								; default loop value = 1
 			btst.l	#SOUNDB_LOOP,d1						; loop?
-			beq.s	20$
+			beq.s	.l20
 
 			move.w	d1,d4
 			lsr.w	#8,d4								; get loop value
 
-20$			moveq	#LEFT_0,d0
+.l20			moveq	#LEFT_0,d0
 			btst.l	#SOUNDB_RIGHT_SIDE,d1				; pan?
-			beq.s	5$									; no, use left
+			beq.s	.l5									; no, use left
 			moveq	#RIGHT_0,d0							; use right
-5$			and.w	#MUST_HAVE_SIDE,d1					; mask all but MUST bit
+.l5			and.w	#MUST_HAVE_SIDE,d1					; mask all but MUST bit
 			or.w	#MUSIC_PRI_SOUND,d1					; priority 2 normally
 			bsr		pick_voice
 			tst.l	d0									; picked a voice?
-			beq		99$									; nope, done
+			beq		.l99									; nope, done
 			move.l	d0,a5
 
 			moveq	#0,d3								; init iob2 = NULL
@@ -2251,7 +2249,7 @@ ExtraServer
 			move.l	_play_port,a0
 			JSRLIB	GetMsg								; get an audio block
 			tst.l	d0
-			beq		99$									; oops, none available??
+			beq		.l99									; oops, none available??
 
 			move.l	d0,a3								; set-up iob1
 
@@ -2259,7 +2257,7 @@ ExtraServer
 			move.l	sblk_Data(a2),a1
 			JSRLIB	TypeOfMem							; is fastmem?
 			btst.l	#MEMB_FAST,d0
-			bne		40$									; yep, play fastsound
+			bne		.l40									; yep, play fastsound
 		endc
 
 			move.w	#CMD_WRITE,IO_COMMAND(a3)			; it's a write
@@ -2283,12 +2281,12 @@ ExtraServer
 			move.w	sblk_Pan(a2),d0						; check for stereo
 			and.b	#SOUND_STEREO,d0
 			cmp.b	#SOUND_STEREO,d0
-			bne		6$									; no, didn't want it
+			bne		.l6									; no, didn't want it
 
 			move.b	voice_Number(a0),d0
 			subq.w	#1,d0						; (v# - 1) & 2
 			btst.l	#1,d0						; did we get LEFT side?
-			bne		6$							; wanted RIGHT, can't have stereo
+			bne		.l6							; wanted RIGHT, can't have stereo
 
 			moveq	#LEFT_0,d0
 			move.w	sblk_Pan(a2),d1
@@ -2296,19 +2294,19 @@ ExtraServer
 			or.w	#MUSIC_PRI_SOUND,d1			; priority 2 normally
 			bsr		pick_voice
 			tst.l	d0
-			beq.s	6$
+			beq.s	.l6
 
 			move.l	d0,a5
 			move.b	voice_Number(a5),d0
 			subq.w	#1,d0						; (v# - 1) & 2
 			btst.l	#1,d0						; did we get LEFT side?
-			beq.s	6$							; if 0, can't have stereo
+			beq.s	.l6							; if 0, can't have stereo
 			
 			move.l	_SysBase,a6
 			move.l	_play_port,a0
 			JSRLIB	GetMsg								; get another audio block
 			tst.l	d0
-			beq.s	6$									; oops, none available??
+			beq.s	.l6									; oops, none available??
 
 			move.l	d0,a3								; use iob2
 			move.w	#CMD_WRITE,IO_COMMAND(a3)			; it's a write
@@ -2326,76 +2324,76 @@ ExtraServer
 			move.l	sblk_Length(a2),ioa_Length(a3)
 
 			tst.l	voice_Channel(a5)					; if voice in use, kill
-			beq.s	7$
+			beq.s	.l7
 			move.l	a5,a0
 			bsr		KillVoice
-7$			bset.b	#VOICEB_BLOCKED,voice_Flags(a5)		; block voice
+.l7			bset.b	#VOICEB_BLOCKED,voice_Flags(a5)		; block voice
 
-6$			exg.l	a5,d2								; switch to voice 1
+.l6			exg.l	a5,d2								; switch to voice 1
 			exg.l	a3,d3								; switch to iob 1
 
 			tst.l	voice_Channel(a5)					; if voice in use, kill
-			beq.s	8$
+			beq.s	.l8
 			move.l	a5,a0
 			bsr		KillVoice
-8$			bset.b	#VOICEB_BLOCKED,voice_Flags(a5)		; block voice
+.l8			bset.b	#VOICEB_BLOCKED,voice_Flags(a5)		; block voice
 
 			move.l	a3,a1								; send off iob 1
 			move.l	_AudioDevice,a6
 			JSRDEV	BEGINIO
 
 			tst.l	d3									; stereo?
-			beq.s	9$									; no, skip
+			beq.s	.l9									; no, skip
 			move.l	d3,a1								; else, send off iob 2
 			JSRDEV	BEGINIO
 
-9$			tst.b	IO_ERROR(a3)						; error on iob 1?
-			bne.s	30$									; no, skip
+.l9			tst.b	IO_ERROR(a3)						; error on iob 1?
+			bne.s	.l30									; no, skip
 
 			move.l	a3,a1
 			DMACHECK
-			bra.s	10$
+			bra.s	.l10
 
-30$			move.l	a3,a1								; put iob on play_port
+.l30			move.l	a3,a1								; put iob on play_port
 			move.l	_SysBase,a6
 			JSRLIB	ReplyMsg
 
 			sub.l	a3,a3								; indicate error
 			bclr.b	#VOICEB_BLOCKED,voice_Flags(a5)		; unblock voice
 
-10$			tst.l	d3
-			beq.s	11$
+.l10			tst.l	d3
+			beq.s	.l11
 			move.l	d3,a1
 			tst.b	IO_ERROR(a1)						; error on iob 1?
-			bne.s	32$									; no, skip & do link
+			bne.s	.l32									; no, skip & do link
 
 			DMACHECK
-			bra.s	12$
+			bra.s	.l12
 
-32$			move.l	_SysBase,a6							; put iob on play_port
+.l32			move.l	_SysBase,a6							; put iob on play_port
 			JSRLIB	ReplyMsg
 
 			moveq	#0,d3								; indicate error
 			move.l	d2,a1
 			bclr.b	#VOICEB_BLOCKED,voice_Flags(a1)		; unblock voice
-			bra.s	11$
+			bra.s	.l11
 
-12$			move.l	d2,a1
+.l12			move.l	d2,a1
 			move.b	#MUSIC_PRI_SOUND,voice_Priority(a1) ; priority 2 normally
 			move.b	voice_Number(a1),voice_Link(a1)
 
-11$			move.l	a3,d0								; or iob1 with iob2
+.l11			move.l	a3,d0								; or iob1 with iob2
 			or.l	d3,d0
-			beq		99$									; zero, no sound made
+			beq		.l99									; zero, no sound made
 
 			move.b	#MUSIC_PRI_SOUND,voice_Priority(a5) ; priority 2 normally
 			move.b	voice_Number(a5),voice_Link(a5)		; link voices if stereo
 			tst.l	d3
-			beq.s	13$
+			beq.s	.l13
 			move.l	d2,a0
 			move.b	voice_Number(a0),voice_Link(a5)
 
-13$			move.l	_globaldata+glob_UniqueID,d0		; set-up UniqueID
+.l13			move.l	_globaldata+glob_UniqueID,d0		; set-up UniqueID
 			move.l	d0,d1
 			or.b	voice_Number(a5),d0
 			bset.l	#31,d0
@@ -2405,16 +2403,16 @@ ExtraServer
 			addq.l	#4,d1								; increment UniqueID
 			and.b	#$fc,d1								; safety net
 			move.l	d1,_globaldata+glob_UniqueID
-			bra		99$
+			bra		.l99
 
 		ifne FASTSOUND
-40$
+.l40
 		endc
 
 *	StopSound
 
-4$			cmp.w	#EXTRA_STOPSOUND,d2					; StopSound operation?
-			bne		14$									; no
+.l4			cmp.w	#EXTRA_STOPSOUND,d2					; StopSound operation?
+			bne		.l14									; no
 
 			move.l	_extra_data,d0						; get voice # from ID
 			move.l	d0,d1
@@ -2424,10 +2422,10 @@ ExtraServer
 			add.w	d0,a2
 
 			cmp.l	voice_UniqueID(a2),d1				; ID matches with voice
-			bne.s	15$									; nope, skip all
+			bne.s	.l15									; nope, skip all
 
 			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)		; voice actually on?
-			beq.s	16$									; no, check for stereo
+			beq.s	.l16									; no, check for stereo
 
 			moveq	#0,d0
 			move.b	voice_Number(a2),d0
@@ -2437,17 +2435,17 @@ ExtraServer
 			clr.b	voice_Priority(a2)
 			clr.l	voice_UniqueID(a2)
 
-16$			moveq	#0,d0
+.l16			moveq	#0,d0
 			move.b	voice_Link(a2),d0					; is link = number?
 			cmp.b	voice_Number(a2),d0
-			beq.s	15$									; yes, so not stereo
+			beq.s	.l15									; yes, so not stereo
 
 			SCALE	voice_sizeof,d0
 			lea		_voice,a2
 			add.w	d0,a2
 
 			btst.b	#VOICEB_BLOCKED,voice_Flags(a2)		; voice actually on?
-			beq.s	15$									; no, check for stereo
+			beq.s	.l15									; no, check for stereo
 
 			moveq	#0,d0
 			move.b	voice_Number(a2),d0
@@ -2457,13 +2455,13 @@ ExtraServer
 			clr.b	voice_Priority(a2)
 			clr.l	voice_UniqueID(a2)
 
-15$			clr.l	_extra_data
-			bra.s	99$
+.l15			clr.l	_extra_data
+			bra.w	.l99
 
 *	CheckSound
 
-14$			cmp.w	#EXTRA_CHECKSOUND,d2				; CheckSound operation?
-			bne.s	18$									; no
+.l14			cmp.w	#EXTRA_CHECKSOUND,d2				; CheckSound operation?
+			bne.s	.l18									; no
 
 			move.l	_extra_data,d0						; get voice # from ID
 			move.l	d0,d1
@@ -2473,38 +2471,38 @@ ExtraServer
 			add.w	d0,a2
 
 			cmp.l	voice_UniqueID(a2),d1				; ID matches with voice
-			bne.s	17$									; nope, skip all
+			bne.s	.l17									; nope, skip all
 
 			move.l	a2,a0
 			bsr		check_sound							; check sound on voice
 			tst.l	d0
-			beq.s	17$									; no, return FALSE
+			beq.s	.l17									; no, return FALSE
 			moveq	#1,d0
 			move.l	d0,_extra_data						; yes, return TRUE
-			bra.s	99$
+			bra.s	.l99
 
-17$			clr.l	_extra_data
-			bra.s	99$
+.l17			clr.l	_extra_data
+			bra.s	.l99
 
 *	AdvanceSong
 
-18$			cmp.w	#EXTRA_ADVANCE,d2					; CheckSound operation?
-			bne.s	19$									; no
+.l18			cmp.w	#EXTRA_ADVANCE,d2					; CheckSound operation?
+			bne.s	.l19									; no
 
 			move.l	_extra_data,d0						; get advance #
 			clr.l	_extra_data							; assume no music playing
 			btst.b	#MUSICB_PLAYING,_globaldata+glob_Flags
-			beq.s	99$									; no music playing, skip
+			beq.s	.l99									; no music playing, skip
 
 			bsr		advance_song
 			moveq	#1,d0
 			move.l	d0,_extra_data
-			bra.s	99$
+			bra.s	.l99
 
 *	CheckNote
 
-19$			cmp.w	#EXTRA_CHECKNOTE,d2				; CheckNote operation?
-			bne.s	99$									; no
+.l19			cmp.w	#EXTRA_CHECKNOTE,d2				; CheckNote operation?
+			bne.s	.l99									; no
 
 			move.l	_extra_data,d0						; get voice # + 1
 			subq.b	#1,d0
@@ -2515,20 +2513,19 @@ ExtraServer
 
 			move.l	voice_Channel(a2),a3
 			cmp.b	#16,chan_Number(a3)
-			bne.s	40$
+			bne.s	.l40
 
 			move.l	a2,a0
 			bsr		xcheck_sound						; check note on voice
 			tst.l	d0
-			beq.s	40$									; no, return FALSE
+			beq.s	.l40									; no, return FALSE
 			moveq	#1,d0
 			move.l	d0,_extra_data						; yes, return TRUE
-			bra.s	99$
+			bra.s	.l99
 
-40$			clr.l	_extra_data
-			bra.s	99$
+.l40			clr.l	_extra_data
 
-99$			movem.l	(sp)+,d2-d4/a2/a3/a5/a6
+.l99			movem.l	(sp)+,d2-d4/a2/a3/a5/a6
 			moveq	#0,d0
 			rts
 
@@ -2561,7 +2558,7 @@ AllocSample
 			move.l	_SysBase,a6
 			JSRLIB	AllocMem
 			tst.l	d0
-			beq.s	99$
+			beq.s	.l99
 			move.l	d0,a3
 
 			move.l	d2,d0								; allocate Waveform
@@ -2570,25 +2567,25 @@ AllocSample
 			JSRLIB	AllocMem
 
 			move.l	d0,samp_Waveform(a3)				; Waveform -> SampleData
-			beq.s	97$									; whoops... no memory
+			beq.s	.l97									; whoops... no memory
 			
 			move.l	d2,samp_AttackSize(a3)				; store sizes
 			move.l	d3,samp_SustainSize(a3)
 			move.l	a3,d0								; return SampleData
 
 			move.l	a2,d1								; previous sample?
-			beq.s	99$									; no, done
+			beq.s	.l99									; no, done
 
 			move.l	a3,samp_NextSample(a2)				; link to previous
 
-99$			movem.l (sp)+,d2/d3/a2/a3/a6
+.l99			movem.l (sp)+,d2/d3/a2/a3/a6
 			rts
 
-97$			move.l	#samp_sizeof,d0						; free memory
+.l97			move.l	#samp_sizeof,d0						; free memory
 			move.l	a3,a1
 			JSRLIB	FreeMem
 			moveq	#0,d0								; return error
-			bra		99$
+			bra		.l99
 
 *==========================================================================*
 *
@@ -2614,8 +2611,8 @@ FreeSample
 
 			move.l	_SysBase,a6
 
-2$			move.l	a2,d0								; still have sample?
-			beq.s	1$									; no, done
+.l2			move.l	a2,d0								; still have sample?
+			beq.s	.l1									; no, done
 
 			move.l	samp_Waveform(a2),a1
 			move.l	samp_AttackSize(a2),d0
@@ -2627,9 +2624,9 @@ FreeSample
 			moveq	#samp_sizeof,d0
 			JSRLIB	FreeMem
 
-			bra		2$
+			bra		.l2
 
-1$			movem.l	(sp)+,a2/a6
+.l1			movem.l	(sp)+,a2/a6
 			rts
 
 *==========================================================================*
@@ -2655,22 +2652,22 @@ FreePatch
 			move.l	_SysBase,a6
 
 			move.l	patch_Attack(a2),d0					; free attack envelopes
-			beq.s	1$
+			beq.s	.l1
 			move.l	d0,a1
 			move.w	patch_AttackCount(a2),d0
 			mulu.w	#env_sizeof,d0
 			JSRLIB	FreeMem
 			clr.l	patch_Attack(a2)
 
-1$			move.l	patch_Release(a2),d0				; free release envelopes
-			beq.s	2$
+.l1			move.l	patch_Release(a2),d0				; free release envelopes
+			beq.s	.l2
 			move.l	d0,a1
 			move.w	patch_ReleaseCount(a2),d0
 			mulu.w	#env_sizeof,d0
 			JSRLIB	FreeMem
 			clr.l	patch_Release(a2)
 
-2$			clr.l	patch_Sample(a2)					; clear sample ptr
+.l2			clr.l	patch_Sample(a2)					; clear sample ptr
 
 			movem.l	(sp)+,a2/a6
 			rts
@@ -2693,32 +2690,32 @@ UnloadPerf
 			move.w	d0,d2
 
 ;			cmp.w	#PERF_PARTSAMPLES,d2				; partial samples only?
-;			beq.s	9$									; yes, don't unload
+;			beq.s	.l9									; yes, don't unload
 
 			cmp.w	#PERF_SCORE,d2
-			beq.s	1$									; if only scores, skip
+			beq.s	.l1									; if only scores, skip
 
 			moveq	#NUM_SAMPLES-1,d3					; free all samples
-2$			move.w	d3,d0
+.l2			move.w	d3,d0
 			bsr		FreeSample
-			dbra	d3,2$
+			dbra	d3,.l2
 
 			moveq	#NUM_PATCHES-1,d3					; free all patches
-3$			move.w	d3,d0
+.l3			move.w	d3,d0
 			bsr		FreePatch
-			dbra	d3,3$
+			dbra	d3,.l3
 
-1$			cmp.w	#PERF_SAMPLES,d2
-			beq.s	9$									; if only samples, skip
+.l1			cmp.w	#PERF_SAMPLES,d2
+			beq.s	.l9									; if only samples, skip
 
 			move.l	_SysBase,a6
 			move.l	_scoreptr,a2
 			move.l	a2,_globaldata+glob_CurrentScore	; reset current score
 			move.w	_globaldata+glob_TotalScores,d3		; get total scores
-			bra.s	4$
+			bra.s	.l4
 
-5$			move.l	score_NumEvents(a2),d0				; any events?
-			beq.s	6$									; no, skip
+.l5			move.l	score_NumEvents(a2),d0				; any events?
+			beq.s	.l6									; no, skip
 
 			moveq	#cev_sizeof,d1						; calc size of events
 			jsr		mulu
@@ -2727,15 +2724,15 @@ UnloadPerf
 			clr.l	score_Data(a2)						; clear score structure
 			clr.l	score_NumEvents(a2)
 
-6$			addq.w	#score_sizeof,a2					; next score
-4$			dbra	d3,5$								; loop
+.l6			addq.w	#score_sizeof,a2					; next score
+.l4			dbra	d3,.l5								; loop
 
 			clr.w	_globaldata+glob_TotalScores
 			clr.w	_maxtrax+mxtx_TotalScores
 			move.w	#120,_globaldata+glob_Tempo
 			move.w	#1,_globaldata+glob_Filter
 
-9$			movem.l	(sp)+,d2/d3/a2/a6
+.l9			movem.l	(sp)+,d2/d3/a2/a6
 			rts
 
 *==========================================================================*
@@ -2753,11 +2750,11 @@ CheckRead		macro
 				rts
 
 \2				cmp.l	d0,d3
-			ifeq NARG-2
-				bne.s	\1
-			else
+;			ifeq NARG-2
+;				bne.s	\1
+;			else
 				bne		\1
-			endc
+;			endc
 				endm
 				
 				xdef	_LoadPerf
@@ -2782,40 +2779,40 @@ LoadPerf
 				move.l	_DOSBase,a6
 
 				move.l	a2,d1								; filename
-				beq.s	30$									; none! must have fh
+				beq.s	.l30									; none! must have fh
 
 				moveq	#0,d7								; no fh
 				move.l	#MODE_OLDFILE,d2
 
-				pea		32$
+				pea		.l32
 				move.l	_maxtrax+mxtx_OpenFunc,-(sp)
 				rts
 
-32$				tst.l	d0
-				beq		99$									; error! 
+.l32				tst.l	d0
+				beq		.l99									; error! 
 
 				move.l	d0,a2								; a2 = file handle
-				bra.s	31$
+				bra.s	.l31
 
-30$				move.l	d7,a2								; a2 = file handle
+.l30				move.l	d7,a2								; a2 = file handle
 
-31$				move.l	a2,d1								; get file ID
+.l31				move.l	a2,d1								; get file ID
 				move.l	sp,d2
 				moveq	#4,d3
-				CheckRead 98$,70$
+				CheckRead .l98,.l70
 
 				cmp.l	#'MXTX',(sp)						; a MaxTrax file?
-				bne		98$									; nope, error
+				bne		.l98									; nope, error
 
 				move.l	a2,d1								; get tempo & filter
 				move.l	sp,d2
 				moveq	#4,d3
-				CheckRead 98$,71$
+				CheckRead .l98,.l71
 				
 				cmp.w	#PERF_SAMPLES,d4					; samples only?
-				beq.s	1$									; yes, skip
+				beq.s	.l1									; yes, skip
 ;				cmp.w	#PERF_PARTSAMPLES,d4				; samples only?
-;				beq.s	1$									; yes, skip
+;				beq.s	.l1									; yes, skip
 
 				move.w	(sp),_globaldata+glob_Tempo			; set tempo & filter
 				move.w	2(sp),d0
@@ -2826,69 +2823,69 @@ LoadPerf
 				bclr.b	#MUSICB_VELOCITY,_globaldata+glob_Flags
 				bclr.b	#MUSICB_VELOCITY,_maxtrax+mxtx_Flags
 				btst.l	#1,d1								; attack volume?
-				beq.s	20$
+				beq.s	.l20
 				bset.b	#MUSICB_VELOCITY,_globaldata+glob_Flags
 				bset.b	#MUSICB_VELOCITY,_maxtrax+mxtx_Flags
 
-20$
+.l20
 			ifne HAS_MICROTONAL
 				btst.l	#15,d1								; has microtonal?
-				beq.s	12$
+				beq.s	.l12
 
 				move.l	a2,d1								; read in table
 				move.l	#_microtonal,d2
 				moveq	#2+128,d3
-				CheckRead 98$,72$
+				CheckRead .l98,.l72
 
-				bra		12$
+				bra		.l12
 			endc
 
-1$				btst.l	#15,d1								; has microtonal?
-				beq.s	12$
+.l1				btst.l	#15,d1								; has microtonal?
+				beq.s	.l12
 
 				move.l	a2,d1								; seek past data
 				move.l	#2*128,d2
 				move.l	#OFFSET_CURRENT,d3
 				JSRLIB	Seek
 
-12$				move.l	a2,d1								; get # of scores
+.l12				move.l	a2,d1								; get # of scores
 				move.l	sp,d2
 				moveq	#2,d3
-				CheckRead 98$,73$
+				CheckRead .l98,.l73
 
 				move.w	(sp),d5								; use d5 as counter
 				move.l	_scoreptr,a3
-				bra.s	2$
+				bra.w	.l2
 
-3$				move.l	a2,d1								; get # of events
+.l3				move.l	a2,d1								; get # of events
 				move.l	sp,d2
 				moveq	#4,d3
-				CheckRead 98$,74$
+				CheckRead .l98,.l74
 				move.l	(sp),d0
 				moveq	#cev_sizeof,d1						; x CookedEvent size
 				jsr		mulu
 				move.l	d0,4(sp)							; save locally
 
 				cmp.w	#PERF_SAMPLES,d4					; samples only?
-				beq.s	14$									; no, do load
+				beq.s	.l14									; no, do load
 ;				cmp.w	#PERF_PARTSAMPLES,d4				; samples only?
-;				beq.s	14$									; no, do load
+;				beq.s	.l14									; no, do load
 
 				move.w	_scoremax,d1
 				cmp.w	_globaldata+glob_TotalScores,d1 	; too many scores?
-				bne.s	4$									; no, do load
+				bne.s	.l4									; no, do load
 
-14$				move.l	a2,d1								; seek past data
+.l14				move.l	a2,d1								; seek past data
 				move.l	d0,d2
 				move.l	#OFFSET_CURRENT,d3
 				JSRLIB	Seek
-				bra.s	2$
+				bra.s	.l2
 
-4$				move.l	#MEMF_CLEAR,d1						; get d0 size bytes
+.l4				move.l	#MEMF_CLEAR,d1						; get d0 size bytes
 				move.l	_SysBase,a6
 				JSRLIB	AllocMem
 				tst.l	d0
-				beq		98$
+				beq		.l98
 
 				move.l	d0,score_Data(a3)					; event data
 				move.l	(sp),score_NumEvents(a3)			; number (on stack)
@@ -2899,26 +2896,26 @@ LoadPerf
 				move.l	d0,d2
 				move.l	4(sp),d3
 				move.l	_DOSBase,a6
-				CheckRead 98$,75$
+				CheckRead .l98,.l75
 
 				addq.w	#score_sizeof,a3					; next score
-2$				dbra	d5,3$
+.l2				dbra	d5,.l3
 
 				cmp.w	#PERF_SCORE,d4						; score only?
-				beq		80$									; yes, no samples
+				beq		.l80									; yes, no samples
 
 				move.l	a2,d1								; get # of samples
 				move.l	sp,d2
 				moveq	#2,d3
-				CheckRead 98$,76$
+				CheckRead .l98,.l76
 				
 				move.w	(sp),d5								; number of samples
-				bra		5$
+				bra		.l5
 
-6$				move.l	a2,d1								; get sample header
+.l6				move.l	a2,d1								; get sample header
 				move.l	sp,d2
 				moveq	#dsamp_sizeof,d3
-				CheckRead 98$,78$
+				CheckRead .l98,.l78
 
 				lea		_asample,a3							; ptr to sample
 				move.w	dsamp_Number(sp),d0
@@ -2941,7 +2938,7 @@ LoadPerf
 				move.l	_SysBase,a6
 				JSRLIB	AllocMem
 				tst.l	d0
-				beq		98$
+				beq		.l98
 
 				move.l	d0,patch_Attack(a5)					; save data
 				move.w	dsamp_AttackCount(sp),patch_AttackCount(a5)
@@ -2950,7 +2947,7 @@ LoadPerf
 				move.l	d0,d2
 				move.l	d6,d3
 				move.l	_DOSBase,a6
-				CheckRead 98$,79$
+				CheckRead .l98,.l79
 
 				move.w	dsamp_ReleaseCount(sp),d6			; # release env segs
 				mulu.w	#env_sizeof,d6						; memory needed
@@ -2959,7 +2956,7 @@ LoadPerf
 				move.l	_SysBase,a6
 				JSRLIB	AllocMem
 				tst.l	d0
-				beq		98$
+				beq		.l98
 
 				move.l	d0,patch_Release(a5)				; save data
 				move.w	dsamp_ReleaseCount(sp),patch_ReleaseCount(a5)
@@ -2968,32 +2965,32 @@ LoadPerf
 				move.l	d0,d2
 				move.l	d6,d3
 				move.l	_DOSBase,a6
-				CheckRead 98$,60$
+				CheckRead .l98,.l60
 
 				moveq	#0,d6								; for each octave...
-9$				tst.w	dsamp_Octaves(sp)
-				beq.s	5$
+.l9				tst.w	dsamp_Octaves(sp)
+				beq.s	.l5
 
 				move.l	d6,a0								; alloc sample space
 				move.l	dsamp_AttackLength(sp),d0
 				move.l	dsamp_SustainLength(sp),d1
 				bsr		AllocSample
 				move.l	d0,d6
-				beq		98$									; opps, error
+				beq		.l98									; opps, error
 
 				tst.l	(a3)								; first sample?
-				bne.s	8$									; no, skip ahead
+				bne.s	.l8									; no, skip ahead
 
 				move.l	d6,(a3)								; set sample ptr
 				move.l	d6,patch_Sample(a5)					; set sample in patch
 
-8$				move.l	a2,d1								; load sample
+.l8				move.l	a2,d1								; load sample
 				move.l	d6,a0
 				move.l	samp_Waveform(a0),d2
 				move.l	dsamp_AttackLength(sp),d3
 				add.l	dsamp_SustainLength(sp),d3
 				move.l	_DOSBase,a6
-				CheckRead 98$,61$
+				CheckRead .l98,.l61
 
 				move.l	dsamp_AttackLength(sp),d2
 				add.l	d2,dsamp_AttackLength(sp)
@@ -3001,58 +2998,58 @@ LoadPerf
 				add.l	d2,dsamp_SustainLength(sp)
 
 				subq.w	#1,dsamp_Octaves(sp)		; decrement octave count
-				bra.s	9$									; loop
+				bra.s	.l9									; loop
 
-5$				dbra	d5,6$								; get more samples
+.l5				dbra	d5,.l6								; get more samples
 
 				tst.l	d7									; fh?
-				bne.s	33$									; don't close it
+				bne.s	.l33									; don't close it
 
 				move.l	a2,d1
 				move.l	_DOSBase,a6
-				pea		33$
+				pea		.l33
 				move.l	_maxtrax+mxtx_CloseFunc,-(sp)
 				rts
 
-33$				moveq	#NUM_PATCHES-1,d2
+.l33				moveq	#NUM_PATCHES-1,d2
 				lea		_patch,a2
-10$				tst.l	patch_Sample(a2)
-				bne.s	11$
+.l10				tst.l	patch_Sample(a2)
+				bne.s	.l11
 				lea		patch_sizeof(a2),a2
-				dbra	d2,10$
+				dbra	d2,.l10
 
-11$				moveq	#1,d0
+.l11				moveq	#1,d0
 				tst.w	d2
-				bpl.s	99$
+				bpl.s	.l99
 				moveq	#0,d0
 
-99$				add.w	#dsamp_sizeof+8,sp					; local variables
+.l99				add.w	#dsamp_sizeof+8,sp					; local variables
 				movem.l	(sp)+,d2-d7/a2/a3/a5/a6
 				rts
 
-80$				tst.l	d7									; fh?
-				bne.s	81$									; don't close it
+.l80				tst.l	d7									; fh?
+				bne.s	.l81									; don't close it
 
 				move.l	a2,d1								; scores only cleanup
 				move.l	_DOSBase,a6
-				pea		81$
+				pea		.l81
 				move.l	_maxtrax+mxtx_CloseFunc,-(sp)
 				rts
 
-81$				moveq	#1,d0
-				bra.s	99$
+.l81				moveq	#1,d0
+				bra.s	.l99
 
-98$				tst.l	d7									; fh?
-				bne.s	97$									; don't close it
+.l98				tst.l	d7									; fh?
+				bne.s	.l97									; don't close it
 
 				move.l	a2,d1								; error cleanup
 				move.l	_DOSBase,a6
-				pea		97$
+				pea		.l97
 				move.l	_maxtrax+mxtx_CloseFunc,-(sp)
 				rts
 
-97$				moveq	#0,d0
-				bra.s	99$
+.l97				moveq	#0,d0
+				bra.s	.l99
 
 StdOpenFunc
 				JSRLIB	Open
@@ -3073,14 +3070,14 @@ StdCloseFunc
 *==========================================================================*
 
 FindTag			move.l	(a0),d1
-				beq.s	99$
+				beq.s	.l99
 				cmp.l	d0,d1
-				beq.s	1$
+				beq.s	.l1
 				addq.w	#8,a0
 				bra.s	FindTag
-1$				move.l	a0,d0
+.l1				move.l	a0,d0
 				rts
-99$				moveq	#0,d0
+.l99				moveq	#0,d0
 				rts
 
 *==========================================================================*
@@ -3092,13 +3089,12 @@ FindTag			move.l	(a0),d1
 * made this as fast as possible if music system off...
 
 MusicVBlank		tst.l	_AudioDevice		; if audio system off, exit
-				bne.s	1$
+				bne.s	.l1
 				moveq	#0,d0				; continue chain
 				rts
 
-1$				move.l	_SysBase,a6
+.l1				move.l	_SysBase,a6
 				lea		_music_server,a1
-				xref	_LVOCause
 				jsr		_LVOCause(a6)		; Cause a softint at IMusicServer...
 				moveq	#0,d0				; continue chain
 				rts

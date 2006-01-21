@@ -1,3 +1,8 @@
+2006-01-21  Heikki Orsila <heikki.orsila@iki.fi>
+	- Imported the LGPL'ed Max Trax source to amigasrc/players/max_trax.
+	  Then applied a patch from alankila. It is not yet an eagleplayer
+	  but a work-in-progress. (alankila)
+
 2006-01-20  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continued frontend modularization and code sharing effort. Created
 	  struct uade_song in eagleplayer.h to store relevant properties
