@@ -754,6 +754,9 @@ static void Interrupt(int nr)
     lastint_no = nr;
     Exception(nr+24, 0);
 
+    if (debugging)
+	debug_interrupt_happened = 1;
+
     regs.intmask = nr;
     regs.spcflags |= SPCFLAG_INT;
 }

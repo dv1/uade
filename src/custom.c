@@ -1365,8 +1365,8 @@ void customreset (void)
 
 void dumpcustom (void)
 {
-    write_log ("DMACON: %x INTENA: %x INTREQ: %x VPOS: %x HPOS: %x\n", DMACONR(),
-	       (unsigned int)intena, (unsigned int)intreq, (unsigned int)vpos, (unsigned int)current_hpos());
+    write_log ("DMACON: %x INTENA: %x INTREQ: %x VPOS: %x HPOS: %x CYCLES: %ld\n", DMACONR(),
+	       (unsigned int)intena, (unsigned int)intreq, (unsigned int)vpos, (unsigned int)current_hpos(), cycles);
     write_log ("COP1LC: %08lx, COP2LC: %08lx\n", (unsigned long)cop1lc, (unsigned long)cop2lc);
     if (timeframes) {
 	write_log ("Average frame time: %d ms [frames: %d time: %d]\n",

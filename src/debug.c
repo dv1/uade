@@ -24,7 +24,9 @@
 static int debugger_active = 0;
 static uaecptr skipaddr;
 static int do_skip;
+static int wait_interrupt;
 int debugging = 0;
+int debug_interrupt_happened;
 
 void activate_debugger (void)
 {
@@ -34,7 +36,6 @@ void activate_debugger (void)
     debugger_active = 1;
     regs.spcflags |= SPCFLAG_BRK;
     debugging = 1;
-    /* use_debugger = 1; */
 }
 
 int firsthist = 0;
@@ -406,12 +407,16 @@ void debug (void) {
 
   history_log();
 
-  if (do_skip && (m68k_getpc() != skipaddr)) {
+  if (do_skip && (m68k_getpc() != skipaddr) &&
+      (wait_interrupt == 0 || debug_interrupt_happened == 0)) {
     regs.spcflags |= SPCFLAG_BRK;
     return;
   }
+
   do_skip = 0;
-  
+  debug_interrupt_happened = 0;
+  wait_interrupt = 0;
+
   m68k_dumpstate (&nextpc);
   nxdis = nextpc; nxmem = 0;
   
@@ -578,9 +583,15 @@ void debug (void) {
     case 'z':
       set_break(nextpc);
       return;
-      
+
     case 'f':
       set_break(readhex(&inptr));
+      return;
+
+      /* Run until next interrupt */
+    case 'i':
+      set_break(0x13371337);
+      wait_interrupt = 1;
       return;
 
     case 'u':
@@ -691,13 +702,14 @@ void debug (void) {
 	printf ("  z:                    Step through one instruction - useful for JSR, DBRA etc\n");
 	printf ("  u:                    Run until here again (same as f current pc)\n");
 	printf ("  f <address>:          Step forward until PC == <address>\n");
+	printf ("  i:                    Run until next interrupt\n");
 	printf ("  H <count>:            Show PC history <count> instructions\n");
 	printf ("  M:                    Search for *Tracker sound modules\n");
 	printf ("  C <value>:            Search for values like energy or lifes in games\n");
 	printf ("  W[.bwl] <addr> <val>: Write into memory with op.size (b,w,l), default is LONG\n");
 	printf ("  R <file> <addr> <n>:  Read a file into Amiga memory (<n> is optional)\n");
 	printf ("  S <file> <addr> <n>:  Save a block of Amiga memory\n");
-	printf ("  l [<name>]            Trace to an uade debug point or list them\n"); 
+	printf ("  l [<name>]:           Trace to an uade debug point or list them\n"); 
 	printf ("  h,?:                  Show this help page\n");
 	printf ("  q:                    Quit the emulator. You don't want to use this command.\n\n");
       }

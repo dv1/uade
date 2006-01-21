@@ -12,6 +12,8 @@
 extern int firsthist;
 extern int lasthist;
 extern int debugging;
+extern int debug_interrupt_happened;
+
 #ifdef NEED_TO_DEBUG_BADLY
 extern struct regstruct history[MAX_HIST];
 extern union flagu historyf[MAX_HIST];

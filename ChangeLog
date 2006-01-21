@@ -4,6 +4,7 @@
 	  but a work-in-progress. (alankila)
 	- Added a command 'i' to the debugger that traces till next hw
 	  interrupt.
+	- 'c' command in debugger will now also print cycle count.
 
 2006-01-20  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continued frontend modularization and code sharing effort. Created
