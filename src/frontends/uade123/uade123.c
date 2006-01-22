@@ -133,11 +133,13 @@ int main(int argc, char *argv[])
     OPT_NO_SONG_END,
     OPT_SPEED_HACK,
     OPT_BASEDIR,
-    OPT_HEADPHONES
+    OPT_HEADPHONES,
+    OPT_BUFFER_TIME
   };
 
   struct option long_options[] = {
     {"basedir", 1, NULL, OPT_BASEDIR},
+    {"buffer-time", 1, NULL, OPT_BUFFER_TIME},
     {"debug", 0, NULL, 'd'},
     {"filter", 2, NULL, OPT_FILTER},
     {"force-led", 1, NULL, OPT_FORCE_LED},
@@ -353,6 +355,13 @@ int main(int argc, char *argv[])
     case OPT_HEADPHONES:
       uadeconf.headphones = 1;
       break;
+    case OPT_BUFFER_TIME:
+      uadeconf.buffer_time = strtol(optarg, &endptr, 10);
+      if (uadeconf.buffer_time <= 0 || *endptr != 0) {
+	fprintf(stderr, "Invalid buffer time given: %s\n", optarg);
+	exit(-1);
+      }
+      break;
     default:
       fprintf(stderr, "Impossible option.\n");
       exit(-1);
@@ -438,7 +447,7 @@ int main(int argc, char *argv[])
 
   uade_spawn(&uadeipc, &uadepid, uadename, configname);
 
-  if (!audio_init())
+  if (!audio_init(uadeconf.buffer_time))
     goto cleanup;
 
   uade_effects_backup = uade_effects;
@@ -591,6 +600,8 @@ static void print_help(void)
   printf("Normal options:\n");
   printf(" -1, --one,          Play at most one subsong per file\n");
   printf(" -@ filename, --list=filename,  Read playlist of files from 'filename'\n");
+  printf(" --buffer-time=x     Set audio buffer length to x milliseconds. The default\n");
+  printf("                     value is determined by the libao.\n");
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");

@@ -9,6 +9,7 @@
 struct uade_config {
   int action_keys;
   int always_ends;
+  int buffer_time;
   int filter_type;
   int led_forced;
   int led_state;

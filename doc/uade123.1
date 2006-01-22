@@ -89,6 +89,13 @@ Play at most one subsong per file.
 \fB\-@\fR filename\fB, \-\-list=\fRfilename
 Play song files listed in the file.
 .TP
+\fB\-\-buffer\-time\fR=x
+Set audio buffer length to x milliseconds. It can be used to avoid audio
+underruns on some systems. The default value of this setting is provided
+by the libao. Notice that libao support for ALSA has a bug
+in versions 0.8.6 and earlier that buffer_time must actually be given in
+microseconds rather than milliseconds.
+.TP
 \fB\-d\fR
 Turn debug mode on. Experts only.
 .TP
@@ -357,8 +364,7 @@ may contain at most one command. The valid commands are:
     interpolator x     Set interpolator to x which is either default
                        (anti), anti or none.
 .br
-    subsong_timeout x  Set subsong timeout value to x. The unit is
-                       seconds.
+    subsong_timeout x  Set subsong timeout value to x seconds.
 .br
     action_keys x      Set action keys "off" or "on".
 .br
@@ -375,10 +381,11 @@ may contain at most one command. The valid commands are:
     recursive_mode     Scan directories recursively. Used for uade123
                        only.
 .br
-    silence_timeout x  Set silence timeout value to x. The unit is
-                       seconds.
+    silence_timeout x  Set silence timeout value to x seconds.
 .br
-    timeout x          Set timeout value to x. The unit is seconds.
+    timeout x          Set timeout value to x seconds.
+.br
+    buffer_time x      Set audio buffer length to x milliseconds.
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
 .SH "FILES"

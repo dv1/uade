@@ -1,3 +1,13 @@
+2006-01-22  Heikki Orsila <heikki.orsila@iki.fi>
+        - Added a new option to uade.conf: buffer_time x. buffer_time x in
+	  uade.conf sets audio buffer length to x milliseconds. This can
+	  be used to avoid buffer underruns on some systems. Beware that
+	  Alsa support in libao is buggy in versions 0.8.6 and earlier so
+	  that the actual buffer time must be given in microseconds. At
+	  this time it is not fixed in any official libao releases.
+	- uade123 option --buffer-time=x can be used to set audio buffer
+	  length to x milliseconds.
+
 2006-01-21  Heikki Orsila <heikki.orsila@iki.fi>
 	- Imported the LGPL'ed Max Trax source to amigasrc/players/max_trax.
 	  Then applied a patch from alankila. It is not yet an eagleplayer

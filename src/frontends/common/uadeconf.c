@@ -154,6 +154,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   char *key;
   char *value;
   int linenumber = 0;
+  char *endptr;
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
@@ -183,6 +184,12 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 	} else {
 	  fprintf(stderr, "uade.conf: Unknown setting for action keys: %s\n", value);
 	}
+      }
+    } else if (strncmp(key, "buffer_time", 6) == 0) {
+      uc->buffer_time = strtol(value, &endptr, 10);
+      if (uc->buffer_time <= 0 || *endptr != 0) {
+	fprintf(stderr, "Invalid buffer_time: %s\n", value);
+	uc->buffer_time = 0;
       }
     } else if (strncmp(key, "filter", 6) == 0) {
       uc->filter_type = uade_get_filter_type(value);

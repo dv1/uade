@@ -19,7 +19,9 @@ void audio_close(void)
 }
 
 
-int audio_init(void)
+/* buffer_time is given in milliseconds */
+
+int audio_init(int buffer_time)
 {
   int driver;
   ao_sample_format format;
@@ -43,7 +45,13 @@ int audio_init(void)
     libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
   } else {
     driver = ao_default_driver_id();
-    libao_device = ao_open_live(driver, &format, NULL);
+    if (buffer_time > 0) {
+      char val[32];
+      snprintf(val, sizeof val, "%d", buffer_time);
+      libao_device = ao_open_live(driver, &format, & (ao_option) {.key = "buffer_time", .value = val});
+    } else {
+      libao_device = ao_open_live(driver, &format, NULL);
+    }
   }
   if (libao_device == NULL) {
     fprintf(stderr, "Error opening device: errno %d\n", errno);
