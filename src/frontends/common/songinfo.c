@@ -248,7 +248,7 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
   if (!string_checker(buf, 0, len))
     return;
 
-  snprintf(tmpstr, 32, "\nSong title:\t%s\n", buf);
+  snprintf(tmpstr, 34, "\nSong title:\t%s\n", buf);
   strlcat(credits, tmpstr, credits_len);
 
   if (inst == 31) {
