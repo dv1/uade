@@ -3,6 +3,7 @@
 	  to support the current stable audacious 0.1.2.  
 	  The audacious supporting "produce_audio()" will be supported as
 	  soon as there's a stable release... (mld)
+	- ported songinfo for Wanted Team song formats [e.g BSS, DL, FP...]
 
 2006-01-22  Heikki Orsila <heikki.orsila@iki.fi>
         - Added a new option to uade.conf: buffer_time x. buffer_time x in

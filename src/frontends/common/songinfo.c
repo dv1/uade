@@ -107,11 +107,33 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   return rb == 0;
 }
 
+static uint32_t read_be_u32(uint8_t *ptr)
+{
+  uint32_t x = ptr[3] + (ptr[2] << 8) + (ptr[1] << 16) + (ptr[0] << 24);
+  return x;
+}
 
 static uint16_t read_be_u16(uint8_t *ptr)
 {
   uint16_t x = ptr[1] + (ptr[0] << 8);
   return x;
+}
+
+static int find_tag(unsigned char *buf, char *tag, int startoffset,
+		    int buflen)
+{
+  int i;
+
+  if (startoffset > buflen - 4)
+    return -1;
+
+  for (i = startoffset; i < buflen - 3; i++) {
+    if (buf[i] == tag[0] && buf[i + 1] == tag[1] &&
+	buf[i + 2] == tag[2] && buf[i + 3] == tag[3]) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 
@@ -125,6 +147,61 @@ static int string_checker(char *str, size_t off, size_t maxoff)
     str++;
   }
   return 0;
+}
+
+/* Wanted Team's loadseg modules */
+static void process_WTWT_mod(char *credits, int credits_len,
+			     unsigned char *buf, int len, char *lo,
+			     char *hi, int rel)
+{
+  int offset, txt_offset, chunk;
+  char tmpstr[256];
+
+  offset = find_tag(buf, lo, 0, len);	/* check for Magic ID */
+  if (offset == -1)
+    return;
+  offset = find_tag(buf, hi, offset + 4, offset + 8);
+  if (offset == -1)
+    return;
+
+  chunk = offset - 8;		/* here's where our first chunk should be */
+  offset = offset + rel;	/* offset to our info pointers */
+
+  if (chunk < len && offset < len) {
+
+    txt_offset = read_be_u32(buf + offset) + chunk;
+    if (txt_offset < len && txt_offset != chunk)
+	{
+
+  		if (!string_checker(buf, txt_offset, len))
+    		return;
+  		snprintf(tmpstr, sizeof tmpstr, "\nMODULENAME:\n %s\n", buf + 
+									txt_offset);
+  		strlcat(credits, tmpstr, credits_len);
+
+	}
+    txt_offset = read_be_u32(buf + offset + 4) + chunk;
+    if (txt_offset < len && txt_offset != chunk)
+	{
+  		if (!string_checker(buf, txt_offset, len))
+    		return;
+  		snprintf(tmpstr, sizeof tmpstr, "\nAUTHORNAME:\n %s\n", buf + 
+									txt_offset);
+  		strlcat(credits, tmpstr, credits_len);
+	}
+ 
+
+    txt_offset = read_be_u32(buf + offset + 8) + chunk;
+    if (txt_offset < len && txt_offset != chunk)
+		{
+  		if (!string_checker(buf, txt_offset, len))
+    		return;
+  		snprintf(tmpstr, sizeof tmpstr, "\nSPECIALINFO:\n %s", buf + 
+									txt_offset);
+  		strlcat(credits, tmpstr, credits_len);
+
+		}
+  }
 }
 
 
@@ -329,6 +406,36 @@ static int process_module(char *credits, size_t credits_len,char *filename)
 	     (strcasecmp(pre, "ADSC") == 0)) {
     /*MOD*/
     process_ptk_mod(credits, credits_len, 31, buf, modfilelen);
+  } else if (strcasecmp(pre, "DL") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "UNCL", "EART",
+		     0x28);
+  } else if (strcasecmp(pre, "BSS") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "BEAT", "HOVE",
+		     0x1c);
+  } else if (strcasecmp(pre, "GRAY") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "FRED", "GRAY",
+		     0x10);
+  } else if (strcasecmp(pre, "JMF") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "J.FL", "OGEL",
+		     0x14);
+  } else if (strcasecmp(pre, "SPL") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "!SOP", "ROL!",
+		     0x10);
+  } else if (strcasecmp(pre, "HD") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "H.DA", "VIES",
+		     24);
+  } else if (strcasecmp(pre, "RIFF") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "RIFF", "RAFF",
+		     0x14);
+  } else if (strcasecmp(pre, "FP") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "F.PL", "AYER",
+		     0x8);
+  } else if (strcasecmp(pre, "CORE") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "S.PH", "IPPS",
+		     0x20);
+  } else if (strcasecmp(pre, "BDS") == 0) {
+    process_WTWT_mod(credits, credits_len, buf, modfilelen, "DAGL", "ISH!",
+		     0x14);
   }
   return 0;
 }
