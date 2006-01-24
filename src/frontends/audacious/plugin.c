@@ -1,11 +1,7 @@
-/* UADE2 plugin for Audacious
+/* UADE2 plugin for XMMS
  *
  * Copyright (C) 2005  Heikki Orsila
  *                     heikki.orsila@iki.fi
- *
- *                     Michael Doering
- *		       mldoering/gmx.net
- *
  *                     http://zakalwe.virtuaalipalvelin.net/uade/
  *
  * This source code module is dual licensed under GPL and Public Domain.
@@ -35,6 +31,7 @@
 
 #include "plugin.h"
 #include "subsongseek.h"
+#include "fileinfo.h"
 
 
 #define PLUGIN_DEBUG 1
@@ -47,8 +44,10 @@
 
 
 static int initialize_song(char *filename);
+static void set_defaults(void);
 static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
+static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static int uade_get_time(void);
 static void uade_init(void);
@@ -58,10 +57,11 @@ static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
 
+
 /* GLOBAL VARIABLE DECLARATIONS */
 
 static InputPlugin uade_ip = {
-  .description = "UADE2 " UADE_VERSION,
+  .description = "UADE " UADE_VERSION,
   .init = uade_init,
   .is_our_file = uade_is_our_file,
   .play_file = uade_play_file,
@@ -70,7 +70,8 @@ static InputPlugin uade_ip = {
   .seek = uade_seek,
   .get_time = uade_get_time,
   .cleanup = uade_cleanup,
-  .get_song_info = uade_get_song_info
+  .get_song_info = uade_get_song_info,
+  .file_info_box = uade_file_info,
 };
 
 static const AFormat sample_format = FMT_S16_NE;
@@ -90,40 +91,37 @@ static int abort_playing;     /* Trigger type */
 
 static char configname[PATH_MAX];
 static char curmd5[33];
-static int curplaytime;
 static pthread_t decode_thread;
 static struct uade_config config;
+static struct uade_config config_backup;
 static struct uade_effect effects;
+static struct uade_effect effects_backup;
 static char gui_filename[PATH_MAX];
+static char gui_formatname[256];
 static int gui_info_set;
+static char gui_modulename[256];
+static char gui_module_filename[PATH_MAX];
+static char gui_playername[256];
+static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
 static int plugin_disabled;
 static int total_bytes_valid; /* Lock before use */
 static int total_bytes;       /* Lock before use */
-static pid_t uadepid;
 static struct uade_ipc uadeipc;
+static pid_t uadepid;
+static struct uade_song *uadesong;
 
 static time_t config_load_time;
 static time_t md5_load_time;
 
-int uade_cur_sub;             /* Lock before use */
 int uade_is_paused;           /* Lock before use */
-int uade_max_sub;             /* Lock before use */
-int uade_min_sub;             /* Lock before use */
 int uade_thread_running;      /* Trigger type */
 int uade_seek_forward;        /* Lock before use */
 int uade_select_sub;          /* Lock before use */
 
 
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
-
-
-static void set_defaults(void)
-{
-  uade_config_set_defaults(&config);
-  uade_effect_set_defaults(&effects);
-}
 
 
 static void load_config(void)
@@ -141,20 +139,7 @@ static void load_config(void)
 
   set_defaults();
 
-  uade_load_config(&config, configname);
-
-  if (config.gain_enable) {
-    uade_effect_gain_set_amount(&effects, config.gain);
-    uade_effect_enable(&effects, UADE_EFFECT_GAIN);
-  }
-
-  if (config.headphones)
-    uade_effect_enable(&effects, UADE_EFFECT_HEADPHONES);
-
-  if (config.panning_enable) {
-    uade_effect_pan_set_amount(&effects, config.panning);
-    uade_effect_enable(&effects, UADE_EFFECT_PAN);
-  }
+  uade_load_config(&config_backup, configname);
 }
 
 
@@ -192,6 +177,73 @@ static void load_content_db(void)
 }
 
 
+static void set_defaults(void)
+{
+  uade_config_set_defaults(&config_backup);
+  uade_effect_set_defaults(&effects_backup);
+}
+
+
+static void uade_cleanup(void)
+{
+  if (uadepid)
+    kill(uadepid, SIGTERM);
+
+  if (md5name[0]) {
+    struct stat st;
+    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
+      uade_save_content_db(md5name);
+  }
+}
+
+
+void uade_file_info(char *filename)
+{
+  int adder = 0;
+
+  if (strncmp(filename, "uade://", 7) == 0)
+    adder = 7;
+  uade_gui_file_info(filename + adder, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
+
+}
+
+
+int uade_get_cur_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uadesong->cur_subsong;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
+}
+
+
+int uade_get_max_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uadesong->max_subsong;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
+}
+
+
+int uade_get_min_subsong(int def)
+{
+    int subsong;
+    uade_lock();
+    subsong = uadesong->min_subsong;
+    uade_unlock();
+    if (subsong == -1)
+	subsong = def;
+    return subsong;
+}
+
+
 void uade_lock(void)
 {
   if (pthread_mutex_lock(&vlock)) {
@@ -222,6 +274,7 @@ static void uade_init(void)
 {
   char *home = getenv("HOME");
   struct stat st;
+  int config_loaded;
 
   set_defaults();
 
@@ -237,29 +290,33 @@ static void uade_init(void)
   /* If config exists in home, ignore global uade.conf. */
   snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
   if (stat(configname, &st) == 0)
-    return;
+    goto loadsongconf;
 
   /* No uade.conf in $HOME/.uade2/. */
   snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
   if (stat(configname, &st) == 0)
-    return;
+    goto loadsongconf;
 
   fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
   fprintf(stderr, "HOME/.uade2/uade.conf in the future.\n");
   snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
-}
 
+ loadsongconf:
 
-static void uade_cleanup(void)
-{
-  if (uadepid)
-    kill(uadepid, SIGTERM);
+  /* Load song.conf */
+  config_loaded = 0;
 
-  if (md5name[0]) {
-    struct stat st;
-    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
-      uade_save_content_db(md5name);
+  if (home) {
+    char tmpstr[PATH_MAX];
+    snprintf(tmpstr, sizeof tmpstr, "%s/.uade2/song.conf", home);
+    config_loaded = uade_read_song_conf(tmpstr);
   }
+
+  if (config_loaded == 0)
+    config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
+
+  if (config_loaded == 0)
+    plugindebug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 }
 
 
@@ -285,15 +342,24 @@ static int initialize_song(char *filename)
   if (ep == NULL)
     return FALSE;
 
+  config = config_backup;
+  effects = effects_backup;
+
+  uade_set_ep_attributes(&config, ep);
+
   strlcpy(modulename, filename, sizeof modulename);
+  strlcpy(gui_module_filename, filename, sizeof gui_module_filename);
 
   snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
 
   if (strcmp(ep->playername, "custom") == 0) {
     strlcpy(playername, modulename, sizeof playername);
+    strlcpy(gui_player_filename, modulename, sizeof gui_player_filename);
     modulename[0] = 0;
+    gui_module_filename[0] = 0;
   } else {
     snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
+    strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
   }
 
   ret = uade_song_initialization(scorename, playername, modulename, &uadeipc);
@@ -305,10 +371,32 @@ static int initialize_song(char *filename)
     return FALSE;
   }
 
+  assert(uadesong == NULL);
+
+  if ((uadesong = uade_alloc_song(filename)) == NULL)
+    return FALSE;
+
+  uade_set_song_attributes(&config, &effects, uadesong);
+
+  if (config.gain_enable) {
+    uade_effect_gain_set_amount(&effects, config.gain);
+    uade_effect_enable(&effects, UADE_EFFECT_GAIN);
+  }
+
+  if (config.headphones)
+    uade_effect_enable(&effects, UADE_EFFECT_HEADPHONES);
+
+  if (config.panning_enable) {
+    uade_effect_pan_set_amount(&effects, config.panning);
+    uade_effect_enable(&effects, UADE_EFFECT_PAN);
+  }
+
   if (config.ignore_player_check) {
     if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, &uadeipc) < 0) {
       fprintf(stderr, "Can not send ignore check message.\n");
       plugin_disabled = 1;
+      free(uadesong);
+      uadesong = NULL;
       return FALSE;
     }
   }
@@ -317,6 +405,8 @@ static int initialize_song(char *filename)
     if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, &uadeipc) < 0) {
       fprintf(stderr, "Can not send 'song end not possible'.\n");
       plugin_disabled = 1;
+      free(uadesong);
+      uadesong = NULL;
       return FALSE;
     }
   }
@@ -328,6 +418,8 @@ static int initialize_song(char *filename)
     if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, &uadeipc)) {
       fprintf(stderr, "Can not send speed hack command.\n");
       plugin_disabled = 1;
+      free(uadesong);
+      uadesong = NULL;
       return FALSE;
     }
   }
@@ -373,8 +465,8 @@ static void *play_loop(void *arg)
 	uade_seek_forward = 0;
       }
       if (uade_select_sub != -1) {
-	uade_cur_sub = uade_select_sub;
-	uade_change_subsong(uade_cur_sub, &uadeipc);
+	uadesong->cur_subsong = uade_select_sub;
+	uade_change_subsong(uadesong->cur_subsong, &uadeipc);
 	uade_ip.output->flush(0);
 	uade_select_sub = -1;
 	subsong_end = 0;
@@ -383,20 +475,20 @@ static void *play_loop(void *arg)
 	total_bytes_valid = 0;
       }
       if (subsong_end && song_end_trigger == 0) {
-	if (uade_cur_sub == -1 || uade_max_sub == -1) {
+	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
 	  song_end_trigger = 1;
 	} else {
-	  uade_cur_sub++;
-	  if (uade_cur_sub > uade_max_sub) {
+	  uadesong->cur_subsong++;
+	  if (uadesong->cur_subsong > uadesong->max_subsong) {
 	    song_end_trigger = 1;
 	  } else {
-	    uade_change_subsong(uade_cur_sub, &uadeipc);
+	    uade_change_subsong(uadesong->cur_subsong, &uadeipc);
 	    while (uade_ip.output->buffer_playing())
 	      xmms_usleep(10000);
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	    subsong_bytes = 0;
-	    uade_gui_subsong_changed(uade_cur_sub);
+	    uade_gui_subsong_changed(uadesong->cur_subsong);
 	  }
 	}
       }
@@ -471,7 +563,7 @@ static void *play_loop(void *arg)
 
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
-	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
+	uade_ip.output->write_audio(um->data, play_bytes);
 
       nowrite:
 
@@ -504,12 +596,12 @@ static void *play_loop(void *arg)
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Format name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_formatname, um->data, sizeof gui_formatname);
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Module name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_modulename, um->data, sizeof gui_modulename);
 	break;
 
       case UADE_REPLY_MSG:
@@ -519,7 +611,7 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Player name: %s\n", (uint8_t *) um->data); */
+	strlcpy(gui_playername, um->data, sizeof gui_playername);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -555,19 +647,19 @@ static void *play_loop(void *arg)
 	}
 	u32ptr = (uint32_t *) um->data;
 	uade_lock();
-	uade_min_sub = ntohl(u32ptr[0]);
-	uade_max_sub = ntohl(u32ptr[1]);
-	uade_cur_sub = ntohl(u32ptr[2]);
+	uadesong->min_subsong = ntohl(u32ptr[0]);
+	uadesong->max_subsong = ntohl(u32ptr[1]);
+	uadesong->cur_subsong = ntohl(u32ptr[2]);
 
-	if (!(-1 <= uade_min_sub && uade_min_sub <= uade_cur_sub && uade_cur_sub <= uade_max_sub)) {
-	  int tempmin = uade_min_sub, tempmax = uade_max_sub;
+	if (!(-1 <= uadesong->min_subsong && uadesong->min_subsong <= uadesong->cur_subsong && uadesong->cur_subsong <= uadesong->max_subsong)) {
+	  int tempmin = uadesong->min_subsong, tempmax = uadesong->max_subsong;
 	  fprintf(stderr, "uade: The player is broken. Subsong info does not match with %s.\n", gui_filename);
-	  uade_min_sub = tempmin <= tempmax ? tempmin : tempmax;
-	  uade_max_sub = tempmax >= tempmin ? tempmax : tempmin;
-	  if (uade_cur_sub > uade_max_sub)
-	    uade_max_sub = uade_cur_sub;
-	  else if (uade_cur_sub < uade_min_sub)
-	    uade_min_sub = uade_cur_sub;
+	  uadesong->min_subsong = tempmin <= tempmax ? tempmin : tempmax;
+	  uadesong->max_subsong = tempmax >= tempmin ? tempmax : tempmin;
+	  if (uadesong->cur_subsong > uadesong->max_subsong)
+	    uadesong->max_subsong = uadesong->cur_subsong;
+	  else if (uadesong->cur_subsong < uadesong->min_subsong)
+	    uadesong->min_subsong = uadesong->cur_subsong;
 	}
 	uade_unlock();
 	break;
@@ -658,7 +750,6 @@ static void uade_play_file(char *filename)
   total_bytes = 0;
   total_bytes_valid = 1;
 
-  uade_cur_sub = uade_max_sub = uade_min_sub = -1;
   uade_is_paused = 0;
   uade_select_sub = -1;
   uade_seek_forward = 0;
@@ -675,6 +766,12 @@ static void uade_play_file(char *filename)
   strlcpy(gui_filename, t, sizeof gui_filename);
   gui_info_set = 0;
 
+  gui_formatname[0] = 0;
+  gui_modulename[0] = 0;
+  gui_playername[0] = 0;
+  gui_module_filename[0] = 0;
+  gui_player_filename[0] = 0;
+
   if (!uadepid) {
     char configname[PATH_MAX];
     snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
@@ -690,9 +787,6 @@ static void uade_play_file(char *filename)
     fprintf(stderr, "An error has occured. uade plugin is internally disabled.\n");
     goto err;
   }
-
-  if (initialize_song(filename) == FALSE)
-    goto err;
 
   /* If content db has changed (newer mtime chan previously read) then force
      a reload */
@@ -713,16 +807,10 @@ static void uade_play_file(char *filename)
     load_content_db();
   }
 
-  /* Compute md5sum of the file to be played, and see if its length is in the
-     db, and use the length. */
-  curplaytime = -1;
-  if (uade_file_md5(curmd5, filename, sizeof curmd5)) {
-    int playtime = uade_find_playtime(curmd5);
-    if (playtime > 0)
-      curplaytime = playtime;
-  }
+  if (initialize_song(filename) == FALSE)
+    goto err;
 
-  uade_ip.set_info(gui_filename, curplaytime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+  uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -730,7 +818,6 @@ static void uade_play_file(char *filename)
   }
 
   uade_thread_running = 1;
-
   return;
 
  err:
@@ -753,19 +840,27 @@ static void uade_stop(void)
     uade_thread_running = 0;
   }
 
-  /* If song ended volutarily, tell the play time for XMMS. */
-  uade_lock();
-  play_time = curplaytime;
-  if (total_bytes_valid) {
-    play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
-    if (curmd5[0] != 0)
-      uade_add_playtime(curmd5, play_time, 1);
+  uade_gui_close_subsong_win();
+
+  if (uadesong != NULL) {
+    /* If song ended volutarily, tell the play time for XMMS. */
+    uade_lock();
+    play_time = uadesong->playtime;
+    if (total_bytes_valid) {
+      play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
+      if (curmd5[0] != 0)
+	uade_add_playtime(curmd5, play_time, 1);
+    }
     uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+    uade_unlock();
+
+    /* We must free uadesong after playthread has finished and additional
+       GUI windows have been closed. */
+    free(uadesong);
+    uadesong = NULL;
   }
-  uade_unlock();
 
   uade_ip.output->close_audio();
-  uade_gui_close_subsong_win();
 }
 
 
@@ -794,10 +889,10 @@ static int uade_get_time(void)
   if (abort_playing || last_beat_played)
     return -1;
 
-  if (gui_info_set == 0 && uade_max_sub != -1) {
+  if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
-    if (uade_max_sub != -1) {
-      int playtime = curplaytime;
+    if (uadesong->max_subsong != -1) {
+      int playtime = uadesong->playtime;
       /* Hack. Set info text and song length late because we didn't know
 	 subsong amounts before this. Pass zero as a length so that the
 	 graphical play time counter will run but seek is still enabled.
@@ -808,6 +903,7 @@ static int uade_get_time(void)
     }
     uade_unlock();
     gui_info_set = 1;
+    file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
   }
 
   return uade_ip.output->output_time();
