@@ -480,7 +480,7 @@ void uade_player_info(void)
 
 
     if (!playerinfowin) {
-	//style = gtk_style_new();
+	style = gtk_style_new();
 	//gdk_font_unref (style->font);
 	//style->font = gdk_font_load ("fixed");
 
@@ -520,7 +520,7 @@ void uade_player_info(void)
 	uadeplay_txt = gtk_text_new(NULL, NULL);
 	
 
-	//gtk_widget_set_style (uadeplay_txt, style);
+	gtk_widget_set_style (uadeplay_txt, style);
 
 	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
 			  uadeplay_txt);
@@ -584,7 +584,7 @@ void uade_mod_info(int modinfo_mode)
 
 
     if (!modinfowin) {
-	//style=gtk_style_new();
+	style=gtk_style_new();
 	//gdk_font_unref (style->font);
 	//style->font = gdk_font_load ("fixed");
 

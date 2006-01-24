@@ -850,6 +850,10 @@ static void uade_stop(void)
       play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
       if (curmd5[0] != 0)
 	uade_add_playtime(curmd5, play_time, 1);
+	uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND,
+						  UADE_FREQUENCY,
+						  UADE_CHANNELS);
+
     }
     uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     uade_unlock();
