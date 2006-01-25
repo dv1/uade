@@ -1,3 +1,8 @@
+2006-01-25  Michael Doering <mldoering@gmx.net>
+	- Added Turbo/Infect's SonicArranger Player for "old" sa.* files
+	- Added experimental filedetection for two different 
+	  Sonicarranger_pc types...
+
 2006-01-24  Michael Doering <mldoering@gmx.net>
 	- synced audacious plugin with xmms plugin and changed back
 	  to support the current stable audacious 0.1.2.  

@@ -810,6 +810,16 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
   } else if (buf[0] == 0x4e && buf[1] == 0xfa &&
 	     buf[4] == 0x4e && buf[5] == 0xfa &&
 	     buf[8] == 0x4e && buf[9] == 0xfa &&
+	     buf[2] == 0x00 && buf[6] == 0x06 && buf[10] == 0x07) {
+	     if (buf[3] == 0x2a && buf[7] == 0xfc && buf[11] == 0x7c) {
+	        strcpy(pre, "SA_old");
+	    } else if (buf[3] == 0x1a && buf[7] == 0xc6 && buf[11] == 0x3a) {
+	        strcpy(pre, "SA");
+	    }
+
+  } else if (buf[0] == 0x4e && buf[1] == 0xfa &&
+	     buf[4] == 0x4e && buf[5] == 0xfa &&
+	     buf[8] == 0x4e && buf[9] == 0xfa &&
 	     buf[0xc] == 0x4e && buf[0xd] == 0xfa) {
     for (i = 0x10; i < 256; i = i + 2) {
       if (buf[i + 0] == 0x4e && buf[i + 1] == 0x75 && buf[i + 2] == 0x47
@@ -831,6 +841,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 	     buf[0x20] == 0x21 && (buf[0x21] == 0x54 || buf[0x21] == 0x44)
 	     && buf[0x22] == 0xff && buf[0x23] == 0xff) {
     strcpy(pre, "SA-P");	/*SonicArranger Packed */
+
 
   } else if (buf[0] == 0x4e && buf[1] == 0xfa &&
 	     buf[4] == 0x4e && buf[5] == 0xfa &&
