@@ -104,9 +104,8 @@ static char gui_playername[256];
 static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
+static int out_bytes_valid; /* Lock before use */
 static int plugin_disabled;
-static int total_bytes_valid; /* Lock before use */
-static int total_bytes;       /* Lock before use */
 static struct uade_ipc uadeipc;
 static pid_t uadepid;
 static struct uade_song *uadesong;
@@ -452,7 +451,7 @@ static void *play_loop(void *arg)
 
       if (abort_playing) {
 	uade_lock();
-	total_bytes_valid = 0;
+	out_bytes_valid = 0;
 	uade_unlock();
 	break;
       }
@@ -470,8 +469,8 @@ static void *play_loop(void *arg)
 	uade_select_sub = -1;
 	subsong_end = 0;
 	subsong_bytes = 0;
-	total_bytes = 0;
-	total_bytes_valid = 0;
+	uadesong->out_bytes = 0;
+	out_bytes_valid = 0;
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
@@ -539,7 +538,7 @@ static void *play_loop(void *arg)
 
 	subsong_bytes += play_bytes;
 	uade_lock();
-	total_bytes += play_bytes;
+	uadesong->out_bytes += play_bytes;
 	uade_unlock();
 
 	if (skip_bytes > 0) {
@@ -569,7 +568,7 @@ static void *play_loop(void *arg)
 	if (config.timeout != -1) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= config.timeout)
+	    if (uadesong->out_bytes / UADE_BYTES_PER_SECOND >= config.timeout)
 	      song_end_trigger = 1;
 	    uade_unlock();
 	  }
@@ -746,8 +745,7 @@ static void uade_play_file(char *filename)
 
   abort_playing = 0;
   last_beat_played = 0;
-  total_bytes = 0;
-  total_bytes_valid = 1;
+  out_bytes_valid = 1;
 
   uade_is_paused = 0;
   uade_select_sub = -1;
@@ -844,8 +842,8 @@ static void uade_stop(void)
     /* If song ended volutarily, tell the play time for XMMS. */
     uade_lock();
     play_time = uadesong->playtime;
-    if (total_bytes_valid) {
-      play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
+    if (out_bytes_valid) {
+      play_time = (uadesong->out_bytes * 1000) / UADE_BYTES_PER_SECOND;
       if (uadesong->md5[0] != 0)
 	uade_add_playtime(uadesong->md5, play_time, 1);
     }

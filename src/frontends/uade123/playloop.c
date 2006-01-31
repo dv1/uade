@@ -78,14 +78,13 @@ int play_loop(struct uade_song *us)
   int subsong_end = 0;
   int next_song = 0;
   int ret;
-  int cur_sub = -1, min_sub = -1, max_sub = -1, new_sub;
+  int new_sub;
   int tailbytes = 0;
   int playbytes;
   char *reason;
+  int64_t skip_bytes;
   int64_t total_bytes = 0;
   int64_t subsong_bytes = 0;
-  int64_t skip_bytes;
-  int64_t time_bytes = 0;
   int deciseconds;
   int jump_sub = 0;
 
@@ -114,14 +113,14 @@ int play_loop(struct uade_song *us)
     if (state == UADE_S_STATE) {
 
       if (skip_bytes == 0) {
-	deciseconds = time_bytes * 10 / (UADE_BYTES_PER_SECOND);
+	deciseconds = us->out_bytes * 10 / (UADE_BYTES_PER_SECOND);
 	if (!uade_no_output) {
 	  if (us->playtime >= 0) {
 	    int ptimesecs = us->playtime / 1000;
 	    int ptimesubsecs = (us->playtime / 100) % 10;
-	    tprintf("Playing time position %d.%ds in subsong %d (all subs %d.%ds)  \r", deciseconds / 10, deciseconds % 10, cur_sub == -1 ? 0 : cur_sub, ptimesecs, ptimesubsecs);
+	    tprintf("Playing time position %d.%ds in subsong %d (all subs %d.%ds)  \r", deciseconds / 10, deciseconds % 10, us->cur_subsong == -1 ? 0 : us->cur_subsong, ptimesecs, ptimesubsecs);
 	  } else {
-	    tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  cur_sub == -1 ? 0 : cur_sub);
+	    tprintf("Playing time position %d.%ds in subsong %d                \r", deciseconds / 10, deciseconds % 10,  us->cur_subsong == -1 ? 0 : us->cur_subsong);
 	  }
 	  fflush(stdout);
 	}
@@ -188,32 +187,32 @@ int play_loop(struct uade_song *us)
 	  tprintf("\nVerbose mode %s\n", uade_verbose_mode ? "ON" : "OFF");
 	  break;
 	case 'x':
-	  cur_sub--;
+	  us->cur_subsong--;
 	  subsong_end = 1;
 	  jump_sub = 1;
 	  break;
 	case 'z':
-	  new_sub = cur_sub - 1;
+	  new_sub = us->cur_subsong - 1;
 	  if (new_sub < 0)
 	    new_sub = 0;
-	  if (min_sub >= 0 && new_sub < min_sub)
-	    new_sub = min_sub;
-	  cur_sub = new_sub - 1;
+	  if (us->min_subsong >= 0 && new_sub < us->min_subsong)
+	    new_sub = us->min_subsong;
+	  us->cur_subsong = new_sub - 1;
 	  subsong_end = 1;
 	  jump_sub = 1;
 	  break;
 	default:
 	  if (isdigit(ret)) {
 	    new_sub = ret - '0';
-	    if (min_sub >= 0 && new_sub < min_sub) {
+	    if (us->min_subsong >= 0 && new_sub < us->min_subsong) {
 	      fprintf(stderr, "\ntoo low a subsong number\n");
 	      break;
 	    }
-	    if (max_sub >= 0 && new_sub > max_sub) {
+	    if (us->max_subsong >= 0 && new_sub > us->max_subsong) {
 	      fprintf(stderr, "\ntoo high a subsong number\n");
 	      break;
 	    }
-	    cur_sub = new_sub - 1;
+	    us->cur_subsong = new_sub - 1;
 	    subsong_end = 1;
 	    jump_sub = 1;
 	  } else if (!isspace(ret)) {
@@ -237,17 +236,17 @@ int play_loop(struct uade_song *us)
       }
 
       if (subsong_end && uade_song_end_trigger == 0) {
-	if (jump_sub || (uadeconf.one_subsong == 0 && cur_sub != -1 && max_sub != -1)) {
-	  cur_sub++;
+	if (jump_sub || (uadeconf.one_subsong == 0 && us->cur_subsong != -1 && us->max_subsong != -1)) {
+	  us->cur_subsong++;
 	  jump_sub = 0;
-	  if (cur_sub > max_sub) {
+	  if (us->cur_subsong > us->max_subsong) {
 	    uade_song_end_trigger = 1;
 	  } else {
 	    subsong_end = 0;
 	    subsong_bytes = 0;
-	    time_bytes = 0;
-	    uade_change_subsong(cur_sub, &uadeipc);
-	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
+	    us->out_bytes = 0;
+	    uade_change_subsong(us->cur_subsong, &uadeipc);
+	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	  }
 	} else {
 	  uade_song_end_trigger = 1;
@@ -284,7 +283,7 @@ int play_loop(struct uade_song *us)
 	  playbytes = what_was_left;
 	}
 
-	time_bytes += playbytes;
+	us->out_bytes += playbytes;
 
 	/* FIX ME */
 	if (uadeconf.timeout != -1)
@@ -427,25 +426,25 @@ int play_loop(struct uade_song *us)
 	  exit(-1);
 	}
 	u32ptr = (uint32_t *) um->data;
-	min_sub = ntohl(u32ptr[0]);
-	max_sub = ntohl(u32ptr[1]);
-	cur_sub = ntohl(u32ptr[2]);
-	debug("\nsubsong: %d from range [%d, %d]\n", cur_sub, min_sub, max_sub);
-	if (!(-1 <= min_sub && min_sub <= cur_sub && cur_sub <= max_sub)) {
-	  int tempmin = min_sub, tempmax = max_sub;
+	us->min_subsong = ntohl(u32ptr[0]);
+	us->max_subsong = ntohl(u32ptr[1]);
+	us->cur_subsong = ntohl(u32ptr[2]);
+	debug("\nsubsong: %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
+	if (!(-1 <= us->min_subsong && us->min_subsong <= us->cur_subsong && us->cur_subsong <= us->max_subsong)) {
+	  int tempmin = us->min_subsong, tempmax = us->max_subsong;
 	  fprintf(stderr, "\nThe player is broken. Subsong info does not match.\n");
-	  min_sub = tempmin <= tempmax ? tempmin : tempmax;
-	  max_sub = tempmax >= tempmin ? tempmax : tempmin;
-	  if (cur_sub > max_sub)
-	    max_sub = cur_sub;
-	  else if (cur_sub < min_sub)
-	    min_sub = cur_sub;
+	  us->min_subsong = tempmin <= tempmax ? tempmin : tempmax;
+	  us->max_subsong = tempmax >= tempmin ? tempmax : tempmin;
+	  if (us->cur_subsong > us->max_subsong)
+	    us->max_subsong = us->cur_subsong;
+	  else if (us->cur_subsong < us->min_subsong)
+	    us->min_subsong = us->cur_subsong;
 	}
-	if ((max_sub - min_sub) != 0)
-	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + max_sub - min_sub, min_sub, max_sub);
+	if ((us->max_subsong - us->min_subsong) != 0)
+	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + us->max_subsong - us->min_subsong, us->min_subsong, us->max_subsong);
 	have_subsong_info = 1;
 	if (uade_info_mode)
-	  tprintf("subsong_info: %d %d %d (cur, min, max)\n", cur_sub, min_sub, max_sub);
+	  tprintf("subsong_info: %d %d %d (cur, min, max)\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	break;
 	
       default:

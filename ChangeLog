@@ -3,6 +3,7 @@
 	  didn't use the correct md5sum in struct uade_song, instead it used
 	  the old and useless array called curmd5[] which was an empty
 	  string.
+	- Continued to move common variables in frontends to struct uade_song.
 
 2006-01-25  Michael Doering <mldoering@gmx.net>
 	- Added Turbo/Infect's SonicArranger Player for "old" sa.* files

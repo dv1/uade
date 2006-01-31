@@ -66,6 +66,8 @@ struct uade_song {
   int min_subsong;
   int max_subsong;
   int cur_subsong;
+
+  int64_t out_bytes;
 };
 
 
