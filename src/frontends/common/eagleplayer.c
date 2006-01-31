@@ -66,6 +66,7 @@ static struct eaglesong *songstore;
 static int ufcompare(const void *a, const void *b);
 static void uade_md5(struct uade_song *us);
 static void uade_analyze_song(struct uade_song *us);
+static int uade_find_playtime(const char *md5);
 
 
 /* Compare function for bsearch() and qsort() to sort songs with respect
@@ -313,7 +314,7 @@ static void uade_analyze_song(struct uade_song *us)
 }
 
 
-int uade_find_playtime(const char *md5)
+static int uade_find_playtime(const char *md5)
 {
   struct contentchecksum key;
   struct contentchecksum *n;

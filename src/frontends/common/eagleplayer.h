@@ -73,7 +73,6 @@ int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
 struct uade_song *uade_alloc_song(const char *filename);
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     const char *basedir, int verbose);
-int uade_find_playtime(const char *md5);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);
 int uade_read_content_db(const char *filename);
