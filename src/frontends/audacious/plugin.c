@@ -90,7 +90,6 @@ static const AFormat sample_format = FMT_S16_NE;
 static int abort_playing;     /* Trigger type */
 
 static char configname[PATH_MAX];
-static char curmd5[33];
 static pthread_t decode_thread;
 static struct uade_config config;
 static struct uade_config config_backup;
@@ -848,14 +847,13 @@ static void uade_stop(void)
     play_time = uadesong->playtime;
     if (total_bytes_valid) {
       play_time = (((int64_t) total_bytes) * 1000) / UADE_BYTES_PER_SECOND;
-      if (curmd5[0] != 0)
-	uade_add_playtime(curmd5, play_time, 1);
+      if (uadesong->md5[0] != 0)
+	uade_add_playtime(uadesong->md5, play_time, 1);
 	uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND,
 						  UADE_FREQUENCY,
 						  UADE_CHANNELS);
 
     }
-    uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     uade_unlock();
 
     /* We must free uadesong after playthread has finished and additional
