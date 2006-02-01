@@ -269,7 +269,7 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
 	break;
       snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
       strlcat(credits, tmpstr, credits_len);
-      snprintf(tmpstr, 22, buf + 0x14 + (i * 0x1e));
+      snprintf(tmpstr, 23, buf + 0x14 + (i * 0x1e));
       strlcat(credits, tmpstr, credits_len);
     }
   }

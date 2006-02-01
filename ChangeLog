@@ -8,6 +8,7 @@
 	  the old and useless array called curmd5[] which was an empty
 	  string.
 	- Continued to move common variables in frontends to struct uade_song.
+	- fixed instrument name len in songinfo for mods.
 
 2006-01-25  Michael Doering <mldoering@gmx.net>
 	- Added Turbo/Infect's SonicArranger Player for "old" sa.* files
