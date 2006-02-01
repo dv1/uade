@@ -792,7 +792,16 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 	     && buf[0x34B] == 'D' && buf[0x34c] == 'S' && buf[0x34d] == '8'
 	     && buf[0x34e] == '9' && buf[0x34f] == '.') {
     strcpy(pre, "MKII");	/* Mark II */
-    
+
+  } else if (read_be_u16(&buf[0x00])  == 0x2b7c &&
+	     read_be_u16(&buf[0x08])  == 0x2b7c &&
+	     read_be_u16(&buf[0x10])  == 0x2b7c &&
+	     read_be_u16(&buf[0x18])  == 0x2b7c &&
+	     read_be_u32(&buf[0x20]) == 0x303c00ff &&
+	     read_be_u32(&buf[0x24]) == 0x32004eb9 &&
+	     read_be_u16(&buf[0x2c])  == 0x4e75)	{
+    strcpy(pre, "JPO");	/* Steve Turner*/
+        
   } else if (((buf[0] == 0x08 && buf[1] == 0xf9 && buf[2] == 0x00
 	       && buf[3] == 0x01) && (buf[4] == 0x00 && buf[5] == 0xbb
 				      && buf[6] == 0x41 && buf[7] == 0xfa)
