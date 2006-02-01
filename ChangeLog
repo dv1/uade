@@ -1,10 +1,10 @@
 2006-01-25  Michael Doering <mldoering@gmx.net>
-	- changed association of jp file extension to Jason Page New.
-	- added simple detection for Jason Page old in amifilemagic.
-	- added alternative Jason Page Player for one file Jason Page New
-	  files (Thanks dom from the legacy.de for the report)
-	- changed HIP, HIPC and HIP7 to SOG, SOC and S7G prefix in
-	  amifilemagic
+	- Changed association of jp file extension to Jason Page New.
+	- Added simple detection for Jason Page old in amifilemagic.
+	- Added alternative Jason Page Player for one file Jason Page New
+	  files (Thanks dom from the legacy.de for the report).
+	- Changed HIP, HIPC and HIP7 to SOG, SOC and S7G prefix in
+	  amifilemagic.
 
 2006-01-31  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed song length database bug in the XMMS plugin. The XMMS plugin
@@ -12,7 +12,7 @@
 	  the old and useless array called curmd5[] which was an empty
 	  string.
 	- Continued to move common variables in frontends to struct uade_song.
-	- fixed instrument name len in songinfo for mods.
+	- Fixed instrument name len in songinfo for mods. (mld)
 
 2006-01-25  Michael Doering <mldoering@gmx.net>
 	- Added Turbo/Infect's SonicArranger Player for "old" sa.* files
