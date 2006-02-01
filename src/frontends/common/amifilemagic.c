@@ -67,7 +67,7 @@ static const char *offset_0000_patterns[] = {
   "MMDC", "MMDC",		/* Med packer */
   "MSOB", "MSO",		/* Medley */
   "MODU", "NTP",		/* Novotrade */
-  "COSO", "HIPC",		/* Hippel Coso */
+  "COSO", "SOC",		/* Hippel Coso */
   "BeEp", "JAM",		/* Jamcracker */
   "ALL ", "DM1",		/* Deltamusic 1 */
   "YMST", "YM",			/* MYST ST-YM */
@@ -786,7 +786,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 		 && buf[5] == 0x00 && buf[8] == 0x60 && buf[9] == 0x00
 		 && buf[12] == 0x60 && buf[13] == 0x00 && buf[16] == 0x48
 		 && buf[17] == 0xe7)) {
-    strcpy(pre, "HIP");		/* Hippel */
+    strcpy(pre, "SOG");		/* Hippel */
     
   } else if (buf[0x348] == '.' && buf[0x349] == 'Z' && buf[0x34A] == 'A'
 	     && buf[0x34B] == 'D' && buf[0x34c] == 'S' && buf[0x34d] == '8'
@@ -940,7 +940,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
     /* HIP7 ID Check at offset 0x04 */
   } else if (patterntest(buf, " **** Player by Jochen Hippel 1990 **** ",
 			 0x04, 40, bufsize)) {
-    strcpy(pre, "HIP7");	/* HIP7 */
+    strcpy(pre, "S7G");	/* HIP7 */
 
     /* Magic ID at Offset 0x00 */
   } else if (buf[0] == 'M' && buf[1] == 'M' && buf[2] == 'D') {

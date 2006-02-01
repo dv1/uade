@@ -3,6 +3,8 @@
 	- added simple detection for Jason Page old in amifilemagic.
 	- added alternative Jason Page Player for one file Jason Page New
 	  files (Thanks dom from the legacy.de for the report)
+	- changed HIP, HIPC and HIP7 to SOG, SOC and S7G prefix in
+	  amifilemagic
 
 2006-01-31  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed song length database bug in the XMMS plugin. The XMMS plugin
