@@ -3,6 +3,9 @@
 	  such as sample16s_handler and sample_handler.
 	- Improved mod detection in amifilemagic and Protracker replayer for
 	  Protracker compatible mods using effects 5,6,7 and 9. (mld)
+	- Quick "work around" of a lock up with the subsong seek popup and very
+	  short subsongs in audacious plugin. Needs further investigation
+	  though. Some kind of race condition, I think. (mld)
 
 2006-02-01  Michael Doering <mldoering@gmx.net>
 	- Changed association of jp file extension to Jason Page New.
