@@ -6,6 +6,8 @@
 	- Quick "work around" of a lock up with the subsong seek popup and very
 	  short subsongs in audacious plugin. Needs further investigation
 	  though. Some kind of race condition, I think. (mld)
+	- Reintroduced produce_audio(); to audacious plugin for the freshly
+	  released Audacious 0.2 at http://audacious-media-player.org (mld)
 
 2006-02-01  Michael Doering <mldoering@gmx.net>
 	- Changed association of jp file extension to Jason Page New.
