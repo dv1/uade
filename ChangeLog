@@ -1,4 +1,8 @@
-2006-02-02  Michael Doering <mldoering@gmx.net>
+2006-02-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Cleaned up gensound.h. It contained unuseful external variables
+	  such as sample16s_handler and sample_handler.
+
+2006-02-01  Michael Doering <mldoering@gmx.net>
 	- Changed association of jp file extension to Jason Page New.
 	- Added simple detection for Jason Page old in amifilemagic.
 	- Added alternative Jason Page Player for one file Jason Page New

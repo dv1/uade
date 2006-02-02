@@ -11,7 +11,6 @@ extern int sound_available;
 
 extern int sound_use_filter; /* if filter emulation is used, this is non-zero*/
 
-extern void (*sample_handler) (void);
 extern float sample_evtime_interval;
 
 /* Determine if we can produce any sound at all.  This can be only a guess;
@@ -21,5 +20,3 @@ extern int setup_sound (void);
 extern void init_sound (void);
 extern void flush_sound (void);
 extern void close_sound (void);
-
-extern void sample16s_handler (void);

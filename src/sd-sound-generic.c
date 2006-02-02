@@ -63,8 +63,6 @@ void init_sound (void)
   
   sample_evtime_interval = ((float) maxhpos) * maxvpos * 50 / rate;
 
-  sample_handler = sample16s_handler;
-
   sound_available = 1;
   
   sndbufpt = sndbuffer;

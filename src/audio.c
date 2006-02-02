@@ -197,7 +197,7 @@ static inline void sample_backend(int left, int right)
 }
 
 
-void sample16s_handler (void)
+static void sample16s_handler (void)
 {
     int datas[4];
     int i;
