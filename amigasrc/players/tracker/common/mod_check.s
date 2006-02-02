@@ -167,8 +167,18 @@ mcheck_which_mk:
 			lea.l	pfx(pc),a1
 			cmp.w	#0,$10*2(a1)		; Filter fx used?
 			beq	mcheck_is_ptk_comp
-.endif1			
-			cmp.w	#0,d1
+
+.endif1			lea.l	pfx(pc),a1
+			cmp.w	#0,$5*2(a1)		; Filter fx used?
+			bne	mcheck_is_ptk_comp
+			cmp.w	#0,$6*2(a1)		; Filter fx used?
+			bne	mcheck_is_ptk_comp
+			cmp.w	#0,$7*2(a1)		; Filter fx used?
+			bne	mcheck_is_ptk_comp
+			cmp.w	#0,$9*2(a1)		; Filter fx used?
+			bne	mcheck_is_ptk_comp
+
+.endif1a		cmp.w	#0,d1
 			beq	.endif2
 			moveq	#0,d2
 			move.b	$3b6(a0),d2

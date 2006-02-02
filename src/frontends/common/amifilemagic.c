@@ -476,6 +476,14 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 	memset (pfxarg,0,sizeof (pfxarg));
 	modparsing(buf, bufsize, S31_HEADER_LENGTH-4, max_pattern, pfx, pfxarg);
 
+/* and now for let's see if we can spot the mod */
+
+/* FX used:					  		     */
+/* DOC Soundtracker 2.x(2.5):	0,1,2(3,4)	    a,b,c,d,e,f	     */
+/* Noisetracker 1.x:		0,1,2,3,4	    a,b,c,d,e,f      */
+/* Noisetracker 2.x:		0,1,2,3,4           a,b,c,d,e,f      */
+/* Protracker:			0,1,2,3,4,5,6,7   9,a,b,c,d,e,f	+e## */
+/* PC tracker:			0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f +e## */
 
 	for (j=17; j<=31; j++)
     	 {
@@ -512,6 +520,11 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 		//    return 8; // probl. Protracker
 		//}
 	    }
+	    
+    	   if (pfx[0x05] != 0 || pfx[0x06] != 0 || 
+	       pfx[0x07] != 0 || pfx[0x09] != 0)
+    	  	    	return 11; // Protracker compatible
+
 
 	if ((buf[0x3b7] >0 && buf[0x3b7] <= buf[0x3b6]) && 
 	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
