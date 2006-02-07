@@ -1,3 +1,6 @@
+2006-02-07  Michael Doering <mldoering@gmx.net>
+	- put new Sierra AGI player by Don Adan/Wanted Team into players dir
+
 2006-02-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Cleaned up gensound.h. It contained unuseful external variables
 	  such as sample16s_handler and sample_handler.
