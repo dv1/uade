@@ -11,8 +11,8 @@
 #  / /___/ /_/ / / / / |/ /  __/ /  / /_/  __/ /    
 #  \____/\____/_/ /_/|___/\___/_/   \__/\___/_/     
 #
-VERSION="V 2.0"
-RELEASEDATE="09 Sept 2005"
+VERSION="V 2.1"
+RELEASEDATE="08 Feb 2006"
 #
 # A simple way to encode a module to a sampled audio file format
 #
@@ -69,6 +69,13 @@ RELEASEDATE="09 Sept 2005"
 # 2.0
 # * Ported to uade version 2
 # * Removes silence at the end if detected by uade
+# -- 9 Setp 2005
+#
+# 2.1
+# * It is possible to set encoding quality for ogg and mp3 output with values
+#   from 0 ( lowest bitrate ) to 10 ( best bitrate )
+# * Added -h option to lame ( should lead to a little bit better quality @ same bitrate )
+# -- 8 Feb 2006
 #
 # BUGS:
 # - Panning is taken only from the config file uade.conf, not with --panning 0.8
@@ -80,6 +87,7 @@ RELEASEDATE="09 Sept 2005"
 UADECOMMAND="uade123"
 COMMENT="UADE using ModuleConverter"
 UADEOPTIONS="--one --silence-timeout 7 --panning 0.8"
+ENCQUALITY=6
 
 
 if [ -n "$UADEEXTRAOPTIONS" ]; then
@@ -153,18 +161,19 @@ encode_file ()
             fi
             ;;
         mp3)
+            translate_enc_quality
             if [ ! -e "Track-$OUTPUT.mp3" ]; then
-                lame -b 192 --tt "$MODULENAME" --tc "$COMMENT" --tn "$SUBSONGNUMBER" "$WAVE" "Track-$OUTPUT.mp3"
+                lame -h -b "$LAME_BITRATE" --tt "$MODULENAME" --tc "$COMMENT" --tn "$SUBSONGNUMBER" "$WAVE" "Track-$OUTPUT.mp3"
             else
-                lame -b 192 --tt "$MODULENAME" --tc "$COMMENT" --tn "$SUBSONGNUMBER" "$WAVE" "Track-$OUTPUT-$$-$RANDOM.mp3"
+                lame -h -b "$LAME_BITRATE" --tt "$MODULENAME" --tc "$COMMENT" --tn "$SUBSONGNUMBER" "$WAVE" "Track-$OUTPUT-$$-$RANDOM.mp3"
             fi
             ;;
         ogg)
             if [ ! -e "Track-$OUTPUT.ogg" ]; then
-                oggenc -q 6 "$WAVE" -t "$MODULENAME" -N "$SUBSONGNUMBER" -o "Track-$OUTPUT.ogg"
+                oggenc -q "$ENCQUALITY" "$WAVE" -t "$MODULENAME" -N "$SUBSONGNUMBER" -o "Track-$OUTPUT.ogg"
                 # how does -c "$COMMENT" work?
             else
-                oggenc -q 6 "$WAVE" -t "$MODULENAME" -N "$SUBSONGNUMBER" -o "Track-$OUTPUT-$$-$RANDOM.ogg"
+                oggenc -q "$ENCQUALITY" "$WAVE" -t "$MODULENAME" -N "$SUBSONGNUMBER" -o "Track-$OUTPUT-$$-$RANDOM.ogg"
             fi
             ;;
         cdr)
@@ -227,6 +236,9 @@ usage ()
     echo "--uadeoptions Insert here uade options (end them with -- )"
     echo "              See man uade for uade extra options"
     echo "              Default values are -pan 0.8 -sit 7 and are overridden"
+    echo
+    echo "--encquality  n  Sets the quality of compression with mp3 and ogg"
+    echo "              [ 0<=n<=10 ] [ default=6 so ~ 192kbs ] [ n must be an integer value ]"
     echo ""
     echo "Examples:"
     echo "`basename $0` --flac --mountains --no-norm\\"
@@ -449,6 +461,48 @@ extract_player_name ()
     PLAYERNAME=`echo $UADEOPTIONS |grep "\-P" |sed 's/.*-P //' |awk '{ print $1}'`
 }
 
+check_enc_quality ()
+{
+    # Is it a number?
+    if [ $( echo "$ENCQUALITY" | grep -v ^[0-9]*$ ) ]; then
+        echo "Setted encoding quality is not a number"
+        ENCQUALITY=6
+    fi
+    
+    # Is the value ok?
+    if [ "$ENCQUALITY" -gt "10" ] ; then
+        echo "Setted encoding quality is not between 0 and 10"
+        ENCQUALITY=6
+    fi
+}
+
+translate_enc_quality ()
+{
+    if [ "$ENCQUALITY" == "0" ]; then
+        LAME_BITRATE=64
+    elif [ "$ENCQUALITY" == "1" ]; then
+        LAME_BITRATE=80
+    elif [ "$ENCQUALITY" == "2" ]; then
+        LAME_BITRATE=96
+    elif [ "$ENCQUALITY" == "3" ]; then
+        LAME_BITRATE=112
+    elif [ "$ENCQUALITY" == "4" ]; then
+        LAME_BITRATE=128
+    elif [ "$ENCQUALITY" == "5" ]; then
+        LAME_BITRATE=160
+    elif [ "$ENCQUALITY" == "6" ]; then
+        LAME_BITRATE=192
+    elif [ "$ENCQUALITY" == "7" ]; then
+        LAME_BITRATE=224
+    elif [ "$ENCQUALITY" == "8" ]; then
+        LAME_BITRATE=256
+    elif [ "$ENCQUALITY" == "9" ]; then
+        LAME_BITRATE=320
+    elif [ "$ENCQUALITY" == "10" ]; then
+        LAME_BITRATE=320
+    fi
+}
+
 if [ "$#" -lt "1" ]; then
     print_version
     echo
@@ -527,6 +581,11 @@ while [ "$1" != "" ] ; do
                 EFFECT=`echo "$EFFECT" $1`
                 shift
             done
+        ;;
+        --encquality)
+            shift
+            ENCQUALITY="$1"
+            check_enc_quality
         ;;
         *)
         

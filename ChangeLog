@@ -1,4 +1,7 @@
 2006-02-07  Michael Doering <mldoering@gmx.net>
+	- Updated mod2ogg.sh to set encoding quality (guilo canevari)
+
+2006-02-07  Michael Doering <mldoering@gmx.net>
 	- put new Sierra AGI player by Don Adan/Wanted Team into players dir
 
 2006-02-02  Heikki Orsila <heikki.orsila@iki.fi>
