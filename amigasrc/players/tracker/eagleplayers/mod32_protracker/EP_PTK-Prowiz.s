@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-02-02',0
+	dc.b '$VER: Protracker 3.0b player 2006-02-10',0
 	even
 
 PlayerTagArray
@@ -62,7 +62,7 @@ NTK_2_Name:		dc.b 'Noisetracker 2.x',0
 NTK_1_Name:		dc.b 'Noisetracker 1.x',0
 NTK_AMP_Name:		dc.b 'Noisetracker (M&K!)',0
 FLT4_Name:		dc.b 'Startrekker (4ch)',0
-STK_Name:		dc.b 'Soundtracker II (32 instr.)',0
+STK_Name:		dc.b 'Soundtracker II (31 instr.)',0
 STK15_Name:		dc.b 'Soundtracker II (15 instr.)',0
 
 	even

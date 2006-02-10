@@ -1,3 +1,8 @@
+2006-02-10  Michael Doering <mld@users.sourceforge.net>
+	- A new email alias. ;)
+	- Cosmetical change in name from 32 to 31 instr. for Soundtracker II
+	  in PTK-Prowiz.
+	  
 2006-02-08  Michael Doering <mldoering@gmx.net>
 	- Updated mod2ogg.sh to set encoding quality (giulio Canevari).
 
