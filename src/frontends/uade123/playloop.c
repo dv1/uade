@@ -126,7 +126,7 @@ int play_loop(struct uade_song *us)
 	}
       }
 
-      if (uade_terminal_mode) {
+      if (uadeconf.action_keys) {
 	switch ((ret = poll_terminal())) {
 	case 0:
 	  break;

@@ -1,3 +1,7 @@
+2006-02-13  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed uade123 to accept -k and -K switches. Their meaning is now
+	  changed. '-k' disables action keys and '-K' enables.
+
 2006-02-10  Michael Doering <mld@users.sourceforge.net>
 	- A new email alias. ;)
 	- Cosmetical change in name from 32 to 31 instr. for Soundtracker II

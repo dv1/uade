@@ -24,7 +24,6 @@ extern struct playlist uade_playlist;
 extern int uade_song_end_trigger;
 extern int uade_terminated;
 extern FILE *uade_terminal_file;
-extern int uade_terminal_mode;
 extern int uade_verbose_mode;
 
 

@@ -52,7 +52,6 @@ char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 struct playlist uade_playlist;
 FILE *uade_terminal_file;
-int uade_terminal_mode = 1;
 int uade_terminated;
 int uade_song_end_trigger;
 int uade_verbose_mode;
@@ -150,11 +149,11 @@ int main(int argc, char *argv[])
     {"ignore", 0, NULL, 'i'},
     {"interpolator", 1, NULL, OPT_INTERPOLATOR},
     {"jump", 1, NULL, 'j'},
-    {"keys", 0, NULL, 'k'},
+    {"keys", 0, NULL, 'K'},
     {"list", 1, NULL, '@'},
     {"no-filter", 0, NULL, 'n'},
     {"no-song-end", 0, NULL, OPT_NO_SONG_END},
-    {"no-keys", 0, NULL, 'K'},
+    {"no-keys", 0, NULL, 'k'},
     {"one", 0, NULL, '1'},
     {"panning", 1, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
@@ -270,10 +269,10 @@ int main(int argc, char *argv[])
       }
       break;
     case 'k':
-      uadeconf.action_keys = 1;
+      uadeconf.action_keys = 0;
       break;
     case 'K':
-      uadeconf.action_keys = 0;
+      uadeconf.action_keys = 1;
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
@@ -402,9 +401,9 @@ int main(int argc, char *argv[])
 
   /* we want to control terminal differently in debug mode */
   if (debug_mode)
-    uade_terminal_mode = 0;
+    uadeconf.action_keys = 0;
 
-  if (uade_terminal_mode)
+  if (uadeconf.action_keys)
     setup_terminal();
 
   if (basedir[0] == 0)
@@ -620,8 +619,8 @@ static void print_help(void)
   printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or none.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
-  printf(" -k, --keys,         Enable action keys for playback control on terminal\n");
-  printf(" -K, --no-keys,      Disable action keys for playback control on terminal\n");
+  printf(" -k, --no-keys,      Disable action keys for playback control on terminal\n");
+  printf(" -K, --keys,         Enable action keys for playback control on terminal\n");
   printf(" -m filename,        Set module name\n");
   printf(" -n, --no-filter     No filter emulation.\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
