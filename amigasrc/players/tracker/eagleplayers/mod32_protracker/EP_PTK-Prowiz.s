@@ -65,7 +65,11 @@ FLT4_Name:		dc.b 'Startrekker (4ch)',0
 STK_Name:		dc.b 'Soundtracker II (31 instr.)',0
 STK15_Name:		dc.b 'Soundtracker II (15 instr.)',0
 
-	even
+
+
+cfgfile:		dc.b	'ENV:EaglePlayer/EP-PTK-Prowiz.cfg',0
+			even
+cfgbuffer:		ds.b	256
 
 
 *-----------------------------------------------------------------------*
@@ -258,7 +262,34 @@ strncpy:
 ;
 ; Init Player
 
-InitPlay
+InitPlay:
+	; Set Protracker compatibility
+	movem.l	d0-d6/a0-a6,-(sp)
+	move.l	dtg_DOSBase(a5),a6
+	move.l	#cfgfile,d1
+	move.l	#1005,d2		* MODE_OLDFILE
+	jsr	_LVOOpen(a6)
+	move.l	d0,d1
+	beq	dont_read_cfgfile
+	move.l	d1,-(a7)
+	move.l	#cfgbuffer,d2
+	move.l	#256,d3
+	jsr	_LVORead(a6)
+	movem.l	d0-d6/a0-a6,-(sp)
+	lea	cfgbuffer,a0
+
+	move.b	(a0)+,d0
+	sub.b	#$30,d0
+	and.l	#$7,d0
+	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3
+	movem.l	(sp)+,d0-d6/a0-a6
+	move.l	(a7)+,d1
+	jsr	_LVOClose(a6)
+
+dont_read_cfgfile:
+	movem.l	(sp)+,d0-d6/a0-a6
+	moveq	#0,d0
+
 	move.l	a5,delibase
 	moveq	#0,d0
 
@@ -1228,6 +1259,11 @@ pt_settempoend	rts
 
 
 pt_checkmoreeffects:
+
+		tst.b	pt_ptk2		; tst if ptk 1.1/2.3 or 3.0
+		beq.s 	.ptk3	
+		bsr	pt_updatefunk
+.ptk3
 		move.b	2(a6),d0
 		andi.b	#15,d0
 		cmpi.b	#9,d0
@@ -1533,9 +1569,13 @@ pt_restart		dc.b	0
 
 pt_ntkporta		dc.b	0
 
+pt_ptk2			dc.b	0	; 0 for ptk 3.0, 1 = ptk1.1/2.3
+
 pt_vblank		dc.b	0
 
 pt_smpl_in_bytes	dc.b	0
+
+
 
 		Even
 pt_vibshift		dc.l	7
