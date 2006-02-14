@@ -439,7 +439,7 @@ else
 fi
 echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
 echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/$UADECORENAME\"" >> "$conffile"
-test -e /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
+test -c /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 
 if test "$useuadecore" = "yes" ; then

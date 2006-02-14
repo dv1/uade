@@ -1,3 +1,7 @@
+2006-02-14  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed /dev/urandom detection. Using test -c rather than test -e.
+	  Test -c is more compatible and more exact too.
+
 2006-02-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed uade123 to accept -k and -K switches. Their meaning is now
 	  changed. '-k' disables action keys and '-K' enables.
