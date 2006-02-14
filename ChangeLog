@@ -1,8 +1,15 @@
 2006-02-14  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed /dev/urandom detection. Using test -c rather than test -e.
 	  Test -c is more compatible and more exact too.
-	- worked around random lock ups when switching very short subsongs
+	- Worked around random lock ups when switching very short subsongs
 	  with the xmms subsong changer (mld)
+	- Config file for PTK-Prowiz' Protracker engine added to set the
+	  way _Protracker_ mods are played. There's currently two values: 0
+	  for Protracker 3.0b like, 1 for Protracker 2.3A like (for anyone
+	  interested: funkrepeat is updated before parsing the extended fx :)
+	  Differences are probl. not audible but Latter is currently the
+	  default. If it breaks a mod file, you can savely turn back to
+	  "0" (mld)
 
 2006-02-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed uade123 to accept -k and -K switches. Their meaning is now
