@@ -113,12 +113,12 @@
 2006-01-17  Michael Doering <mldoering@gmx.net>
 	- (hopefully) Fixed broken subsong detection for Digital Illusion
 	  mods.
-	- Fixed unallocating timer resourcens when changing subsong in
+	- Fixed unallocating timer resources when changing subsong in
 	  MED/Octamed replayer. As a consequence, changing subsongs works
 	  again.
 	- Removed sinc table from audio.c and put it into a separate file
 	  named sinctable.c. (alankila)
-	- audacious pluging: changed legacy uade_ip audio output from xmms 
+	- audacious plugin: changed legacy uade_ip audio output from xmms 
 	  to audacious 0.2 produce_audio(); Seems to work here, but I'm not
 	  sure if it's 100% ok... So give it a test and report back.
 	- Fixed strlrep.h to #include <strings.h> to have size_t type (shd)
