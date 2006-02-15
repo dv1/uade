@@ -228,6 +228,8 @@ is_Clone:
 	bsr	strncpy
 	bra	Chk_ok_Mname
 
+
+
 *-----------------------------------------------------------------------*
 ; strncpy
 ;
@@ -277,11 +279,27 @@ InitPlay:
 	jsr	_LVORead(a6)
 	movem.l	d0-d6/a0-a6,-(sp)
 	lea	cfgbuffer,a0
+	move.b	#256-2,d1
 
 	move.b	(a0)+,d0
 	sub.b	#$30,d0
 	and.l	#$7,d0
+	move.b	d0,pt_ntsc		; 0 = PAL, 1 = NTSC
+
+.cfgloop:
+	move.b	(a0)+,d0	
+	cmp.b	#10,d0
+	beq	.cfgloopend
+	dbra	d1,.cfgloop
+	bra.s	illegal_config_file
+
+.cfgloopend:
+	move.b	(a0)+,d0
+	sub.b	#$30,d0
+	and.l	#$7,d0
 	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3
+
+illegal_config_file:
 	movem.l	(sp)+,d0-d6/a0-a6
 	move.l	(a7)+,d1
 	jsr	_LVOClose(a6)
@@ -430,18 +448,19 @@ repeat_ok:
 		clr.b	pt_counter-pt_speed(a1)
 		clr.b	pt_pattpos-pt_speed(a1)
 
+		tst.b	pt_vblank		; tst if "vblank" mod
+		beq.s 	.nontsc			; if no  always default to PAL Speed
 
-		move.l	#1773447,d0		;1789773(Ntsc)/1776248(??? was in org replay) /1773447(Pal)
-		move.l	d0,pt_timervalue-pt_speed(a1)
+		tst.b	pt_ntsc			; set PAL/NTSC according to cfg
+		beq	.nontsc
+		move.l	#1491477,d0		;7.15 Mhz, 60hz, 125 bpm
+		bra	.setcia
+
+.nontsc		move.l	#1773447,d0		;7.09 Mhz, 50hz, 125 bpm
+.setcia		move.l	d0,pt_timervalue-pt_speed(a1)
 		divu	#125,d0
-
-		tst.b	pt_vblank		; tst if noisetracker
-		bne.s 	nociatimer		; and skip cia int :)
 		bsr	ep_SetCIASpeed
-
-nociatimer:
 		bsr	mod_Set_Subsong
-
 		movem.l	(sp)+,d0-d2/a0-a2
 		rts
 
@@ -1247,7 +1266,7 @@ pt_ssp1:	clr.l	pt_counter-pt_metspd(a4)
 pt_speednull:
 		rts
 pt_settempo:
-		move.l	pt_timervalue(pc),d2
+		move.l	pt_timervalue-pt_metspd(a4),d2
 		and.w	#$ff,d0
 		;cmp.w	#$ff,d0
 		;beq	pt_settempoend		; for mod.coolspot
@@ -1263,6 +1282,7 @@ pt_checkmoreeffects:
 		tst.b	pt_ptk2		; tst if ptk 1.1/2.3 or 3.0
 		beq.s 	.ptk3	
 		bsr	pt_updatefunk
+
 .ptk3
 		move.b	2(a6),d0
 		andi.b	#15,d0
@@ -1517,6 +1537,7 @@ pt_raster:
 ;		rts
 
 ;--- Wrong Timing :/
+
 		movem.l d0-d7/a0-a6,-(a7)
 		move.l	delibase,a5
 		move.l	dtg_WaitAudioDMA(a5),a0
@@ -1570,6 +1591,8 @@ pt_restart		dc.b	0
 pt_ntkporta		dc.b	0
 
 pt_ptk2			dc.b	0	; 0 for ptk 3.0, 1 = ptk1.1/2.3
+
+pt_ntsc			dc.b	0	; 0 for pal, 1 = ntsc
 
 pt_vblank		dc.b	0
 

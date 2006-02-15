@@ -1,3 +1,11 @@
+2006-02-15  Michael Doering <mld@users.sourceforge.net>
+	- NTSC Flag in config file ENV:eagleplayer/ for PTK-Prowiz affecting
+	  Sound, Noisetracker, Startrekker and Protracker (vblank) added.
+	  Normal Pro- and Fastracker are not affected.
+	  Info: it's not a real ntsc mode in emulation but just calculating
+	  the CIAA timer to 7.15Mhz, 60khz, 125bpm on PAL machines... It's a
+	  cludge I know :)
+
 2006-02-14  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed /dev/urandom detection. Using test -c rather than test -e.
 	  Test -c is more compatible and more exact too.
