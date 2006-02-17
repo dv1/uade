@@ -3,8 +3,9 @@
 	  Sound, Noisetracker, Startrekker and Protracker (vblank) added.
 	  Normal Pro- and Fastracker are not affected.
 	  Info: it's not a real ntsc mode in emulation but just calculating
-	  the CIAA timer to 7.15Mhz, 60khz, 125bpm on PAL machines... It's a
-	  cludge I know :)
+	  the CIAA timer to use a value ~ 7.15Mhz, 60khz, 125bpm on PAL
+	  machines...
+	  It's a cludge I know :)
 
 2006-02-14  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed /dev/urandom detection. Using test -c rather than test -e.
