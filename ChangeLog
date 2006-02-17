@@ -1,8 +1,9 @@
 2006-02-17  Michael Doering <mld@users.sourceforge.net>
-	- In frontends/uade123/KDE/: Added some missing file extensions for the KDE
-	  mimelnk.
-	- In frontends/uade123/KDE/: Use of kfmexec wrapper in KDE mimelnk for
-	  ftp:// http://, smb://, zip:// etc. support.
+	- Added some missing file extensions for the KDE mimelnk.
+	- Use of kfmexec wrapper in KDE mimelnk for easy ftp:// http://,
+	  smb://, zip:// etc. support under KDE/Konqueror.
+	- Added install script for KDE users in  /src/frontents/uade123/KDE.
+	  Now playing Amiga music is just one click away from you ;-)
 
 2006-02-15  Michael Doering <mld@users.sourceforge.net>
 	- NTSC Flag in config file ENV:eagleplayer/ for PTK-Prowiz affecting
