@@ -1,6 +1,6 @@
 [Desktop Entry]
 Comment=
-Exec=xterm -e .uade2/uade123 %U
+Exec=kfmexec "xterm -e .uade2/uade123" %U
 GenericName=Amiga music player
 GenericName[de]=Amiga Musik Abspielprogramm
 Icon=multimedia
