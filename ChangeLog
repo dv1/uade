@@ -1,3 +1,6 @@
+2006-02-17  Michael Doering <mld@users.sourceforge.net>
+	- added some missing file extensions for the KDE mime.lnk.
+
 2006-02-15  Michael Doering <mld@users.sourceforge.net>
 	- NTSC Flag in config file ENV:eagleplayer/ for PTK-Prowiz affecting
 	  Sound, Noisetracker, Startrekker and Protracker (vblank) added.
