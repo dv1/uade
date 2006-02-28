@@ -14,6 +14,9 @@
 	- More KDE integration: support for kfmexec wrapper.
 	- Fixed many bugs.
 	- Many other changes :-)
+
+2006-03-01  Heikki Orsila <heikki.orsila@iki.fi>
+	- Reverted mlds work-around to avoid subsong change lockups.
 	
 2006-02-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed -m option for uade123. "uade123 -m file" would only print help
