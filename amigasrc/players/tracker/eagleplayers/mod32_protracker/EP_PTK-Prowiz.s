@@ -266,7 +266,7 @@ strncpy:
 
 InitPlay:
 	; Set Protracker compatibility
-	movem.l	d0-d6/a0-a6,-(sp)
+	movem.l	d0-d7/a0-a6,-(sp)
 	move.l	dtg_DOSBase(a5),a6
 	move.l	#cfgfile,d1
 	move.l	#1005,d2		* MODE_OLDFILE
@@ -277,7 +277,7 @@ InitPlay:
 	move.l	#cfgbuffer,d2
 	move.l	#256,d3
 	jsr	_LVORead(a6)
-	movem.l	d0-d6/a0-a6,-(sp)
+	movem.l	d0-d7/a0-a6,-(sp)
 	lea	cfgbuffer,a0
 	move.b	#256-2,d1
 
@@ -300,12 +300,12 @@ InitPlay:
 	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3
 
 illegal_config_file:
-	movem.l	(sp)+,d0-d6/a0-a6
+	movem.l	(sp)+,d0-d7/a0-a6
 	move.l	(a7)+,d1
 	jsr	_LVOClose(a6)
 
 dont_read_cfgfile:
-	movem.l	(sp)+,d0-d6/a0-a6
+	movem.l	(sp)+,d0-d7/a0-a6
 	moveq	#0,d0
 
 	move.l	a5,delibase
