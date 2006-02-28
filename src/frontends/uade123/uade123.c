@@ -276,6 +276,7 @@ int main(int argc, char *argv[])
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
+      have_modules = 1;
       break;
     case 'n':
       uadeconf.no_filter = 1;

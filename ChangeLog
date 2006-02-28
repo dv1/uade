@@ -1,3 +1,7 @@
+2006-02-28  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed -m option for uade123. "uade123 -m file" would only print help
+	  but not play the file.
+
 2006-02-17  Michael Doering <mld@users.sourceforge.net>
 	- Added some missing file extensions for the KDE mimelnk.
 	- Use of kfmexec wrapper in KDE mimelnk for easy ftp:// http://,
