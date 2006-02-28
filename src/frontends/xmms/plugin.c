@@ -456,7 +456,7 @@ static void *play_loop(void *arg)
 	break;
       }
 
-      //uade_lock();
+      uade_lock();
       if (uade_seek_forward) {
 	skip_bytes += uade_seek_forward * UADE_BYTES_PER_SECOND;
 	uade_ip.output->flush(uade_ip.output->written_time() + uade_seek_forward * 1000);
@@ -490,7 +490,7 @@ static void *play_loop(void *arg)
 	  }
 	}
       }
-      //uade_unlock();
+      uade_unlock();
 
       if (song_end_trigger) {
 	/* We must drain the audio fast if abort_playing happens (e.g.
