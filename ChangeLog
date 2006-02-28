@@ -1,3 +1,20 @@
+2006-03-01  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.02
+	- Fixed a bug in xmms plugin that cut off sound data from the end of
+	  a song.
+	- New Sierra AGI player by Don Adan / Wanted Team
+	- Better support for old sonic arranger files.
+	- Improved file type detection on many formats.
+	- Debugger improvements (see 'c' and 'i' commands)
+	- Added --buffer-time=x option for uade123 to set audio buffer
+	  length in milliseconds.
+	- A configuration file was added for PTK-Prowiz (that plays protracker
+	  and clones) to set compatibility to either protracker v3.0b or
+	  v2.3a. Please edit file: players/ENV/EaglePlayer/EP-PTK-Prowiz.cfg.
+	- More KDE integration: support for kfmexec wrapper.
+	- Fixed many bugs.
+	- Many other changes :-)
+	
 2006-02-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed -m option for uade123. "uade123 -m file" would only print help
 	  but not play the file.
