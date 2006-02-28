@@ -17,7 +17,13 @@
 
 2006-03-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Reverted mlds work-around to avoid subsong change lockups.
-	
+	- Did a potential fix for the XMMS plugin lockup bug. However, I
+	  do not have a test case for this. The problem was, I think, that
+	  play_loop() called uade_lock(), then called
+	  uade_gui_subsong_changed(), then gtk called some function,
+	  which would eventually call get_next_subsong() which would
+	  try to re-take the mutex by uade_lock() -> deadlock.
+
 2006-02-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed -m option for uade123. "uade123 -m file" would only print help
 	  but not play the file.
