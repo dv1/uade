@@ -75,7 +75,7 @@ soundcheck:
 	@ echo ""
 	@ echo "### UADE should be playing now 'AHX.Cruisin'"
 	@ echo ""
-	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AHX -m songs/AHX.Cruisin -u src/uadecore
+	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AbyssHighestExperience -m songs/AHX.Cruisin -u src/uadecore
 
 install:	
 	mkdir -p "$(DATADIR)/players"
