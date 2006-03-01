@@ -23,6 +23,9 @@
 	  uade_gui_subsong_changed(), then gtk called some function,
 	  which would eventually call get_next_subsong() which would
 	  try to re-take the mutex by uade_lock() -> deadlock.
+	  * THIS THEORY WAS WRONG.
+	- Merged a patch from Martin Jeppensen to rename some eagleplayers
+	  to better names.
 
 2006-02-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed -m option for uade123. "uade123 -m file" would only print help
