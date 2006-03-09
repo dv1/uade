@@ -1,7 +1,5 @@
 /*
  Copyright (C) 2000-2005  Heikki Orsila
-                          heikki.orsila@iki.fi
-                          http://zakalwe.virtuaalipalvelin.net/uade
  Copyright (C) 2000-2005  Michael Doering
 
  This module is dual licensed under the GNU GPL and the Public Domain.

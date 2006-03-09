@@ -1,8 +1,6 @@
 /* UADE2 plugin for XMMS
  *
- * Copyright (C) 2005  Heikki Orsila
- *                     heikki.orsila@iki.fi
- *                     http://zakalwe.virtuaalipalvelin.net/uade/
+ * Copyright (C) 2005-2006  Heikki Orsila
  *
  * This source code module is dual licensed under GPL and Public Domain.
  * Hence you may use _this_ module (not another code module) in any way you
