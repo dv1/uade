@@ -1,5 +1,7 @@
 To be solved:
 
+2006-03-09: Remove useless symbol exports in plugins. Only get_iplugin_info
+	    should be preserved as an exported symbol. (shd)
 2006-01-15: Suntronic customs cause filesize on directory which fails (shd)
 2006-01-14: Mok.ishar dies on involuntary subsong change. (shd)
 2006-01-14: cust.Plague and cust.Wings don't work. (shd)
