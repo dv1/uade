@@ -744,7 +744,7 @@ void uade_save_content_db(const char *filename)
     return;
   }
   for (i = 0; i < nccused; i++)
-    fprintf(f, "%s %d\n", contentchecksums[i].md5, contentchecksums[i].playtime);
+    fprintf(f, "%s %u\n", contentchecksums[i].md5, contentchecksums[i].playtime);
   fclose(f);
   fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
 }

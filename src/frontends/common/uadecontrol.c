@@ -148,7 +148,7 @@ int uade_song_initialization(const char *scorename,
   }
 
   if (um->msgtype != UADE_REPLY_CAN_PLAY) {
-    fprintf(stderr, "Unexpected reply from uade: %d\n", um->msgtype);
+    fprintf(stderr, "Unexpected reply from uade: %u\n", um->msgtype);
     goto cleanup;
   }
 

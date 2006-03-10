@@ -448,7 +448,7 @@ int play_loop(struct uade_song *us)
 	break;
 	
       default:
-	fprintf(stderr, "\nExpected sound data. got %d.\n", um->msgtype);
+	fprintf(stderr, "\nExpected sound data. got %u.\n", um->msgtype);
 	return 0;
       }
     }

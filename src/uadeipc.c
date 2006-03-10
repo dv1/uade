@@ -239,7 +239,7 @@ static int valid_message(struct uade_msg *um)
   }
   len = sizeof(*um) + um->size;
   if (len > UADE_MAX_MESSAGE_SIZE) {
-    fprintf(stderr, "too long a message: %zd\n", len);
+    fprintf(stderr, "too long a message: %zu\n", len);
     return 0;
   }
   return 1;
