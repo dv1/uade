@@ -234,7 +234,7 @@ static int valid_message(struct uade_msg *um)
 {
   size_t len;
   if (um->msgtype <= UADE_MSG_FIRST || um->msgtype >= UADE_MSG_LAST) {
-    fprintf(stderr, "unknown command: %d\n", um->msgtype);
+    fprintf(stderr, "unknown command: %u\n", (unsigned int) um->msgtype);
     return 0;
   }
   len = sizeof(*um) + um->size;
