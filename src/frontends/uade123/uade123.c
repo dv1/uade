@@ -149,11 +149,9 @@ int main(int argc, char *argv[])
     {"ignore", 0, NULL, 'i'},
     {"interpolator", 1, NULL, OPT_INTERPOLATOR},
     {"jump", 1, NULL, 'j'},
-    {"keys", 0, NULL, 'K'},
+    {"keys", 1, NULL, 'k'},
     {"list", 1, NULL, '@'},
-    {"no-filter", 0, NULL, 'n'},
     {"no-song-end", 0, NULL, OPT_NO_SONG_END},
-    {"no-keys", 0, NULL, 'k'},
     {"one", 0, NULL, '1'},
     {"panning", 1, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
@@ -213,7 +211,7 @@ int main(int argc, char *argv[])
 
   load_content_db();
 
-  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:kKm:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -269,17 +267,16 @@ int main(int argc, char *argv[])
       }
       break;
     case 'k':
-      uadeconf.action_keys = 0;
-      break;
-    case 'K':
-      uadeconf.action_keys = 1;
+      uadeconf.action_keys = strtol(optarg, &endptr, 10);
+      if (*endptr != 0 || uadeconf.action_keys < 0 ||
+	  uadeconf.action_keys > 1) {
+	fprintf(stderr, "Invalid parameter: --keys=%s\n", optarg);
+	exit(-1);
+      }
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       have_modules = 1;
-      break;
-    case 'n':
-      uadeconf.no_filter = 1;
       break;
     case 'p':
       uadeconf.panning = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
@@ -327,7 +324,11 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      uadeconf.filter_type = uade_get_filter_type(optarg);
+      if (strcasecmp(optarg, "none") == 0) {
+	uadeconf.no_filter = 1;
+      } else {
+	uadeconf.filter_type = uade_get_filter_type(optarg);
+      }
       break;
     case OPT_FORCE_LED:
       uadeconf.led_state = strtol(optarg, &endptr, 10);
@@ -605,10 +606,8 @@ static void print_help(void)
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=model      Set filter model to A500, A500E, A1200, or A1200E. The\n");
-  printf("                     default is A500E. PLEASE NOTE that A500 and A1200 are\n");
-  printf("                     audibly different even if a song doesn't use filtering.\n");
-  printf("                     Trying different types is recommended.\n");
+  printf(" --filter=model      Set filter model to A500, A500E, A1200, A1200E or NONE.\n");
+  printf("                     The default is A500E. NONE means disabling filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");
@@ -617,13 +616,13 @@ static void print_help(void)
   printf(" -h/--help,          Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
-  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or none.\n");
+  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or\n");
+  printf("                     none.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
-  printf(" -k, --no-keys,      Disable action keys for playback control on terminal\n");
-  printf(" -K, --keys,         Enable action keys for playback control on terminal\n");
+  printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
+  printf("                     on terminal. \n");
   printf(" -m filename,        Set module name\n");
-  printf(" -n, --no-filter     No filter emulation.\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
   printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");

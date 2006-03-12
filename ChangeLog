@@ -15,6 +15,13 @@
 	- Fixed many bugs.
 	- Many other changes :-)
 
+2006-03-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed various uade123 parameters. -k and -K have been changed
+	  to one option:
+	    -k x or --keys=x, where x is 0 or 1 (disabling and enabling action
+	    keys).
+	  --no-filter has been removed. Use --filter=none instead.
+	
 2006-03-10  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed some compiler warnings. Using %u to print unsigned ints :)
 	
