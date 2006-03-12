@@ -616,8 +616,7 @@ static void print_help(void)
   printf(" -h/--help,          Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
-  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or\n");
-  printf("                     none.\n");
+  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or none.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
