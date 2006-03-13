@@ -144,7 +144,7 @@ int play_loop(struct uade_song *us)
 	  pause_terminal();
 	  break;
 	case 'f':
-	  uadeconf.filter_type = uade_get_filter_type(NULL);
+	  uade_set_filter_type(&uadeconf, NULL);
 	  uadeconf.led_forced = 1;
 	  uadeconf.led_state ^= 1;
 	  tprintf("\nForcing LED %s\n", (uadeconf.led_state & 1) ? "ON" : "OFF");

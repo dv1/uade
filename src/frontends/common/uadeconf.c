@@ -47,35 +47,12 @@ void uade_config_set_defaults(struct uade_config *uc)
 {
   memset(uc, 0, sizeof(*uc));
   uc->action_keys = 1;
-  uc->filter_type = uade_get_filter_type(NULL);
+  uade_set_filter_type(uc, NULL);
   uc->gain = 1.0;
   uc->panning = 0.7;
   uc->silence_timeout = 20;
   uc->subsong_timeout = 512;
   uc->timeout = -1;
-}
-
-
-int uade_get_filter_type(const char *model)
-{
-  int filter = FILTER_MODEL_A500E;
-
-  if (model == NULL)
-    return filter;
-
-  if (strcasecmp(model, "a500") == 0) {
-    filter = FILTER_MODEL_A500;
-  } else if (strcasecmp(model, "a1200") == 0) {
-    filter = FILTER_MODEL_A1200;
-  } else if (strcasecmp(model, "a500e") == 0) {
-    filter = FILTER_MODEL_A500E;
-  } else if (strcasecmp(model, "a1200e") == 0) {
-    filter = FILTER_MODEL_A1200E;
-  } else {
-    fprintf(stderr, "Unknown filter model: %s\n", model);
-  }
-
-  return filter;
 }
 
 
@@ -192,7 +169,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 	uc->buffer_time = 0;
       }
     } else if (strncmp(key, "filter", 6) == 0) {
-      uc->filter_type = uade_get_filter_type(value);
+      uade_set_filter_type(uc, value);
       uc->no_filter = 0;
     } else if (strncmp(key, "force_led_off", 12) == 0) {
       uc->led_forced = 1;
@@ -214,7 +191,6 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 	uc->interpolator = strdup(value);
       }
     } else if (strncmp(key, "no_filter", 9) == 0) {
-      uc->filter_type = 0;
       uc->no_filter = 1;
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uc->one_subsong = 1;
@@ -254,6 +230,27 @@ void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 
   if (ep->attributes & EP_SPEED_HACK)
     uc->speed_hack = 1;
+}
+
+
+void uade_set_filter_type(struct uade_config *uc, const char *model)
+{
+  uc->filter_type = FILTER_MODEL_A500E;
+
+  if (model == NULL)
+    return;
+
+  if (strcasecmp(model, "a500") == 0) {
+    uc->filter_type = FILTER_MODEL_A500;
+  } else if (strcasecmp(model, "a1200") == 0) {
+    uc->filter_type = FILTER_MODEL_A1200;
+  } else if (strcasecmp(model, "a500e") == 0) {
+    uc->filter_type = FILTER_MODEL_A500E;
+  } else if (strcasecmp(model, "a1200e") == 0) {
+    uc->filter_type = FILTER_MODEL_A1200E;
+  } else {
+    fprintf(stderr, "Unknown filter model: %s\n", model);
+  }
 }
 
 

@@ -29,12 +29,10 @@ struct uade_config {
   int speed_hack;
   int subsong_timeout;
   int timeout;
-  int timeout_forced;
 };
 
 
 void uade_config_set_defaults(struct uade_config *uc);
-int uade_get_filter_type(const char *value);
 int uade_get_silence_timeout(const char *value);
 int uade_get_subsong_timeout(const char *value);
 int uade_get_timeout(const char *value);
@@ -43,6 +41,7 @@ double uade_convert_to_double(const char *value,
 			      double low, double high, const char *type);
 int uade_load_config(struct uade_config *uc, const char *filename);
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep);
+void uade_set_filter_type(struct uade_config *uc, const char *value);
 void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
 			      struct uade_song *us);
 

@@ -302,7 +302,6 @@ int main(int argc, char *argv[])
       break;
     case 't':
       uadeconf.timeout = uade_get_timeout(optarg);
-      uadeconf.timeout_forced = 1;
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -311,7 +310,6 @@ int main(int argc, char *argv[])
       uade_verbose_mode = 2;
       break;
     case 'w':
-      uadeconf.timeout_forced = 1;
       uadeconf.subsong_timeout = uade_get_subsong_timeout(optarg);
       break;
     case 'y':
@@ -324,10 +322,14 @@ int main(int argc, char *argv[])
     case ':':
       exit(-1);
     case OPT_FILTER:
-      if (strcasecmp(optarg, "none") == 0) {
-	uadeconf.no_filter = 1;
+      if (optarg != NULL) {
+	if (strcasecmp(optarg, "none") == 0) {
+	  uadeconf.no_filter = 1;
+	} else {
+	  uade_set_filter_type(&uadeconf, optarg);
+	}
       } else {
-	uadeconf.filter_type = uade_get_filter_type(optarg);
+	uadeconf.no_filter = 0;
       }
       break;
     case OPT_FORCE_LED:
@@ -594,7 +596,7 @@ static void print_help(void)
   printf("\n");
   printf("Expert options:\n");
   printf(" --basedir=dirname,  Set uade base directory (contains data files)\n");
-  printf(" -d/--debug,         Enable debug mode (expert only)\n");
+  printf(" -d, --debug,        Enable debug mode (expert only)\n");
   printf(" -S filename,        Set sound core name\n");
   printf(" -u uadename,        Set uadecore executable name\n");
   printf("\n");
@@ -613,10 +615,11 @@ static void print_help(void)
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
-  printf(" -h/--help,          Print help\n");
+  printf(" -h, --help,         Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
-  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or none.\n");
+  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or\n");
+  printf("                     none.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
@@ -626,7 +629,7 @@ static void print_help(void)
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
   printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");
   printf(" -P filename,        Set player name\n");
-  printf(" -r/--recursive,     Recursive directory scan\n");
+  printf(" -r, --recursive,    Recursive directory scan\n");
   printf(" -s x, --subsong=x,  Set subsong 'x'\n");
   printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");
   printf(" --stderr,           Print messages on stderr.\n");
