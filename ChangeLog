@@ -1,5 +1,5 @@
-2006-03-xx  Heikki Orsila <heikki.orsila@iki.fi>
-	* UADE xxx NOT YET
+2006-03-14  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.02 (Muhammad pictures)
 	- Fixed a bug in xmms plugin that cut off sound data from the end of
 	  a song.
 	- New Sierra AGI player by Don Adan / Wanted Team
