@@ -14,7 +14,7 @@ Effect EFx:
 PTK1.0c:
     mt_UpdateFunk: -> Funk repeat effect 
 
-PTK1.1b and aboce
+PTK1.1b and above
     mt_UpdateFunk: -> invert loop effect
 
 
@@ -46,7 +46,7 @@ PTK2.1a:
 PTK2.3a:
     period is set in ->	mt_playvoice
 			mt_CheckEfx after "and" via "beq.s"
-
+			mt_CheckMoreEfx
 
 PK3.0B:
     period is set in -> pt_playvoice
