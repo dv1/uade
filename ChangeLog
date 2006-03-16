@@ -1,3 +1,9 @@
+2006-03-16  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed PAL audio synthesis frequency to be exactly 3546895 Hz. It
+	  was 3541200 Hz before. The old value was totally synchronous with
+	  video hw. Changing this does not affect anything else than audio.
+	  The new value is from the hardware reference manual.
+
 2006-03-16  Michael Doering <mld@users.sourceforge.net>
 	- Compatibility for PTK-Prowiz can now be set to play files like
 	  Protracker 3.0b, 2.3a or 1.0c.

@@ -63,9 +63,6 @@ extern uae_u16 INTREQR (void);
 
 /* maximums for statically allocated tables */
 
-#define MAXHPOS 227
-#define MAXVPOS 312
-
 /* PAL/NTSC values */
 
 /* The HRM says: The vertical blanking area (PAL) ranges from line 0 to line 29,
@@ -82,6 +79,13 @@ extern uae_u16 INTREQR (void);
 #define VBLANK_ENDLINE_NTSC 24
 #define VBLANK_HZ_PAL 50
 #define VBLANK_HZ_NTSC 60
+
+#define SOUNDTICKS_PAL 3546895
+#define SOUNDTICKS_NTSC 3579545
+
+#define MAXHPOS (MAXHPOS_PAL)
+#define MAXVPOS (MAXVPOS_PAL)
+#define SOUNDTICKS (SOUNDTICKS_PAL)
 
 extern int maxhpos, maxvpos, minfirstline, vblank_endline, numscrlines, vblank_hz;
 extern unsigned long syncbase;
