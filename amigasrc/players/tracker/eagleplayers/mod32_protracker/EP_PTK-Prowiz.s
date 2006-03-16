@@ -839,7 +839,7 @@ pt_chkefx2:
 		bsr.w	pt_updatefunk
 		move.w	2(a6),d0
 		andi.w	#$0fff,d0
-		beq.b	pt_gone
+		beq.b	pt_pernop
 		move.b	2(a6),d0
 		andi.b	#15,d0
 		tst.b	d0
@@ -866,6 +866,12 @@ pt_setback:
 		beq.w	pt_volumeslide
 pt_return:
 		rts
+		
+pt_pernop:	tst.b	pt_ptk2		; tst if ptk 1.1/2.3 or 3.0
+		beq.s 	.ptk3	
+		move.w 16(a6),6(a5)
+.ptk3		rts
+
 pt_arpeggio:
 		moveq	#0,d0
 		move.l	pt_counter(pc),d0
@@ -1303,7 +1309,10 @@ pt_checkmoreeffects:
 		cmpi.b	#12,d0
 		beq.w	pt_volumechange
 		move.w	16(a6),6(a5)
+
+		move.w 16(a6),6(a5)
 		rts
+
 pt_ecommands:
 		moveq	#0,d0
 		move.b	3(a6),d0
