@@ -1,3 +1,10 @@
+2006-03-16  Michael Doering <mld@users.sourceforge.net>
+	- compatibility for PTK-Prowiz can now be set to play files like
+	  Protracker 3.0b, 2.3a or 1.0c.
+	  INFO: Files being played as PT1.0c will have a different vibrato
+	  depth, and use funk_repeat effect instead of the invert loop effect
+	  which might break all mods composed with later protrackers.
+
 2006-03-14  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.02 (Muhammad pictures)
 	- Fixed a bug in xmms plugin that cut off sound data from the end of

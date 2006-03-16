@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-02-15',0
+	dc.b '$VER: Protracker 3.0b player 2006-03-16',0
 	even
 
 PlayerTagArray
@@ -297,7 +297,11 @@ InitPlay:
 	move.b	(a0)+,d0
 	sub.b	#$30,d0
 	and.l	#$7,d0
-	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3
+	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3; 2 = Protracker 1.0c
+	cmp.b	#2,d0
+	bne	illegal_config_file
+.pt1.0c:				; pt1.0c = ptk2.3 comp  +  vibshift=6  + funkrepeat
+	move.b	#6,pt_vibshift	
 
 illegal_config_file:
 	movem.l	(sp)+,d0-d7/a0-a6
@@ -1499,6 +1503,8 @@ pt_funkit:
 		tst.b	d0
 		beq.b	pt_endit
 pt_updatefunk:
+		cmp.b	#2,pt_ptk2	; Protracker 1.0c
+		beq.s	mt_UpdateFunk
 		moveq	#0,d0
 		move.b	31(a6),d0
 		lsr.b	#4,d0
@@ -1526,18 +1532,47 @@ pt_funkok:
 		move.b	d0,(a1)
 pt_funkend:
 		rts
+
+; Protracker 1.0c Funkrepeat
+mt_UpdateFunk:
+	MOVEM.L	A0/D1-D2,-(SP)
+	MOVEQ	#0,D0
+	MOVE.B	31(A6),D0
+	LSR.B	#4,D0
+	BEQ.s	mt_funkend
+	LEA	pt_funktable(PC),A0
+	MOVE.B	(A0,D0.W),D0
+	ADD.B	D0,35(A6)
+	BTST	#7,35(A6)
+	BEQ.s	mt_funkend
+	CLR.B	35(A6)
+
+	MOVE.L	4(A6),D1
+	MOVEQ	#0,D2
+	MOVE.W	40(A6),D2
+	LSL.W	#1,D2
+	ADD.L	D2,D1
+	MOVE.W	14(A6),D2
+	LSL.L	#1,D2
+	SUB.L	D2,D1
+
+	MOVE.L	36(A6),D2
+	MOVEQ	#0,D0
+	MOVE.W	14(A6),D0
+	LSL.L	#1,D0
+	ADD.L	D0,D2
+	CMP.L	D1,D2
+	BLS.s	mt_funkok
+	MOVE.L	10(A6),D2
+mt_funkok:
+	MOVE.L	D2,36(A6)
+	MOVE.L	D2,(A5)
+mt_funkend:
+	MOVEM.L	(SP)+,A0/D1-D2
+	rts
+; Protracker 1.0c Funkrepeat
+
 pt_raster:
-;		moveq	#15-1,d7
-;pt_lo1:
-;		move.b	$dff006,d6
-;pt_lo2:
-;		cmp.b	$dff006,d6
-;		beq.b	pt_lo2
-;		dbf	d7,pt_lo1
-;		rts
-
-;--- Wrong Timing :/
-
 		movem.l d0-d7/a0-a6,-(a7)
 		move.l	delibase,a5
 		move.l	dtg_WaitAudioDMA(a5),a0
@@ -1590,7 +1625,7 @@ pt_restart		dc.b	0
 
 pt_ntkporta		dc.b	0
 
-pt_ptk2			dc.b	0	; 0 for ptk 3.0, 1 = ptk1.1/2.3
+pt_ptk2			dc.b	0	; 0 for ptk 3.0, 1 = ptk1.1/2.3, 2=ptk1.0c
 
 pt_ntsc			dc.b	0	; 0 for pal, 1 = ntsc
 
