@@ -50,7 +50,7 @@ PTK2.3a:
 
 PK3.0B:
     period is set in -> pt_playvoice
-			mt_CheckMoreEfx
+			pt_CheckMoreEffects
     
 
 
@@ -62,3 +62,10 @@ PTK1.0c-2.3a:
 PTK3.0b:
     UpdateFunk is missing altogether in CheckMoreEfx
 
+
+
+Portamento:
+-----------
+All PTK:
+    first portamento up/down effect call is ignored due to unintialised
+    value

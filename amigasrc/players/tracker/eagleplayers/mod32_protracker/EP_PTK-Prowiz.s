@@ -1308,8 +1308,11 @@ pt_checkmoreeffects:
 		beq.b	pt_setspeed
 		cmpi.b	#12,d0
 		beq.w	pt_volumechange
+
+		cmp.b	#2,pt_ptk2
+		bne.s	.end
 		move.w	16(a6),6(a5)
-		rts
+.end		rts
 
 pt_ecommands:
 		moveq	#0,d0
