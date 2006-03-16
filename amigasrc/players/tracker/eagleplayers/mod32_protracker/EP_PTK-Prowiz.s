@@ -1309,8 +1309,6 @@ pt_checkmoreeffects:
 		cmpi.b	#12,d0
 		beq.w	pt_volumechange
 		move.w	16(a6),6(a5)
-
-		move.w 16(a6),6(a5)
 		rts
 
 pt_ecommands:

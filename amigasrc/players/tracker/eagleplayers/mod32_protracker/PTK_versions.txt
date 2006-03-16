@@ -1,0 +1,64 @@
+Differences/Compatibility issues between different Protracker replays.
+######################################################################
+
+PTK1.0c = Protracker replay 1.0c by Lars "Zap" Hamre/Amiga Freelancers
+PTK1.1b = Protracker replay 1.1b by Lars "Zap" Hamre/Amiga Freelancers
+PTK2.1a	= Protracker replay 2.1a by Peter "CRAYON" Hanning / Mushrooms Studios
+PTK2.3a = Protracker replay 2.3a
+PTK3.0b = Protracker 3.00b Tom "Outland" Bech and Ivar "Heatseeker" J. Olsen
+
+
+
+Effect EFx:
+-----------
+PTK1.0c:
+    mt_UpdateFunk: -> Funk repeat effect 
+
+PTK1.1b and aboce
+    mt_UpdateFunk: -> invert loop effect
+
+
+Vibrato
+-------
+PTK1.0C:
+    mt_vib_set:	-> lsr.w #6,d0
+
+PTK1.1b and above:
+    mt_vib_set:	-> lsr.w #7,d0
+
+
+Pernop:
+-------
+PTK1.0C:
+    period is set in ->	mt_playvoice
+			mt_CheckEfx after "and" via "beq.s"
+			
+PTK1.1b:
+    period is set in ->	mt_playvoice
+			mt_CheckEfx after "and" via "beq.s"
+			mt_CheckMoreEfx
+
+PTK2.1a:
+    period is set in ->	mt_playvoice
+			mt_CheckEfx after "and" via "beq.s"
+			mt_CheckMoreEfx
+
+PTK2.3a:
+    period is set in ->	mt_playvoice
+			mt_CheckEfx after "and" via "beq.s"
+
+
+PK3.0B:
+    period is set in -> pt_playvoice
+			mt_CheckMoreEfx
+    
+
+
+UpdateFunk in CheckMoreEfx:
+----------------------------
+PTK1.0c-2.3a:
+    UpdateFunk is called in the beginning of CheckMoreEfx
+
+PTK3.0b:
+    UpdateFunk is missing altogether in CheckMoreEfx
+
