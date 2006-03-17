@@ -108,6 +108,13 @@ extended 0xe# effects are parsed, PTK3.0b doesn't. I yet have to find a mod
 that "breaks", tho.
 
 
+Volume setting when playing no note:
+------------------------------------
+Info: it seems Protracker 2.3 and below sets/updates the volume when
+in playvoice skip and the no loop routine, while Protracker 3.0
+
+
+
 
 Portamento:
 -----------

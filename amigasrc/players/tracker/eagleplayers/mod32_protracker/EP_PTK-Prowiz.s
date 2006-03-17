@@ -200,8 +200,8 @@ read_config_file:
 	cmp.b	#PTK10,d0
 	bne.s	.pt23b
 	move.b	#6,pt_vibshift
-	move.w	#37*2,pt_oldstk		; apart from the different vibrato
-	move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
+	;move.w	#37*2,pt_oldstk		; apart from the different vibrato
+	;move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
 	bra 	illegal_config_file	; for accessing the period table
 .pt23b:
 	cmp.b	#PTK23,d0
@@ -212,8 +212,8 @@ read_config_file:
 .pt21b:
 	cmp.b	#PTK30,d0
 	beq.s	illegal_config_file
-	move.w	#37*2,pt_oldstk		; mixed value accesing the period
-	move.w	#36*2,pt_oldstk2	; table...
+	;move.w	#37*2,pt_oldstk		; mixed value accesing the period
+	;move.w	#36*2,pt_oldstk2	; table...
 
 illegal_config_file:
 	movem.l	(sp)+,d0-d7/a0-a6
@@ -719,7 +719,13 @@ pt_plvskip:
 rplen_ok	add.w	6(a3,d4.l),d0		; Add repeat length
 		move.w	d0,8(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save replen
-		bra.b	pt_setregisters
+
+		cmp.b	#PTK30,d0
+		beq.s	.pt30
+		 moveq	#0,d0			; ptk23 sets volume
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+.pt30		bra.b	pt_setregisters
 pt_noloop:
 		move.l	4(a6),d2
 		add.l	d3,d2
@@ -727,8 +733,14 @@ pt_noloop:
 		move.l	d2,36(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save repeat length
 		 tst.w	14(a6)			; repeat length zero?
-		 bne	pt_setregisters		; nope
+		 bne	.ptk30vol		; nope
 		 move.w	#2,14(a6)		; otherwise set it to std
+
+.ptk30vol	cmp.b	#PTK30,d0
+		beq.s	pt_setregisters
+		 moveq	#0,d0			; ptk23 sets volume
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
 pt_setregisters:
 		move.w	(a6),d0
 		andi.w	#$0fff,d0
@@ -754,6 +766,7 @@ pt_chktoneporta:
 		bsr.w	pt_settoneporta
 		bra.w	pt_checkmoreeffects
 pt_setperiod:
+		MOVEM.L	D0-D6/A0-A1,-(sp)
 		move.w	(a6),d6
 		andi.w	#$0fff,d6
 		lea	pt_periodtable(pc),a1
@@ -768,8 +781,11 @@ pt_ftufound:
 		moveq	#0,d6
 		move.b	18(a6),d6
 		mulu	pt_oldstk2,d6
+		;mulu	#36*2,d6
 		adda.l	d6,a1
 		move.w	(a1,d0.w),16(a6)
+		MOVEM.L	(sp)+,D0-D6/A0-A1
+
 		move.w	2(a6),d0
 		andi.w	#$0ff0,d0
 		cmpi.w	#$0ed0,d0
@@ -783,6 +799,19 @@ pt_vibnoc:
 		bne.b	pt_trenoc
 		clr.b	29(a6)
 pt_trenoc:
+		cmp.b	#PTK30,d0
+		beq.s	.pt30_trenoc
+		; pt2.3 style
+		move.w	8(a6),4(a5)		; Set length
+		move.l	4(a6),(a5)		; Set start
+		move.w	16(a6),d0
+		move.w	d0,6(a5)		; Set period
+		;st.b	42(a6)
+		move.w	20(a6),d0
+		or.w	d0,pt_dmacontemp-pt_metspd(a4)
+		bra.w	pt_checkmoreeffects
+
+.pt30_trenoc:
 		move.w	8(a6),4(a5)		; Set length
 		move.l	4(a6),(a5)		; Set start
 		bne.b	pt_sdmaskp
@@ -931,6 +960,7 @@ pt_arpeggiofind:
 		moveq	#0,d1
 		move.b	18(a6),d1
 		mulu	pt_oldstk2,d1
+		;mulu	#36*2,d1
 		lea	pt_periodtable(pc),a0
 		adda.l	d1,a0
 		moveq	#0,d1
@@ -993,11 +1023,13 @@ pt_portadskip:
 		move.w	d0,6(a5)
 		rts
 pt_settoneporta:
+		MOVE.L	A0,-(SP)
 		move.w	(a6),d2
 		andi.w	#$0fff,d2
 		moveq	#0,d0
 		move.b	18(a6),d0
 		mulu	pt_oldstk,d0
+		;mulu	#36*2,d0
 		lea	pt_periodtable(pc),a1
 		adda.l	d0,a1
 		moveq	#0,d0
@@ -1006,6 +1038,7 @@ pt_stploop:
 		bhs.b	pt_stpfound
 		addq.w	#2,d0
 		cmp.w	pt_oldstk,d0
+		;cmp.w	#36*2,d0
 		blo.b	pt_stploop
 		moveq	#35*2,d0
 pt_stpfound:
@@ -1017,6 +1050,7 @@ pt_stpfound:
 		subq.w	#2,d0
 pt_stpgoss:
 		move.w	(a1,d0.w),d2
+		MOVE.L	(SP)+,A0
 		move.w	d2,24(a6)
 		move.w	16(a6),d0
 		clr.b	22(a6)
@@ -1064,6 +1098,7 @@ pt_toneportasetper:
 		moveq	#0,d0
 		move.b	18(a6),d0
 		mulu	pt_oldstk2,d0
+		;mulu	#36*2,d0
 		lea	pt_periodtable(pc),a0
 		adda.l	d0,a0
 		moveq	#0,d0
@@ -1072,6 +1107,7 @@ pt_glissloop:
 		bhs.b	pt_glissfound
 		addq.w	#2,d0
 		cmp.w	pt_oldstk2,d0
+		;cmp.w	#36*2,d0		
 		blo.b	pt_glissloop
 		moveq	#35*2,d0
 pt_glissfound:
@@ -1689,7 +1725,9 @@ pt_blkadj		dc.w	0
 pt_seqadj		dc.w	0
 
 pt_oldstk		dc.w	37*2
+
 pt_oldstk2		dc.w	37*2
+
 */
 
 pt_timervalue:

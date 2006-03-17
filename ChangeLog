@@ -1,17 +1,21 @@
 2006-03-17  Michael Doering <mld@users.sourceforge.net>
 	- Enhanced compatibilty concerning protracker 2.3a/1.1b(fixed),
-	   2.1a/1.1b, 1.0c and Prottracker 3.0b concerning access of
-	   the periodtable while using the effects.
-	   It's astonishing in how many ways the protracker replays
-	   differ... :-)
-	   E.g. Protracker 3.0b (like Noisetracker)  uses a multiplication of
-	   37*2 for all effects to get the right period. Protracker 2.3a and
-	   the socalled bugfixed 1.1b replay use a value of 36*2 (like the
-	   old Soundtracker)
-	   Last but least ptk 1.0c, the original ptk1.1b and ptk2.1a use
-	   one or the other value for some effects...
-	   All in all, it's a mess and we have 4 different setups in our
-	   protracker config file :-)
+	  2.1a/1.1b, 1.0c and Prottracker 3.0b concerning access of
+	  the periodtable while using the effects.
+	  It's astonishing in how many ways the protracker replays
+	  differ... :-)
+	  E.g. Protracker 3.0b (like Noisetracker)  uses a multiplication of
+	  37*2 for all effects to get the right period. Protracker 2.3a and
+	  the socalled bugfixed 1.1b replay use a value of 36*2 (like the
+	  old Soundtracker)
+	  Last but least ptk 1.0c, the original ptk1.1b and ptk2.1a use
+	  one or the other value for some effects...
+	  All in all, it's a mess and we have 4 different setups in our
+	  protracker config file :-)
+	- Temporarily disabled the period multiplier hack mentioned above 
+	  because it borked on some tunes.
+	- Added "update volume when skip/hold note" for protracker 2.3 and
+	  below. Protracker 3.0 doesn't do it.
 
 2006-03-16  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed PAL audio synthesis frequency to be exactly 3546895 Hz. It
