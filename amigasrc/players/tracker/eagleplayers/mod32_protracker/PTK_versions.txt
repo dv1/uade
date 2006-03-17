@@ -9,6 +9,10 @@ PTK3.0b = Protracker 3.00b Tom "Outland" Bech and Ivar "Heatseeker" J. Olsen
 
 
 
+mt_* and pt_* are ususally the labels of the functions in the replays.
+
+
+
 Effect EFx:
 -----------
 PTK1.0c:
@@ -16,6 +20,14 @@ PTK1.0c:
 
 PTK1.1b and above
     mt_UpdateFunk: -> invert loop effect
+
+
+Info: Protracker 1.0c and below had a completely different effect, when
+effect 0xef was used. According to the replay it was called funk_repeat.
+I miss a song, that really uses this feature.
+Later Protrackers use invert loop for the 0xef effect. So songs
+using the effect will most likely sound screwed up, when played with the
+wrong replay.
 
 
 Vibrato
@@ -27,7 +39,10 @@ PTK1.1b and above:
     mt_vib_set:	-> lsr.w #7,d0
 
 
-Pernop:
+Info: Vibrato depth was changed for ptk1.1b and above.
+
+
+PerNop:
 -------
 PTK1.0C:
     period is set in ->	mt_playvoice
@@ -53,14 +68,26 @@ PK3.0B:
 			pt_CheckMoreEffects
     
 
+Info: while protracker 1.1b-2.3a update the periods when playing the voices,
+and while processing the effects/extended effects, ptk1.0c and ptk3.0b
+only update it twice.
+Th effect is recognizable with emax_enjoythesilence.mod. E.g. using
+the way PTK1.0c sets the periods results in a rather flat sounding output
+loosing some of its effects.
 
-UpdateFunk in CheckMoreEfx:
+
+mt_UpdateFunk in mt_CheckMoreEfx:
 ----------------------------
 PTK1.0c-2.3a:
-    UpdateFunk is called in the beginning of CheckMoreEfx
+    mt_UpdateFunk is called in the beginning of mt_CheckMoreEfx
 
 PTK3.0b:
-    UpdateFunk is missing altogether in CheckMoreEfx
+    mt_UpdateFunk is missing altogether in mt_CheckMoreEfx
+
+
+Info: While Funkrepeat (0xef) is updated with the old values before the new
+extended 0xe# effects are parsed, PTK3.0b doesn't. I yet have to find a mod
+that "breaks", tho.
 
 
 
@@ -69,3 +96,6 @@ Portamento:
 All PTK:
     first portamento up/down effect call is ignored due to unintialised
     value
+
+Info: Noise/Soundtracker/Startrekker will sound broken when played as
+Protracker and using Portamento.

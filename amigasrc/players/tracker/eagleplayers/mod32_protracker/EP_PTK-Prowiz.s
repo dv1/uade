@@ -1515,6 +1515,7 @@ pt_funkit:
 pt_updatefunk:
 		cmp.b	#2,pt_ptk2	; Protracker 1.0c
 		beq.s	mt_UpdateFunk
+
 		moveq	#0,d0
 		move.b	31(a6),d0
 		lsr.b	#4,d0
