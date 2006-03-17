@@ -97,7 +97,7 @@ Chk:
 	move.w	#37*2,pt_oldstk
 	move.w	#37*2,pt_oldstk2
 	
-	;bsr	read_config_file
+	bsr	read_config_file
 
 	move.l	dtg_ChkData(a5),a0		; get song data
 	move.l	dtg_ChkSize(a5),d1
@@ -199,19 +199,19 @@ read_config_file:
 .pt10c:					; pt1.0c
 	cmp.b	#PTK10,d0
 	bne.s	.pt23b
-	move.b	#6,pt_vibshift	
-	move.w	#37*2,pt_oldstk	; apart from the different vibrato
+	move.b	#6,pt_vibshift
+	move.w	#37*2,pt_oldstk		; apart from the different vibrato
 	move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
 	bra 	illegal_config_file	; for accessing the period table
 .pt23b:
 	cmp.b	#PTK23,d0
 	bne.s	.pt21b
-	move.w	#36*2,pt_oldstk		; oddly enough ptk2.3b uses the old
-	move.w	#36*2,pt_oldstk2	; oddly enough ptk2.3b uses the old
+	;move.w	#36*2,pt_oldstk		; oddly enough ptk2.3b uses the old
+	;move.w	#36*2,pt_oldstk2	; oddly enough ptk2.3b uses the old
 	bra	illegal_config_file	; soundtracker value
 .pt21b:
 	cmp.b	#PTK30,d0
-	bne.s	illegal_config_file
+	beq.s	illegal_config_file
 	move.w	#37*2,pt_oldstk		; mixed value accesing the period
 	move.w	#36*2,pt_oldstk2	; table...
 
@@ -222,7 +222,7 @@ illegal_config_file:
 
 dont_read_cfgfile:
 	movem.l	(sp)+,d0-d7/a0-a6
-	moveq	#0,d0
+	;moveq	#0,d0
 	rts
 
 
