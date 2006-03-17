@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-03-16',0
+	dc.b '$VER: Protracker 3.0b player 2006-03-18',0
 	even
 
 PlayerTagArray
@@ -66,11 +66,15 @@ STK_Name:		dc.b 'Soundtracker II (31 instr.)',0
 STK15_Name:		dc.b 'Soundtracker II (15 instr.)',0
 
 
-
 cfgfile:		dc.b	'ENV:EaglePlayer/EP-PTK-Prowiz.cfg',0
 			even
 cfgbuffer:		ds.b	256
 
+; Protracker types
+PTK30=0
+PTK23=1
+PTK21=2
+PTK10=3
 
 *-----------------------------------------------------------------------*
 ;
@@ -91,6 +95,9 @@ Chk:
 	move.w	#0,pt_blkadj
 	move.w	#0,pt_seqadj
 	move.w	#37*2,pt_oldstk
+	move.w	#37*2,pt_oldstk2
+	
+	;bsr	read_config_file
 
 	move.l	dtg_ChkData(a5),a0		; get song data
 	move.l	dtg_ChkSize(a5),d1
@@ -153,6 +160,73 @@ Chk_ok_MName:
 	rts
 
 ;-------------------------------------------------------------------------
+;reads the ptk config file
+;
+read_config_file:
+	; Set Protracker compatibility
+	movem.l	d0-d7/a0-a6,-(sp)
+	move.l	dtg_DOSBase(a5),a6
+	move.l	#cfgfile,d1
+	move.l	#1005,d2		* MODE_OLDFILE
+	jsr	_LVOOpen(a6)
+	move.l	d0,d1
+	beq	dont_read_cfgfile
+	move.l	d1,-(a7)
+	move.l	#cfgbuffer,d2
+	move.l	#256,d3
+	jsr	_LVORead(a6)
+	movem.l	d0-d7/a0-a6,-(sp)
+	lea	cfgbuffer,a0
+	move.b	#256-2,d1
+
+	move.b	(a0)+,d0
+	sub.b	#$30,d0
+	and.l	#$7,d0
+	move.b	d0,pt_ntsc		; 0 = PAL, 1 = NTSC
+
+.cfgloop:
+	move.b	(a0)+,d0	
+	cmp.b	#10,d0
+	beq	.cfgloopend
+	dbra	d1,.cfgloop
+	bra.s	illegal_config_file
+
+.cfgloopend:
+	move.b	(a0)+,d0
+	sub.b	#$30,d0
+	and.l	#$7,d0
+	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3; etc.
+.pt10c:					; pt1.0c
+	cmp.b	#PTK10,d0
+	bne.s	.pt23b
+	move.b	#6,pt_vibshift	
+	move.w	#37*2,pt_oldstk	; apart from the different vibrato
+	move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
+	bra 	illegal_config_file	; for accessing the period table
+.pt23b:
+	cmp.b	#PTK23,d0
+	bne.s	.pt21b
+	move.w	#36*2,pt_oldstk		; oddly enough ptk2.3b uses the old
+	move.w	#36*2,pt_oldstk2	; oddly enough ptk2.3b uses the old
+	bra	illegal_config_file	; soundtracker value
+.pt21b:
+	cmp.b	#PTK30,d0
+	bne.s	illegal_config_file
+	move.w	#37*2,pt_oldstk		; mixed value accesing the period
+	move.w	#36*2,pt_oldstk2	; table...
+
+illegal_config_file:
+	movem.l	(sp)+,d0-d7/a0-a6
+	move.l	(a7)+,d1
+	jsr	_LVOClose(a6)
+
+dont_read_cfgfile:
+	movem.l	(sp)+,d0-d7/a0-a6
+	moveq	#0,d0
+	rts
+
+
+;-------------------------------------------------------------------------
 ;defines and flags for the different modtypes
 ;
 is_PTK:
@@ -173,6 +247,7 @@ is_FLT4:
 	st	pt_vblank
 	move.l	#7,pt_vibshift
 	move.w	#36*2,pt_oldstk
+	move.w	#36*2,pt_oldstk2
 	lea.l	FLT4_Name,a1
 	bra	Chk_ok
 
@@ -181,19 +256,21 @@ is_STK:
 	st	pt_vblank
 	move.l	#6,pt_vibshift
 	move.w	#36*2,pt_oldstk
+	move.w	#36*2,pt_oldstk2
 	st 	pt_smpl_in_bytes
 	lea.l	STK_Name,a1
 	bra	Chk_ok
 
 is_STK15:
+	st	pt_ntkporta
+	st	pt_vblank
+	st	pt_smpl_in_bytes
 	move.w	#15-1,pt_noofinstr
 	move.l	#6,pt_vibshift
 	move.w	#$1e0,pt_seqadj
 	move.w	#$1e4,pt_blkadj
 	move.w	#37*2,pt_oldstk
-	st	pt_ntkporta
-	st	pt_vblank
-	st	pt_smpl_in_bytes
+	move.w	#37*2,pt_oldstk2
 	lea.l	STK15_Name,a1
 	bra	Chk_Ok
 	
@@ -212,6 +289,8 @@ is_NTK2:
 	lea.l	NTK_2_Name,a1
 
 is_NTK:
+	move.w	#37*2,pt_oldstk
+	move.w	#37*2,pt_oldstk2
 	move.b	950(a0),pt_restart
 	st	pt_ntkporta
 	st	pt_vblank
@@ -265,52 +344,6 @@ strncpy:
 ; Init Player
 
 InitPlay:
-	; Set Protracker compatibility
-	movem.l	d0-d7/a0-a6,-(sp)
-	move.l	dtg_DOSBase(a5),a6
-	move.l	#cfgfile,d1
-	move.l	#1005,d2		* MODE_OLDFILE
-	jsr	_LVOOpen(a6)
-	move.l	d0,d1
-	beq	dont_read_cfgfile
-	move.l	d1,-(a7)
-	move.l	#cfgbuffer,d2
-	move.l	#256,d3
-	jsr	_LVORead(a6)
-	movem.l	d0-d7/a0-a6,-(sp)
-	lea	cfgbuffer,a0
-	move.b	#256-2,d1
-
-	move.b	(a0)+,d0
-	sub.b	#$30,d0
-	and.l	#$7,d0
-	move.b	d0,pt_ntsc		; 0 = PAL, 1 = NTSC
-
-.cfgloop:
-	move.b	(a0)+,d0	
-	cmp.b	#10,d0
-	beq	.cfgloopend
-	dbra	d1,.cfgloop
-	bra.s	illegal_config_file
-
-.cfgloopend:
-	move.b	(a0)+,d0
-	sub.b	#$30,d0
-	and.l	#$7,d0
-	move.b	d0,pt_ptk2		; 0 = Protracker 3.0, 1 = Protracker 2.3; 2 = Protracker 1.0c
-	cmp.b	#2,d0
-	bne	illegal_config_file
-.pt1.0c:				; pt1.0c = ptk2.3 comp  +  vibshift=6  + funkrepeat
-	move.b	#6,pt_vibshift	
-
-illegal_config_file:
-	movem.l	(sp)+,d0-d7/a0-a6
-	move.l	(a7)+,d1
-	jsr	_LVOClose(a6)
-
-dont_read_cfgfile:
-	movem.l	(sp)+,d0-d7/a0-a6
-	moveq	#0,d0
 
 	move.l	a5,delibase
 	moveq	#0,d0
@@ -734,7 +767,7 @@ pt_ftuloop:
 pt_ftufound:
 		moveq	#0,d6
 		move.b	18(a6),d6
-		mulu	pt_oldstk,d6
+		mulu	pt_oldstk2,d6
 		adda.l	d6,a1
 		move.w	(a1,d0.w),16(a6)
 		move.w	2(a6),d0
@@ -867,7 +900,7 @@ pt_setback:
 pt_return:
 		rts
 		
-pt_pernop:	tst.b	pt_ptk2		; tst if ptk 1.1/2.3 or 3.0
+pt_pernop:	cmp.b	#PTK30,pt_ptk2		; tst if ptk 1.0/2.3 or 3.0
 		beq.s 	.ptk3	
 		move.w 16(a6),6(a5)
 .ptk3		rts
@@ -897,7 +930,7 @@ pt_arpeggiofind:
 		add.w	d0,d0
 		moveq	#0,d1
 		move.b	18(a6),d1
-		mulu	pt_oldstk,d1
+		mulu	pt_oldstk2,d1
 		lea	pt_periodtable(pc),a0
 		adda.l	d1,a0
 		moveq	#0,d1
@@ -1030,7 +1063,7 @@ pt_toneportasetper:
 		beq.b	pt_glissskip
 		moveq	#0,d0
 		move.b	18(a6),d0
-		mulu	pt_oldstk,d0
+		mulu	pt_oldstk2,d0
 		lea	pt_periodtable(pc),a0
 		adda.l	d0,a0
 		moveq	#0,d0
@@ -1038,7 +1071,7 @@ pt_glissloop:
 		cmp.w	(a0,d0.w),d2
 		bhs.b	pt_glissfound
 		addq.w	#2,d0
-		cmp.w	pt_oldstk,d0
+		cmp.w	pt_oldstk2,d0
 		blo.b	pt_glissloop
 		moveq	#35*2,d0
 pt_glissfound:
@@ -1289,9 +1322,9 @@ pt_settempoend	rts
 
 pt_checkmoreeffects:
 
-		tst.b	pt_ptk2		; tst if ptk 1.1/2.3 or 3.0
-		beq.s 	.ptk3	
-		bsr	pt_updatefunk
+		cmp.b	#PTK30,pt_ptk2		; tst if ptk 1.0/2.3 update 
+		beq.s 	.ptk3			; funk repeat
+		bsr	pt_updatefunk		; ptk 3.0 doesn't
 
 .ptk3
 		move.b	2(a6),d0
@@ -1309,8 +1342,8 @@ pt_checkmoreeffects:
 		cmpi.b	#12,d0
 		beq.w	pt_volumechange
 
-		cmp.b	#2,pt_ptk2
-		bne.s	.end
+		cmp.b	#PTK10,pt_ptk2		; Ptk 1.0c doesn't set period
+		bne.s	.end			; here.
 		move.w	16(a6),6(a5)
 .end		rts
 
@@ -1636,7 +1669,7 @@ pt_restart		dc.b	0
 
 pt_ntkporta		dc.b	0
 
-pt_ptk2			dc.b	0	; 0 for ptk 3.0, 1 = ptk1.1/2.3, 2=ptk1.0c
+pt_ptk2			dc.b	0
 
 pt_ntsc			dc.b	0	; 0 for pal, 1 = ntsc
 
@@ -1656,6 +1689,7 @@ pt_blkadj		dc.w	0
 pt_seqadj		dc.w	0
 
 pt_oldstk		dc.w	37*2
+pt_oldstk2		dc.w	37*2
 */
 
 pt_timervalue:

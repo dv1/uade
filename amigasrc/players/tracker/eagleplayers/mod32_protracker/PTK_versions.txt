@@ -70,14 +70,32 @@ PK3.0B:
 
 Info: while protracker 1.1b-2.3a update the periods when playing the voices,
 and while processing the effects/extended effects, ptk1.0c and ptk3.0b
-only update it twice.
+only updates it twice.
 Th effect is recognizable with emax_enjoythesilence.mod. E.g. using
 the way PTK1.0c sets the periods results in a rather flat sounding output
 loosing some of its effects.
 
 
+Accesing the Periodtable:
+-------------------------
+Info: For the effects like portamento, finetune etc. the period table is
+accessed in getting the value by multiplying either 36*2 (old soundtracker)
+or 37*2 (Noisetracker). In Protracker this is completely screwed up...
+Some use 36*2, other 37*2 and last but least sometimes even both...
+
+PTK1.0C & PTK1.1b & PTK2.1a:
+    36*2 for ftufound, Arpeggio3, TonePortaSetPer, GlissLoop
+    37*2 for SetTonePorta, STPLoop
+
+PTK1.1b(fixed) & PTK2.3b:
+    36*2 for all
+        
+PTK3.0b:
+    37*2 for all
+
+
 mt_UpdateFunk in mt_CheckMoreEfx:
-----------------------------
+---------------------------------
 PTK1.0c-2.3a:
     mt_UpdateFunk is called in the beginning of mt_CheckMoreEfx
 
