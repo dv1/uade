@@ -722,7 +722,7 @@ rplen_ok	add.w	6(a3,d4.l),d0		; Add repeat length
 
 		cmp.b	#PTK30,d0
 		beq.s	.pt30
-		 moveq	#0,d0			; ptk23 sets volume
+		 moveq	#0,d0			; ptk23 sets volume here
 		 move.b	19(a6),d0
 		 move.w	d0,8(a5)
 .pt30		bra.b	pt_setregisters
@@ -738,7 +738,7 @@ pt_noloop:
 
 .ptk30vol	cmp.b	#PTK30,d0
 		beq.s	pt_setregisters
-		 moveq	#0,d0			; ptk23 sets volume
+		 moveq	#0,d0			; ptk23 sets volume here
 		 move.b	19(a6),d0
 		 move.w	d0,8(a5)
 pt_setregisters:
@@ -1284,7 +1284,10 @@ pt_volslideup:
 		move.b	#64,19(a6)
 pt_vsuskip:
 		move.b	19(a6),d0
-		rts
+		cmp.b	#PTK30,pt_ptk2		; tst if ptk 1.0/2.3 or 3.0
+		beq.s 	.ptk3	
+		move.w	d0,8(a5)
+.ptk3		rts
 pt_volslidedown:
 		moveq	#0,d0
 		move.b	3(a6),d0
@@ -1295,7 +1298,10 @@ pt_volslidedown2:
 		clr.b	19(a6)
 pt_vsdskip:
 		move.b	19(a6),d0
-		rts
+		cmp.b	#PTK30,pt_ptk2		; tst if ptk 1.0/2.3 or 3.0
+		beq.s 	.ptk3	
+		move.w	d0,8(a5)
+.ptk3		rts
 pt_positionjump:
 		moveq	#0,d0
 		move.b	3(a6),d0
@@ -1313,7 +1319,10 @@ pt_volumechange:
 		moveq	#64,d0
 pt_volumeok:
 		move.b	d0,19(a6)
-		rts
+		cmp.b	#PTK30,pt_ptk2		; tst if ptk 1.0/2.3 or 3.0
+		beq.s 	.ptk3	
+		move.w	d0,8(a5)
+.ptk3		rts
 pt_patternbreak:
 		moveq	#0,d0
 		move.b	3(a6),d0
