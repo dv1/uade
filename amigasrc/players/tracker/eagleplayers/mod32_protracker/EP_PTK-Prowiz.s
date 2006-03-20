@@ -206,8 +206,8 @@ read_config_file:
 .ptk23	cmp.b	#PTK23,d0
 	beq.s	illegal_config_file
 
-.ptkdef	cmp.b	#PTKHACK,d0
-	bne.s	.ptk30
+.ptkdef	cmp.b	#PTKHACK,d0		; Hybrid: 2.3 pt_CheckMoreEffects
+	bne.s	.ptk30			;         3.0 Volume setting
 	 move.b	#PTK30,pt_ptk_type
 	 bra.s	illegal_config_file
 
