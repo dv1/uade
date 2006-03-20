@@ -1,8 +1,10 @@
-CC = {CC}
+ARCHFLAGS={ARCHFLAGS}
+CC={CC}
+DEBUGFLAGS={DEBUGFLAGS}
 XMMSFLAGS={XMMSFLAGS}
 XMMSLIBS={XMMSLIBS}
 SHAREDLIBRARYFLAGS={SHAREDLIBRARYFLAGS}
-CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) -g $(XMMSFLAGS) -I../common -I../../include
+CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) $(DEBUGFLAGS) $(XMMSFLAGS) $(ARCHFLAGS) -I../common -I../../include
 CLIBS = $(XMMSLIBS)
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \

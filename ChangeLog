@@ -1,3 +1,11 @@
+2006-03-20  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed slight bugs in build system. Architecture specific CFLAGS
+	  were missing from xmms and audacious frontends. Also, those flags
+	  will be the last flags always so that they can be used for
+	  overriding other options.
+	- Made debug flags really optional. They can be turned off with
+	  --no-debug (for configure).
+
 2006-03-20  Michael Doering <mld@users.sourceforge.net>
 	- Figured out the period multiplier issue. It was a bug in my
 	  brain. *g*

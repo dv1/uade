@@ -1,8 +1,10 @@
-CC = {CC}
+ARCHFLAGS={ARCHFLAGS}
+CC={CC}
+DEBUGFLAGS={DEBUGFLAGS}
 AUDACIOUSFLAGS={AUDACIOUSFLAGS}
 AUDACIOUSLIBS={AUDACIOUSLIBS}
 SHAREDLIBRARYFLAGS={SHAREDLIBRARYFLAGS}
-CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) -g $(AUDACIOUSFLAGS) -I../common -I../../include
+CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) $(AUDACIOUSFLAGS) $(ARCHFLAGS) $(DEBUGFLAGS) -I../common -I../../include
 CLIBS = $(XMLIBS)
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \

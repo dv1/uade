@@ -24,7 +24,7 @@ if test -n "$LDFLAGS"; then
     echo "Adding $ARCHLIBS to ARCHLIBS"
 fi
 
-debug_flags=""
+debug_flags="-g"
 packageprefix=""
 user="no"
 usexmms="auto"
@@ -116,8 +116,8 @@ for opt in "$@" ; do
         --user)
 		user="yes"
 		;;
-	--debug)
-		debug_flags="-g"
+	--no-debug)
+		debug_flags=""
 		;;
 	--help)
 		echo
