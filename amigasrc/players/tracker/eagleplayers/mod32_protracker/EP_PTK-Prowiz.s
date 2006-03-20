@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-03-18',0
+	dc.b '$VER: Protracker 3.0b player 2006-03-20',0
 	even
 
 PlayerTagArray
@@ -76,6 +76,12 @@ PTK23=1
 PTK21=2
 PTK10=3
 
+PTKHACK=9
+
+
+PAL=0
+NTSC=1
+
 *-----------------------------------------------------------------------*
 ;
 ; Test Soundtracker-Module
@@ -96,7 +102,6 @@ Chk:
 	move.w	#0,pt_seqadj
 	move.w	#37*2,pt_oldstk
 	move.w	#37*2,pt_oldstk2
-	move.w	#37-1,pt_oldstk2_lim
 	
 	bsr	read_config_file
 
@@ -197,29 +202,31 @@ read_config_file:
 	sub.b	#$30,d0
 	and.l	#$7,d0
 	move.b	d0,pt_ptk_type		; 0 = Protracker 3.0, 1 = Protracker 2.3; etc.
-	cmp.b	#PTK30,d0
+
+.ptk23	cmp.b	#PTK23,d0
 	beq.s	illegal_config_file
-.pt10c:					; pt1.0c
-	cmp.b	#PTK10,d0
-	bne.s	.pt23b
-	move.b	#6,pt_vibshift
-	;move.w	#37*2,pt_oldstk		; apart from the different vibrato
-	;move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
-	;move.w	#36-1,pt_oldstk2_lim
-	bra 	illegal_config_file	; for accessing the period table
-.pt23b:
-	cmp.b	#PTK23,d0
-	bne.s	.pt21b
-	;move.w	#36*2,pt_oldstk		; oddly enough ptk2.3b uses the old
-	;move.w	#36*2,pt_oldstk2	; oddly enough ptk2.3b uses the old
-	;move.w	#36-1,pt_oldstk2_lim
-	bra	illegal_config_file	; soundtracker value
-.pt21b:
-	cmp.b	#PTK21,d0
+
+.ptkdef	cmp.b	#PTKHACK,d0
+	bne.s	.ptk30
+	 move.b	#PTK30,pt_ptk_type
+	 bra.s	illegal_config_file
+
+.ptk30	cmp.b	#PTK30,d0
+	bne.s	.ptk10c
+	 st	pt_ptk30_cme
+	 bra.s	illegal_config_file
+
+.ptk10c	cmp.b	#PTK10,d0
+	bne.s	.ptk21a
+	 move.b	#6,pt_vibshift
+	 move.w	#38*2,pt_oldstk		; apart from the different vibrato
+	 move.w	#37*2,pt_oldstk2	; pt10c uses a mixed up value
+	 bra 	illegal_config_file	; for accessing the period table
+
+.ptk21a:	cmp.b	#PTK21,d0
 	bne.s	illegal_config_file
-	;move.w	#37*2,pt_oldstk		; mixed value accesing the period
-	;move.w	#36*2,pt_oldstk2	; table...
-	;move.w	#36-1,pt_oldstk2_lim
+	 move.w	#38*2,pt_oldstk		; mixed value accesing the period
+	 move.w	#37*2,pt_oldstk2	; table...
 
 illegal_config_file:
 	movem.l	(sp)+,d0-d7/a0-a6
@@ -253,7 +260,6 @@ is_FLT4:
 	move.l	#7,pt_vibshift
 	move.w	#36*2,pt_oldstk
 	move.w	#36*2,pt_oldstk2
-	move.w	#36-1,pt_oldstk2_lim
 	lea.l	FLT4_Name,a1
 	bra	Chk_ok
 
@@ -263,7 +269,6 @@ is_STK:
 	move.l	#6,pt_vibshift
 	move.w	#36*2,pt_oldstk
 	move.w	#36*2,pt_oldstk2
-	move.w	#36-1,pt_oldstk2_lim
 	st 	pt_smpl_in_bytes
 	lea.l	STK_Name,a1
 	bra	Chk_ok
@@ -277,7 +282,6 @@ is_STK15:
 	move.w	#$1e0,pt_seqadj
 	move.w	#$1e4,pt_blkadj
 	move.w	#37*2,pt_oldstk
-	move.w	#37*2,pt_oldstk2
 	lea.l	STK15_Name,a1
 	bra	Chk_Ok
 	
@@ -617,31 +621,40 @@ notvisitedbefore
 		lea	pt_audchan1temp(pc),a6
 		moveq	#1,d2
 		bsr.b	pt_playvoice
-		moveq	#0,d0
-		move.b	19(a6),d0
-		move.w	d0,8(a5)
-		lea	$dff0b0,a5
+
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.pt30_1
+		 moveq	#0,d0
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+.pt30_1		lea	$dff0b0,a5
 		lea	pt_audchan2temp(pc),a6
 		moveq	#2,d2
 		bsr.b	pt_playvoice
-		moveq	#0,d0
-		move.b	19(a6),d0
-		move.w	d0,8(a5)
-		lea	$dff0c0,a5
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.pt30_2
+		 moveq	#0,d0
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+.pt30_2		lea	$dff0c0,a5
 		lea	pt_audchan3temp(pc),a6
 		moveq	#3,d2
 		bsr.b	pt_playvoice
-		moveq	#0,d0
-		move.b	19(a6),d0
-		move.w	d0,8(a5)
-		lea	$dff0d0,a5
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.pt30_3
+		 moveq	#0,d0
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+.pt30_3		lea	$dff0d0,a5
 		lea	pt_audchan4temp(pc),a6
 		moveq	#4,d2
 		bsr.b	pt_playvoice
-		moveq	#0,d0
-		move.b	19(a6),d0
-		move.w	d0,8(a5)
-		bra.w	pt_setdma
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.pt30_4
+		 moveq	#0,d0
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+.pt30_4		bra.w	pt_setdma
 pt_checkmetronome:
 		cmp.b	pt_metrochannel(pc),d2
 		bne.b	pt_quit
@@ -727,12 +740,13 @@ rplen_ok	add.w	6(a3,d4.l),d0		; Add repeat length
 		move.w	d0,8(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save replen
 
-		cmp.b	#PTK30,d0
-		beq.s	.pt30
+		cmp.b	#PTK30,pt_ptk_type
+		beq.s	pt_setregisters
 		 moveq	#0,d0			; ptk23 sets volume here
 		 move.b	19(a6),d0
 		 move.w	d0,8(a5)
-.pt30		bra.b	pt_setregisters
+		bra.b	pt_setregisters
+
 pt_noloop:
 		move.l	4(a6),d2
 		add.l	d3,d2
@@ -742,8 +756,7 @@ pt_noloop:
 		 tst.w	14(a6)			; repeat length zero?
 		 bne	.ptk30vol		; nope
 		 move.w	#2,14(a6)		; otherwise set it to std
-
-.ptk30vol	cmp.b	#PTK30,d0
+.ptk30vol	cmp.b	#PTK30,pt_ptk_type
 		beq.s	pt_setregisters
 		 moveq	#0,d0			; ptk23 sets volume here
 		 move.b	19(a6),d0
@@ -778,7 +791,7 @@ pt_setperiod:
 		andi.w	#$0fff,d6
 		lea	pt_periodtable(pc),a1
 		moveq	#0,d0
-		move.w	pt_oldstk2_lim,d7 ; 36 for 37*2, 35 for 36 * 2 ?
+		moveq	#36,d7
 pt_ftuloop:
 		cmp.w	(a1,d0.w),d6
 		bhs.b	pt_ftufound
@@ -788,7 +801,6 @@ pt_ftufound:
 		moveq	#0,d6
 		move.b	18(a6),d6
 		mulu	pt_oldstk2,d6
-		;mulu	#36*2,d6
 		adda.l	d6,a1
 		move.w	(a1,d0.w),16(a6)
 		;MOVEM.L	(sp)+,D0-D6/A0-A1
@@ -806,7 +818,7 @@ pt_vibnoc:
 		bne.b	pt_trenoc
 		clr.b	29(a6)
 pt_trenoc:
-		cmp.b	#PTK30,d0
+		cmp.b	#PTK30,pt_ptk_type
 		beq.s	.pt30_trenoc
 		; pt2.3 style
 		move.w	8(a6),4(a5)		; Set length
@@ -899,11 +911,12 @@ pt_nonewpositionyet:
 		rts
 pt_checkeffects:
 		bsr.b	pt_chkefx2
-		moveq	#0,d0
-		move.b	19(a6),d0
-		move.w	d0,8(a5)
-pt_gone:
-		rts
+		cmp.b	#PTK30,pt_ptk_type		; tst if ptk 1.0/2.3 or 3.0
+		bne.s 	pt_gone
+		 moveq	#0,d0
+		 move.b	19(a6),d0
+		 move.w	d0,8(a5)
+pt_gone:	rts
 pt_chkefx2:
 		bsr.w	pt_updatefunk
 		move.w	2(a6),d0
@@ -936,7 +949,7 @@ pt_setback:
 pt_return:
 		rts
 		
-pt_pernop:	cmp.b	#PTK30,pt_ptk_type		; tst if ptk 1.0/2.3 or 3.0
+pt_pernop:	cmp.b	#1,pt_ptk30_cme
 		beq.s 	.ptk3	
 		move.w 16(a6),6(a5)
 .ptk3		rts
@@ -967,16 +980,17 @@ pt_arpeggiofind:
 		moveq	#0,d1
 		move.b	18(a6),d1
 		mulu	pt_oldstk2,d1
-		;mulu	#36*2,d1
 		lea	pt_periodtable(pc),a0
 		adda.l	d1,a0
 		moveq	#0,d1
 		move.w	16(a6),d1
-		move.w	pt_oldstk2_lim,d7	;35?
+		moveq	#36,d7
 pt_arploop:
 		move.w	(a0,d0.w),d2
-		cmp.w	(a0)+,d1
+		;cmp.w	(a0)+,d1
+		cmp.w	(a0),d1
 		bhs.b	pt_arpeggioset
+		addq.l	#2,a0
 		dbf	d7,pt_arploop
 		rts
 pt_arpeggioset:
@@ -1036,7 +1050,6 @@ pt_settoneporta:
 		moveq	#0,d0
 		move.b	18(a6),d0
 		mulu	pt_oldstk,d0
-		;mulu	#36*2,d0
 		lea	pt_periodtable(pc),a1
 		adda.l	d0,a1
 		moveq	#0,d0
@@ -1045,7 +1058,6 @@ pt_stploop:
 		bhs.b	pt_stpfound
 		addq.w	#2,d0
 		cmp.w	pt_oldstk,d0
-		;cmp.w	#36*2,d0
 		blo.b	pt_stploop
 		moveq	#35*2,d0
 pt_stpfound:
@@ -1105,7 +1117,6 @@ pt_toneportasetper:
 		moveq	#0,d0
 		move.b	18(a6),d0
 		mulu	pt_oldstk2,d0
-		;mulu	#36*2,d0
 		lea	pt_periodtable(pc),a0
 		adda.l	d0,a0
 		moveq	#0,d0
@@ -1114,7 +1125,6 @@ pt_glissloop:
 		bhs.b	pt_glissfound
 		addq.w	#2,d0
 		cmp.w	pt_oldstk2,d0
-		;cmp.w	#36*2,d0		
 		blo.b	pt_glissloop
 		moveq	#35*2,d0
 pt_glissfound:
@@ -1259,7 +1269,7 @@ pt_tremolook:
 		lsr.w	#2,d0
 		andi.w	#60,d0
 		add.b	d0,29(a6)
-		addq.l	#4,sp
+		addq.l	#4,sp		; missing in 2.3a
 		rts
 pt_sampleoffset:
 		moveq	#0,d0
@@ -1373,13 +1383,11 @@ pt_settempoend	rts
 
 
 pt_checkmoreeffects:
-
-		cmp.b	#PTK30,pt_ptk_type	; tst if ptk 1.0/2.3 update 
+		;cmp.b	#PTK30,pt_ptk_type	; tst if ptk 1.0/2.3 update 
+		cmp.b	#1,pt_ptk30_cme
 		beq.s 	.ptk3			; funk repeat
-
-		bsr	pt_updatefunk		; ptk 3.0 doesn't
-.ptk3
-		move.b	2(a6),d0
+		 bsr	pt_updatefunk		; ptk 3.0 doesn't
+.ptk3		move.b	2(a6),d0
 		andi.b	#15,d0
 		cmpi.b	#9,d0
 		beq.w	pt_sampleoffset
@@ -1395,7 +1403,7 @@ pt_checkmoreeffects:
 		beq.w	pt_volumechange
 
 		cmp.b	#PTK10,pt_ptk_type	; Ptk 1.0c doesn't set period
-		bne.s	.end			; here.
+		beq.s	.end			; here.
 		move.w	16(a6),6(a5)
 .end		rts
 
@@ -1563,8 +1571,12 @@ pt_notecut:
 		cmp.l	pt_counter(pc),d0
 		bne.b	pt_rtnend
 		clr.b	19(a6)
-		move.w	#0,8(a5)
-		rts
+
+		cmp.b	#PTK30,pt_ptk_type	
+		beq.s 	.ptk3	
+		 move.w	#0,8(a5)
+.ptk3		rts
+
 pt_notedelay:
 		moveq	#0,d0
 		move.b	3(a6),d0
@@ -1598,7 +1610,7 @@ pt_funkit:
 		tst.b	d0
 		beq.b	pt_endit
 pt_updatefunk:
-		cmp.b	#2,pt_ptk_type		; Protracker 1.0c
+		cmp.b	#PTK10,pt_ptk_type		; Protracker 1.0c
 		beq.s	mt_UpdateFunk
 
 		moveq	#0,d0
@@ -1721,9 +1733,11 @@ pt_restart		dc.b	0
 
 pt_ntkporta		dc.b	0
 
-pt_ptk_type		dc.b	0	; default Type is PTK 3.0b
+pt_ptk_type		dc.b	PTK30	; default Type is PTK 3.0b
 
-pt_ntsc			dc.b	0	; 0 for pal, 1 = ntsc
+pt_ptk30_cme		dc.b	0
+
+pt_ntsc			dc.b	PAL	; 0 for pal, 1 = ntsc
 
 pt_vblank		dc.b	0
 
@@ -1743,8 +1757,6 @@ pt_seqadj		dc.w	0
 pt_oldstk		dc.w	37*2
 
 pt_oldstk2		dc.w	37*2
-
-pt_oldstk2_lim		dc.w	37-1
 
 */
 

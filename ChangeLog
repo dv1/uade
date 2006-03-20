@@ -1,3 +1,14 @@
+2006-03-20  Michael Doering <mld@users.sourceforge.net>
+	- Figured out the period multiplier issue. It was a bug in my
+	  brain. *g*
+	- Forgot to add notecut volume setting for protracker 2.3 and below.
+	  This is now fixed.
+	- Set the default playback style to Protracker 3.0b.
+	- Added an experimental hybrid protracker setup: 9.
+	  Effects are done  ptk 2.3a style, volume setting like 3.0.
+	  This fixes some pops and clicks which the even original
+	  protacker 2.3a had.
+	  
 2006-03-17  Michael Doering <mld@users.sourceforge.net>
 	- Enhanced compatibilty concerning protracker 2.3a/1.1b(fixed),
 	  2.1a/1.1b, 1.0c and Prottracker 3.0b concerning access of
