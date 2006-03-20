@@ -79,9 +79,10 @@ loosing some of its effects.
 Accesing the Periodtable:
 -------------------------
 Info: For the effects like portamento, finetune etc. the period table is
-accessed in getting the value by multiplying either 36*2 (old soundtracker)
-or 37*2 (Noisetracker). In Protracker this is completely screwed up...
-Some use 36*2, other 37*2 and last but least sometimes even both...
+accessed in getting the value by multiplying either 36*2. In Protracker this
+is completely screwed up...
+Some use 36*2 throughout the replay and last but least some 
+sometimes even both...
 
 PTK1.0C & PTK1.1b & PTK2.1a:
     36*2 for ftufound, Arpeggio3, TonePortaSetPer, GlissLoop
@@ -91,7 +92,7 @@ PTK1.1b(fixed) & PTK2.3b:
     36*2 for all
         
 PTK3.0b:
-    37*2 for all
+    36*2 for all (37*2 with trailing zero in periodtable)
 
 
 mt_UpdateFunk in mt_CheckMoreEfx:
@@ -112,7 +113,7 @@ Volume setting when playing no note:
 ------------------------------------
 Info: it seems Protracker 2.3 and below sets/updates the volume when
 in playvoice skip and the no loop routine, while Protracker 3.0 sets it
-after calling playvoice, and doesn't update volum in notecut.
+after calling playvoice, and doesn't update volume in notecut.
 
 
 
