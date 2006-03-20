@@ -111,7 +111,7 @@ that "breaks", tho.
 Volume setting when playing no note:
 ------------------------------------
 Info: it seems Protracker 2.3 and below sets/updates the volume when
-in playvoice skip and the no loop routine, while Protracker 3.0
+in playvoice skip and the no loop routine, while Protracker 3.0 doesn't.
 
 
 
