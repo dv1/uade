@@ -1,3 +1,6 @@
+2006-03-20  Michael Doering <mld@users.sourceforge.net>
+	- Small protacker replayer config file parsing fix...
+
 2006-03-20  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed slight bugs in build system. Architecture specific CFLAGS
 	  were missing from xmms and audacious frontends. Also, those flags
@@ -13,7 +16,7 @@
 	  This is now fixed.
 	- Set the default playback style to Protracker 3.0b.
 	- Added an experimental hybrid protracker setup: 9.
-	  Effects are done  ptk 2.3a style, volume setting like 3.0.
+	  Effects are done ptk2.3a style, volume setting like 3.0.
 	  This fixes some pops and clicks which even the original
 	  protacker 2.3a replay and below had.
 	  

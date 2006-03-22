@@ -200,7 +200,6 @@ read_config_file:
 .cfgloopend:
 	move.b	(a0)+,d0
 	sub.b	#$30,d0
-	and.l	#$7,d0
 	move.b	d0,pt_ptk_type		; 0 = Protracker 3.0, 1 = Protracker 2.3; etc.
 
 .ptk23	cmp.b	#PTK23,d0
@@ -949,8 +948,8 @@ pt_setback:
 pt_return:
 		rts
 		
-pt_pernop:	cmp.b	#1,pt_ptk30_cme
-		beq.s 	.ptk3	
+pt_pernop:	tst.b	pt_ptk30_cme
+		bne.s 	.ptk3	
 		move.w 16(a6),6(a5)
 .ptk3		rts
 
@@ -1383,8 +1382,8 @@ pt_settempoend	rts
 
 
 pt_checkmoreeffects:
-		cmp.b	#1,pt_ptk30_cme
-		beq.s 	.ptk3
+		tst.b	pt_ptk30_cme
+		bne.s 	.ptk3
 		 bsr	pt_updatefunk		; ptk 3.0 doesn't call it
 .ptk3		move.b	2(a6),d0
 		andi.b	#15,d0
