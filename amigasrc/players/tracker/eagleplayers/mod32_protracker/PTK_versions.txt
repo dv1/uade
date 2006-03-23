@@ -24,10 +24,14 @@ PTK1.1b and above
 
 Info: Protracker 1.0c and below had a completely different effect, when
 effect 0xef was used. According to the replay it was called funk_repeat.
-I miss a song, that really uses this feature.
+
 Later Protrackers use invert loop for the 0xef effect. So songs
 using the effect will most likely sound screwed up, when played with the
 wrong replay.
+
+For testing purposes dreamfish, check out dreamfish's MOD.miami vice. It
+uses "invert loop" and sounds broken with a PTK1.0c replay. Now we 
+need the "evil twin", a tune using funk repeat :-)
 
 
 Vibrato
@@ -71,7 +75,7 @@ PK3.0B:
 Info: while protracker 1.1b-2.3a update the periods when playing the voices,
 and while processing the effects/extended effects, ptk1.0c and ptk3.0b
 only updates it twice.
-Th effect is recognizable with emax_enjoythesilence.mod. E.g. using
+The effect is recognizable with emax_enjoythesilence.mod. E.g. using
 the way PTK1.0c sets the periods results in a rather flat sounding output
 loosing some of its effects.
 
@@ -79,10 +83,9 @@ loosing some of its effects.
 Accesing the Periodtable:
 -------------------------
 Info: For the effects like portamento, finetune etc. the period table is
-accessed in getting the value by multiplying either 36*2. In Protracker this
-is completely screwed up...
-Some use 36*2 throughout the replay and last but least some 
-sometimes even both...
+accessed in getting the value by multiplying either 36*2. In some Protracker
+this is completely screwed up...
+Some use 36*2 throughout the replay and some sometimes even both...
 
 PTK1.0C & PTK1.1b & PTK2.1a:
     36*2 for ftufound, Arpeggio3, TonePortaSetPer, GlissLoop
@@ -92,7 +95,7 @@ PTK1.1b(fixed) & PTK2.3b:
     36*2 for all
         
 PTK3.0b:
-    36*2 for all (37*2 with trailing zero in periodtable)
+    36*2 for all (37*2 for PTK3.0 with trailing zero in periodtable)
 
 
 mt_UpdateFunk in mt_CheckMoreEfx:
@@ -105,8 +108,7 @@ PTK3.0b:
 
 
 Info: While Funkrepeat (0xef) is updated with the old values before the new
-extended 0xe# effects are parsed, PTK3.0b doesn't. I yet have to find a mod
-that "breaks", tho.
+extended 0xe# effects are parsed, PTK3.0b doesn't. 
 
 
 Volume setting when playing no note:
@@ -115,14 +117,25 @@ Info: it seems Protracker 2.3 and below sets/updates the volume when
 in playvoice skip and the no loop routine, while Protracker 3.0 sets it
 after calling playvoice, and doesn't update volume in notecut.
 
+One of the effects is volume setting without pops'n clicks in PTK3.0 when
+quickly changing volumes, like  e.g. in MOD.JustforFun.
+
+
+Karplusstrong effect 0xE8
+-------------------------
+PTK1.0-2.3
+    not supported
+PTK3.0:
+    supported    
 
 
 
 Portamento:
 -----------
 All PTK:
-    first portamento up/down effect call is ignored due to unintialised
-    value
+    very first portamento up/down effect call is ignored due to unintialised
+    value. This is breaking e.g. Mod.Poseidon by uncle tom, when played
+    as the very first song after starting the Tracker.
 
 Info: Noise/Soundtracker/Startrekker will sound broken when played as
 Protracker and using Portamento.
