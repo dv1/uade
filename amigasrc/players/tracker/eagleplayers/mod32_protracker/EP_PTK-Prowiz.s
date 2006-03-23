@@ -817,8 +817,8 @@ pt_vibnoc:
 		bne.b	pt_trenoc
 		clr.b	29(a6)
 pt_trenoc:
-		cmp.b	#PTK30,pt_ptk_type
-		beq.s	.pt30_trenoc
+		tst.b	pt_ptk30_cme
+		bne.s	.pt30_trenoc
 		; pt2.3 style
 		move.w	8(a6),4(a5)		; Set length
 		move.l	4(a6),(a5)		; Set start
