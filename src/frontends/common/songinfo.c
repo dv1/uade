@@ -248,28 +248,36 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
   if (!string_checker(buf, 0, len))
     return;
 
-  snprintf(tmpstr, 34, "\nSong title:\t%s\n", buf);
+  snprintf(tmpstr, 34, "\nSong title:\t%s", buf);
   strlcat(credits, tmpstr, credits_len);
 
   if (inst == 31) {
     if (len >= 0x43c) {
-      snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[0x3b6]);
+      snprintf(tmpstr, sizeof tmpstr, "\nmax positions:  %d\n", buf[0x3b6]);
       strlcat(credits, tmpstr, credits_len);
     }
   } else {
     if (len >= 0x1da) {
-      snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[0x1d6]);
+      snprintf(tmpstr, sizeof tmpstr, "\nmax positions:  %d\n", buf[0x1d6]);
       strlcat(credits, tmpstr, credits_len);
     }
   }
 
+  snprintf(tmpstr, sizeof tmpstr,"\nINST - NAME                     SIZE VOL FINE LSTART LSIZE\n");
+  strlcat(credits, tmpstr, credits_len);
   if (len >= (0x14 + inst * 0x1e)) {
     for (i = 0; i < inst; i++) {
       if (!string_checker(buf, 0x14 + i * 0x1e, len))
 	break;
-      snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
+      snprintf(tmpstr, sizeof tmpstr, "[%2d] - ",i+1);
       strlcat(credits, tmpstr, credits_len);
-      snprintf(tmpstr, 23, buf + 0x14 + (i * 0x1e));
+      snprintf(tmpstr, 23, "%-23s",buf + 0x14 + (i * 0x1e));
+      strlcat(credits, tmpstr, credits_len);
+      snprintf(tmpstr, sizeof tmpstr, " %6d  %2d  %2d %6d %6d\n",read_be_u16(buf + 42 + i * 0x1e)*2,
+    								   buf[45 + i * 0x1e],
+							           buf[44 + i * 0x1e],
+							           read_be_u16(buf + 46 + i * 0x1e)*2,
+							           read_be_u16(buf + 48 + i * 0x1e)*2);
       strlcat(credits, tmpstr, credits_len);
     }
   }

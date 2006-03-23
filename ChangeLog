@@ -1,3 +1,8 @@
+2006-03-23  Michael Doering <mld@users.sourceforge.net>
+	- Sync'd songinfo for modfiles with the more verbose appearance of
+	  Asle's ModInfo v2.31 appearance... It displays now sample sizes,
+	  volume, finetune, loop start and loop size, too.
+
 2006-03-20  Michael Doering <mld@users.sourceforge.net>
 	- Small protacker replayer config file parsing fix...
 
