@@ -109,6 +109,8 @@ PTK3.0b:
 
 Info: While Funkrepeat (0xef) is updated with the old values before the new
 extended 0xe# effects are parsed, PTK3.0b doesn't. 
+For testing purposes again check out dreamfish's MOD.miami vice. The weird
+phasing effect differs between the PTK3.0 and 2.3 replay.
 
 
 Volume setting when playing no note:
@@ -127,6 +129,16 @@ PTK1.0-2.3
     not supported
 PTK3.0:
     supported    
+
+do_retrig
+---------
+PTK3.0 sets period in do_retrig, while  PTK2.3 doesn't.
+
+
+PlayVoice
+----------
+PTK3.0 sets sample number in PLVSKIP (play voice skip), while PTK2.3
+doesn't.
 
 
 

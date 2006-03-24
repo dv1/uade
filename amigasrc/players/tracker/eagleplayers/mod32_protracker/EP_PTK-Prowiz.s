@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-03-20',0
+	dc.b '$VER: Protracker 3.0b player 2006-03-24',0
 	even
 
 PlayerTagArray
@@ -693,8 +693,10 @@ pt_plvskip:
 		moveq	#0,d3
 		lea	pt_samplestarts(pc),a1
 		move.w	d2,d4
-		move.b	d2,43(a6)
-		subq.l	#1,d2
+		cmp.b	#PTK30,pt_ptk_type
+		bne	.ptk23
+		 move.b	d2,43(a6)		; ptk30 sets n_samplenum
+.ptk23		subq.l	#1,d2
 		lsl.l	#2,d2
 		mulu	#30,d4
 		
@@ -1538,8 +1540,10 @@ pt_doretrg:
 		move.w	20(a6),$dff096
 		move.l	4(a6),(a5)
 		move.w	8(a6),4(a5)
-		move.w	16(a6),6(a5)
-		bsr.w	pt_raster
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.ptk23
+		 move.w	16(a6),6(a5)		; ptk30 sets period here
+.ptk23		bsr.w	pt_raster
 		move.w	20(a6),d0
 		ori.w	#$8000,d0
 		move.w	d0,$dff096

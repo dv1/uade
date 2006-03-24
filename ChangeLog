@@ -2,8 +2,14 @@
 	- Sync'd songinfo for modfiles with the more verbose appearance of
 	  Asle's ModInfo v2.31 appearance... It displays now sample sizes,
 	  volume, finetune, loop start and loop size, too.
+	- Added yet some more tiny differences between Protracker 2.3 and 3.0
+	  compatibility mode for completeness... (set sample_num in pt_plvskip, and n_period in
+	  pt_doretrig).
+	  These changes might have no effect on the replay quality like e.g.
+	  earlier mentioned Updatefunk calling difference or volume setting,
+	  though.
 
-2006-03-20  Michael Doering <mld@users.sourceforge.net>
+2006-03-21  Michael Doering <mld@users.sourceforge.net>
 	- Small protacker replayer config file parsing fix...
 
 2006-03-20  Heikki Orsila <heikki.orsila@iki.fi>
