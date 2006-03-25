@@ -18,12 +18,27 @@
 #include <uadecontrol.h>
 #include <uadeconstants.h>
 #include <uadeconf.h>
+#include <songinfo.h>
 #include <sysincludes.h>
 
 #include "uade123.h"
 #include "audio.h"
 #include "terminal.h"
 #include "playlist.h"
+
+
+void print_song_info(struct uade_song *us, enum song_info_type t)
+{
+  const size_t infosize = 16384;
+  char *info = malloc(infosize);
+  FILE *f = uade_terminal_file ? uade_terminal_file : stdout;
+
+  if (!info)
+    return;
+
+  if (!uade_song_info(info, infosize, us->module_filename, t))
+    fprintf(f, "\n%s\n", info);
+}
 
 
 /* Note that this function has side effects (static int64_t silence_count) */
@@ -162,6 +177,14 @@ int play_loop(struct uade_song *us)
 	case 'H':
 	  uade_effect_toggle(&uade_effects, UADE_EFFECT_HEADPHONES);
 	  tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+	  break;
+	case 'i':
+	  if (!uade_no_output)
+	    print_song_info(us, UADE_MODULE_INFO);
+	  break;
+	case 'I':
+	  if (!uade_no_output)
+	    print_song_info(us, UADE_HEX_DUMP_INFO);
 	  break;
 	case '\n':
 	case 'n':

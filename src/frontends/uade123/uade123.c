@@ -660,6 +660,8 @@ void print_action_keys(void)
   tprintf(" 'g'           Toggle gain effect.\n");
   tprintf(" 'h'           Print this list.\n");
   tprintf(" 'H'           Toggle headphones effect.\n");
+  tprintf(" 'i'           Print module info.\n");
+  tprintf(" 'I'           Print hex dump of head of module.\n");
   tprintf(" RETURN, 'n'   Next song.\n");
   tprintf(" 'p'           Toggle postprocessing effects.\n");
   tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");
