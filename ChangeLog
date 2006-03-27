@@ -1,6 +1,7 @@
 2006-03-27  Michael Doering <mld@users.sourceforge.net>
 	- Renamed XANN-Packer to XANN-Player, following Sylvain 'Asle'
 	  Chipeaux' suggestion.
+	- Merged Funkok saftey check from EP2.04 to protracker player...
 
 2006-03-25  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a new action key into uade123. 'i' will print module info

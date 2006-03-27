@@ -6,11 +6,12 @@ PTK1.1b = Protracker replay 1.1b by Lars "Zap" Hamre/Amiga Freelancers
 PTK2.1a	= Protracker replay 2.1a by Peter "CRAYON" Hanning / Mushrooms Studios
 PTK2.3a = Protracker replay 2.3a
 PTK3.0b = Protracker 3.00b Tom "Outland" Bech and Ivar "Heatseeker" J. Olsen
-
+(Protracker 2.0a Editor by Lars "Zap" Hamre/Amiga Freelancers...
+ Interesting enough The replay code of the 2.0a editor has much more in common with 3.0b
+ than with it's predecessors)
 
 
 mt_* and pt_* are ususally the labels of the functions in the replays.
-
 
 
 Effect EFx:
@@ -34,6 +35,27 @@ uses "invert loop" and sounds broken with a PTK1.0c replay. Now we
 need the "evil twin", a tune using funk repeat :-)
 
 
+Effect ED0:
+-----------
+Sylvain 'Asle' Chipaux reported one can play one sample on two channels
+(LL or RR) and use the notedelay effect EDx with parameter 0 to achieve
+some kind of flanging effect.
+Crosschecking with the 3.0b, 2.3a replay sources and the Sources to the
+Protracker 2.0a editor, the Notedelay with zero is indeed caught explicitely
+in the replays and diverted to CheckMoreEffects, resulting in a much shorter
+delay to process the ED command.
+
+Interesting enough it seems the "flanging" sounds different on Protracker 3.0b
+and 2.3a. Perhaps a result of the "missing" Updatefunk procedure in PTK3.0b 
+CheckMoreEffects procedure and thus a quicker processing could be responsible
+for this.
+
+PTK2.3 and below:
+    ...| c3 01000 | c3 01ED0 |... ->	flanging
+PTK3.0:
+    ...| c3 01000 | c3 01ED0 |... ->	lighter flanging
+
+
 Vibrato
 -------
 PTK1.0C:
@@ -43,7 +65,8 @@ PTK1.1b and above:
     mt_vib_set:	-> lsr.w #7,d0
 
 
-Info: Vibrato depth was changed for ptk1.1b and above.
+Info: Vibrato depth was changed for ptk1.1b to equal Noisetracker vibrato
+depth
 
 
 PerNop:
@@ -98,7 +121,7 @@ PTK3.0b:
     36*2 for all (37*2 for PTK3.0 with trailing zero in periodtable)
 
 
-mt_UpdateFunk in mt_CheckMoreEfx:
+mt_UpdateFunk in CheckMoreEfx:
 ---------------------------------
 PTK1.0c-2.3a:
     mt_UpdateFunk is called in the beginning of mt_CheckMoreEfx
@@ -130,6 +153,7 @@ PTK1.0-2.3
 PTK3.0:
     supported    
 
+
 do_retrig
 ---------
 PTK3.0 sets period in do_retrig, while  PTK2.3 doesn't.
@@ -150,4 +174,4 @@ All PTK:
     as the very first song after starting the Tracker.
 
 Info: Noise/Soundtracker/Startrekker will sound broken when played as
-Protracker and using Portamento.
+Protracker and using Portamento, so don't do it.

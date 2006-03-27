@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-03-24',0
+	dc.b '$VER: Protracker 3.0b player 2006-03-27',0
 	even
 
 PlayerTagArray
@@ -1637,11 +1637,14 @@ pt_updatefunk:
 		move.l	10(a6),a1
 pt_funkok:
 		move.l	a1,36(a6)
+		;-- EP2.04 --
+		cmp.l	#0,a1
+		beq.s	pt_funkend
+		;------------		
 		moveq	#-1,d0
 		sub.b	(a1),d0
 		move.b	d0,(a1)
-pt_funkend:
-		rts
+pt_funkend:	rts
 
 ; Protracker 1.0c Funkrepeat
 mt_UpdateFunk:
