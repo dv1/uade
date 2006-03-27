@@ -842,7 +842,7 @@ pt_trenoc:
 pt_sdmaskp:
 		move.w	16(a6),d0
 		move.w	d0,6(a5)		; Set period
-		st.b	42(a6)
+		;st.b	42(a6)
 		move.w	20(a6),d0
 		or.w	d0,pt_dmacontemp-pt_metspd(a4)
 		bra.w	pt_checkmoreeffects
