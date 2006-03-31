@@ -1,4 +1,7 @@
 2006-03-27  Michael Doering <mld@users.sourceforge.net>
+	- Small check for Fuzzac Packer in  amifilemagic
+
+2006-03-27  Michael Doering <mld@users.sourceforge.net>
 	- Renamed XANN-Packer to XANN-Player, following Sylvain 'Asle'
 	  Chipeaux' suggestion.
 	- Merged Funkok saftey check from EP2.04 to protracker player...

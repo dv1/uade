@@ -620,7 +620,6 @@ notvisitedbefore
 		lea	pt_audchan1temp(pc),a6
 		moveq	#1,d2
 		bsr.b	pt_playvoice
-
 		cmp.b	#PTK30,pt_ptk_type
 		bne.s	.pt30_1
 		 moveq	#0,d0
