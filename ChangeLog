@@ -1,5 +1,10 @@
-2006-03-27  Michael Doering <mld@users.sourceforge.net>
-	- Small check for Fuzzac Packer in  amifilemagic
+2006-03-31  Michael Doering <mld@users.sourceforge.net>
+	- Changed DMAWait to dtg_DMAWait and add dtg_Timer support
+	  to DIGI-Booster
+	- DIGI-booster songinfo now matches modfiles songinfo.
+
+2006-03-30  Michael Doering <mld@users.sourceforge.net>
+	- Small check for Fuzzac Packer in  amifilemagic.
 
 2006-03-27  Michael Doering <mld@users.sourceforge.net>
 	- Renamed XANN-Packer to XANN-Player, following Sylvain 'Asle'

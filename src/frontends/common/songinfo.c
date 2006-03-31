@@ -302,13 +302,24 @@ static void process_digi_mod(char *credits, size_t credits_len,
   snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[47]);
   strlcat(credits, tmpstr, credits_len);
 
+  snprintf(tmpstr, sizeof tmpstr,"\nINST - NAME                                 SIZE VOL  FINE      LSTART       LSIZE\n");
+  strlcat(credits, tmpstr, credits_len);
   if (len >= (642 + 0x1f * 0x1e)) {
     for (i = 0; i < 0x1f; i++) {
       if (!string_checker(buf, 642 + i * 0x1e, len))
 	break;
-      snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
+      //snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
+      //strlcat(credits, tmpstr, credits_len);
+      //snprintf(tmpstr, 0x1e, buf + 642 + (i * 0x1e));
+      snprintf(tmpstr, sizeof tmpstr, "[%2d] - ",i+1);
       strlcat(credits, tmpstr, credits_len);
-      snprintf(tmpstr, 0x1e, buf + 642 + (i * 0x1e));
+      snprintf(tmpstr, 30, "%-30s",buf +642 + (i * 0x1e));
+      strlcat(credits, tmpstr, credits_len);
+      snprintf(tmpstr, sizeof tmpstr, " %11d  %2d   %3d %11d %11d\n",read_be_u32(buf + 176 + i * 4),
+    								   buf[548 + i],
+							           buf[579 + i],
+							           read_be_u32(buf + 300 + i * 4),
+							           read_be_u32(buf + 424 + i * 4));
       strlcat(credits, tmpstr, credits_len);
     }
   }
