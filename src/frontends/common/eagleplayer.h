@@ -10,6 +10,7 @@
 #define EP_ALWAYS_ENDS       (1 << 2)
 #define EP_CONTENT_DETECTION (1 << 3)
 #define EP_SPEED_HACK        (1 << 4)
+#define EP_NTSC              (1 << 5)
 
 #define ES_A500              (1 <<  0)
 #define ES_A1200             (1 <<  1)

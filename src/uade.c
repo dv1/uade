@@ -491,7 +491,7 @@ void uade_handle_r_state(void)
       break;
 
     case UADE_COMMAND_SET_NTSC:
-      fprintf(stderr, "uadecore: Changing to NTSC mode.\n");
+      fprintf(stderr, "\nuadecore: Changing to NTSC mode.\n");
       uade_set_ntsc(1);
       break;
 

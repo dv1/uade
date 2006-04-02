@@ -561,6 +561,8 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 	p->attributes |= EP_CONTENT_DETECTION;
       } else if (strcasecmp(items[i], "speed_hack") == 0) {
 	p->attributes |= EP_SPEED_HACK;
+      } else if (strcasecmp(items[i], "ntsc") == 0) {
+	p->attributes |= EP_NTSC;
       } else if (strncasecmp(items[i], "comment:", 8) == 0) {
 	break;
       } else {

@@ -362,15 +362,20 @@ noepmc
 	move.l	a0,-$18C+2(a6)
 
 	* ntsc/pal checking
-	moveq	#$20,d1	* default beamcon0 = $20 for PAL
-	moveq	#50,d2	* default 50Hz for PAL
+	moveq	#$20,d1		* default beamcon0 = $20 for PAL
+	moveq	#50,d2		* default 50Hz for PAL
+	* 709379 / 50
+	move	#$376b,d3	* PAL CIA timer value
 	tst.l	$124.w
 	beq.b	is_pal
-	moveq	#0,d1	* NTSC beamcon0 = 0
-	moveq	#60,d2	* NTSC 60 Hz
+	moveq	#0,d1		* NTSC beamcon0 = 0
+	moveq	#60,d2		* NTSC 60 Hz
+	move	#$2e9c,d3	* NTSC CIA timer value
 is_pal	move	d1,beamcon0+custom
 	lea	vbi_hz(pc),a0
 	move	d2,(a0)
+	lea	cia_timer_base_value(pc),a0
+	move	d3,(a0)
 
 	* check deliplayer's header tags
 	bsr	parse_player_tags
@@ -401,7 +406,7 @@ is_pal	move	d1,beamcon0+custom
 	move	#0,dtg_SndNum(a5)
 
 	* Set default timer value
-	move	#$376b,dtg_Timer(a5)	* 709379 / 50
+	move	cia_timer_base_value(pc),dtg_Timer(a5)
 
 	bsr	call_init_player
 
@@ -3472,7 +3477,8 @@ vblanktimerbit	dc.l	0
 vblanktimerfunc	dc.l	0
 timerioptr	dc.l	0
 
-vbi_hz	dc	50	* PAL 50Hz is default
+vbi_hz	dc	50		* PAL 50Hz is default
+cia_timer_base_value	dc	$376b	* PAL 50Hz
 
 useciatimer	dc.l	0
 

@@ -133,7 +133,9 @@ int main(int argc, char *argv[])
     OPT_SPEED_HACK,
     OPT_BASEDIR,
     OPT_HEADPHONES,
-    OPT_BUFFER_TIME
+    OPT_BUFFER_TIME,
+    OPT_NTSC,
+    OPT_PAL
   };
 
   struct option long_options[] = {
@@ -152,7 +154,9 @@ int main(int argc, char *argv[])
     {"keys", 1, NULL, 'k'},
     {"list", 1, NULL, '@'},
     {"no-song-end", 0, NULL, OPT_NO_SONG_END},
+    {"ntsc", 0, NULL, OPT_NTSC},
     {"one", 0, NULL, '1'},
+    {"pal", 0, NULL, OPT_PAL},
     {"panning", 1, NULL, 'p'},
     {"recursive", 0, NULL, 'r'},
     {"shuffle", 0, NULL, 'z'},
@@ -365,6 +369,12 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
       break;
+    case OPT_NTSC:
+      uadeconf.use_ntsc = 1;
+      break;
+    case OPT_PAL:
+      uadeconf.use_ntsc = 0;
+      break;
     default:
       fprintf(stderr, "Impossible option.\n");
       exit(-1);
@@ -566,6 +576,12 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
     }
+    if (uadeconf.use_ntsc) {
+      if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, &uadeipc)) {
+	fprintf(stderr, "Can not send ntsc command.\n");
+	exit(-1);
+      }
+    }
 
     if (!play_loop(us)) {
       free(us);
@@ -626,6 +642,8 @@ static void print_help(void)
   printf("                     on terminal. \n");
   printf(" -m filename,        Set module name\n");
   printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
+  printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
+  printf(" --pal,              Set PAL mode (default)\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
   printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");
   printf(" -P filename,        Set player name\n");

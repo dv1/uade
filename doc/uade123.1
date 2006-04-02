@@ -171,6 +171,9 @@ Disable filter emulation.
 .TP 
 \fB\-\-no\-song\-end\fR
 Play music ad infinitum by ignoring song end.
+.TP
+\fB\-\-ntsc\fR
+Set NTSC mode. This can be buggy.
 .TP 
 \fB\-p\fR x, \-\-panning=\fRx
 Set panning effect to x. This means mixing left and right channel affinely
@@ -285,6 +288,8 @@ always_ends          A song will always end. This means that song end
 content_detection    A song can only be detected by contents, never
                      by filename prefix or postfix.
 .br
+ntsc                 Uses NTSC timing (can be buggy)
+.br
 speed_hack           Enable speed hack.
 
 .BR comment
@@ -347,6 +352,8 @@ md5=yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy \\led_off \\comment this song just sucks wi
 md5=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz \\led_on \\comment turning LED ON makes this song sound c00l       
 .sp 1
 md5=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww \\no_panning subsongs=2,5 \\comment only subsongs 2 and 5 sound good
+.sp 1
+md5=c351076a79033336a0ea1747b6d78783    \\ntsc \\comment Play Platoon song in NTSC mode
 .SH uade.conf
 .BR uade.conf
 sets default variables for configuration settings. Each line
@@ -387,6 +394,8 @@ The valid commands are:
 .br
     ignore_player_check    Force eagleplayers to recognize any given
                            song.
+.br
+    ntsc               Set NTSC mode.
 .br
     random_play        Set random play or shuffle mode. Used for
                        uade123 only.

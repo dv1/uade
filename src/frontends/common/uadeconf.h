@@ -29,6 +29,7 @@ struct uade_config {
   int speed_hack;
   int subsong_timeout;
   int timeout;
+  int use_ntsc;
 };
 
 
