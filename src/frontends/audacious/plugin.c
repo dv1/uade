@@ -420,6 +420,16 @@ static int initialize_song(char *filename)
     }
   }
 
+  if (config.use_ntsc && (config.use_ntsc & 2) == 0) {
+    if (uade_send_short_message(UADE_COMMAND_SET_NTSC, &uadeipc)) {
+      fprintf(stderr, "Can not send ntsc command.\n");
+      plugin_disabled = 1;
+      free(uadesong);
+      uadesong = NULL;
+      return FALSE;
+    }
+  }
+
   return TRUE;
 }
 

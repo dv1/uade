@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
       uadeconf.use_ntsc = 1;
       break;
     case OPT_PAL:
-      uadeconf.use_ntsc = 0;
+      uadeconf.use_ntsc = 2;
       break;
     default:
       fprintf(stderr, "Impossible option.\n");
@@ -576,7 +576,7 @@ int main(int argc, char *argv[])
 	exit(-1);
       }
     }
-    if (uadeconf.use_ntsc) {
+    if (uadeconf.use_ntsc && (uadeconf.use_ntsc & 2) == 0) {
       if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, &uadeipc)) {
 	fprintf(stderr, "Can not send ntsc command.\n");
 	exit(-1);

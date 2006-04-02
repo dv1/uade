@@ -193,7 +193,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
     } else if (strncmp(key, "no_filter", 9) == 0) {
       uc->no_filter = 1;
     } else if (strcmp(key, "ntsc") == 0) {
-      uc->use_ntsc = 1;
+      uc->use_ntsc |= 1;
     } else if (strncmp(key, "one_subsong", 3) == 0) {
       uc->one_subsong = 1;
     } else if (strncmp(key, "panning_value", 3) == 0) {
@@ -280,7 +280,7 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
     uade_effect_disable(ue, UADE_EFFECT_ALLOW);
 
   if (us->flags & ES_NTSC)
-    uc->use_ntsc = 1;
+    uc->use_ntsc |= 1;
   if (us->subsongs)
     fprintf(stderr, "Subsongs not implemented.\n");
 }
