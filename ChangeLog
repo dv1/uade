@@ -1,3 +1,8 @@
+2006-04-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed P61A detection (introduced by mlds change sometime ago).
+	  src/frontends/common/amifilemagic.c had "P60A" as the pattern
+	  for Player 6.1, but obviously it should be "P61A".
+
 2006-03-31  Michael Doering <mld@users.sourceforge.net>
 	- Changed DMAWait to dtg_DMAWait and add dtg_Timer support
 	  to DIGI-Booster
