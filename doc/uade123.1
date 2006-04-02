@@ -55,11 +55,14 @@ documents variables which can be changed in
 .BR song.conf
 and
 .BR uade.conf
-to alter default behavior of uade123.
-eagleplayer.conf is used for eagleplayer plugin specific configurations.
-song.conf is used for song specific configurations which can be used to change
+to alter default behavior of uade123 and other frontends.
+.BR eagleplayer.conf
+is used for eagleplayer plugin specific configurations.
+.BR song.conf
+is used for song specific configurations which can be used to change
 sound effects or avoid problems.
-uade.conf is the main configuration file that can be used to set defaults for
+.BR uade.conf
+is the main configuration file that can be used to set defaults for
 variables. Command line options will always override uade.conf options.
 
 .SH "FILE FORMAT DETECTION"
@@ -347,7 +350,18 @@ md5=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww \\no_panning subsongs=2,5 \\comment only su
 .SH uade.conf
 .BR uade.conf
 sets default variables for configuration settings. Each line
-may contain at most one command. The valid commands are:
+may contain at most one command. The configuration file is read from
+users home directory (
+.BR $HOME/.uade2/uade.conf
+) if it exists. If it does not
+exist, it is tried from
+.BR $PREFIX/share/uade2/uade.conf
+ . Making a copy of the
+uade.conf into $HOME/.uade2/ can be useful for users. The same uade.conf
+controls settings for all frontends. Specifically, this includes the XMMS
+plugin too.
+
+The valid commands are:
 .sp 1
     filter x           Set filter emulation mode to be A500, A500E,
                        A1200 or A1200E.
@@ -403,6 +417,7 @@ MC68000 eagleplayer binaries
 PREFIX/share/uade2/song.conf or $(HOME)/.uade2/song.conf
 .TP
 PREFIX/share/uade2/uade.conf or $(HOME)/.uade2/uade.conf
+Main configuration file
 .TP
 PREFIX/share/uade2/uaerc
 Configuration file for UAE.
