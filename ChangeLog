@@ -1,7 +1,13 @@
 2006-04-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Implemented NTSC mode support. It can be buggy and it will not
 	  affect some players at all (those which set CIA tempo by
-	  themselves).
+	  themselves). NTSC mode can detected in eagleplayers by reading
+	  $212(execbase) aka VBlankFrequency(execbase). It's a byte
+	  with value 50 (PAL) or 60 (NTSC):
+	    move.l 4.w,a6
+	    cmp.b #60,$212(a6)
+	    beq   is_an_ntsc_system
+	    * pal system
 
 2006-04-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed P61A detection (introduced by mlds change sometime ago).

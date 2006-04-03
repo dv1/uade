@@ -197,7 +197,6 @@ dosdfdf	subq.l	#6,a0
 
 	move.b	#$ff,$126(a6)	* fuck med player
 	move	#$0003,$128(a6)	* execbase processor flags to 68020+
-	move.b	#50,$212(a6)	* set execbase vblank frequency
 
 	lea	dos_lib_base(pc),a6
 	lea	dos_loadseg(pc),a0
@@ -374,6 +373,8 @@ noepmc
 is_pal	move	d1,beamcon0+custom
 	lea	vbi_hz(pc),a0
 	move	d2,(a0)
+	move.l	4.w,a6
+	move.b	d2,$212(a6)	* set execbase vblank frequency
 	lea	cia_timer_base_value(pc),a0
 	move	d3,(a0)
 
