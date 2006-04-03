@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-03-27',0
+	dc.b '$VER: Protracker 3.0b player 2006-04-03',0
 	even
 
 PlayerTagArray
@@ -188,7 +188,7 @@ read_config_file:
 	move.b	(a0)+,d0
 	sub.b	#$30,d0
 	and.l	#$7,d0
-	move.b	d0,pt_ntsc		; 0 = PAL, 1 = NTSC
+	move.b	d0,pt_vblank	; 0 = CIA, 1= VBI
 
 .cfgloop:
 	move.b	(a0)+,d0	
@@ -382,7 +382,14 @@ EndPlay
 InitSnd:
 	bsr	pt_end
 	bsr	pt_deinit
-	bsr	pt_init
+
+	move.l	4.w,a6
+	cmp.b	#60,$212(a6)
+	beq	.ntsc
+	sf	pt_ntsc
+	bra	.is
+.ntsc	st	pt_ntsc
+.is	bsr	pt_init
 	st	pt_Enable
 	rts
 

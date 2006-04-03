@@ -308,9 +308,6 @@ static void process_digi_mod(char *credits, size_t credits_len,
     for (i = 0; i < 0x1f; i++) {
       if (!string_checker(buf, 642 + i * 0x1e, len))
 	break;
-      //snprintf(tmpstr, sizeof tmpstr,"\ninstr #%.2d:\t", i);
-      //strlcat(credits, tmpstr, credits_len);
-      //snprintf(tmpstr, 0x1e, buf + 642 + (i * 0x1e));
       snprintf(tmpstr, sizeof tmpstr, "[%2d] - ",i+1);
       strlcat(credits, tmpstr, credits_len);
       snprintf(tmpstr, 30, "%-30s",buf +642 + (i * 0x1e));

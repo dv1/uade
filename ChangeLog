@@ -8,6 +8,12 @@
 	    cmp.b #60,$212(a6)
 	    beq   is_an_ntsc_system
 	    * pal system
+	- Changed Timing configuration in players/env/PTK-Prowiz.cfg 
+	  from CIA <-> VBI/NTSC to CIA <-> VBI. (mld)
+	- Mod player now honours pal/ntsc setting automatically. (mld)
+	- Fixed stupid *oops* in mod player reading cia timing from config
+	  file.
+	- Added ntsc option uade.conf. (mld)
 
 2006-04-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed P61A detection (introduced by mlds change sometime ago).
@@ -21,7 +27,7 @@
 	- DIGI-booster songinfo now matches modfiles songinfo.
 
 2006-03-30  Michael Doering <mld@users.sourceforge.net>
-	- Small check for Fuzzac Packer in  amifilemagic.
+	- Small check for Fuzzac Packer in amifilemagic.
 
 2006-03-27  Michael Doering <mld@users.sourceforge.net>
 	- Renamed XANN-Packer to XANN-Player, following Sylvain 'Asle'
