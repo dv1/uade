@@ -1,3 +1,8 @@
+2006-04-05  Michael Doering <mld@users.sourceforge.net>
+	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
+	- Tiny Protracker player compatibility change when calling
+	  playvoice.
+
 2006-04-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Implemented NTSC mode support. It can be buggy and it will not
 	  affect some players at all (those which set CIA tempo by

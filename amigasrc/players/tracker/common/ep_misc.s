@@ -1,4 +1,3 @@
-
 ep_SetCIASpeed:
 	movem.l	d0-d2/a0-a6,-(sp)
 	move.l	delibase(pc),a5

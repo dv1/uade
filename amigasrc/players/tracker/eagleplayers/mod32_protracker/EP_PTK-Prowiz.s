@@ -1,4 +1,3 @@
-
 	incdir	"Amiga:Includes/"
 	include "misc/DeliPlayer.i"
 
@@ -10,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-04-03',0
+	dc.b '$VER: Protracker 3.0b player 2006-04-05',0
 	even
 
 PlayerTagArray
@@ -103,7 +102,7 @@ Chk:
 	move.w	#36*2,pt_oldstk
 	move.w	#36*2,pt_oldstk2
 	
-	bsr	read_config_file
+	bsr.w	read_config_file
 
 	move.l	dtg_ChkData(a5),a0		; get song data
 	move.l	dtg_ChkSize(a5),d1
@@ -112,36 +111,36 @@ Chk:
 
 	jsr	Convertmod
 	tst.l	d0
-	beq	is_clone
+	beq.w	is_clone
 
 	move.l	song,a0
 	move.l	size,d1
 	bsr.w	mcheck_moduledata
 	cmp.b	#mod_PTK,d0
-	beq	is_PTK
+	beq.w	is_PTK
 	cmp.b	#mod_PTK_vblank,d0
-	beq	is_PTK_vblank
+	beq.w	is_PTK_vblank
 	cmp.b	#mod_PTK_comp,d0
-	beq	is_PTK_comp
+	beq.w	is_PTK_comp
 	cmp.b	#mod_FTK,d0
-	beq	is_PTK_comp
+	beq.w	is_PTK_comp
 
 	cmp.b	#mod_NTK_2,d0
-	beq	is_NTK2
+	beq.w	is_NTK2
 	cmp.b	#mod_NTK_1,d0
-	beq	is_NTK1
+	beq.w	is_NTK1
 	cmp.b	#mod_NTK_AMP,d0
-	beq	is_NTK_AMP
+	beq.w	is_NTK_AMP
 
 	cmp.b	#mod_STK,d0
-	beq	is_STK
+	beq.w	is_STK
 	cmp.b	#mod_DOC,d0
-	beq	is_STK15
+	beq.w	is_STK15
 	cmp.b	#mod_MST,d0
-	beq	is_STK15
+	beq.w	is_STK15
 
 	cmp.b	#mod_FLT4,d0
-	beq	is_FLT4
+	beq.w	is_FLT4
 
 
 Chk_fail:	
@@ -151,16 +150,16 @@ Chk_fail:
 Chk_ok:
 	lea.l	FName,a2
 	move.w	#30,d1
-	bsr	strncpy
+	bsr.w	strncpy
 
 Chk_ok_MName:
 	move.l	song,a1
 	lea.l	MName(pc),a2	
 	move.w	#20,d1
-	bsr	strncpy
+	bsr.w	strncpy
 
 	;move.l	song,a0
-	bsr	mod_probe_subsongs
+	bsr.w	mod_probe_subsongs
 	sf	pt_chkfail
 	moveq	#0,d0
 	rts
@@ -176,7 +175,7 @@ read_config_file:
 	move.l	#1005,d2		* MODE_OLDFILE
 	jsr	_LVOOpen(a6)
 	move.l	d0,d1
-	beq	dont_read_cfgfile
+	beq.w	dont_read_cfgfile
 	move.l	d1,-(a7)
 	move.l	#cfgbuffer,d2
 	move.l	#256,d3
@@ -193,7 +192,7 @@ read_config_file:
 .cfgloop:
 	move.b	(a0)+,d0	
 	cmp.b	#10,d0
-	beq	.cfgloopend
+	beq.b	.cfgloopend
 	dbra	d1,.cfgloop
 	bra.s	illegal_config_file
 
@@ -220,7 +219,7 @@ read_config_file:
 	 move.b	#6,pt_vibshift
 	 move.w	#37*2,pt_oldstk		; apart from the different vibrato
 	 move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
-	 bra 	illegal_config_file	; for accessing the period table
+	 bra.b 	illegal_config_file	; for accessing the period table
 .ptk21a:
 	cmp.b	#PTK21,d0
 	bne.s	illegal_config_file
@@ -242,16 +241,16 @@ dont_read_cfgfile:
 ;
 is_PTK:
 	lea.l	PTK_Name,a1
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_PTK_comp:
 	lea.l	PTK_Comp_Name,a1
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_PTK_vblank:
 	st	pt_vblank
 	lea.l	PTK_vblank_Name,a1
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_FLT4:
 	st	pt_ntkporta
@@ -260,7 +259,7 @@ is_FLT4:
 	move.w	#36*2,pt_oldstk
 	move.w	#36*2,pt_oldstk2
 	lea.l	FLT4_Name,a1
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_STK:
 	st	pt_ntkporta
@@ -270,7 +269,7 @@ is_STK:
 	move.w	#36*2,pt_oldstk2
 	st 	pt_smpl_in_bytes
 	lea.l	STK_Name,a1
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_STK15:
 	st	pt_ntkporta
@@ -282,18 +281,18 @@ is_STK15:
 	move.w	#$1e4,pt_blkadj
 	move.w	#36*2,pt_oldstk
 	lea.l	STK15_Name,a1
-	bra	Chk_Ok
+	bra.w	Chk_Ok
 	
 
 is_NTK1:
 	move.b	#6,pt_vibshift
 	lea.l	NTK_1_Name,a1
-	bra	is_NTK
+	bra.b	is_NTK
 
 is_NTK_AMP:
 	move.b	#5,pt_vibshift
 	lea.l	NTK_AMP_Name,a1
-	bra is_NTK
+	bra.b is_NTK
 
 is_NTK2:
 	lea.l	NTK_2_Name,a1
@@ -304,7 +303,7 @@ is_NTK:
 	move.b	950(a0),pt_restart
 	st	pt_ntkporta
 	st	pt_vblank
-	bra	Chk_ok
+	bra.w	Chk_ok
 
 is_Clone:
 	move.l	pt_pckddata,a0
@@ -314,8 +313,8 @@ is_Clone:
 	move.l	FormName,a1
 	lea.l	FName,a2
 	move.w	#30,d1
-	bsr	strncpy
-	bra	Chk_ok_Mname
+	bsr.b	strncpy
+	bra.w	Chk_ok_Mname
 
 
 
@@ -330,15 +329,15 @@ strncpy:
 	moveq	#0,d2
 	move.b	(a1)+,d2
 	cmp.w	#159,d2
-	bgt	.strn_putchar
+	bgt.b	.strn_putchar
 	cmp.w	#127,d2
-	bgt	.strn_nogoodchar
+	bgt.b	.strn_nogoodchar
 	cmp.w	#31,d2
-	bgt	.strn_putchar
+	bgt.b	.strn_putchar
 
 	cmp.w	#0,d2
-	bne	.strn_nogoodchar
-	bra	.strn_end
+	bne.b	.strn_nogoodchar
+	bra.b	.strn_end
 
 .strn_nogoodchar:
 	move.b #".",d2
@@ -371,25 +370,24 @@ EndPlay
 	jsr	(a0)
 	rts
 
-
+	even
 	incdir	"amiga:work/players/tracker/common/"
 	include "mod_check.s"
+	even
 	include "ep_misc.s"
 	even
+
 *-----------------------------------------------------------------------*
 ;
 ; InitSnd
 InitSnd:
-	bsr	pt_end
-	bsr	pt_deinit
+	bsr.b	pt_end
+	bsr.b	pt_deinit
 
 	move.l	4.w,a6
 	cmp.b	#60,$212(a6)
-	beq	.ntsc
-	sf	pt_ntsc
-	bra	.is
-.ntsc	st	pt_ntsc
-.is	bsr	pt_init
+	seq	pt_ntsc		; Set ntsc flag
+	bsr.b	pt_init
 	st	pt_Enable
 	rts
 
@@ -398,7 +396,7 @@ InitSnd:
 ; EndSnd
 EndSnd:
 	sf	pt_Enable
-	bsr	pt_End
+	bsr.b	pt_End
 	rts
 
 
@@ -506,15 +504,15 @@ repeat_ok:
 		beq.s 	.nontsc			; if no  always default to PAL Speed
 
 		tst.b	pt_ntsc			; set PAL/NTSC according to cfg
-		beq	.nontsc
+		beq.b	.nontsc
 		move.l	#1491477,d0		;7.15 Mhz, 60hz, 125 bpm
-		bra	.setcia
+		bra.b	.setcia
 
 .nontsc		move.l	#1773447,d0		;7.09 Mhz, 50hz, 125 bpm
 .setcia		move.l	d0,pt_timervalue-pt_speed(a1)
 		divu	#125,d0
-		bsr	ep_SetCIASpeed
-		bsr	mod_Set_Subsong
+		bsr.w	ep_SetCIASpeed
+		bsr.w	mod_Set_Subsong
 		movem.l	(sp)+,d0-d2/a0-a2
 		rts
 
@@ -541,7 +539,7 @@ pt_play:
 		tst.b	pt_chkfail
 		bne.s	pt_play_exit
 		tst.b	pt_Enable
-		beq	pt_play_exit
+		beq.b	pt_play_exit
 		bsr.b	pt_playit
 pt_play_exit		movem.l	(sp)+,d0-d7/a0-a6
 		rts
@@ -556,23 +554,23 @@ pt_playit:
 		tst.b	pt_pattdelaytime2-pt_metspd(a4)
 		beq.b	pt_getnewnote
 		bsr.b	pt_nonewallchannels
-		bra.w	pt_dskip
+		bra.b	pt_dskip
 pt_nonewnote:
 		bsr.b	pt_nonewallchannels
-		bra.w	pt_nonewpositionyet
+		bra.b	pt_nonewpositionyet
 pt_nonewallchannels:
 		lea	pt_audchan1temp(pc),a6
 		lea	$dff0a0,a5
-		bsr.w	pt_checkeffects
+		bsr.b	pt_checkeffects
 		lea	pt_audchan2temp(pc),a6
 		lea	$dff0b0,a5
-		bsr.w	pt_checkeffects
+		bsr.b	pt_checkeffects
 		lea	pt_audchan3temp(pc),a6
 		lea	$dff0c0,a5
-		bsr.w	pt_checkeffects
+		bsr.b	pt_checkeffects
 		lea	pt_audchan4temp(pc),a6
 		lea	$dff0d0,a5
-		bra.w	pt_checkeffects
+		bra.b	pt_checkeffects
 pt_getnewnote:
 		lea	12(a0),a3
 		lea	952(a0),a2			;pattern position
@@ -623,43 +621,53 @@ notvisitedbefore
 		add.l	pt_patternposition(pc),d1
 		move.l	d1,pt_patternptr-pt_metspd(a4)
 		clr.w	pt_dmacontemp-pt_metspd(a4)
+		cmp.b	#PTK30,pt_ptk_type
+		bne.s	.pt23_playvoices
+.pt30_playvoices
 		lea	$dff0a0,a5
 		lea	pt_audchan1temp(pc),a6
 		moveq	#1,d2
 		bsr.b	pt_playvoice
-		cmp.b	#PTK30,pt_ptk_type
-		bne.s	.pt30_1
-		 moveq	#0,d0
-		 move.b	19(a6),d0
-		 move.w	d0,8(a5)
-.pt30_1		lea	$dff0b0,a5
+		moveq	#0,d0
+		move.b	19(a6),d0
+		move.w	d0,8(a5)
+		lea	$dff0b0,a5
 		lea	pt_audchan2temp(pc),a6
 		moveq	#2,d2
 		bsr.b	pt_playvoice
-		cmp.b	#PTK30,pt_ptk_type
-		bne.s	.pt30_2
-		 moveq	#0,d0
-		 move.b	19(a6),d0
-		 move.w	d0,8(a5)
-.pt30_2		lea	$dff0c0,a5
+		moveq	#0,d0
+		move.b	19(a6),d0
+		move.w	d0,8(a5)
+		lea	$dff0c0,a5
 		lea	pt_audchan3temp(pc),a6
 		moveq	#3,d2
 		bsr.b	pt_playvoice
-		cmp.b	#PTK30,pt_ptk_type
-		bne.s	.pt30_3
-		 moveq	#0,d0
-		 move.b	19(a6),d0
-		 move.w	d0,8(a5)
-.pt30_3		lea	$dff0d0,a5
+		moveq	#0,d0
+		move.b	19(a6),d0
+		move.w	d0,8(a5)
+		lea	$dff0d0,a5
 		lea	pt_audchan4temp(pc),a6
 		moveq	#4,d2
 		bsr.b	pt_playvoice
-		cmp.b	#PTK30,pt_ptk_type
-		bne.s	.pt30_4
-		 moveq	#0,d0
-		 move.b	19(a6),d0
-		 move.w	d0,8(a5)
-.pt30_4		bra.w	pt_setdma
+		moveq	#0,d0
+		move.b	19(a6),d0
+		move.w	d0,8(a5)
+		bra.b	pt_setdma
+.pt23_playvoices
+		lea	$dff0a0,a5
+		lea	pt_audchan1temp(pc),a6
+		bsr.b	pt_playvoice
+		lea	$dff0b0,a5
+		lea	pt_audchan2temp(pc),a6
+		bsr.b	pt_playvoice
+		lea	$dff0c0,a5
+		lea	pt_audchan3temp(pc),a6
+		bsr.b	pt_playvoice
+		lea	$dff0d0,a5
+		lea	pt_audchan4temp(pc),a6
+		bsr.b	pt_playvoice
+		bra.b	pt_setdma
+
 pt_checkmetronome:
 		cmp.b	pt_metrochannel(pc),d2
 		bne.b	pt_quit
@@ -691,16 +699,16 @@ pt_plvskip:
 		andi.b	#$f0,d0
 		or.b	d0,d2
 		tst.b	d2
-		beq.w	pt_setregisters
+		beq.b	pt_setregisters
 		
 		 cmp.b	#$1f,d2			; check for buggy mods
-		 bhi.w	pt_gone
+		 bhi.b	pt_gone
 		
 		moveq	#0,d3
 		lea	pt_samplestarts(pc),a1
 		move.w	d2,d4
 		cmp.b	#PTK30,pt_ptk_type
-		bne	.ptk23
+		bne.b	.ptk23
 		 move.b	d2,43(a6)		; ptk30 sets n_samplenum
 .ptk23		subq.l	#1,d2
 		lsl.l	#2,d2
@@ -741,7 +749,7 @@ pt_plvskip:
 		move.l	d2,36(a6)
 		move.w	4(a3,d4.l),d0		; Get repeat
 		 tst.w	6(a3,d4.l)		; Test repeat length is zero
-		 bne	rplen_ok
+		 bne.b	rplen_ok
 		 add.w	#2,d0			; set std replen for mods
 rplen_ok	add.w	6(a3,d4.l),d0		; Add repeat length
 		move.w	d0,8(a6)
@@ -761,7 +769,7 @@ pt_noloop:
 		move.l	d2,36(a6)
 		move.w	6(a3,d4.l),14(a6)	; Save repeat length
 		 tst.w	14(a6)			; repeat length zero?
-		 bne	.ptk30vol		; nope
+		 bne.b	.ptk30vol		; nope
 		 move.w	#2,14(a6)		; otherwise set it to std
 .ptk30vol	cmp.b	#PTK30,pt_ptk_type
 		beq.s	pt_setregisters
@@ -771,7 +779,7 @@ pt_noloop:
 pt_setregisters:
 		move.w	(a6),d0
 		andi.w	#$0fff,d0
-		beq.w	pt_checkmoreeffects
+		beq.b	pt_checkmoreeffects
 		move.w	2(a6),d0
 		andi.w	#$0ff0,d0
 		cmpi.w	#$0e50,d0		; Finetune ?
@@ -784,14 +792,14 @@ pt_setregisters:
 		beq.b	pt_chktoneporta
 		cmpi.b	#9,d0			; Sample offset ?
 		bne.b	pt_setperiod
-		bsr.w	pt_checkmoreeffects
+		bsr.b	pt_checkmoreeffects
 		bra.b	pt_setperiod
 pt_dosetfinetune:
-		bsr.w	pt_setfinetune
+		bsr.b	pt_setfinetune
 		bra.b	pt_setperiod
 pt_chktoneporta:
-		bsr.w	pt_settoneporta
-		bra.w	pt_checkmoreeffects
+		bsr.b	pt_settoneporta
+		bra.b	pt_checkmoreeffects
 pt_setperiod:
 		;MOVEM.L	D0-D6/A0-A1,-(sp)
 		move.w	(a6),d6
@@ -815,7 +823,7 @@ pt_ftufound:
 		move.w	2(a6),d0
 		andi.w	#$0ff0,d0
 		cmpi.w	#$0ed0,d0
-		beq.w	pt_checkmoreeffects
+		beq.b	pt_checkmoreeffects
 		move.w	20(a6),$dff096
 		btst	#2,30(a6)
 		bne.b	pt_vibnoc
@@ -835,7 +843,7 @@ pt_trenoc:
 		;st.b	42(a6)
 		move.w	20(a6),d0
 		or.w	d0,pt_dmacontemp-pt_metspd(a4)
-		bra.w	pt_checkmoreeffects
+		bra.b	pt_checkmoreeffects
 
 .pt30_trenoc:
 		move.w	8(a6),4(a5)		; Set length
@@ -851,15 +859,15 @@ pt_sdmaskp:
 		;st.b	42(a6)
 		move.w	20(a6),d0
 		or.w	d0,pt_dmacontemp-pt_metspd(a4)
-		bra.w	pt_checkmoreeffects
+		bra.b	pt_checkmoreeffects
 pt_setdma:
-		bsr.w	pt_raster
+		bsr.b	pt_raster
 		move.w	pt_dmacontemp(pc),d0
 		and.w	pt_activechannels(pc),d0
 		ori.w	#$8000,d0
 		lea	$dff000,a5
 		move.w	d0,$96(a5)
-		bsr.w	pt_raster
+		bsr.b	pt_raster
 		lea	pt_audchan1temp(pc),a6
 		move.l	10(a6),$a0(a5)
 		move.w	14(a6),$a4(a5)
@@ -910,7 +918,7 @@ pt_nextposition:
 
 		clr.l	pt_songposition-pt_metspd(a4)
 		tst.b	pt_restart-pt_metspd(a4)
-		beq	pt_nonewpositionyet		;SongEnd
+		beq.b	pt_nonewpositionyet		;SongEnd
 		move.b	pt_restart(pc),pt_songposition-pt_metspd(a4)
 pt_nonewpositionyet:
 		tst.b	pt_posjumpassert-pt_metspd(a4)
@@ -925,7 +933,7 @@ pt_checkeffects:
 		 move.w	d0,8(a5)
 pt_gone:	rts
 pt_chkefx2:
-		bsr.w	pt_updatefunk
+		bsr.b	pt_updatefunk
 		move.w	2(a6),d0
 		andi.w	#$0fff,d0
 		beq.b	pt_pernop
@@ -934,25 +942,25 @@ pt_chkefx2:
 		tst.b	d0
 		beq.b	pt_arpeggio
 		cmpi.b	#1,d0
-		beq.w	pt_portaup
+		beq.b	pt_portaup
 		cmpi.b	#2,d0
-		beq.w	pt_portadown
+		beq.b	pt_portadown
 		cmpi.b	#3,d0
-		beq.w	pt_toneportamento
+		beq.b	pt_toneportamento
 		cmpi.b	#4,d0
-		beq.w	pt_vibrato
+		beq.b	pt_vibrato
 		cmpi.b	#5,d0
-		beq.w	pt_toneplusvolslide
+		beq.b	pt_toneplusvolslide
 		cmpi.b	#6,d0
-		beq.w	pt_vibratoplusvolslide
+		beq.b	pt_vibratoplusvolslide
 		cmpi.b	#14,d0
-		beq.w	pt_ecommands
+		beq.b	pt_ecommands
 pt_setback:
 		move.w	16(a6),6(a5)
 		cmpi.b	#7,d0
-		beq.w	pt_tremolo
+		beq.b	pt_tremolo
 		cmpi.b	#10,d0
-		beq.w	pt_volumeslide
+		beq.b	pt_volumeslide
 pt_return:
 		rts
 		
@@ -1204,10 +1212,10 @@ pt_vibrato3:
 		rts
 pt_toneplusvolslide:
 		bsr.w	pt_toneportnochange
-		bra.w	pt_volumeslide
+		bra.b	pt_volumeslide
 pt_vibratoplusvolslide:
 		bsr.b	pt_vibrato2
-		bra.w	pt_volumeslide
+		bra.b	pt_volumeslide
 pt_tremolo:
 		move.b	3(a6),d0
 		beq.b	pt_tremolo2
@@ -1368,7 +1376,7 @@ pt_setspeed:
 		bne.s 	ntkspeed	
 ptkspeed	cmpi.w	#32,d0			; cia timing for ptk
 		bhs.b	pt_settempo
-		bra	pt_ssp1
+		bra.b	pt_ssp1
 ntkspeed	cmp.b	#$1f,d0			; vbi timing
 		ble.s	pt_ssp1
 		move.b	#$1f,d0
@@ -1385,14 +1393,14 @@ pt_settempo:
 		divu.w	d0,d2
 
 		move.w	d2,d0
-		bsr	ep_SetCIASpeed
+		bsr.w	ep_SetCIASpeed
 pt_settempoend	rts
 
 
 pt_checkmoreeffects:
 		tst.b	pt_ptk30_cme
 		bne.s 	.ptk3
-		 bsr	pt_updatefunk		; ptk 3.0 doesn't call it
+		 bsr.b	pt_updatefunk		; ptk 3.0 doesn't call it
 .ptk3		move.b	2(a6),d0
 		andi.b	#15,d0
 		cmpi.b	#9,d0
@@ -1400,7 +1408,7 @@ pt_checkmoreeffects:
 		cmpi.b	#11,d0
 		beq.w	pt_positionjump
 		cmpi.b	#13,d0
-		beq	pt_patternbreak
+		beq.w	pt_patternbreak
 		cmpi.b	#14,d0
 		beq.b	pt_ecommands
 		cmpi.b	#15,d0
@@ -1506,7 +1514,7 @@ pt_karplusstrong:
 		move.w	14(a6),d0
 		add.w	d0,d0
 		subq.w	#2,d0
-		blt	.no
+		blt.b	.no
 .pt_karplop:
 		move.b	(a1),d6
 		ext.w	d6
@@ -1549,11 +1557,11 @@ pt_doretrg:
 		cmp.b	#PTK30,pt_ptk_type
 		bne.s	.ptk23
 		 move.w	16(a6),6(a5)		; ptk30 sets period here
-.ptk23		bsr.w	pt_raster
+.ptk23		bsr.b	pt_raster
 		move.w	20(a6),d0
 		ori.w	#$8000,d0
 		move.w	d0,$dff096
-		bsr.w	pt_raster
+		bsr.b	pt_raster
 		move.l	10(a6),(a5)
 		move.l	14(a6),4(a5)
 pt_rtnend:
