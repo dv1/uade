@@ -863,9 +863,12 @@ static void uade_stop(void)
       play_time = (uadesong->out_bytes * 1000) / UADE_BYTES_PER_SECOND;
       if (uadesong->md5[0] != 0)
 	uade_add_playtime(uadesong->md5, play_time, 1);
-        uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, 
+	uadesong->cur_subsong = uadesong->max_subsong;
+	uade_info_string();
+
+        /*uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, 
 	                                          UADE_FREQUENCY,
-						  UADE_CHANNELS);
+						  UADE_CHANNELS);*/
     }
     uade_unlock();
 
