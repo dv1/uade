@@ -386,23 +386,12 @@ int main(int argc, char *argv[])
     have_modules = 1;
   }
 
-  if (uadeconf.gain_enable) {
-    uade_effect_gain_set_amount(&uade_effects, uadeconf.gain);
-    uade_effect_enable(&uade_effects, UADE_EFFECT_GAIN);
-  }
-
-  if (uadeconf.headphones)
-    uade_effect_enable(&uade_effects, UADE_EFFECT_HEADPHONES);
+  uade_enable_config_effects(&uade_effects, &uadeconf);
 
   if (uadeconf.no_filter) {
     uadeconf.filter_type = 0;
     uadeconf.led_forced = 0;
     uadeconf.led_state = 0;
-  }
-
-  if (uadeconf.panning_enable) {
-    uade_effect_pan_set_amount(&uade_effects, uadeconf.panning);
-    uade_effect_enable(&uade_effects, UADE_EFFECT_PAN);
   }
 
   if (uadeconf.random_play)

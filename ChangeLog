@@ -1,3 +1,10 @@
+2006-04-06  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added a small README file
+	- Moved some effect related configuration issues to
+	  src/frontends/common/ so that they're not reimplemented in all
+	  frontends. See src/frontends/common/uadeconf.c function
+	  uade_enable_conf_effects().
+
 2006-04-05  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
 	- Tiny Protracker player compatibility change when calling

@@ -219,6 +219,23 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 }
 
 
+void uade_enable_config_effects(struct uade_effect *effects, struct uade_config *uc)
+{
+  if (uc->gain_enable) {
+    uade_effect_gain_set_amount(effects, uc->gain);
+    uade_effect_enable(effects, UADE_EFFECT_GAIN);
+  }
+
+  if (uc->headphones)
+    uade_effect_enable(effects, UADE_EFFECT_HEADPHONES);
+
+  if (uc->panning_enable) {
+    uade_effect_pan_set_amount(effects, uc->panning);
+    uade_effect_enable(effects, UADE_EFFECT_PAN);
+  }
+}
+
+
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
   if (ep->attributes & EP_ALWAYS_ENDS)

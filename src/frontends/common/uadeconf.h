@@ -34,6 +34,7 @@ struct uade_config {
 
 
 void uade_config_set_defaults(struct uade_config *uc);
+void uade_enable_config_effects(struct uade_effect *effects, struct uade_config *uc);
 int uade_get_silence_timeout(const char *value);
 int uade_get_subsong_timeout(const char *value);
 int uade_get_timeout(const char *value);
