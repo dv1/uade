@@ -2,6 +2,8 @@
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
 	- Tiny Protracker player compatibility change when calling
 	  playvoice.
+	- Nicer playlist entries for Audcious plugin:
+	  title (cur/max) - [Format]
 
 2006-04-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Implemented NTSC mode support. It can be buggy and it will not

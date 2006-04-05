@@ -54,6 +54,7 @@ static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
+static void uade_info_string(void);
 
 
 /* GLOBAL VARIABLE DECLARATIONS */
@@ -452,6 +453,7 @@ static void *play_loop(void *arg)
   int song_end_trigger = 0;
   int64_t skip_bytes = 0;
 
+
   while (1) {
     if (state == UADE_S_STATE) {
 
@@ -479,6 +481,7 @@ static void *play_loop(void *arg)
 	subsong_bytes = 0;
 	uadesong->out_bytes = 0;
 	out_bytes_valid = 0;
+	uade_info_string();
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
@@ -495,6 +498,7 @@ static void *play_loop(void *arg)
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
+	    uade_info_string();
 	  }
 	}
       }
@@ -633,6 +637,7 @@ static void *play_loop(void *arg)
 	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
 	  /* normal happy song end. go to next subsong if any */
 	  subsong_end = 1;
+
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
@@ -659,6 +664,7 @@ static void *play_loop(void *arg)
 	uadesong->min_subsong = ntohl(u32ptr[0]);
 	uadesong->max_subsong = ntohl(u32ptr[1]);
 	uadesong->cur_subsong = ntohl(u32ptr[2]);
+
 
 	if (!(-1 <= uadesong->min_subsong && uadesong->min_subsong <= uadesong->cur_subsong && uadesong->cur_subsong <= uadesong->max_subsong)) {
 	  int tempmin = uadesong->min_subsong, tempmax = uadesong->max_subsong;
@@ -901,14 +907,15 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
-      int playtime = uadesong->playtime;
+      //int playtime = uadesong->playtime;
       /* Hack. Set info text and song length late because we didn't know
 	 subsong amounts before this. Pass zero as a length so that the
 	 graphical play time counter will run but seek is still enabled.
 	 Passing -1 as playtime would disable seeking. */
-      if (playtime <= 0)
-	playtime = 0;
-      uade_ip.set_info(gui_filename, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+      //if (playtime <= 0)
+      //playtime = 0;
+        uade_info_string();
+        //uade_ip.set_info(t, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     }
     uade_unlock();
     gui_info_set = 1;
@@ -934,4 +941,42 @@ static void uade_get_song_info(char *filename, char **title, int *length)
   if ((*title = strdup(t)) == NULL)
     plugindebug("Not enough memory for song info.\n");
   *length = -1;
+}
+
+static void uade_info_string(void)
+{
+  char m[96];
+  char p[96];
+  char info[256];
+  int playtime = uadesong->playtime;
+
+      /* Hack. Set info text and song length late because we didn't know
+	 subsong amounts before this. Pass zero as a length so that the
+	 graphical play time counter will run but seek is still enabled.
+	 Passing -1 as playtime would disable seeking. */
+      if (playtime <= 0)
+	playtime = 0;
+
+	if (gui_modulename[0] == 0 || (strncmp(gui_modulename, "<no songtitle>", 14) == 0)) {
+            snprintf(m, sizeof m, "%s", gui_filename);
+	 } else {
+            snprintf(m, sizeof m, "%s", gui_modulename);
+	}
+
+	if (gui_formatname[0] == 0) {
+            snprintf(p, sizeof p, "%s", gui_playername);
+	 } else {
+	   if (strncmp(gui_formatname, "type: ", 6) == 0) {
+        	snprintf(p, sizeof p, "%s", gui_formatname+6);
+	    } else {
+        	snprintf(p, sizeof p, "%s", gui_formatname);
+	    }
+	}
+
+        snprintf(info, sizeof info, "%s (%d/%d)  -  [%s] ", m,
+						uadesong->cur_subsong,
+						uadesong->max_subsong,
+						p);
+
+	uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 }
