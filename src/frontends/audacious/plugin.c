@@ -967,7 +967,11 @@ static void uade_info_string(void)
 	}
 
 	if (gui_formatname[0] == 0) {
-            snprintf(p, sizeof p, "%s", gui_playername);
+	    if (gui_playername[0] == 0) {
+		snprintf(p, sizeof p, "CustomPlay");
+            } else {
+        	snprintf(p, sizeof p, "%s", gui_playername);
+	    }
 	 } else {
 	   if (strncmp(gui_formatname, "type: ", 6) == 0) {
         	snprintf(p, sizeof p, "%s", gui_formatname+6);
