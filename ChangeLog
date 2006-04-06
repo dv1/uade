@@ -12,9 +12,7 @@
 	  to src/include/uadeutils.h, which is now used from songinfo.c and
 	  amifilemagic.c. Changed length types to size_t. Made find_tag()
 	  more generic and made it use memmem() function.
-
-2006-04-06  Michael Doering <mld@user.sourceforge.net>
-        - Added Heikki's dpiutil to songinfo for CUST.* songs.
+        - Added Heikki's dpiutil to songinfo for CUST.* songs. (mld)
 
 2006-04-05  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
