@@ -325,6 +325,106 @@ static void process_digi_mod(char *credits, size_t credits_len,
 /* 
  * Get the info out of the Deltamusic 2 module data
  */
+static void process_cust_mod(char *credits, size_t credits_len,
+			    unsigned char *buf, size_t len)
+{
+  char tmpstr[1024];
+  char *hunk;
+  unsigned char *tag_table;
+  int hunk_size;
+  int table_size;
+
+  int i;
+  int offset;
+  unsigned int x,y;
+  
+  
+  if (len <4)
+    return;
+
+  if (read_be_u32(buf) != 0x000003f3)
+    return;
+
+  /* search for hunk data start */
+  for (i = 0; i < len; i++) {
+    if (read_be_u32(buf + i) == 0x70ff4e75) {
+	break;
+    }
+  }
+
+  if (i == len || (i + 12) >= len)
+   return;
+
+  if (strncmp(buf + i + 4, "DELIRIUM", 8) != 0 &&
+      strncmp(buf + i + 4, "EPPLAYER", 8) != 0   ) {
+    return;
+  }
+  
+  /* Hunk found */
+  hunk = buf + i;
+  hunk_size = len - i;
+
+
+  if (16 + i + 5 >= hunk_size) 
+    return;
+   
+   /* Check if $VER is available */
+   if (!memcmp (&hunk[16], "$VER:",5)) {
+    offset = 16 + 5;
+    while (offset <hunk_size) {
+        if (memcmp (&hunk[offset], " ", 1))
+	  break;
+        offset++;
+     }
+	if (offset >= hunk_size)
+	  return;
+	if ((offset + strlen(hunk+offset) + 1) > ((unsigned int) hunk_size))
+	  return;
+	snprintf(tmpstr, sizeof tmpstr, "\nVERSION:\n%s\n\n", hunk + offset);
+	strlcat(credits, tmpstr, credits_len);
+     }
+     
+     offset = read_be_u32(hunk + 12);
+     if (offset < 0) {
+       return;
+     }
+
+    tag_table = hunk + offset;
+
+    if (tag_table >= &buf[len])
+      return;
+     
+    table_size = ((int) (&buf[len] - tag_table)) / 8;
+
+    if (table_size <= 0)
+      return;
+      
+    /* check all tags in this loop */
+    for (i = 0; i < table_size; i += 2) {
+	x = read_be_u32(tag_table + 4 * i);
+	y = read_be_u32(tag_table + 4 * (i + 1));
+	
+	if (!x)
+	    break;
+	    
+	switch (x) {
+	    case 0x8000445a:
+		if (y >= ((unsigned int) hunk_size))
+		    return;
+		if ((y + strlen(hunk + y) + 1) > ((unsigned int) hunk_size))
+		    return;
+		snprintf(tmpstr, sizeof tmpstr, "\nCREDITS:\n%s\n\n", hunk + y);
+		strlcat(credits, tmpstr, credits_len);
+	    default:
+		break;
+	}
+    }
+
+}
+
+/* 
+ * Get the info out of the Deltamusic 2 module data
+ */
 static void process_dm2_mod(char *credits, size_t credits_len,
 			    unsigned char *buf, size_t len)
 {
@@ -385,7 +485,11 @@ static int process_module(char *credits, size_t credits_len,char *filename)
   snprintf(tmpstr, sizeof tmpstr, "File prefix:\t%s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
 
-  if (strcasecmp(pre, "DM2") == 0) {
+  if (strcasecmp(pre, "CUST") == 0) {
+  /* CUST */
+    process_cust_mod(credits, credits_len, buf, modfilelen);
+
+  } else if (strcasecmp(pre, "DM2") == 0) {
   /* DM2 */
     process_dm2_mod(credits, credits_len, buf, modfilelen);
 

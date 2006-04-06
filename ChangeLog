@@ -5,6 +5,7 @@
 	  frontends. See src/frontends/common/uadeconf.c function
 	  uade_enable_conf_effects().
 	- Use of uade_enable_conf_effects() in audacious plugin (mld)
+	- Added Heikki's dpiutil to songinfo for CUST.* songs (mld)
 
 2006-04-05  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
