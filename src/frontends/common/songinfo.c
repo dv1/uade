@@ -1,14 +1,17 @@
+#define _GNU_SOURCE
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
-#include <string.h>
 #include <ctype.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <uadeutils.h>
+#include <uadeipc.h>
 #include <strlrep.h>
 #include <songinfo.h>
 #include <amifilemagic.h>
@@ -107,33 +110,20 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   return rb == 0;
 }
 
-static uint32_t read_be_u32(uint8_t *ptr)
-{
-  uint32_t x = ptr[3] + (ptr[2] << 8) + (ptr[1] << 16) + (ptr[0] << 24);
-  return x;
-}
 
-static uint16_t read_be_u16(uint8_t *ptr)
+static size_t find_tag(uint8_t *buf, size_t startoffset, size_t buflen,
+		       uint8_t *tag, size_t taglen)
 {
-  uint16_t x = ptr[1] + (ptr[0] << 8);
-  return x;
-}
+  uint8_t *treasure;
 
-static int find_tag(unsigned char *buf, char *tag, int startoffset,
-		    int buflen)
-{
-  int i;
-
-  if (startoffset > buflen - 4)
+  if (startoffset >= buflen)
     return -1;
 
-  for (i = startoffset; i < buflen - 3; i++) {
-    if (buf[i] == tag[0] && buf[i + 1] == tag[1] &&
-	buf[i + 2] == tag[2] && buf[i + 3] == tag[3]) {
-      return i;
-    }
-  }
-  return -1;
+  treasure = memmem(buf + startoffset, buflen - startoffset, tag, taglen);
+  if (treasure == NULL)
+    return -1;
+
+  return (size_t) (treasure - buf);
 }
 
 
@@ -150,17 +140,19 @@ static int string_checker(char *str, size_t off, size_t maxoff)
 }
 
 /* Wanted Team's loadseg modules */
-static void process_WTWT_mod(char *credits, int credits_len,
-			     unsigned char *buf, int len, char *lo,
+static void process_WTWT_mod(char *credits, size_t credits_len,
+			     unsigned char *buf, size_t len, char *lo,
 			     char *hi, int rel)
 {
   int offset, txt_offset, chunk;
   char tmpstr[256];
 
-  offset = find_tag(buf, lo, 0, len);	/* check for Magic ID */
+  /* check for Magic ID */
+  offset = find_tag((uint8_t *) buf, 0, len, (uint8_t *) lo, 4);
   if (offset == -1)
     return;
-  offset = find_tag(buf, hi, offset + 4, offset + 8);
+
+  offset = find_tag((uint8_t *) buf, offset + 4, offset + 8, (uint8_t *) hi, 4);
   if (offset == -1)
     return;
 
@@ -168,39 +160,29 @@ static void process_WTWT_mod(char *credits, int credits_len,
   offset = offset + rel;	/* offset to our info pointers */
 
   if (chunk < len && offset < len) {
-
     txt_offset = read_be_u32(buf + offset) + chunk;
-    if (txt_offset < len && txt_offset != chunk)
-	{
+    if (txt_offset < len && txt_offset != chunk) {
+      if (!string_checker(buf, txt_offset, len))
+	return;
+      snprintf(tmpstr, sizeof tmpstr, "\nMODULENAME:\n %s\n", buf + txt_offset);
+      strlcat(credits, tmpstr, credits_len);
 
-  		if (!string_checker(buf, txt_offset, len))
-    		return;
-  		snprintf(tmpstr, sizeof tmpstr, "\nMODULENAME:\n %s\n", buf + 
-									txt_offset);
-  		strlcat(credits, tmpstr, credits_len);
-
-	}
+    }
     txt_offset = read_be_u32(buf + offset + 4) + chunk;
-    if (txt_offset < len && txt_offset != chunk)
-	{
-  		if (!string_checker(buf, txt_offset, len))
-    		return;
-  		snprintf(tmpstr, sizeof tmpstr, "\nAUTHORNAME:\n %s\n", buf + 
-									txt_offset);
-  		strlcat(credits, tmpstr, credits_len);
-	}
- 
+    if (txt_offset < len && txt_offset != chunk) {
+      if (!string_checker(buf, txt_offset, len))
+	return;
+      snprintf(tmpstr, sizeof tmpstr, "\nAUTHORNAME:\n %s\n", buf + txt_offset);
+      strlcat(credits, tmpstr, credits_len);
+    }
 
     txt_offset = read_be_u32(buf + offset + 8) + chunk;
-    if (txt_offset < len && txt_offset != chunk)
-		{
-  		if (!string_checker(buf, txt_offset, len))
-    		return;
-  		snprintf(tmpstr, sizeof tmpstr, "\nSPECIALINFO:\n %s", buf + 
-									txt_offset);
-  		strlcat(credits, tmpstr, credits_len);
-
-		}
+    if (txt_offset < len && txt_offset != chunk) {
+      if (!string_checker(buf, txt_offset, len))
+	return;
+      snprintf(tmpstr, sizeof tmpstr, "\nSPECIALINFO:\n %s", buf + txt_offset);
+      strlcat(credits, tmpstr, credits_len);
+    }
   }
 }
 
@@ -322,11 +304,10 @@ static void process_digi_mod(char *credits, size_t credits_len,
   }
 }
 
-/* 
- * Get the info out of the Deltamusic 2 module data
- */
-static void process_cust_mod(char *credits, size_t credits_len,
-			    unsigned char *buf, size_t len)
+
+/* Get the info out of custom song. FIX ME, clean this function. */
+static void process_custom(char *credits, size_t credits_len,
+			   unsigned char *buf, size_t len)
 {
   char tmpstr[1024];
   char *hunk;
@@ -336,24 +317,18 @@ static void process_cust_mod(char *credits, size_t credits_len,
 
   int i;
   int offset;
-  unsigned int x,y;
-  
-  
-  if (len <4)
+  unsigned int x, y;
+  unsigned char startpattern[4] = {0x70, 0xff, 0x4e, 0x75};
+
+  if (len < 4)
     return;
 
   if (read_be_u32(buf) != 0x000003f3)
     return;
 
-  /* search for hunk data start */
-  for (i = 0; i < len; i++) {
-    if (read_be_u32(buf + i) == 0x70ff4e75) {
-	break;
-    }
-  }
-
-  if (i == len || (i + 12) >= len)
-   return;
+  i = find_tag(buf, 0, len, startpattern, sizeof startpattern);
+  if (i == -1 || (i + 12) >= len)
+    return;
 
   if (strncmp(buf + i + 4, "DELIRIUM", 8) != 0 &&
       strncmp(buf + i + 4, "EPPLAYER", 8) != 0   ) {
@@ -364,62 +339,63 @@ static void process_cust_mod(char *credits, size_t credits_len,
   hunk = buf + i;
   hunk_size = len - i;
 
-
   if (16 + i + 5 >= hunk_size) 
     return;
    
-   /* Check if $VER is available */
-   if (!memcmp (&hunk[16], "$VER:",5)) {
+  /* Check if $VER is available */
+  if (!memcmp (&hunk[16], "$VER:", 5)) {
     offset = 16 + 5;
-    while (offset <hunk_size) {
-        if (memcmp (&hunk[offset], " ", 1))
-	  break;
-        offset++;
-     }
-	if (offset >= hunk_size)
-	  return;
-	if ((offset + strlen(hunk+offset) + 1) > ((unsigned int) hunk_size))
-	  return;
-	snprintf(tmpstr, sizeof tmpstr, "\nVERSION:\n%s\n\n", hunk + offset);
-	strlcat(credits, tmpstr, credits_len);
-     }
-     
-     offset = read_be_u32(hunk + 12);
-     if (offset < 0) {
-       return;
-     }
-
-    tag_table = hunk + offset;
-
-    if (tag_table >= &buf[len])
-      return;
-     
-    table_size = ((int) (&buf[len] - tag_table)) / 8;
-
-    if (table_size <= 0)
-      return;
-      
-    /* check all tags in this loop */
-    for (i = 0; i < table_size; i += 2) {
-	x = read_be_u32(tag_table + 4 * i);
-	y = read_be_u32(tag_table + 4 * (i + 1));
-	
-	if (!x)
-	    break;
-	    
-	switch (x) {
-	    case 0x8000445a:
-		if (y >= ((unsigned int) hunk_size))
-		    return;
-		if ((y + strlen(hunk + y) + 1) > ((unsigned int) hunk_size))
-		    return;
-		snprintf(tmpstr, sizeof tmpstr, "\nCREDITS:\n%s\n\n", hunk + y);
-		strlcat(credits, tmpstr, credits_len);
-	    default:
-		break;
-	}
+    while (offset < hunk_size) {
+      if (memcmp (&hunk[offset], " ", 1))
+	break;
+      offset++;
     }
+    if (offset >= hunk_size)
+      return;
 
+    if ((offset + strlen(hunk + offset) + 1) > ((unsigned int) hunk_size))
+      return;
+
+    snprintf(tmpstr, sizeof tmpstr, "\nVERSION:\n%s\n\n", hunk + offset);
+    strlcat(credits, tmpstr, credits_len);
+  }
+  
+  offset = read_be_u32(hunk + 12);
+  if (offset < 0) {
+    return;
+  }
+
+  tag_table = hunk + offset;
+
+  if (tag_table >= &buf[len])
+    return;
+     
+  table_size = ((int) (&buf[len] - tag_table)) / 8;
+
+  if (table_size <= 0)
+    return;
+      
+  /* check all tags in this loop */
+  for (i = 0; i < table_size; i += 2) {
+    x = read_be_u32(tag_table + 4 * i);
+    y = read_be_u32(tag_table + 4 * (i + 1));
+
+    if (!x)
+      break;
+	    
+    switch (x) {
+    case 0x8000445a:
+      if (y >= ((unsigned int) hunk_size))
+	return;
+      if ((y + strlen(hunk + y) + 1) > ((unsigned int) hunk_size))
+	return;
+      snprintf(tmpstr, sizeof tmpstr, "\nCREDITS:\n%s\n\n", hunk + y);
+      strlcat(credits, tmpstr, credits_len);
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 /* 
@@ -436,7 +412,7 @@ static void process_dm2_mod(char *credits, size_t credits_len,
 }
 
 
-static int process_module(char *credits, size_t credits_len,char *filename)
+static int process_module(char *credits, size_t credits_len, char *filename)
 {
   FILE *modfile;
   struct stat st;
@@ -480,21 +456,21 @@ static int process_module(char *credits, size_t credits_len,char *filename)
   strlcpy (credits, tmpstr,credits_len);
 
   /* here we go */
-  uade_filemagic(buf,modfilelen,pre,modfilelen); /*get filetype in pre*/
+  uade_filemagic(buf, modfilelen, pre, modfilelen); /*get filetype in pre*/
 
   snprintf(tmpstr, sizeof tmpstr, "File prefix:\t%s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
 
   if (strcasecmp(pre, "CUST") == 0) {
-  /* CUST */
-    process_cust_mod(credits, credits_len, buf, modfilelen);
+    /* CUST */
+    process_custom(credits, credits_len, buf, modfilelen);
 
   } else if (strcasecmp(pre, "DM2") == 0) {
-  /* DM2 */
+    /* DM2 */
     process_dm2_mod(credits, credits_len, buf, modfilelen);
 
   } else if (strcasecmp(pre, "DIGI") == 0) {
-  /* DIGIBooster */
+    /* DIGIBooster */
     process_digi_mod(credits, credits_len, buf, modfilelen);
 
   } else if ((strcasecmp(pre, "AHX") == 0) ||

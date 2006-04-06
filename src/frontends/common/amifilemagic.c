@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdint.h>
 
+#include <uadeutils.h>
 #include <amifilemagic.h>
 
 #define FILEMAGIC_DEBUG 0
@@ -123,17 +124,6 @@ static int patterntest(const unsigned char *buf, const char *pattern,
   return 0;
 }
 
-static inline uint16_t read_be_u16(void *buf)
-{
-  uint8_t *ptr = buf;
-  return (((uint16_t) ptr[0]) << 8) + ptr[1];
-}
-
-static inline uint32_t read_be_u32(void *buf)
-{
-  uint8_t *ptr = buf;
-  return (((uint32_t) ptr[0]) << 24) + (ptr[1] << 16) + (ptr[2] << 8) + ptr[3];
-}
 
 static int tronictest(unsigned char *buf, size_t bufsize)
 {
