@@ -374,19 +374,8 @@ static int initialize_song(char *filename)
     return FALSE;
 
   uade_set_song_attributes(&config, &effects, uadesong);
-
-  if (config.gain_enable) {
-    uade_effect_gain_set_amount(&effects, config.gain);
-    uade_effect_enable(&effects, UADE_EFFECT_GAIN);
-  }
-
-  if (config.headphones)
-    uade_effect_enable(&effects, UADE_EFFECT_HEADPHONES);
-
-  if (config.panning_enable) {
-    uade_effect_pan_set_amount(&effects, config.panning);
-    uade_effect_enable(&effects, UADE_EFFECT_PAN);
-  }
+  
+  uade_enable_config_effects(&effects, &config);
 
   if (config.ignore_player_check) {
     if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, &uadeipc) < 0) {
