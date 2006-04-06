@@ -5,10 +5,16 @@
 	  frontends. See src/frontends/common/uadeconf.c function
 	  uade_enable_conf_effects().
 	- Use of uade_enable_conf_effects() in audacious plugin (mld)
-	- Added Heikki's dpiutil to songinfo for CUST.* songs (mld)
 	- Disabled debug messages in Audacious and XMMS plugins
 	- Removed debug message about song.conf not found. It's perfectly
 	  valid that song.conf does not exist anywhere.
+	- Cleaned songinfo.c. Added a common implementation of read_be_u16/u32 
+	  to src/include/uadeutils.h, which is now used from songinfo.c and
+	  amifilemagic.c. Changed length types to size_t. Made find_tag()
+	  more generic and made it use memmem() function.
+
+2006-04-06  Michael Doering <mld@user.sourceforge.net>
+        - Added Heikki's dpiutil to songinfo for CUST.* songs.
 
 2006-04-05  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.
