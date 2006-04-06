@@ -6,6 +6,9 @@
 	  uade_enable_conf_effects().
 	- Use of uade_enable_conf_effects() in audacious plugin (mld)
 	- Added Heikki's dpiutil to songinfo for CUST.* songs (mld)
+	- Disabled debug messages in Audacious and XMMS plugins
+	- Removed debug message about song.conf not found. It's perfectly
+	  valid that song.conf does not exist anywhere.
 
 2006-04-05  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz: changed opcodes beq, sf to  seq on Heikkis advice.

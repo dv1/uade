@@ -32,7 +32,7 @@
 #include "fileinfo.h"
 
 
-#define PLUGIN_DEBUG 1
+#define PLUGIN_DEBUG 0
 
 #if PLUGIN_DEBUG
 #define plugindebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
@@ -311,9 +311,6 @@ static void uade_init(void)
 
   if (config_loaded == 0)
     config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
-
-  if (config_loaded == 0)
-    plugindebug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 }
 
 
@@ -608,7 +605,7 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	/* plugindebug("Message: %s\n", (char *) um->data); */
+	plugindebug("Message: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_PLAYERNAME:
