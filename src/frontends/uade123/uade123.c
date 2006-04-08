@@ -42,9 +42,6 @@
 #include "amigafilter.h"
 
 int uade_debug_trigger;
-struct uade_config uadeconf;
-struct uade_effect uade_effects;
-struct uade_ipc uadeipc;
 int uade_info_mode;
 double uade_jump_pos = 0.0;
 int uade_no_output;
@@ -121,8 +118,9 @@ int main(int argc, char *argv[])
   int config_loaded;
   char *home;
   struct stat st;
-  struct uade_effect uade_effects_backup;
-  struct uade_config uadeconf_backup;
+  struct uade_effect effects, effects_backup;
+  struct uade_config uc, uc_cmdline, uc_loaded;
+  struct uade_ipc uadeipc;
 
   enum {
     OPT_FILTER = 0x100,
@@ -170,8 +168,9 @@ int main(int argc, char *argv[])
     {NULL, 0, NULL, 0}
   };
 
-  uade_config_set_defaults(&uadeconf);
-  uade_effect_set_defaults(&uade_effects);
+  uade_config_set_defaults(&uc_loaded);
+  uade_config_set_defaults(&uc_cmdline);
+  uade_effect_set_defaults(&effects_backup);
 
   if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "Can not initialize playlist.\n");
@@ -191,10 +190,10 @@ int main(int argc, char *argv[])
   config_loaded = 0;
   if (home) {
     snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", home);
-    config_loaded = uade_load_config(&uadeconf, tmpstr);
+    config_loaded = uade_load_config(&uc_loaded, tmpstr);
   }
   if (config_loaded == 0)
-    config_loaded = uade_load_config(&uadeconf, UADE_CONFIG_BASE_DIR "/uade.conf");
+    config_loaded = uade_load_config(&uc_loaded, UADE_CONFIG_BASE_DIR "/uade.conf");
   if (config_loaded == 0)
     debug("Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
@@ -236,7 +235,7 @@ int main(int argc, char *argv[])
       } while (0);
       break;
     case '1':
-      uadeconf.one_subsong = 1;
+      uade_set_config_option(&uc_cmdline, "one_subsong", NULL);
       break;
     case 'd':
       debug_mode = 1;
@@ -251,17 +250,16 @@ int main(int argc, char *argv[])
     case 'g':
       uade_info_mode = 1;
       uade_no_output = 1;
-      uadeconf.action_keys = 0;
+      uade_set_config_option(&uc_cmdline, "action_keys", "off");
       break;
     case 'G':
-      uadeconf.gain = uade_convert_to_double(optarg, 1.0, 0.0, 128.0, "gain");
-      uadeconf.gain_enable = 1;
+      uade_set_config_option(&uc_cmdline, "gain", optarg);
       break;
     case 'h':
       print_help();
       exit(0);
     case 'i':
-      uadeconf.ignore_player_check = 1;
+      uade_set_config_option(&uc_cmdline, "ignore_player_check", NULL);
       break;
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
@@ -271,20 +269,14 @@ int main(int argc, char *argv[])
       }
       break;
     case 'k':
-      uadeconf.action_keys = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || uadeconf.action_keys < 0 ||
-	  uadeconf.action_keys > 1) {
-	fprintf(stderr, "Invalid parameter: --keys=%s\n", optarg);
-	exit(-1);
-      }
+      uade_set_config_option(&uc_cmdline, "action_keys", optarg);
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       have_modules = 1;
       break;
     case 'p':
-      uadeconf.panning = uade_convert_to_double(optarg, 0.0, 0.0, 2.0, "panning");
-      uadeconf.panning_enable = 1;
+      uade_set_config_option(&uc_cmdline, "panning", optarg);
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -292,7 +284,7 @@ int main(int argc, char *argv[])
       have_modules = 1;
       break;
     case 'r':
-      uadeconf.recursive_mode = 1;
+      uade_set_config_option(&uc_cmdline, "recursive_mode", NULL);
       break;
     case 's':
       subsong = strtol(optarg, &endptr, 10);
@@ -305,7 +297,7 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(scorename);
       break;
     case 't':
-      uadeconf.timeout = uade_get_timeout(optarg);
+      uade_set_config_option(&uc_cmdline, "timeout", optarg);
       break;
     case 'u':
       GET_OPT_STRING(uadename);
@@ -314,13 +306,13 @@ int main(int argc, char *argv[])
       uade_verbose_mode = 2;
       break;
     case 'w':
-      uadeconf.subsong_timeout = uade_get_subsong_timeout(optarg);
+      uade_set_config_option(&uc_cmdline, "subsong_timeout", optarg);
       break;
     case 'y':
-      uadeconf.silence_timeout = uade_get_silence_timeout(optarg);
+      uade_set_config_option(&uc_cmdline, "silence_timeout", optarg);
       break;
     case 'z':
-      uadeconf.random_play = 1;
+      uade_set_config_option(&uc_cmdline, "random_play", NULL);
       break;
     case '?':
     case ':':
@@ -328,52 +320,43 @@ int main(int argc, char *argv[])
     case OPT_FILTER:
       if (optarg != NULL) {
 	if (strcasecmp(optarg, "none") == 0) {
-	  uadeconf.no_filter = 1;
+	  uade_set_config_option(&uc_cmdline, "no_filter", NULL);
 	} else {
-	  uade_set_filter_type(&uadeconf, optarg);
+	  uade_set_config_option(&uc_cmdline, "filter", optarg);
 	}
       } else {
-	uadeconf.no_filter = 0;
+	uade_set_config_option(&uc_cmdline, "filter", NULL);
       }
       break;
     case OPT_FORCE_LED:
-      uadeconf.led_state = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || uadeconf.led_state < 0 || uadeconf.led_state > 1) {
-	fprintf(stderr, "Invalid filter state: %s (must 0 or 1)\n", optarg);
-	exit(-1);
-      }
-      uadeconf.led_forced = 1;
+      uade_set_config_option(&uc_cmdline, "force_led", optarg);
       break;
     case OPT_INTERPOLATOR:
-      uadeconf.interpolator = strdup(optarg);
+      uade_set_config_option(&uc_cmdline, "interpolator", optarg);
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
       break;
     case OPT_NO_SONG_END:
-      uadeconf.no_song_end = 1;
+      uade_set_config_option(&uc_cmdline, "no_song_end", NULL);
       break;
     case OPT_SPEED_HACK:
-      uadeconf.speed_hack = 1;
+      uade_set_config_option(&uc_cmdline, "speed_hack", NULL);
       break;
     case OPT_BASEDIR:
       GET_OPT_STRING(basedir);
       break;
     case OPT_HEADPHONES:
-      uadeconf.headphones = 1;
+      uade_set_config_option(&uc_cmdline, "headphones", NULL);
       break;
     case OPT_BUFFER_TIME:
-      uadeconf.buffer_time = strtol(optarg, &endptr, 10);
-      if (uadeconf.buffer_time <= 0 || *endptr != 0) {
-	fprintf(stderr, "Invalid buffer time given: %s\n", optarg);
-	exit(-1);
-      }
+      uade_set_config_option(&uc_cmdline, "buffer_time", optarg);
       break;
     case OPT_NTSC:
-      uadeconf.use_ntsc = 1;
+      uade_set_config_option(&uc_cmdline, "ntsc", NULL);
       break;
     case OPT_PAL:
-      uadeconf.use_ntsc = 2;
+      uade_set_config_option(&uc_cmdline, "pal", NULL);
       break;
     default:
       fprintf(stderr, "Impossible option.\n");
@@ -382,19 +365,15 @@ int main(int argc, char *argv[])
   }
 
   for (i = optind; i < argc; i++) {
-    playlist_add(&uade_playlist, argv[i], uadeconf.recursive_mode);
+    playlist_add(&uade_playlist, argv[i], uc_cmdline.recursive_mode);
     have_modules = 1;
   }
 
-  uade_enable_config_effects(&uade_effects, &uadeconf);
+  /* Merge loaded configurations and command line options */
+  uc = uc_loaded;
+  uade_merge_configs(&uc, &uc_cmdline);
 
-  if (uadeconf.no_filter) {
-    uadeconf.filter_type = 0;
-    uadeconf.led_forced = 0;
-    uadeconf.led_state = 0;
-  }
-
-  if (uadeconf.random_play)
+  if (uc.random_play)
     playlist_random(&uade_playlist, 1);
 
   if (have_modules == 0) {
@@ -404,9 +383,9 @@ int main(int argc, char *argv[])
 
   /* we want to control terminal differently in debug mode */
   if (debug_mode)
-    uadeconf.action_keys = 0;
+    uc.action_keys = 0;
 
-  if (uadeconf.action_keys)
+  if (uc.action_keys)
     setup_terminal();
 
   if (basedir[0] == 0)
@@ -449,11 +428,8 @@ int main(int argc, char *argv[])
 
   uade_spawn(&uadeipc, &uadepid, uadename, configname);
 
-  if (!audio_init(uadeconf.buffer_time))
+  if (!audio_init(uc.buffer_time))
     goto cleanup;
-
-  uade_effects_backup = uade_effects;
-  uadeconf_backup = uadeconf;
 
   while (1) {
     ssize_t filesize;
@@ -469,14 +445,13 @@ int main(int argc, char *argv[])
     if (!playlist_get_next(modulename, sizeof modulename, &uade_playlist))
       break;
 
-    uade_effects = uade_effects_backup;
-    uadeconf = uadeconf_backup;
+    effects = effects_backup;
+
+    uc = uc_loaded;
 
     if (playernamegiven == 0) {
       struct eagleplayer *ep;
-
       debug("\n");
-
       ep = uade_analyze_file_format(modulename, basedir, uade_verbose_mode);
       if (ep == NULL) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
@@ -485,8 +460,7 @@ int main(int argc, char *argv[])
       debug("Player candidate: %s\n", ep->playername);
 
       /* Command line overrides are needed here. NOT IMPLEMENTED. */
-
-      uade_set_ep_attributes(&uadeconf, ep);
+      uade_set_ep_attributes(&uc, ep);
 
       if (strcmp(ep->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof playername);
@@ -518,16 +492,16 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    /* Command line overrides are needed here. NOT IMPLEMENTED. */
-
-    uade_set_song_attributes(&uadeconf, &uade_effects, us);
+    uade_set_config_effects(&effects, &uc);
+    uade_set_song_attributes(&uc, &effects, us);
+    uade_merge_configs(&uc, &uc_cmdline);
 
     if (uade_verbose_mode)
       fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
 
-    if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc))) {
+    if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &uc))) {
       if (ret == UADECORE_INIT_ERROR) {
 	free(us);
 	goto cleanup;
@@ -540,39 +514,10 @@ int main(int argc, char *argv[])
       exit(-1);
     }
 
-    if (uadeconf.ignore_player_check) {
-      if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, &uadeipc) < 0) {
-	fprintf(stderr, "Can not send ignore check message.\n");
-	exit(-1);
-      }
-    }
-
-    if (uadeconf.no_song_end) {
-      if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, &uadeipc) < 0) {
-	fprintf(stderr, "Can not send 'song end not possible'.\n");
-	exit(-1);
-      }
-    }
-
     if (subsong >= 0)
       uade_set_subsong(subsong, &uadeipc);
 
-    uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced, &uadeipc);
-    uade_send_interpolation_command(uadeconf.interpolator, &uadeipc);
-    if (uadeconf.speed_hack) {
-      if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, &uadeipc)) {
-	fprintf(stderr, "Can not send speed hack command.\n");
-	exit(-1);
-      }
-    }
-    if (uadeconf.use_ntsc && (uadeconf.use_ntsc & 2) == 0) {
-      if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, &uadeipc)) {
-	fprintf(stderr, "Can not send ntsc command.\n");
-	exit(-1);
-      }
-    }
-
-    if (!play_loop(us)) {
+    if (!play_loop(&uadeipc, us, &effects, &uc)) {
       free(us);
       goto cleanup;
     }

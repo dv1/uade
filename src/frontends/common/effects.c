@@ -81,6 +81,7 @@ void uade_effect_toggle(struct uade_effect *ue, uade_effect_t effect)
 
 void uade_effect_set_defaults(struct uade_effect *ue)
 {
+    memset(ue, 0, sizeof(*ue));
     uade_effect_disable_all(ue);
     uade_effect_enable(ue, UADE_EFFECT_ALLOW);
     uade_effect_gain_set_amount(ue, 1.0);

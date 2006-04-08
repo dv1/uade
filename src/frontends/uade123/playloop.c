@@ -14,13 +14,12 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <uadeipc.h>
 #include <uadecontrol.h>
 #include <uadeconstants.h>
-#include <uadeconf.h>
 #include <songinfo.h>
 #include <sysincludes.h>
 
+#include "playloop.h"
 #include "uade123.h"
 #include "audio.h"
 #include "terminal.h"
@@ -42,14 +41,14 @@ void print_song_info(struct uade_song *us, enum song_info_type t)
 
 
 /* Note that this function has side effects (static int64_t silence_count) */
-static int uade_test_silence(void *buf, size_t size)
+static int uade_test_silence(void *buf, size_t size, struct uade_config *uc)
 {
   int i, s, exceptioncounter;
   int16_t *sm;
   int nsamples;
   static int64_t silence_count = 0;
 
-  if (uadeconf.silence_timeout < 0)
+  if (uc->silence_timeout < 0)
     return 0;
 
   exceptioncounter = 0;
@@ -68,7 +67,7 @@ static int uade_test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / UADE_BYTES_PER_SECOND >= uadeconf.silence_timeout) {
+    if (silence_count / UADE_BYTES_PER_SECOND >= uc->silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -77,7 +76,8 @@ static int uade_test_silence(void *buf, size_t size)
 }
 
 
-int play_loop(struct uade_song *us)
+int play_loop(struct uade_ipc *ipc, struct uade_song *us,
+	      struct uade_effect *ue, struct uade_config *uc)
 {
   uint16_t *sm;
   int i;
@@ -141,7 +141,7 @@ int play_loop(struct uade_song *us)
 	}
       }
 
-      if (uadeconf.action_keys) {
+      if (uc->action_keys) {
 	switch ((ret = poll_terminal())) {
 	case 0:
 	  break;
@@ -159,15 +159,13 @@ int play_loop(struct uade_song *us)
 	  pause_terminal();
 	  break;
 	case 'f':
-	  uade_set_filter_type(&uadeconf, NULL);
-	  uadeconf.led_forced = 1;
-	  uadeconf.led_state ^= 1;
-	  tprintf("\nForcing LED %s\n", (uadeconf.led_state & 1) ? "ON" : "OFF");
-	  uade_send_filter_command(uadeconf.filter_type, uadeconf.led_state, uadeconf.led_forced, &uadeipc);
+	  uade_set_config_option(uc, "force_led", uc->led_state ? "off" : "on");
+	  tprintf("\nForcing LED %s\n", (uc->led_state & 1) ? "ON" : "OFF");
+	  uade_send_filter_command(ipc, uc);
 	  break;
 	case 'g':
-	  uade_effect_toggle(&uade_effects, UADE_EFFECT_GAIN);
-	  tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(ue, UADE_EFFECT_GAIN);
+	  tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(ue, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'h':
 	  tprintf("\n\n");
@@ -175,8 +173,8 @@ int play_loop(struct uade_song *us)
 	  tprintf("\n");
 	  break;
 	case 'H':
-	  uade_effect_toggle(&uade_effects, UADE_EFFECT_HEADPHONES);
-	  tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(ue, UADE_EFFECT_HEADPHONES);
+	  tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(ue, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'i':
 	  if (!uade_no_output)
@@ -191,12 +189,12 @@ int play_loop(struct uade_song *us)
 	  uade_song_end_trigger = 1;
 	  break;
 	case 'p':
-	  uade_effect_toggle(&uade_effects, UADE_EFFECT_ALLOW);
-	  tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
+	  uade_effect_toggle(ue, UADE_EFFECT_ALLOW);
+	  tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
 	  break;
 	case 'P':
-	  uade_effect_toggle(&uade_effects, UADE_EFFECT_PAN);
-	  tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(&uade_effects, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(&uade_effects, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&uade_effects, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+	  uade_effect_toggle(ue, UADE_EFFECT_PAN);
+	  tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(ue, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'q':
 	  tprintf("\n");
@@ -245,7 +243,7 @@ int play_loop(struct uade_song *us)
       }
 
       if (uade_debug_trigger == 1) {
-	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER, &uadeipc)) {
+	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER, ipc)) {
 	  fprintf(stderr, "\nCan not active debugger\n");
 	  return 0;
 	}
@@ -259,7 +257,7 @@ int play_loop(struct uade_song *us)
       }
 
       if (subsong_end && uade_song_end_trigger == 0) {
-	if (jump_sub || (uadeconf.one_subsong == 0 && us->cur_subsong != -1 && us->max_subsong != -1)) {
+	if (jump_sub || (uc->one_subsong == 0 && us->cur_subsong != -1 && us->max_subsong != -1)) {
 	  us->cur_subsong++;
 	  jump_sub = 0;
 	  if (us->cur_subsong > us->max_subsong) {
@@ -268,7 +266,7 @@ int play_loop(struct uade_song *us)
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 	    us->out_bytes = 0;
-	    uade_change_subsong(us->cur_subsong, &uadeipc);
+	    uade_change_subsong(us->cur_subsong, ipc);
 	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	  }
 	} else {
@@ -279,17 +277,17 @@ int play_loop(struct uade_song *us)
       /* Check if control-c was pressed */
       if (uade_song_end_trigger) {
 	next_song = 1;
-	if (uade_send_short_message(UADE_COMMAND_REBOOT, &uadeipc)) {
+	if (uade_send_short_message(UADE_COMMAND_REBOOT, ipc)) {
 	  fprintf(stderr, "\nCan not send reboot\n");
 	  return 0;
 	}
 	goto sendtoken;
       }
 
-      left = uade_read_request(&uadeipc);
+      left = uade_read_request(ipc);
 
     sendtoken:
-      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, ipc)) {
 	fprintf(stderr, "\nCan not send token\n");
 	return 0;
       }
@@ -309,10 +307,10 @@ int play_loop(struct uade_song *us)
 	us->out_bytes += playbytes;
 
 	/* FIX ME */
-	if (uadeconf.timeout != -1)
+	if (uc->timeout != -1)
 	  total_bytes += playbytes;
 
-	if (uadeconf.subsong_timeout != -1)
+	if (uc->subsong_timeout != -1)
 	  subsong_bytes += playbytes;
 
 	if (skip_bytes > 0) {
@@ -326,7 +324,7 @@ int play_loop(struct uade_song *us)
 	  }
 	}
 
-	uade_effect_run(&uade_effects, (int16_t *) sampledata, playbytes / framesize);
+	uade_effect_run(ue, (int16_t *) sampledata, playbytes / framesize);
 
 	if (!audio_play(sampledata, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");
@@ -334,27 +332,27 @@ int play_loop(struct uade_song *us)
 	}
 
 	/* FIX ME */
-	if (uadeconf.timeout != -1 && uadeconf.always_ends == 0) {
+	if (uc->timeout != -1 && uc->always_ends == 0) {
 	  if (uade_song_end_trigger == 0) {
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= uadeconf.timeout) {
-	      fprintf(stderr, "\nSong end (timeout %ds)\n", uadeconf.timeout);
+	    if (total_bytes / UADE_BYTES_PER_SECOND >= uc->timeout) {
+	      fprintf(stderr, "\nSong end (timeout %ds)\n", uc->timeout);
 	      uade_song_end_trigger = 1;
 	    }
 	  }
 	}
 
-	if (uadeconf.subsong_timeout != -1 && uadeconf.always_ends == 0) {
+	if (uc->subsong_timeout != -1 && uc->always_ends == 0) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uadeconf.subsong_timeout) {
-	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uadeconf.subsong_timeout);
+	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uc->subsong_timeout) {
+	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uc->subsong_timeout);
 	      subsong_end = 1;
 	    }
 	  }
 	}
 
-	if (uade_test_silence(um->data, playbytes)) {
+	if (uade_test_silence(um->data, playbytes, uc)) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uadeconf.silence_timeout);
+	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uc->silence_timeout);
 	    subsong_end = 1;
 	  }
 	}
@@ -364,7 +362,7 @@ int play_loop(struct uade_song *us)
 
       /* receive state */
 
-      if (uade_receive_message(um, sizeof(space), &uadeipc) <= 0) {
+      if (uade_receive_message(um, sizeof(space), ipc) <= 0) {
 	fprintf(stderr, "\nCan not receive events from uade\n");
 	return 0;
       }
@@ -478,7 +476,7 @@ int play_loop(struct uade_song *us)
   }
 
   do {
-    ret = uade_receive_message(um, sizeof(space), &uadeipc);
+    ret = uade_receive_message(um, sizeof(space), ipc);
     if (ret < 0) {
       fprintf(stderr, "\nCan not receive events (TOKEN) from uade.\n");
       return 0;

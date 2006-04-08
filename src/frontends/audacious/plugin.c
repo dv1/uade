@@ -356,65 +356,20 @@ static int initialize_song(char *filename)
     strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
   }
 
-  ret = uade_song_initialization(scorename, playername, modulename, &uadeipc);
+  assert(uadesong == NULL);
+  if ((uadesong = uade_alloc_song(filename)) == NULL)
+    return FALSE;
+
+  uade_set_config_effects(&effects, &config);
+  uade_set_song_attributes(&config, &effects, uadesong);
+
+  ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &config);
   if (ret) {
     if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
       plugin_disabled = 1;
     }
     return FALSE;
-  }
-
-  assert(uadesong == NULL);
-
-  if ((uadesong = uade_alloc_song(filename)) == NULL)
-    return FALSE;
-
-  uade_set_song_attributes(&config, &effects, uadesong);
-  
-  uade_enable_config_effects(&effects, &config);
-
-  if (config.ignore_player_check) {
-    if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, &uadeipc) < 0) {
-      fprintf(stderr, "Can not send ignore check message.\n");
-      plugin_disabled = 1;
-      free(uadesong);
-      uadesong = NULL;
-      return FALSE;
-    }
-  }
-
-  if (config.no_song_end) {
-    if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, &uadeipc) < 0) {
-      fprintf(stderr, "Can not send 'song end not possible'.\n");
-      plugin_disabled = 1;
-      free(uadesong);
-      uadesong = NULL;
-      return FALSE;
-    }
-  }
-
-  uade_send_filter_command(config.filter_type, config.led_state, config.led_forced, &uadeipc);
-  uade_send_interpolation_command(config.interpolator, &uadeipc);
-
-  if (config.speed_hack) {
-    if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, &uadeipc)) {
-      fprintf(stderr, "Can not send speed hack command.\n");
-      plugin_disabled = 1;
-      free(uadesong);
-      uadesong = NULL;
-      return FALSE;
-    }
-  }
-
-  if (config.use_ntsc && (config.use_ntsc & 2) == 0) {
-    if (uade_send_short_message(UADE_COMMAND_SET_NTSC, &uadeipc)) {
-      fprintf(stderr, "Can not send ntsc command.\n");
-      plugin_disabled = 1;
-      free(uadesong);
-      uadesong = NULL;
-      return FALSE;
-    }
   }
 
   return TRUE;

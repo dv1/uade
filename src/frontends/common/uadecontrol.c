@@ -50,11 +50,17 @@ int uade_read_request(struct uade_ipc *ipc)
 }
 
 
-void uade_send_filter_command(int filter_type, int filter_state,
-			      int force_filter, struct uade_ipc *ipc)
+void uade_send_filter_command(struct uade_ipc *ipc,
+			      struct uade_config *uadeconf)
 {
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
+  int filter_type = uadeconf->filter_type;
+  int filter_state = uadeconf->led_state;
+  int force_filter = uadeconf->led_forced;
+
+  if (uadeconf->no_filter)
+    filter_type = 0;
 
   /* Note that filter state is not normally forced */
   filter_state = force_filter ? (2 + (filter_state & 1)) : 0;
@@ -69,8 +75,10 @@ void uade_send_filter_command(int filter_type, int filter_state,
 }
 
 
-void uade_send_interpolation_command(const char *mode, struct uade_ipc *ipc)
+void uade_send_interpolation_command(struct uade_ipc *ipc,
+				     struct uade_config *uadeconf)
 {
+  char *mode = uadeconf->interpolator;
   if (mode != NULL) {
     if (strlen(mode) == 0) {
       fprintf(stderr, "Interpolation mode may not be empty.\n");
@@ -109,7 +117,8 @@ void uade_set_subsong(int subsong, struct uade_ipc *ipc)
 int uade_song_initialization(const char *scorename,
 			     const char *playername,
 			     const char *modulename,
-			     struct uade_ipc *ipc)
+			     struct uade_ipc *ipc,
+			     struct uade_config *uc)
 {
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
@@ -155,6 +164,37 @@ int uade_song_initialization(const char *scorename,
   if (uade_receive_short_message(UADE_COMMAND_TOKEN, ipc) < 0) {
     fprintf(stderr, "Can not receive token after play ack.\n");
     goto cleanup;
+  }
+
+  if (uc->ignore_player_check) {
+    if (uade_send_short_message(UADE_COMMAND_IGNORE_CHECK, ipc) < 0) {
+      fprintf(stderr, "Can not send ignore check message.\n");
+      goto cleanup;
+    }
+  }
+
+  if (uc->no_song_end) {
+    if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, ipc) < 0) {
+      fprintf(stderr, "Can not send 'song end not possible'.\n");
+      goto cleanup;
+    }
+  }
+
+  uade_send_filter_command(ipc, uc);
+
+  uade_send_interpolation_command(ipc, uc);
+
+  if (uc->speed_hack) {
+    if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, ipc)) {
+      fprintf(stderr, "Can not send speed hack command.\n");
+      goto cleanup;
+    }
+  }
+  if (uc->use_ntsc) {
+    if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, ipc)) {
+      fprintf(stderr, "Can not send ntsc command.\n");
+      goto cleanup;
+    }
   }
 
   return 0;
