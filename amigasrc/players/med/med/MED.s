@@ -59,21 +59,25 @@ Checky:
 	move.l	(a0),a1
 	sub.l	#$4d4d4430,a1		; clear MMDx
 
-	cmp.l	#0,a1			; MMD0-2 ???
+	cmp.l	#0,a1			; MMD0 -3
 	blt	c_rts
 	cmp.l	#3,a1
 	bgt	c_rts
 
 	move.l	(a0),Format		; save type
 	move.l	a5,dtg
-
 	add.l	mmd_songinfo(a0),a0
 	btst	#6,msng_flags(a0)	; 4ch or less
 	bne.s	c_rts
+
+	cmp.l	#0,a1			; MMD0?
+	beq	c_ok
 	tst.b	msng_flags2(a0)		; mixing?
 	bmi.s	c_rts
+	bsr	fastmemrecomended
+	move.w	d0,_fastmemplay
 
-	moveq	#0,d0
+c_ok	moveq	#0,d0
 c_rts	rts
 
 

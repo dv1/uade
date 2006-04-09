@@ -6,6 +6,8 @@
 	- Upgraded MED/OctaMED replay to v7.0, using Fastmem replay if
 	  available and needed by the song (long samples :-) (mld)
 	- DigiBooster player now reports songname. (mld)
+	- Fixed ommited pointer in MED/Octamed fastmem replay detection.
+	  (mld)
 
 2006-04-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a small README file

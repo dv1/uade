@@ -67,10 +67,15 @@ Checky:
 	add.l	mmd_songinfo(a0),a0
 	btst	#6,msng_flags(a0)	; 5-8 channel ?
 	beq.s	c_rts
+	cmp.l	#0,a1			; MMD0 ???
+	beq	c_ok
+
 	tst.b	msng_flags2(a0)		; mixing?
 	bmi.s	c_rts	
+	bsr	fastmemrecomended
+	move.w	d0,_fastmemplay8
 
-	moveq	#0,d0
+c_ok	moveq	#0,d0
 c_rts	rts
 
 
@@ -81,6 +86,7 @@ InitPly
 	move.l	dtg_AudioAlloc(a5),a0
 	jsr	(a0)
 
+	move.l	mmd0,a0
 	bsr	fastmemrecomended
 	move.w	d0,_fastmemplay8
 

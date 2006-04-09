@@ -765,7 +765,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
- // uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+   //uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
