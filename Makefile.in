@@ -15,6 +15,7 @@ MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 XMMSPLUGINDIR= {PACKAGEPREFIX}{XMMSPLUGINDIR}
 AUDACIOUSPLUGINDIR= {PACKAGEPREFIX}{AUDACIOUSPLUGINDIR}
+PKGCONFIGDIR = {PACKAGEPREFIX}{PKGCONFIGDIR}
 
 UADECORE={UADECORE}
 UADECORENAME={UADECORENAME}
@@ -33,17 +34,19 @@ uadecore:
 	$(MAKE) -C src
 
 uadecoreinstall:	$(UADECORE)
-	mkdir -p "$(LIBDIR)"
+	mkdir -p "$(LIBDIR)" "$(PKGCONFIGDIR)"
 	chmod og+rx "$(LIBDIR)"
 	cp -f src/$(UADECORENAME) "$(LIBDIR)"/
 	chmod og+rx "$(LIBDIR)/$(UADECORENAME)"
+	install uade.pc $(PKGCONFIGDIR)/
+	chmod og+rx $(PKGCONFIGDIR)
+	chmod 644 $(PKGCONFIGDIR)/uade.pc
 
 uade123:	
 	$(MAKE) -C src/frontends/uade123
 
 uade123install:	$(UADE123)
-	mkdir -p "$(BINDIR)"
-	mkdir -p "$(MANDIR)"
+	mkdir -p "$(BINDIR)" "$(MANDIR)"
 	cp -f src/frontends/uade123/$(UADE123NAME) "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
 	cp doc/uade123.1 "$(MANDIR)"/
