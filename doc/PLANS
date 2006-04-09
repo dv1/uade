@@ -1,5 +1,6 @@
 Ideas of things to do for UADE 2:
 
+2006-04-09: Merge all compatibility functions into ossupport.h. (shd)
 2006-01-19: Fix use of GTK_ENABLE_BROKEN features in audacious plugin. (mld)
 2006-01-19: Fix eagleplayer and song specific configurations for xmms plugin
 	    (shd)

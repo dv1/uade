@@ -1,6 +1,7 @@
 2006-04-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Code refactorization to unify configuration, effect and song
 	  attribute handling among all frontends.
+	- Added memmem() replacement for operating systems not having it.
 
 2006-04-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a small README file
