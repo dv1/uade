@@ -765,7 +765,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+ // uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
@@ -806,10 +806,6 @@ static void uade_stop(void)
 	uade_add_playtime(uadesong->md5, play_time, 1);
 	uadesong->cur_subsong = uadesong->max_subsong;
 	uade_info_string();
-
-        /*uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, 
-	                                          UADE_FREQUENCY,
-						  UADE_CHANNELS);*/
     }
     uade_unlock();
 
@@ -859,7 +855,6 @@ static int uade_get_time(void)
       //if (playtime <= 0)
       //playtime = 0;
         uade_info_string();
-        //uade_ip.set_info(t, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     }
     uade_unlock();
     gui_info_set = 1;

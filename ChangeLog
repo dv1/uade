@@ -3,6 +3,9 @@
 	  attribute handling among all frontends.
 	- Added memmem() replacement for operating systems not having it.
 	- Added uade.pc for pkg-config.
+	- Upgraded MED/OctaMED replay to v7.0, using Fastmem replay if
+	  available and needed by the song (long samples :-) (mld)
+	- DigiBooster player now reports songname. (mld)
 
 2006-04-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added a small README file
