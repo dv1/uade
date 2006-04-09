@@ -226,6 +226,9 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
   } else if (strncmp(key, "no_filter", 9) == 0) {
     uc->no_filter_set = 1;
     uc->no_filter = 1;
+  } else if (strncmp(key, "no_song_end", 4) == 0) {
+    uc->no_song_end = 1;
+    uc->no_song_end_set = 1;
   } else if (strcmp(key, "ntsc") == 0) {
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
@@ -252,6 +255,7 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
   } else if (strncmp(key, "timeout_value", 7) == 0) {
     uade_set_timeout(uc, value);
   } else {
+    fprintf(stderr, "Unknown option: %s\n", key);
     return 1;
   }
   return 0;
