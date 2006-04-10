@@ -127,7 +127,6 @@ int main(int argc, char *argv[])
     OPT_FORCE_LED,
     OPT_INTERPOLATOR,
     OPT_STDERR,
-    OPT_NO_SONG_END,
     OPT_SPEED_HACK,
     OPT_BASEDIR,
     OPT_HEADPHONES,
@@ -151,7 +150,7 @@ int main(int argc, char *argv[])
     {"jump", 1, NULL, 'j'},
     {"keys", 1, NULL, 'k'},
     {"list", 1, NULL, '@'},
-    {"no-song-end", 0, NULL, OPT_NO_SONG_END},
+    {"no-song-end", 0, NULL, 'n'},
     {"ntsc", 0, NULL, OPT_NTSC},
     {"one", 0, NULL, '1'},
     {"pal", 0, NULL, OPT_PAL},
@@ -214,7 +213,7 @@ int main(int argc, char *argv[])
 
   load_content_db();
 
-  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:p:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -274,6 +273,9 @@ int main(int argc, char *argv[])
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       have_modules = 1;
+      break;
+    case 'n':
+      uade_set_config_option(&uc_cmdline, "no_song_end", NULL);
       break;
     case 'p':
       uade_set_config_option(&uc_cmdline, "panning", optarg);
@@ -336,9 +338,6 @@ int main(int argc, char *argv[])
       break;
     case OPT_STDERR:
       uade_terminal_file = stderr;
-      break;
-    case OPT_NO_SONG_END:
-      uade_set_config_option(&uc_cmdline, "no_song_end", NULL);
       break;
     case OPT_SPEED_HACK:
       uade_set_config_option(&uc_cmdline, "speed_hack", NULL);
@@ -575,7 +574,7 @@ static void print_help(void)
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
   printf("                     on terminal. \n");
   printf(" -m filename,        Set module name\n");
-  printf(" --no-song-end,      Ignore song end report. Just keep playing.\n");
+  printf(" -n, --no-song-end,  Ignore song end report. Just keep playing.\n");
   printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
   printf(" --pal,              Set PAL mode (default)\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");

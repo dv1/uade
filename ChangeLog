@@ -1,3 +1,6 @@
+2006-04-10  Heikki Orsila <heikki.orsila@iki.fi>
+	- --no-song-end is now aliased to -n in uade123
+
 2006-04-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Code refactorization to unify configuration, effect and song
 	  attribute handling among all frontends.
