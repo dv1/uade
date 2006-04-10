@@ -449,7 +449,6 @@ static void *play_loop(void *arg)
 	/* We must drain the audio fast if abort_playing happens (e.g.
 	   the user changes song when we are here waiting the sound device) */
 	while (uade_ip.output->buffer_playing() && abort_playing == 0)
-
 	  xmms_usleep(10000);
 	break;
       }
@@ -797,13 +796,15 @@ static void uade_stop(void)
 
   if (uadesong != NULL) {
     int play_time;
-    /* If song ended volutarily, tell the play time for XMMS. */
+    /* If song ended voluntarily, tell the play time for XMMS. */
     uade_lock();
     play_time = uadesong->playtime;
     if (out_bytes_valid) {
       play_time = (uadesong->out_bytes * 1000) / UADE_BYTES_PER_SECOND;
       if (uadesong->md5[0] != 0)
 	uade_add_playtime(uadesong->md5, play_time, 1);
+
+	uadesong->playtime=play_time;
 	uadesong->cur_subsong = uadesong->max_subsong;
 	uade_info_string();
     }
@@ -847,13 +848,6 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
-      //int playtime = uadesong->playtime;
-      /* Hack. Set info text and song length late because we didn't know
-	 subsong amounts before this. Pass zero as a length so that the
-	 graphical play time counter will run but seek is still enabled.
-	 Passing -1 as playtime would disable seeking. */
-      //if (playtime <= 0)
-      //playtime = 0;
         uade_info_string();
     }
     uade_unlock();
@@ -916,10 +910,15 @@ static void uade_info_string(void)
 	    }
 	}
 
-        snprintf(info, sizeof info, "%s (%d/%d)  -  [%s] ", m,
-						uadesong->cur_subsong,
-						uadesong->max_subsong,
-						p);
 
+	if (uadesong->cur_subsong <0) {
+	    snprintf(info, sizeof info, "%s -  [Guru Meditation #30000001.48454c50]", m);
+	} else {
+    	    snprintf(info, sizeof info, "%s (%d/%d) -  [%s] ", m,
+							uadesong->cur_subsong,
+							uadesong->max_subsong,
+							p);
+	}
+	
 	uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
 }

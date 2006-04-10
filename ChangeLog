@@ -2,6 +2,9 @@
 	- --no-song-end is now aliased to -n in uade123
 	- Fixed bug in ArtOfNoise8 replayer end routine. (mld)
 	- Added Songtitle to ArtOfNoise 4V/8V players (mld)
+	- Display "Guru Meditation" error in audacious playlist for a song
+	  that crashed uadecore. :-) (mld).
+	- Fixed bug updating the playtime in audacious playlist (mld)
 
 2006-04-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Code refactorization to unify configuration, effect and song
