@@ -9,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Art Of Noise 8 voices replayer (68020+)',0
+	dc.b '$VER: Art Of Noise 8 voices replayer 20060410',0
 	even
 
 PlayerTagArray
@@ -17,6 +17,7 @@ PlayerTagArray
 	dc.l	DTP_PlayerVersion,1
 	dc.l	DTP_PlayerName,PName
 	dc.l	DTP_Creator,CName
+	dc.l	DTP_ModuleName,MNamePTR
 	dc.l	DTP_DeliBase,delibase
 	dc.l	DTP_Interrupt,aon8_playcia
 	dc.l	DTP_Check2,Chk
@@ -33,10 +34,15 @@ PlayerTagArray
 ;
 ; Player/Creatorname und lokale Daten
 
-PName	dc.b 'ArtOfNoise (8ch) V2005-11-08',0
+MNamePTR:
+	dc.l	MName
+
+PName	dc.b 'ArtOfNoise (8ch)',0
 CName	dc.b 'by Bastian Spiegel (Twice/Lego)',10
 	dc.b 'adapted for UADE by mld',0
 uadename	dc.b	'uade.library',0
+MName:	ds.b 32
+	dc.b 0
 	even
 delibase	dc.l 0
 
@@ -51,10 +57,36 @@ Chk						; AON8 ?
 	moveq	#-1,d0				; no (default)
 	cmp.l	#"AON8",(a0)
 	bne.s	ChkEnd
-	moveq	#0,d0				; Modul identified
 	move.l	a0,mod				; save Pointer
+	move.l	#"NAME",d0			
+	move.l	#"INFO",d1
+	bsr.b	cpyMName
+	moveq	#0,d0
 ChkEnd
 	rts
+
+
+
+cpyMName:
+	move.l	a0,a1
+.search	cmp.l	(a1),d0
+	beq.b	.ok
+	cmp.l	(a1),d1
+	beq.b	.end
+	addq.l	#2,a1
+	bra.b	.search
+.ok	addq.l	#8,a1
+
+	move.w	-2(a1),d0				; quick and dirty
+	subq.b	#1,d0	
+	cmp.b	#32,d0
+	ble.b	.cpy	
+	moveq	#32,d0
+.cpy	lea.l	MName,a0
+.loop	move.b	(a1)+,(a0)+	
+	dbra	d0,.loop	
+.end	rts
+	
 
 *-----------------------------------------------------------------------*
 ;
@@ -84,6 +116,7 @@ EndPlay
 	move.b	#0,playbit
 	move.l	dtg_AudioFree(a5),a0		; Function
 	jsr	(a0)
+	rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -94,7 +127,7 @@ InitSnd
 	lea	buffers,a1			
 	moveq	#0,d0				;start Pos
 	move	#250,d1				;Mixrate
-	bsr	AON_init			;init Aon Player
+	bsr.b	AON_init			;init Aon Player
 	move.b	#1,playbit
 
 	;move.l	aon_timerval,d0
@@ -120,7 +153,7 @@ AON_Songend
 ; Clean up Module
 
 EndSnd
-	bsr	aon_end
+	bsr.w	aon_end
 	rts
 
 aon_setspeed:
@@ -136,9 +169,9 @@ aon_setspeed:
 ;			SECTION	replay,code
 PLAYERSTART
 ; Jumptable
-			bra	aon_init
-			bra	aon_end
-			bra	aon_init
+			bra.b	aon_init
+			bra.w	aon_end
+			bra.b	aon_init
 
 
 mix_buflen		= 128
@@ -198,14 +231,14 @@ playbit			dc.b	0
 ;========================================================================
 aon8_playcia:
 			cmp.b	#0,playbit
-			beq	aon8_playciaend
+			beq.b	aon8_playciaend
 			movem.l	d1-a6,-(sp)
 			
-			bsr	aon8_play
+			bsr.w	aon8_play
 
 			lea	mix_bypass(pc),a0
 			moveq	#8-1,d7
-			bsr	mix_startsamples
+			bsr.w	mix_startsamples
 
 			movem.l	(sp)+,d1-a6
 aon8_playciaend		moveq	#0,d0
@@ -226,7 +259,7 @@ AON_INIT
 
 
 			cmp.l	#"AON8",(a0)
-			bne	aon_notinitalized
+			bne.w	aon_notinitalized
 
 			lea	aon_data(pc),a6
 			move.b	#6,aon_speed(a6)
@@ -256,7 +289,7 @@ AON_INIT
 			move	d1,(a1)
 
 			move.l	#"INFO",d0
-			bsr	aon_searchchunk
+			bsr.w	aon_searchchunk
 			move.l	a1,aon_statdata(a6)
 			move.l	#"ARPG",d0
 			bsr.w	aon_searchchunk
@@ -278,10 +311,10 @@ aon_initinstradrtab	move.l	a1,(a2)+
 			dbf	d7,aon_initinstradrtab
 
 			move.l	#"WLEN",d0
-			bsr.w	aon_searchchunk
+			bsr.b	aon_searchchunk
 			move.l	a1,a3			; a3=ptr on wlen-tab
 			move.l	#"WAVE",d0
-			bsr.w	aon_searchchunk		; a1=ptr on wave-adr0
+			bsr.b	aon_searchchunk		; a1=ptr on wave-adr0
 			lea	aon_wavestarts(a6),a2
 			move.l	a1,d0
 			moveq	#64-1,d7
@@ -306,9 +339,9 @@ aon_initwavetab		move.l	d0,(a2)+
 ;			bsr	allocCIAB
 ;			tst	d0
 ;			bmi	aon_notinitalized
-			bsr	aon_resettimer
+			bsr.w	aon_resettimer
 
-			bsr	mix_init
+			bsr.w	mix_init
 
 			move.l	$70,oldaudio(a6)
 			lea	mix_play(pc),a1
@@ -412,21 +445,21 @@ aon_gdc_nomoreFX
 			subq.b	#1,d1
 			bpl.s	aon_gdc_notoldinstr	; -1-> old instr
 			tst.l	aon_instrptr(a4)	; get last instrptr
-			beq	aon_gdc_nonewnote	; no instrument ?!!
+			beq.w	aon_gdc_nonewnote	; no instrument ?!!
 							; then exit
 			move.l	aon_instrptr(a4),a2	; last instrptr
 			move.b	(a0),d2
 			and.b	#63,d2			; no note?
-			beq	aon_gdc_nonewinstr	; then pause !
+			beq.w	aon_gdc_nonewinstr	; then pause !
 			moveq	#1,d5			; flag for useoldinstr
 			cmp.b	#3,aon_fxcom(a4)
-			beq	aon_gdc_nonewinstr
+			beq.w	aon_gdc_nonewinstr
 			cmp.b	#5,aon_fxcom(a4)
-			beq	aon_gdc_nonewinstr
+			beq.w	aon_gdc_nonewinstr
 			cmp.b	#27,aon_fxcom(a4)
-			beq	aon_gdc_nonewinstr
+			beq.w	aon_gdc_nonewinstr
 			cmp.b	#28,aon_fxcom(a4)
-			beq	aon_gdc_nonewinstr
+			beq.w	aon_gdc_nonewinstr
 			bra.b	aon_gdc_useoldinstr
 aon_gdc_notoldinstr	move.b	(a0),d2
 			and.b	#63,d2			; no note?
@@ -442,7 +475,7 @@ aon_gdc_notoldinstr	move.b	(a0),d2
 
 
 			cmp.l	aon_instrptr(a4),a2
-			beq	aon_gdc_resetvolume.etc
+			beq.w	aon_gdc_resetvolume.etc
 			move.l	a2,aon_instrptr(a4)	; save in channeldata
 			move.b	#01,aon_chflag(a4)	; 01=NEW REPEATWAVE
 			bra.w	aon_startrepeat
@@ -457,22 +490,22 @@ aon_gdc_notchangerepeat
 			cmp.l	aon_instrptr(a4),a2
 			bne.s	aon_gdc_notsameinstr
 			cmp.b	#3,aon_fxcom(a4)
-			beq	aon_gdc_resetvolume.etc
+			beq.w	aon_gdc_resetvolume.etc
 			cmp.b	#5,aon_fxcom(a4)
-			beq	aon_gdc_resetvolume.etc
+			beq.w	aon_gdc_resetvolume.etc
 			cmp.b	#27,aon_fxcom(a4)
-			beq	aon_gdc_resetvolume.etc
+			beq.w	aon_gdc_resetvolume.etc
 			cmp.b	#28,aon_fxcom(a4)
-			beq	aon_gdc_resetvolume.etc
+			beq.w	aon_gdc_resetvolume.etc
 aon_gdc_notsameinstr
 			move.l	a2,aon_instrptr(a4)	; save in channeldata
 aon_gdc_useoldinstr
 
 			clr.b	aon_vibCONT(a4)
-			bsr	aon_initADSR
+			bsr.w	aon_initADSR
 
 			tst.b	instr_control(a2)	; Synthmode on??
-			beq	aon_startsample
+			beq.w	aon_startsample
 ************* HIER NACH INSTRUMENTEN-TYPEN UNTERSCHEIDEN!!!!!!!!!!!!!********
 ************* HIER NACH INSTRUMENTEN-TYPEN UNTERSCHEIDEN!!!!!!!!!!!!!********
 ************* HIER NACH INSTRUMENTEN-TYPEN UNTERSCHEIDEN!!!!!!!!!!!!!********
@@ -496,7 +529,7 @@ aon_gdc_initsynth
 
 			move.b	(a0),d2			; Alter Fehler: Bei
 			and.b	#63,d2			; Wechsel des Instr.
-			beq	aon_gdc_resetvolume.etc	; wurde «perslide» re-
+			beq.w	aon_gdc_resetvolume.etc	; wurde «perslide» re-
 			clr	aon_perslide(a4)	; settet!
 
 			moveq	#0,d3
@@ -505,7 +538,7 @@ aon_gdc_initsynth
 			move.b	aon_fxdat(a4),d3
 .noth
 			btst	#4,d3
-			bne	.initvib
+			bne.w	.initvib
 
 			cmp	#$0ed0,d0		; delay note?
 			bne.s	.notdelaynote
@@ -527,7 +560,7 @@ aon_gdc_initsynth
 			clr.b	aon_chflag(a4)
 
 			tst.b	aon_synthWAVECONT(a4)	; Wave
-			bne	.initVIB		; NICHT resetten!!
+			bne.w	.initVIB		; NICHT resetten!!
 
 .notsamewaveU		move.l	d1,aon_waveform(a4)
 
@@ -547,7 +580,7 @@ aon_gdc_initsynth
 			beq.b	.notoffset
 			move.l	d1,aon_synthwaveactptr(a4)
 			move.l	d1,aon_repeatstrt(a4)
-			bra	.initVIB
+			bra.b	.initVIB
 .notoffset
 			tst.b	aon_synthWAVESTOP(a4)
 			bne.b	.initVIB
@@ -612,7 +645,7 @@ aon_gdc_initsynth
 			move	#-2,aon_vibratotrigdelay(a4)
 			bra.b	.novib
 .vib			move.l	a2,-(sp)
-			bsr	aon_dofx_vibratoPARAM	; set parameters
+			bsr.w	aon_dofx_vibratoPARAM	; set parameters
 			move.l	(sp)+,a2
 			move.b	synth8_vibwave(a2),d0
 			ror.b	#3,d0
@@ -621,9 +654,9 @@ aon_gdc_initsynth
 			move.b	#1,aon_vibCONT(a4)
 			
 .novib
-			bra	aon_gdc_resetvolume.etc
+			bra.w	aon_gdc_resetvolume.etc
 .vibOFF			move.b	#"!",aon_vibon(a4)
-			bra	aon_gdc_resetvolume.etc
+			bra.w	aon_gdc_resetvolume.etc
 
 ; --------------------- INIT SAMPLE8BIT INSTRUMENT ----------------------
 aon_startsample
@@ -749,16 +782,16 @@ aon_gdc_nonewinstr
 			bne.s	aon_gdc_notefound	; 0=Pause
 
 			move.b	aon_lastnote(a4),d0	; Use last note!
-			beq	aon_gdc_nonewnote
+			beq.w	aon_gdc_nonewnote
 			cmp	#60,d0
-			bgt	aon_gdc_nonewnote	; >B-3? -->pause!!!
+			bgt.w	aon_gdc_nonewnote	; >B-3? -->pause!!!
 			bra.b	aon_gdc_getarpeggio	; no instr retrig!!
 
 aon_gdc_notefound	
 			clr.b	aon_slideflag(a4)
 			move.b	d0,aon_lastnote(a4)
 			cmp	#60,d0
-			bgt	aon_gdc_nonewnote	; >B-3? -->pause!!!
+			bgt.w	aon_gdc_nonewnote	; >B-3? -->pause!!!
 
 aon_gdc_getarpeggio
 			move.l	aon_arpdata(a6),a3
@@ -784,9 +817,9 @@ aon_gdc_getarpeggio
 			add	d0,d2			; offset in pertab
 
 			cmp.b	#27,aon_fxcom(a4)
-			beq	aon_arpslide
+			beq.b	aon_arpslide
 			cmp.b	#28,aon_fxcom(a4)
-			beq	aon_arpslide
+			beq.b	aon_arpslide
 			cmp.b	#5,aon_fxcom(a4)
 			beq.b	aon_arpslide
 			cmp.b	#3,aon_fxcom(a4)
@@ -908,11 +941,11 @@ aon_initADSR:
 AON_DOSYNTH
 			clr.b	aon_vibDONE(a4)
 			tst.b	aon_chflag(a4)
-			bne	.exit
+			bne.w	.exit
 			tst.b	aon_chMODE(a4)		; isssees n sample?!
-			beq	.exitSMPL
+			beq.w	.exitSMPL
 			tst.l	aon_waveform(a4)	; keine wellenform !?!
-			beq	.exit
+			beq.w	.exit
 
 			tst.b	aon_synthwaveSTOP(a4)
 			bne.w	.nonewwave
@@ -921,7 +954,7 @@ AON_DOSYNTH
 			addq.b	#1,aon_synthWAVEcnt(a4)
 			move.b	aon_synthWAVEspd(a4),d0
 			cmp.b	aon_synthWAVEcnt(a4),d0	; framecnt
-			bgt	.nonewWAVE
+			bgt.w	.nonewWAVE
 			clr.b	aon_synthWAVEcnt(a4)
 			move.l	aon_synthWAVEaddbytes(a4),d0
 			add.l	d0,aon_synthWAVEactptr(a4)
@@ -996,7 +1029,7 @@ AON_DOSYNTH
 			cmp.b	#"!",aon_vibON(a4)
 			beq.b	.vibok
 			cmp	#-1,aon_vibratoTRIGdelay(a4)
-			bne	.delayvib
+			bne.b	.delayvib
 			move.b	#1,aon_vibON(a4)
 			bra.b	.vibok
 .delayvib		subq	#1,aon_vibratoTRIGdelay(a4)
@@ -1005,7 +1038,7 @@ AON_DOSYNTH
 .exit
 			cmp.b	#1,aon_vibON(a4)
 			bne.b	.VIBoff
-			bra	aon_dofx_viboldampl
+			bra.w	aon_dofx_viboldampl
 .VIBoff			rts
 ;========================================================================
 ; a4=channelptr
@@ -1059,54 +1092,54 @@ aon_dofx_nonewarpval
 			cmp.b	#$3,d0
 			beq.w	aon_dofx_toneslide
 			cmp.b	#$4,d0
-			beq	aon_dofx_vibrato
+			beq.w	aon_dofx_vibrato
 			cmp.b	#$5,d0
-			beq	aon_dofx_glissvolumeslide
+			beq.w	aon_dofx_glissvolumeslide
 			cmp.b	#$6,d0
-			beq	aon_dofx_vibvolumeslide
+			beq.w	aon_dofx_vibvolumeslide
 			cmp.b	#$a,d0
-			beq	aon_dofx_volumeslide
+			beq.w	aon_dofx_volumeslide
 aon_dofx_atonce
 			cmp.b	#$b,d0
-			beq	aon_dofx_breakto
+			beq.w	aon_dofx_breakto
 			cmp.b	#$c,d0
-			beq	aon_dofx_setvolume
+			beq.w	aon_dofx_setvolume
 			cmp.b	#$d,d0
-			beq	aon_dofx_breakpat
+			beq.w	aon_dofx_breakpat
 			cmp.b	#$e,d0
-			beq	aon_dofx_ecommands
+			beq.w	aon_dofx_ecommands
 			cmp.b	#$f,d0
-			beq	aon_dofx_setspd
+			beq.w	aon_dofx_setspd
 			cmp.b	#16,d0		'g'
-			beq	aon_dofx_setvoldel
+			beq.w	aon_dofx_setvoldel
 			cmp.b	#18,d0		'i'
-			beq	aon_dofx_setwaveadsrspd
+			beq.w	aon_dofx_setwaveadsrspd
 			cmp.b	#19,d0		'j'
-			beq	aon_dofx_setarpspd
+			beq.w	aon_dofx_setarpspd
 			cmp.b	#20,d0		'k'
-			beq	aon_dofx_vibsetvolume
+			beq.w	aon_dofx_vibsetvolume
 			cmp.b	#21,d0		'l'
-			beq	aon_dofx_portvolslideUP
+			beq.w	aon_dofx_portvolslideUP
 			cmp.b	#22,d0		'm'
-			beq	aon_dofx_portvolslideDOWN
+			beq.w	aon_dofx_portvolslideDOWN
 			cmp.b	#23,d0		'n'
-			beq	aon_dofx_togglenoiseavoid
+			beq.w	aon_dofx_togglenoiseavoid
 			cmp.b	#24,d0		'o'
-			beq	aon_dofx_toggleoversize
+			beq.w	aon_dofx_toggleoversize
 			cmp.b	#25,d0		'p'
-			beq	aon_dofx_fineVOLslidevib
+			beq.w	aon_dofx_fineVOLslidevib
 			cmp.b	#26,d0		'q'
-			beq	aon_dofx_synthdrums
+			beq.w	aon_dofx_synthdrums
 			cmp.b	#27,d0		'r'
-			beq	aon_dofx_setvolumePort
+			beq.w	aon_dofx_setvolumePort
 			cmp.b	#28,d0		's'
-			beq	aon_dofx_finevolslidePort
+			beq.w	aon_dofx_finevolslidePort
 			cmp.b	#29,d0		't'
-			beq	aon_dofx_settrackvol
+			beq.w	aon_dofx_settrackvol
 			cmp.b	#30,d0		'u'
-			beq	aon_dofx_setwavecont
+			beq.w	aon_dofx_setwavecont
 			cmp.b	#33,d0		'x'
-			beq	aon_dofx_externalevent
+			beq.w	aon_dofx_externalevent
 aon_dofx_end		rts
 ; --------------------------------------------------------------------
 ; $1
@@ -1206,15 +1239,15 @@ aon_dofx_vibnotend	rts
 aon_dofx_glissvolumeslide
 			move	d1,-(sp)
 			moveq	#0,d1
-			bsr	aon_dofx_toneslideNOW
+			bsr.w	aon_dofx_toneslideNOW
 			move	(sp)+,d1
 			bra.b	aon_dofx_volumeslide
 ; --------------------------------------------------------------------
 ; $6
 aon_dofx_vibvolumeslide	move	d1,-(sp)
-			bsr	aon_dofx_viboldampl
+			bsr.w	aon_dofx_viboldampl
 			move	(sp)+,d1
-			bra	aon_dofx_volumeslide
+			bra.w	aon_dofx_volumeslide
 ; --------------------------------------------------------------------
 ; $A
 aon_dofx_volumeslide	move.b	d1,d2
@@ -1278,19 +1311,16 @@ aon_dofx_setspd
 
 			move.b	d1,aon_tempo(a6)
 aon_dofx_settempo		
-			bsr	aon_setSpeed
-			;move.b	d0,$bfd600	; MSB	Timer setzen
-			;lsr	#8,d0		; 8-15
-			;move.b	d0,$bfd700	; LSB
+			bsr.w	aon_setSpeed
 aon_dofx_vbireplay
 			rts
 aon_dofx_replayend	clr.b	aon_speed(a6)
-			bsr	AON_Songend
+			bsr.w	AON_Songend
 aon_resettimer		move.b	#125,aon_tempo(a6)
 
 			move.l	#aon_timerval,d0
 			divu	#125,d0
-			bsr	aon_setSpeed
+			bsr.w	aon_setSpeed
 			rts
 ; --------------------------------------------------------------------
 ; | E1- FineSlide Up                  E1x : value			   |
@@ -1320,19 +1350,19 @@ aon_dofx_ECOMMANDS	move.b	d1,d0
 			cmp.b	#$40,d0
 			beq.s	aon_dofx_setvibratowave
 			cmp.b	#$50,d0
-			beq.w	aon_dofx_setlooppoint
+			beq.b	aon_dofx_setlooppoint
 			cmp.b	#$60,d0
-			beq	aon_dofx_jump2loop
+			beq.b	aon_dofx_jump2loop
 			cmp.b	#$90,d0
-			beq	aon_dofx_retrignote
+			beq.b	aon_dofx_retrignote
 			cmp.b	#$a0,d0
-			beq	aon_dofx_finevolup
+			beq.w	aon_dofx_finevolup
 			cmp.b	#$b0,d0
-			beq	aon_dofx_finevoldn
+			beq.w	aon_dofx_finevoldn
 			cmp.b	#$c0,d0
-			beq	aon_dofx_notecut
+			beq.w	aon_dofx_notecut
 			cmp.b	#$d0,d0
-			beq	aon_dofx_retrignote
+			beq.b	aon_dofx_retrignote
 			rts
 ; --------------------------------------------------------------------
 ; $E0
@@ -1448,9 +1478,9 @@ aon_dofx_setarpspd	and.b	#$f,d1
 ; --------------------------------------------------------------------
 ; 'k'
 aon_dofx_vibsetvolume	move	d1,-(sp)
-			bsr	aon_dofx_viboldampl
+			bsr.w	aon_dofx_viboldampl
 			move	(sp)+,d1
-			bra	aon_dofx_setvolume
+			bra.w	aon_dofx_setvolume
 ; --------------------------------------------------------------------
 ; 'l'
 aon_dofx_portvolslideUP
@@ -1461,15 +1491,15 @@ aon_dofx_portvolslideUP
 			move.b	(a0,d1),d1
 			bpl.b	.up1
 			neg.b	d1
-			bsr	aon_dofx_finevolDN
+			bsr.b	aon_dofx_finevolDN
 			bra.b	.down1
-.up1			bsr	aon_dofx_finevolUP
+.up1			bsr.w	aon_dofx_finevolUP
 .down1
 			tst.b	aon_framecnt(a6)
 			beq.b	.out
 			moveq	#0,d1
 			move.b	d2,d1
-			bsr	aon_dofx_portamentoup
+			bsr.w	aon_dofx_portamentoup
 
 .out			rts
 
@@ -1484,15 +1514,15 @@ aon_dofx_portvolslideDOWN
 			move.b	(a0,d1),d1
 			bpl.b	.up1
 			neg.b	d1
-			bsr	aon_dofx_finevolDN
+			bsr.w	aon_dofx_finevolDN
 			bra.b	.down1
-.up1			bsr	aon_dofx_finevolUP
+.up1			bsr.w	aon_dofx_finevolUP
 .down1
 			tst.b	aon_framecnt(a6)
 			beq.b	.out
 			moveq	#0,d1
 			move.b	d2,d1
-			bsr	aon_dofx_portamentoDOWN
+			bsr.w	aon_dofx_portamentoDOWN
 
 .out			rts
 ; --------------------------------------------------------------------
@@ -1509,40 +1539,40 @@ aon_dofx_toggleoversize
 ; 'p'
 aon_dofx_fineVOLslidevib
 			move	d1,-(sp)
-			bsr	aon_dofx_viboldampl
+			bsr.w	aon_dofx_viboldampl
 			move	(sp)+,d1
 aon_dofx_fineVOlUpDown	moveq	#0,d2
 			move.b	d1,d2
 			lsr.b	#4,d2
 			beq.b	.no
 			move	d2,d1
-			bra	aon_dofx_finevolup
+			bra.w	aon_dofx_finevolup
 .no			and.b	#$f,d1
-			bra	aon_dofx_finevoldn
+			bra.w	aon_dofx_finevoldn
 ; --------------------------------------------------------------------
 ; 'q'
 aon_dofx_synthdrums
 			move	d1,d2
 			lsr	#4,d1
 			lsl	#3,d1
-			bsr	aon_dofx_portamentodown
+			bsr.w	aon_dofx_portamentodown
 			move	d2,d1
 			and	#$f,d1
-			bra	aon_dofx_volumeslide
+			bra.w	aon_dofx_volumeslide
 ; --------------------------------------------------------------------
 ; 'r'
 aon_dofx_setvolumePort
 			move	d1,-(sp)
-			bsr	aon_dofx_toneslideNOW
+			bsr.w	aon_dofx_toneslideNOW
 			move	(sp)+,d1
-			bra	aon_dofx_setvolume
+			bra.w	aon_dofx_setvolume
 ; --------------------------------------------------------------------
 ; 's'
 aon_dofx_finevolslidePort
 			move	d1,-(sp)
-			bsr	aon_dofx_toneslideNOW
+			bsr.w	aon_dofx_toneslideNOW
 			move	(sP)+,d1
-			bra	aon_dofx_fineVOlUpDown
+			bra.b	aon_dofx_fineVOlUpDown
 ; --------------------------------------------------------------------
 ; 't'
 aon_dofx_settrackvol
@@ -1595,7 +1625,7 @@ AON_STARTINSTR.1
 			move	aon_fxcom(a4),d0
 			and	#$0ff0,d0
 			cmp	#$0ed0,d0
-			beq.w	aon_strtinsonlyrep.1
+			beq.b	aon_strtinsonlyrep.1
 
 			btst	#1,aon_chflag(a4)	; bit1= aonflag=2 or 3
 			beq.b	aon_strtins.notset1
@@ -2067,12 +2097,18 @@ mix_in_mtab		moveq	#0,d1
 
 mix_INIT22
 			move	#$f,$96(a5)
-			moveq	#10-1,d7
-			move.b	#254,d0
-.rastwait1		cmp.b	$dff006,d0
-			bne.b	.rastwait1
-			subq.b	#1,d0
-			dbf	d7,.rastwait1
+*			moveq	#10-1,d7
+*			move.b	#254,d0
+*.rastwait1		cmp.b	$dff006,d0
+*			bne.b	.rastwait1
+*			subq.b	#1,d0
+*			dbf	d7,.rastwait1
+
+			movem.l	d0-d7/a0-a6,-(a7)
+			move.l	delibase,a5
+			move.l	dtg_WaitAudioDMA(a5),a0
+			jsr	(a0)
+			movem.l	(a7)+,d0-d7/a0-a6
 
 			move.l	mix_buff1(pc),$a0(a5)
 			move.l	mix_buff2(pc),$b0(a5)
@@ -2120,7 +2156,7 @@ mix_startsamples
 			moveq	#0,d3
 			move	14(a0),d3	; repeatdmalen
 			add.l	d3,d3		; *2 für bytes
-			bsr	mix_startsample
+			bsr.b	mix_startsample
 .nonewsample		lea	$10(a0),a0
 			addq	#1,d6
 			dbf	d7,.loop
@@ -2186,7 +2222,7 @@ mix_play
 			btst	#7,$dff01f
 			bne.b	mix_play0
 			btst	#0,$dff01e
-			bne.w	mix_play1
+			bne.b	mix_play1
 			btst	#1,$dff01e
 			bne.w	mix_play2
 			btst	#2,$dff01e
@@ -2205,7 +2241,7 @@ mix_play0		movem.l	d0-a6,-(sp)
 			lea	mix_data+mix_datasize*0,a5
 			lea	mix_data+mix_datasize*1,a6
 			move.l	16(a0),a4
-			bsr	mix_channels
+			bsr.w	mix_channels
 			move	#$c000,$dff09a
 			movem.l	(sp)+,d0-a6
 			move	#$80,$dff09c
@@ -2224,7 +2260,7 @@ mix_play1		movem.l	d0-a6,-(sp)
 			lea	mix_data+mix_datasize*2,a5
 			lea	mix_data+mix_datasize*3,a6
 			move.l	16(a0),a4
-			bsr	mix_channels
+			bsr.w	mix_channels
 			move	#$c000,$dff09a
 			movem.l	(sp)+,d0-a6
 			move	#$100,$dff09c
@@ -2243,7 +2279,7 @@ mix_play2		movem.l	d0-a6,-(sp)
 			lea	mix_data+mix_datasize*4,a5
 			lea	mix_data+mix_datasize*5,a6
 			move.l	16(a0),a4
-			bsr	mix_channels
+			bsr.b	mix_channels
 			move	#$c000,$dff09a
 			movem.l	(sp)+,d0-a6
 			move	#$200,$dff09c
@@ -2262,7 +2298,7 @@ mix_play3		movem.l	d0-a6,-(sp)
 			lea	mix_data+mix_datasize*6,a5
 			lea	mix_data+mix_datasize*7,a6
 			move.l	16(a0),a4
-			bsr	mix_channels
+			bsr.b	mix_channels
 			move	#$c000,$dff09a
 			movem.l	(sp)+,d0-a6
 			move	#$400,$dff09c
@@ -2336,9 +2372,9 @@ mix_mix_mix:		movem.l	a4-a6,-(sp)
 			move	#mix_buflen/2,mix_cnt(a5)
 
 			tst.b	mix_status(a5)
-			beq	mix_RIGHT
+			beq.w	mix_RIGHT
 			tst.b	mix_status(a6)
-			beq	mix_LEFT
+			beq.w	mix_LEFT
 
 mix_BOTH
 
@@ -2394,7 +2430,7 @@ mix_BOTH
 			moveq	#0,d0
 			move.l	mix_replen(a5),mix_wavelen(a5)
 			cmp.l	#2,mix_wavelen(a5)
-			ble	mix_RIGHT.leftOFF
+			ble.w	mix_RIGHT.leftOFF
 			bra.b	.set1
 .resetwave2		move.l	mix_repstrt(a6),a1
 			move.l	a1,mix_wavestart(a6)
@@ -2457,16 +2493,16 @@ mix_LEFT
 			moveq	#0,d0
 			move.l	mix_replen(a5),mix_wavelen(a5)
 			cmp.l	#2,mix_wavelen(a5)
-			ble	mix_NOTHING.leftoff
+			ble.w	mix_NOTHING.leftoff
 			bra.b	.set1
 ;----------------------------------------
 mix_RIGHT.leftoff	clr.b	mix_status(a5)
 mix_RIGHT
 			tst.b	mix_status(a6)
-			beq	mix_NOTHING
+			beq.w	mix_NOTHING
 
 			cmp.l	#0,a1
-			beq	mix_NOTHING
+			beq.w	mix_NOTHING
 			cmp.l	#2,mix_wavelen(a6)
 			ble.w	mix_NOTHING
 
@@ -2495,7 +2531,7 @@ mix_RIGHT
 			moveq	#0,d1
 			move.l	mix_replen(a6),mix_wavelen(a6)
 			cmp.l	#2,mix_wavelen(a6)
-			ble	mix_NOTHING.rightoff
+			ble.w	mix_NOTHING.rightoff
 			bra.b	.set2
 ;--------------------------------------------------------------------
 ;--------------------------------------------------------------------
@@ -2593,12 +2629,12 @@ AON8_PLAY		movem.l	d0-d7/a0-a6,-(sp)
 			move.b	aon_speed(a6),d0
 			beq.b	aon8_playcurrent_nonewpos2
 			cmp.b	aon_framecnt(a6),d0
-			bhi	aon8_playcurrent_nonewpos2
+			bhi.b	aon8_playcurrent_nonewpos2
 			clr.b	aon_framecnt(a6)
 
-			bsr	aon8_playnewstep
+			bsr.w	aon8_playnewstep
 aon8_playcurrent_nonewpos2
-			bsr	aon8_playfx
+			bsr.b	aon8_playfx
 
 			movem.l	(sp)+,d0-d7/a0-a6
 			rts
@@ -2676,7 +2712,7 @@ aon8_playnewstep
 ;	BEQ	AON8_PLAYCURRENT_NONEWPOSX
 
 			cmp.b	#$ff,aon_patcnt(a6)
-			beq	aon8_breakpat
+			beq.w	aon8_breakpat
 
 ; read new step
 aon8_getstep
@@ -2751,9 +2787,9 @@ aon8_breakpat
 			move.l	aon_statdata(a6),a3
 			move.b	aon.songinfo_maxpos(a3),d0	; get maxpos
 			cmp.b	aon_pos(a6),d0	; End of song ??
-			bhi	aon8_playcurrent2
+			bhi.b	aon8_playcurrent2
 			move.b	aon.songinfo_respos(a3),aon_pos(a6) ; Get restart pos!
-			bsr	AON_SongEnd
+			bsr.w	AON_SongEnd
 aon8_playcurrent2	tst.b	aon_patcnt(a6)
 			beq.b	aon8_playcurrent_nonewposX
 			clr.b	aon_patcnt(a6)
@@ -2769,7 +2805,7 @@ aon8_playcurrent2	tst.b	aon_patcnt(a6)
 			MOVE.B	D0,ACTEDITPATTERN
 
 AON8_DONTSETPATNR2
-			bra	aon8_getstep
+			bra.w	aon8_getstep
 aon8_playcurrent_nonewposX
 			rts
 ;========================================================================

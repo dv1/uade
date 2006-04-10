@@ -10,7 +10,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Art Of Noise 4 voices replayer (Jan. 2003)',0
+	dc.b '$VER: Art Of Noise 4 voices replayer (20060410)',0
 	even
 
 PlayerTagArray
@@ -18,6 +18,7 @@ PlayerTagArray
 	dc.l	DTP_PlayerVersion,1
 	dc.l	DTP_PlayerName,PName
 	dc.l	DTP_Creator,CName
+	dc.l	DTP_ModuleName,MNamePTR
 	dc.l	DTP_DeliBase,delibase
 	dc.l	DTP_Check2,Chk
 	dc.l	DTP_StartInt,ALLOCCIAB
@@ -32,12 +33,16 @@ PlayerTagArray
 *-----------------------------------------------------------------------*
 ;
 ; Player/Creatorname und lokale Daten
+MNamePTR:
+	dc.l	MName
 
 PName	dc.b 'ArtOfNoise (4ch)',0
 CName	dc.b 'by Bastian Spiegel (Twice/Lego)',10
 	dc.b "Stonecracker decruncher routine by Marcus 'Cozine' Ottosson",10 
 	dc.b "+ Jouni 'Mr.Spiv' Korhonen",10
 	dc.b 'adapted for UADE by mld',0
+MName:	ds.b 32
+	dc.b 0
 	even
 delibase	dc.l 0
 
@@ -47,7 +52,6 @@ delibase	dc.l 0
 ; Testet auf Modul
 
 Chk						; AON4 ?
-	;move.l	a5,delibase
 	move.l	dtg_ChkData(a5),a0
 	move.l	a0,mod				; save Pointer
 	cmp.l	#"S404",(a0)			; packed with stonecracker???
@@ -58,9 +62,33 @@ Chk						; AON4 ?
 Chkunp:	moveq	#-1,d0				; no (default)
 	cmp.l	#"AON4",(a0)
 	bne.s	ChkEnd
-	moveq	#0,d0				; Modul identified
+	move.l	#"NAME",d0
+	move.l	#"INFO",d1
+	bsr.b	cpyMName
+chkok	moveq	#0,d0				; Modul identified
 ChkEnd
 	rts
+
+cpyMName:
+	MOVEA.L	A0,A1
+.search	CMP.L	(A1),D0
+	BEQ.B	.ok
+	CMP.L	(A1),D1
+	beq	.end
+	ADDQ.L	#2,A1
+	BRA.B	.search
+.ok	ADDQ.L	#8,A1
+    
+	move.l	-4(a1),d0				; quick and dirty
+	beq	.end
+	subq.b	#1,d0	
+	cmp.b	#32,d0
+	ble.b	.cpy	
+	moveq	#32,d0
+.cpy	lea.l	MName,a0
+.loop	move.b	(a1)+,(a0)+	
+	dbra	d0,.loop	
+.end	rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -93,6 +121,18 @@ InitSnd
 	moveq	#$28,d1				;Mixrate
 	jsr	AON_init			;init Aon Player
 	rts
+
+*-----------------------------------------------------------------------*
+;
+; SongEnd
+
+AON_Songend
+    movem.l d0-a6,-(a7)
+    move.l delibase,a5
+    move.l dtg_Songend(a5),a0
+    jsr (a0)
+    movem.l (a7)+,d0-a6
+    rts
 
 *-----------------------------------------------------------------------*
 ;
@@ -312,13 +352,6 @@ _lnewd1:	dc.b	$08,$07,$06,$05,$04,$03,$02,$01
 
 	SECTION "  0",CODE_C
 PLAYERSTART
-JumpTable
-L_24C	BRA.W	AON_INIT
-L_250	BRA.W	AON_END
-	DC.B	'`',0
-	DC.W	$D4
-	DC.B	'`',0
-	DC.W	$20A
 ALLOCCIAB	MOVEM.L	D1-A6,-(A7)
 	LEA	L_302(PC),A0
 	LEA	L_30E(PC),A1
@@ -586,11 +619,7 @@ L_5EC	CLR.B	$0039(A6)
 	BHI.W	L_60E
 	MOVE.B	2(A3),$0027(A6)
 
-	movem.l	d0-d6/a0-a6,-(a7)	; Signal Songend
-	move.l	delibase,a5
-	move.l	dtg_Songend(a5),a0
-	jsr	(a0)
-	movem.l	(a7)+,d0-d6/a0-a6
+	jsr	AON_Songend
 	
 L_60E	TST.B	$0022(A6)
 	BEQ.B	L_630
