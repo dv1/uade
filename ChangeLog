@@ -1,3 +1,9 @@
+2006-04-05  Michael Doering <mld@users.sourceforge.net>
+	- Fixed my crap indentation in audacious plugin
+	- Sync'd xmms and audacious playlist display
+	- Fixed possible changing current subsong > maximal subsong
+	  in audacious plugin.
+
 2006-04-10  Heikki Orsila <heikki.orsila@iki.fi>
 	- --no-song-end is now aliased to -n in uade123
 	- Fixed bug in ArtOfNoise8 replayer end routine. (mld)
@@ -27,7 +33,7 @@
 	- Disabled debug messages in Audacious and XMMS plugins
 	- Removed debug message about song.conf not found. It's perfectly
 	  valid that song.conf does not exist anywhere.
-	- Cleaned songinfo.c. Added a common implementation of read_be_u16/u32 
+	- Cleaned songinfo.c. Added a common implementation of read_be_u16/u32
 	  to src/include/uadeutils.h, which is now used from songinfo.c and
 	  amifilemagic.c. Changed length types to size_t. Made find_tag()
 	  more generic and made it use memmem() function.
@@ -50,7 +56,7 @@
 	    cmp.b #60,$212(a6)
 	    beq   is_an_ntsc_system
 	    * pal system
-	- Changed Timing configuration in players/env/PTK-Prowiz.cfg 
+	- Changed Timing configuration in players/env/PTK-Prowiz.cfg
 	  from CIA <-> VBI/NTSC to CIA <-> VBI. (mld)
 	- Mod player now honours pal/ntsc setting automatically. (mld)
 	- Fixed stupid *oops* in mod player reading cia timing from config
@@ -112,7 +118,7 @@
 	  Effects are done ptk2.3a style, volume setting like 3.0.
 	  This fixes some pops and clicks which even the original
 	  protacker 2.3a replay and below had.
-	  
+
 2006-03-17  Michael Doering <mld@users.sourceforge.net>
 	- Enhanced compatibilty concerning protracker 2.3a/1.1b(fixed),
 	  2.1a/1.1b, 1.0c and Prottracker 3.0b concerning access of
@@ -127,7 +133,7 @@
 	  one or the other value for some effects...
 	  All in all, it's a mess and we have 4 different setups in our
 	  protracker config file :-)
-	- Temporarily disabled the period multiplier hack mentioned above 
+	- Temporarily disabled the period multiplier hack mentioned above
 	  because it borked on some tunes.
 	- Added "update volume when skip/hold note" for protracker 2.3 and
 	  below. Protracker 3.0 doesn't do it.
@@ -170,10 +176,10 @@
 	    -k x or --keys=x, where x is 0 or 1 (disabling and enabling action
 	    keys).
 	  --no-filter has been removed. Use --filter=none instead.
-	
+
 2006-03-10  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed some compiler warnings. Using %u to print unsigned ints :)
-	
+
 2006-03-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Reverted mlds work-around to avoid subsong change lockups.
 	- Did a potential fix for the XMMS plugin lockup bug. However, I
@@ -227,7 +233,7 @@
 	- A new email alias. ;)
 	- Cosmetical change in name from 32 to 31 instr. for Soundtracker II
 	  in PTK-Prowiz.
-	  
+
 2006-02-08  Michael Doering <mldoering@gmx.net>
 	- Updated mod2ogg.sh to set encoding quality (Giulio Canevari).
 
@@ -263,12 +269,12 @@
 
 2006-01-25  Michael Doering <mldoering@gmx.net>
 	- Added Turbo/Infect's SonicArranger Player for "old" sa.* files
-	- Added experimental filedetection for two different 
+	- Added experimental filedetection for two different
 	  Sonicarranger_pc types...
 
 2006-01-24  Michael Doering <mldoering@gmx.net>
 	- Synced audacious plugin with xmms plugin and changed back
-	  to support the current stable audacious 0.1.2.  
+	  to support the current stable audacious 0.1.2.
 	  The audacious supporting "produce_audio()" will be supported as
 	  soon as there's a stable release... (mld)
 	- Ported songinfo for Wanted Team song formats [e.g BSS, DL, FP...]
@@ -335,7 +341,7 @@
 	  again.
 	- Removed sinc table from audio.c and put it into a separate file
 	  named sinctable.c. (alankila)
-	- audacious plugin: changed legacy uade_ip audio output from xmms 
+	- audacious plugin: changed legacy uade_ip audio output from xmms
 	  to audacious 0.2 produce_audio(); Seems to work here, but I'm not
 	  sure if it's 100% ok... So give it a test and report back.
 	- Fixed strlrep.h to #include <strings.h> to have size_t type (shd)
@@ -448,7 +454,7 @@
 	- Removed 255 BPM SetTempo fix in PTK-Prowiz for mod.loader from
 	  Coolspot to fix mod.alkupala by jorma... *sigh* (mld)
 	- Fixed broken Prorunner support introduced by reorganization
-	  PTK-Prowiz (mld) 
+	  PTK-Prowiz (mld)
 
 2006-01-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a configure bug that occured when --with-xmms was specified.
@@ -605,7 +611,7 @@
 	  used to inform user about files that are packed with an amiga
 	  packer.
 	- some work on m68k mod checking and replay routine (mld)
-	
+
 2005-12-06  Michael Doering <mldoering@gmx.net>
 	- XMMS plugin now automagically advances the subsong seek slider, if
 	  the replay rolls over to the next subsong.
@@ -659,7 +665,7 @@
 
 2005-12-01  Michael Doering <mldoering@gmx.net>
 	- eagleplayer.conf: Amended the different MarkCooksey prefixes.
-	- amifilemagic: fixed TFMX 1.5 detection bug  introduced by the recent 
+	- amifilemagic: fixed TFMX 1.5 detection bug  introduced by the recent
 	  clean-up.
 	- amifilemagic: fixed another TFMX detection bug. Should be alright
 	  again now.
@@ -669,7 +675,7 @@
 	  still very experimental and incomplete in features, but it can
 	  already play songs, or at least it should.
 	- GCC4 gave warnings of problems I had not noticed: Fixed a bug in
-	  md5.h. uint32_t was accidently redefined (that is #included 
+	  md5.h. uint32_t was accidently redefined (that is #included
 	  originally from stdint.h). XMMS plugin's uade_ip structure was
 	  declared static but later as external. Fixed signedness warnings
 	  from various modules.
@@ -678,7 +684,7 @@
 	  a lot of different effects added. (mld)
 	- fixed WaitAudioDMA for all old mod15 replayers. (thanks heikki!)
 	- changed mod15 (again) for stricter st-iv detection (mld)
-	- changed to a stricter tracker module length policy... 
+	- changed to a stricter tracker module length policy...
 	  If uade doesn't play your modfiles anymore, it's a bad rip.
 	  Get a good one! :)
 	- Since Master-Soundtracker files seem to use a subset of the normal
@@ -724,7 +730,7 @@
 	- Added hardcoded timeouts for the XMMS plugin. They are the same
 	  as uade123 defaults. 20 seconds for silence and 512 seconds for
 	  subsong. Reading uade.conf variables is not supported yet.
-	
+
 2005-11-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Continuing modularization of uade frontends. Various commands,
 	  such as set subsong, change subsong, set filter type, and set
@@ -750,7 +756,7 @@
 	  read_be_u16() and read_be_u32() to help parsing amiga formats.
 	- Cleaned up tfmxtest in amifilemagic.
 	- Cleaned up modparsing in amifilemagic.
-	
+
 2005-11-24  Michael Doering <mldoering@gmx.net>
 	- amifilemagic: improved mod32 and mod15 checks a bit
 	- ha! found pitchbend incompatibility bewteen
@@ -759,7 +765,7 @@
 	  DOC Soundtracker II:)
 
 2005-11-23  Michael Doering <mldoering@gmx.net>
-	- Master-ST and Ultimate-ST replayers now check for a valid file 
+	- Master-ST and Ultimate-ST replayers now check for a valid file
 	  length, thus badly ripped mod15 songs won't get played anymore with
 	  UADE. No exceptions.
 	  FYI this will also be future for all other Sound and Protracker
@@ -886,10 +892,10 @@
 
 2005-11-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Separated CIA B timer A and timer B interrupts finally. Some
-	  Forgotten World songs started to work, but not all. Thomas 
+	  Forgotten World songs started to work, but not all. Thomas
 	  Herman BlueAngel69 swent back to its earlier buggy state. Our
 	  recent interrupt handler change broke Thomas Hermann completely.
-	  This change fixes our original design fault that only one CIA 
+	  This change fixes our original design fault that only one CIA
 	  timer interrupt may be used, but not both. This patch takes us
 	  much closer to full CIA interrupt handler support.
 	- Heikki's CIAB-A and CIAB-B separation in soundcore gave us full
@@ -959,7 +965,7 @@
 	- Added forgotten -O2 optimization flag to uade123 Makefile
 	- Cleaned audio.c. Removed some debug #defines.
 	- Imported amiga player sources from uade1 project to amigasrc/players/
-	
+
 2005-10-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Antti S. Lankila <alankila@bel.fi> will be referred to as 'alankila'
 	  in ChangeLog from now.
@@ -1101,7 +1107,7 @@
 	  some reason I didn't notice that (perhaps didn't test ;-). The
 	  problem was false parameters for GNU getopt.
 	- mod2ogg2.sh from Giulio Canevari
-	
+
 2005-09-04  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added -g option to uade123 to only print information about songs.
 	  Songs are not played in this mode. All relevant output goes into
@@ -1149,7 +1155,7 @@
 	- Made help print (-h) prettier by aligning tex columns
 	- Added -K or --no-keys to disable action keys (this can be used to
 	  override the uade.conf if it enables actions by default).
-	
+
 2005-07-23  Heikki Orsila <heikki.orsila@iki.fi>
         * UADE 1.50-pre4 (developer release)
 	- Added shell interaction keys into UADE123. The keys can be enabled
@@ -1164,7 +1170,7 @@
 	    SPACE - Next subsong
 	  Does someone want these configurable into uade.conf? Please email
 	  me.
-	
+
 2005-07-22  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 1.50-pre3 (developer release)
 	- Added a -j to skip x seconds of audio from the beginning. Note that
@@ -1183,7 +1189,7 @@
 	  uade 1.0x command line tool.
 	- Restructured uade123 code into different code modules to make
 	  maintaining and code reuse easier.
-	
+
 2005-07-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug in uade123 that prevented it from playing the last
 	  subsong of a song.
@@ -1239,7 +1245,7 @@
 	  content, and load proper players from their installation place.
 	  Also, it can play multiple songs in a sequence if one switches to
 	  next song with ctrl-c before the song actually ends. If the song
-	  ends by itself, the system will crash ;) 
+	  ends by itself, the system will crash ;)
 	- Found a bug in amifilemagic by accident. chk_id_offset() function
 	  tested patterns of length sizeof(patterns[i]) which is totally
 	  wrong. It was corrected to strlen(patterns[i]).
