@@ -37,7 +37,7 @@
 #if PLUGIN_DEBUG
 #define plugindebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
 #else
-#define plugindebug(fmt, args...) 
+#define plugindebug(fmt, args...)
 #endif
 
 
@@ -54,7 +54,7 @@ static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
-
+static void uade_info_string(void);
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
@@ -420,6 +420,7 @@ static void *play_loop(void *arg)
 	subsong_bytes = 0;
 	uadesong->out_bytes = 0;
 	out_bytes_valid = 0;
+	uade_info_string();
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
@@ -439,6 +440,8 @@ static void *play_loop(void *arg)
 	    uade_unlock();
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
 	    uade_lock();
+
+	    uade_info_string();
 	  }
 	}
       }
@@ -454,7 +457,7 @@ static void *play_loop(void *arg)
       }
 
       left = uade_read_request(&uadeipc);
-      
+
       if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
 	fprintf(stderr, "Can not send token.\n");
 	return 0;
@@ -467,7 +470,7 @@ static void *play_loop(void *arg)
 	fprintf(stderr, "Can not receive events from uade\n");
 	exit(-1);
       }
-      
+
       switch (um->msgtype) {
 
       case UADE_COMMAND_TOKEN:
@@ -543,7 +546,7 @@ static void *play_loop(void *arg)
 	assert (left >= um->size);
 	left -= um->size;
 	break;
-	
+
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_formatname, um->data, sizeof gui_formatname);
@@ -613,7 +616,7 @@ static void *play_loop(void *arg)
 	}
 	uade_unlock();
 	break;
-	
+
       default:
 	fprintf(stderr, "Expected sound data. got %d.\n", um->msgtype);
 	plugin_disabled = 1;
@@ -759,8 +762,6 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-  uade_ip.set_info(gui_filename, uadesong->playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
-
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     goto err;
@@ -798,8 +799,11 @@ static void uade_stop(void)
       play_time = (uadesong->out_bytes * 1000) / UADE_BYTES_PER_SECOND;
       if (uadesong->md5[0] != 0)
 	uade_add_playtime(uadesong->md5, play_time, 1);
+
+      uadesong->playtime = play_time;
+      uadesong->cur_subsong = uadesong->max_subsong;
+      uade_info_string();
     }
-    uade_ip.set_info(gui_filename, play_time, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
     uade_unlock();
 
     /* We must free uadesong after playthread has finished and additional
@@ -840,14 +844,7 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
-      int playtime = uadesong->playtime;
-      /* Hack. Set info text and song length late because we didn't know
-	 subsong amounts before this. Pass zero as a length so that the
-	 graphical play time counter will run but seek is still enabled.
-	 Passing -1 as playtime would disable seeking. */
-      if (playtime <= 0)
-	playtime = 0;
-      uade_ip.set_info(gui_filename, playtime, UADE_BYTES_PER_SECOND, UADE_FREQUENCY, UADE_CHANNELS);
+      uade_info_string();
     }
     uade_unlock();
     gui_info_set = 1;
@@ -873,4 +870,52 @@ static void uade_get_song_info(char *filename, char **title, int *length)
   if ((*title = strdup(t)) == NULL)
     plugindebug("Not enough memory for song info.\n");
   *length = -1;
+}
+
+static void uade_info_string(void)
+{
+  char m[96];
+  char p[96];
+  char info[256];
+  int playtime = uadesong->playtime;
+
+  /* Hack. Set info text and song length late because we didn't know
+  subsong amounts before this. Pass zero as a length so that the
+  graphical play time counter will run but seek is still enabled.
+  Passing -1 as playtime would disable seeking. */
+  if (playtime <= 0)
+    playtime = 0;
+
+  if (gui_modulename[0] == 0 || (strncmp(gui_modulename, "<no songtitle>", 14) == 0)) {
+    strlcpy(m, gui_filename, sizeof m);
+  } else {
+    strlcpy(m, gui_modulename, sizeof m);
+  }
+
+  if (gui_formatname[0] == 0) {
+    if (gui_playername[0] == 0) {
+      strlcpy(p, "CustomPlay", sizeof p);
+    } else {
+      strlcpy(p, gui_playername, sizeof p);
+    }
+  } else {
+    if (strncmp(gui_formatname, "type: ", 6) == 0) {
+      strlcpy(p, gui_formatname+6, sizeof p);
+    } else {
+      strlcpy(p, gui_formatname, sizeof p);
+    }
+  }
+
+  if (uadesong->cur_subsong <0) {
+    snprintf(info, sizeof info, "%s -  [Guru Meditation #30000001.48454c50]", m);
+  } else {
+    snprintf(info, sizeof info, "%s (%d/%d) -  [%s] ", m,
+	     uadesong->cur_subsong,
+	     uadesong->max_subsong,
+	     p);
+  }
+
+  uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND,
+		   UADE_FREQUENCY,
+		   UADE_CHANNELS);
 }
