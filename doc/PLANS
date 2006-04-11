@@ -4,14 +4,10 @@ Ideas of things to do for UADE 2:
 2006-01-19: Fix use of GTK_ENABLE_BROKEN features in audacious plugin. (mld)
 2006-01-19: Fix eagleplayer and song specific configurations for xmms plugin
 	    (shd)
-2006-01-12: Make accumulation interpolator the default setting
 2006-01-10: Implement uade:// prefixed scanning into XMMS and Audacious
 	    plugins (shd)
 2006-01-09: Remember manually toggled postprocessing settings (alankila)
 2006-01-04: Write a tool to truncate overly long modules. (shd)
-2005-12-23: Add subsong text "[x/x]" into XMMS plugin scroller / playlist text
-	    (ave)
-2005-12-23: Add 16x16 hexdump for XMMS file info (ave)
 2005-12-14: Generate a content db of uade rsync collection. (shd)
 2005-12-07: Add dangerous malloc to test amifilemagic. (shd)
 2005-12-07: Remove postprocessing.[ch]. Use only effects.[ch]. (shd)
@@ -39,6 +35,10 @@ Ideas of things to do for UADE 2:
 
 
 DONE:
+2006-01-12: Make accumulation interpolator the default setting
+2005-12-23: Add subsong text "[x/x]" into XMMS plugin scroller / playlist text
+	    (ave)
+2005-12-23: Add 16x16 hexdump for XMMS file info (ave)
 2005-12-06: Support all variables of uade.conf in XMMS plugin. (shd)
 2005-12-06: Write amiga decruncher tool, and make filemagic notify about using
 	    that tool. Relevant formats are SQSH, power packer, and lha. (shd)
