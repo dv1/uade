@@ -1,4 +1,4 @@
-2006-04-05  Michael Doering <mld@users.sourceforge.net>
+2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin
 	- Sync'd xmms and audacious playlist display
 	- Fixed possible changing current subsong > maximal subsong
