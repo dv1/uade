@@ -1,6 +1,6 @@
-/* UADE2 plugin for XMMS
+/* UADE2 plugin for Audacious
  *
- * Copyright (C) 2005-2006  Heikki Orsila
+ * Copyright (C) 2005-2006  Heikki Orsila, UADE TEAM
  *
  * This source code module is dual licensed under GPL and Public Domain.
  * Hence you may use _this_ module (not another code module) in any way you
@@ -394,7 +394,6 @@ static void *play_loop(void *arg)
   int song_end_trigger = 0;
   int64_t skip_bytes = 0;
 
-
   while (1) {
     if (state == UADE_S_STATE) {
 
@@ -438,7 +437,11 @@ static void *play_loop(void *arg)
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	    subsong_bytes = 0;
+
+	    uade_unlock();
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
+	    uade_lock();
+
 	    uade_info_string();
 	  }
 	}
@@ -449,6 +452,7 @@ static void *play_loop(void *arg)
 	/* We must drain the audio fast if abort_playing happens (e.g.
 	   the user changes song when we are here waiting the sound device) */
 	while (uade_ip.output->buffer_playing() && abort_playing == 0)
+
 	  xmms_usleep(10000);
 	break;
       }
@@ -579,7 +583,6 @@ static void *play_loop(void *arg)
 	if (ntohl(((uint32_t *) um->data)[1]) == 0) {
 	  /* normal happy song end. go to next subsong if any */
 	  subsong_end = 1;
-
 	} else {
 	  /* unhappy song end (error in the 68k side). skip to next song
 	     ignoring possible subsongs */
@@ -606,7 +609,6 @@ static void *play_loop(void *arg)
 	uadesong->min_subsong = ntohl(u32ptr[0]);
 	uadesong->max_subsong = ntohl(u32ptr[1]);
 	uadesong->cur_subsong = ntohl(u32ptr[2]);
-
 
 	if (!(-1 <= uadesong->min_subsong && uadesong->min_subsong <= uadesong->cur_subsong && uadesong->cur_subsong <= uadesong->max_subsong)) {
 	  int tempmin = uadesong->min_subsong, tempmax = uadesong->max_subsong;
@@ -848,7 +850,7 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
-        uade_info_string();
+      uade_info_string();
     }
     uade_unlock();
     gui_info_set = 1;
@@ -914,12 +916,12 @@ static void uade_info_string(void)
     snprintf(info, sizeof info, "%s -  [Guru Meditation #30000001.48454c50]", m);
   } else {
     snprintf(info, sizeof info, "%s (%d/%d) -  [%s] ", m,
-						       uadesong->cur_subsong,
-						       uadesong->max_subsong,
-						       p);
+	     uadesong->cur_subsong,
+	     uadesong->max_subsong,
+	     p);
   }
 
   uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND,
-				   UADE_FREQUENCY,
-				   UADE_CHANNELS);
+		   UADE_FREQUENCY,
+		   UADE_CHANNELS);
 }

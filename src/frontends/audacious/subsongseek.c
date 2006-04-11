@@ -28,8 +28,12 @@ static int get_next_subsong(void)
     uade_unlock();
     if (ispaused == 0) {
 	int newsubsong;
+	int maxsubsong;
 	newsubsong = uade_get_cur_subsong(-1);
+	maxsubsong = uade_get_max_subsong(-1);
 	if (newsubsong == -1)
+	    return -1;
+	if (newsubsong == maxsubsong)
 	    return -1;
 	newsubsong++;
 	return newsubsong;
@@ -203,7 +207,7 @@ void uade_gui_seek_subsong(int to)
 	/* use the previous defined buttons here */
 	gtk_box_pack_start_defaults(GTK_BOX(seek_button_vbox),
 			   ffwd_button_frame);
-	gtk_container_add(GTK_CONTAINER(ffwd_button_frame), 		 
+	gtk_container_add(GTK_CONTAINER(ffwd_button_frame),
 			   ffwd_button);
 
 	gtk_widget_show_all(seekpopup);
@@ -240,7 +244,7 @@ static void uade_seek_directly(void)
  * the subsongchanging is done in uade_seek_directly()!
  *
  * uade_seek_directly itself is not (!) called literally from uade_seek_next()
- * and previous, but we are updating the value of hscale and thanks to 
+ * and previous, but we are updating the value of hscale and thanks to
  * GTK signalling the uade_seek_directly is invoked automatically.
  * A bit tricky but it works ;-)
  */
@@ -285,7 +289,7 @@ static void focus_out_event(void)
 }
 
 /* Don't know. Is it a good thing to clean up our mess (aka windows)
- * after stop() was called ??? 
+ * after stop() was called ???
  */
 void uade_gui_close_subsong_win(void)
 {
