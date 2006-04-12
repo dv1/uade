@@ -3,7 +3,10 @@
 	  playlist. Try setting
 	    song_title %F %X [%P]
 	  to uade.conf.
-	
+	- Reverted xmms buffer underrun fix that was ported to audacious
+	  plugin. With produce_sound() one does not need to wait for
+	  buffer_free().
+
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the
 	  situation of '--user'.
