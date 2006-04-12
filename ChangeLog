@@ -12,6 +12,9 @@
 	  a buffer underrun in ALSA mmap mode. The output plugin would
 	  not increase the amount of free buffers even if time passes.
 	  XMMS 1.2.10 ALSA output plugin (or alsa library) is still buggy.
+	- Ported shd's xmms buffer underrun fix to audacious (mld)
+	- Changed user warning about truncated protracker modules in
+	  amifilemagic to produce less false positives. (mld)
 
 2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin

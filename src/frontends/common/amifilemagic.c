@@ -281,8 +281,8 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 
   calculated_size = header + (maxpattern + 1) * 1024 + smpl;
 
-  if (filesize < calculated_size) {
-    fprintf(stderr, "Warning, truncated module: File size is %zd but calculated size is %zd.\n", filesize, calculated_size);
+  if ((calculated_size - filesize) > 0 && (calculated_size - filesize) <256) {
+    fprintf(stderr, "Warning, file size is %zd but calculated size for a mod file is %zd.\n", filesize, calculated_size);
   }
 
   if (filesize != calculated_size)
