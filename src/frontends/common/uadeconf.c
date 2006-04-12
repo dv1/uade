@@ -138,6 +138,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(random_play);
   MERGE_OPTION(recursive_mode);
   MERGE_OPTION(silence_timeout);
+  MERGE_OPTION(song_title);
   MERGE_OPTION(speed_hack);
   MERGE_OPTION(subsong_timeout);
   MERGE_OPTION(timeout);
@@ -250,6 +251,16 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
     uc->recursive_mode = 1;
   } else if (strncmp(key, "silence_timeout_value", 7) == 0) {
     uade_set_silence_timeout(uc, value);
+  } else if (strncmp(key, "song_title", 4) == 0) {
+    if (value == NULL) {
+      fprintf(stderr, "uade.conf: No song_title format given.\n");
+    } else {
+      if ((uc->song_title = strdup(value)) == NULL) {
+	fprintf(stderr, "No memory for song title format\n");
+      } else {
+	uc->song_title_set = 1;
+      }
+    }
   } else if (strncmp(key, "subsong_timeout_value", 7) == 0) {
     uade_set_subsong_timeout(uc, value);
   } else if (strncmp(key, "timeout_value", 7) == 0) {

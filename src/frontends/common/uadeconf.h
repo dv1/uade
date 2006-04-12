@@ -42,6 +42,8 @@ struct uade_config {
   int recursive_mode_set;
   int silence_timeout;
   int silence_timeout_set;
+  char *song_title;
+  int song_title_set;
   int speed_hack;
   int speed_hack_set;
   int subsong_timeout;

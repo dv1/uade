@@ -1,3 +1,9 @@
+2006-04-13  Heikki Orsila <heikki.orsila@iki.fi>
+	- Committed a programmable option for displaying song titles on
+	  playlist. Try setting
+	    song_title %F %X [%P]
+	  to uade.conf.
+	
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the
 	  situation of '--user'.
