@@ -1,6 +1,8 @@
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the
 	  situation of '--user'.
+	- Added a user warning to amifilemagic.c about truncated protracker
+	  modules.
 
 2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin

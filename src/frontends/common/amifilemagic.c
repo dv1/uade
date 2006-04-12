@@ -253,7 +253,7 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
   int smpl = 0;
   int plist;
   int maxpattern = 0;
-  int calculated_size;
+  size_t calculated_size;
 
   if (header > bufsize)
     return 0;			/* no mod */
@@ -280,6 +280,10 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
     smpl += 2 * read_be_u16(&buf[42 + i * 30]);	/* add sample length in bytes*/
 
   calculated_size = header + (maxpattern + 1) * 1024 + smpl;
+
+  if (filesize < calculated_size) {
+    fprintf(stderr, "Warning, truncated module: File size is %zd but calculated size is %zd.\n", filesize, calculated_size);
+  }
 
   if (filesize != calculated_size)
     return 0;
