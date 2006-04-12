@@ -3,6 +3,9 @@
 	  situation of '--user'.
 	- Added a user warning to amifilemagic.c about truncated protracker
 	  modules.
+	- Reverted Michaels change partially. Audacious and XMMS plugins will
+	  not show song name that is obtained from the module because it
+	  is unreliable. This will be made configurable in the future.
 
 2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin

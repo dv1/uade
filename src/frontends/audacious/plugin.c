@@ -892,11 +892,7 @@ static void uade_info_string(void)
   if (playtime <= 0)
     playtime = 0;
 
-  if (gui_modulename[0] == 0 || (strncmp(gui_modulename, "<no songtitle>", 14) == 0)) {
-    strlcpy(m, gui_filename, sizeof m);
-  } else {
-    strlcpy(m, gui_modulename, sizeof m);
-  }
+  strlcpy(m, gui_filename, sizeof m);
 
   if (gui_formatname[0] == 0) {
     if (gui_playername[0] == 0) {
