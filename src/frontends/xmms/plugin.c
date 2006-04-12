@@ -388,7 +388,7 @@ static void *play_loop(void *arg)
   uint64_t subsong_bytes = 0;
   char *reason;
   uint32_t *u32ptr;
-  int writable;
+  int writeoffs;
   int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
   int song_end_trigger = 0;
   int64_t skip_bytes = 0;
@@ -506,17 +506,26 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	while ((writable = uade_ip.output->buffer_free()) < play_bytes) {
-	  if (abort_playing)
-	    goto nowrite;
-	  xmms_usleep(10000);
-	}
-
 	uade_effect_run(&effects, (int16_t *) um->data, play_bytes / framesize);
-
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
-	uade_ip.output->write_audio(um->data, play_bytes);
+	writeoffs = 0;
+	while (writeoffs < play_bytes) {
+	  int writable;
+	  while ((writable = uade_ip.output->buffer_free()) <= 0) {
+	    if (abort_playing)
+	      goto nowrite;
+	    xmms_usleep(10000);
+	  }
+
+	  if (writable > (play_bytes - writeoffs))
+	    writable = play_bytes - writeoffs;
+
+	  uade_ip.output->write_audio(&um->data[writeoffs], writable);
+
+	  writeoffs += writable;
+	}
+
 
       nowrite:
 

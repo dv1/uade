@@ -515,13 +515,6 @@ static void *play_loop(void *arg)
 
 	uade_effect_run(&effects, (int16_t *) um->data, play_bytes / framesize);
 
-	/* Xmms / Audacious 0.1.2 */
-	/*
-	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
-	uade_ip.output->write_audio(um->data, play_bytes);
-	*/
-
-	/* for Audacious 0.2+ */
 	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
 
       nowrite:

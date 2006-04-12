@@ -6,6 +6,12 @@
 	- Reverted Michaels change partially. Audacious and XMMS plugins will
 	  not show song name that is obtained from the module because it
 	  is unreliable. This will be made configurable in the future.
+	- Fixed a potential bug in XMMS plugin. If maximum free audio buffers
+	  was less than 4088 bytes, uade plugin would refuse to write
+	  anything. This was noticed because XMMS wouldn't recover from
+	  a buffer underrun in ALSA mmap mode. The output plugin would
+	  not increase the amount of free buffers even if time passes.
+	  XMMS 1.2.10 ALSA output plugin (or alsa library) is still buggy.
 
 2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin
