@@ -395,13 +395,13 @@ if test "$useuade123" = "yes" ; then
 fi
 
 pkgconfigdir="$prefix/lib/pkgconfig"
-if test "$user" = "no" ; then
-    rm -f uade.pc
-    if test "$PKG_CONFIG" != "" ; then
-	if test "$useuade123" = "no" ; then
-	    pkgrequirements=""
-	fi
-	cat > uade.pc <<EOF
+rm -f uade.pc
+if test "$PKG_CONFIG" != "" ; then
+    installuadepcrule=""
+    if test "$useuade123" = "no" ; then
+	pkgrequirements=""
+    fi
+    cat > uade.pc <<EOF
 uadecore=$uadelibdir/$UADECORENAME
 data_directory=$uadedatadir
 ipc_protocol_version=$IPC_PROTOCOL_VERSION
@@ -411,7 +411,6 @@ Description: A music player for Amiga music formats
 Version: $VERSION
 Requirements: $pkgrequirements
 EOF
-    fi
 fi
 
 echo ""

@@ -1,3 +1,7 @@
+2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed configure script to handle uade.pc file correctly in the
+	  situation of '--user'.
+
 2006-04-11  Michael Doering <mld@users.sourceforge.net>
 	- Fixed my crap indentation in audacious plugin
 	- Sync'd xmms and audacious playlist display
