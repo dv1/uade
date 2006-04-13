@@ -16,6 +16,7 @@
 	  	UADE: blocking work-around activated.
 	  on stderr. It seems like snd_pcm_state(pcm) in ALSA output plugin
 	  never comes out of SND_PCM_STATE_RUNNING.
+	- Set song_title default to %F %X [%P]
 
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the

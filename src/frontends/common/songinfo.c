@@ -549,7 +549,7 @@ int uade_generate_song_title(char *title, size_t dstlen,
   char *format;
   char *bname;
   char p[64];
-  char *default_format = "%F";
+  char *default_format = "%F %X [%P]";
 
   /* %A min subsong
      %B cur subsong
@@ -557,7 +557,7 @@ int uade_generate_song_title(char *title, size_t dstlen,
      %F file base name (us->module_filename)
      %P player name
      %T title
-     %X intelligent subsong measure
+     %X print subsong info if more than one subsong exist
   */
 
   format = uc->song_title;
