@@ -27,9 +27,7 @@ Ideas of things to do for UADE 2:
 		* Mark information as static
 		* Maybe: advisory file name, comment
 	    (shd)
-2005-07-22: command line interaction for seeking and skipping songs (shd)
 2005-07-20: force timeout even if playtime is known (ave)
-2005-07-20: fast forward seeking + GUI support (ave)
 2005-07-12: convert asmone source code in sound core to gnu assembler format
 	    (shd)
 2005-07-12: rewrite parts of the sound core in C, and cross-compile with a
@@ -48,6 +46,8 @@ DONE:
 	    that tool. Relevant formats are SQSH, power packer, and lha. (shd)
 2005-11-28: XMMS plugin must not end prematurely. Wait for data to have been
 	    actually played (rather than written) before stopping.
+2005-07-22: command line interaction for seeking and skipping songs (shd)
+2005-07-20: fast forward seeking + GUI support (ave)
 2005-07-17: start audio output from simulator to the client after sound core
 	    has initialized the player plugin. currently the simulator
 	    writes zero audio samples during the initialization in sound core.

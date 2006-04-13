@@ -1,8 +1,6 @@
 To be solved:
 
 2006-04-03: song.conf is not re-read in xmms plugin (shd)
-2006-04-03: Sending song specific attributes should only be implemented
-            in one place rather than all frontends. (shd)
 2006-03-09: Remove useless symbol exports in plugins. Only get_iplugin_info
 	    should be preserved as an exported symbol. (shd)
 2006-01-15: Suntronic customs cause filesize on directory which fails (shd)
@@ -17,8 +15,6 @@ To be solved:
 	    XMMS plugin. (shd)
 2005-12-06: Is FA-18 Interceptor still buggy? (shd)
 2005-12-06: Uadecore possibly consumes too much CPU time (shd)
-2005-12-06: Seeking fast forward may hang some machines. It is possibly a bug
-	    in ALSA. (shd)
 2005-12-06: FRED player ends some songs too soon (shd)
 2005-12-06: Remove dupes when loading contentdb (shd)
 2005-11-03: 'make soundcheck' uses uade.conf if it can find one. (shd)
@@ -32,12 +28,15 @@ To be solved:
 	    01:20 (shd)
 
 Resolved:
+2006-04-03: Sending song specific attributes should only be implemented
+            in one place rather than all frontends. (shd)
 2006-01-18: Make XMMS file info window to use fixed width fonts (shd)
-
 2005-12-14: cust.Devils_colors bugs with 'anti' interpolator on subsong 2
 	    time index 5s. (shd)
 2005-12-11: Fix the dualism in frontend configuration with respect to uade.conf
 	    loader. Dualism here means redundancy and ugliness. (shd)
+2005-12-06: Seeking fast forward may hang some machines. It is possibly a bug
+	    in ALSA. (shd)
 2005-11-30: XMMS plugin displays wrong time if seek forward is used (shd)
 2005-07-20: Debug mode doesn't kick in instantenously with uade123 (shd)
 2005-07-15: vectordean/Cannon_Fodder_2/Cannon_Fodder_2-MorBase.sng gives odd

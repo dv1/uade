@@ -589,7 +589,7 @@ int uade_generate_song_title(char *title, size_t dstlen,
   p[0] = 0;
   if (us->formatname[0] == 0) {
     if (us->playername[0] == 0) {
-      strlcpy(p, "CustomPlay", sizeof p);
+      strlcpy(p, "Custom", sizeof p);
     } else {
       strlcpy(p, us->playername, sizeof p);
     }
@@ -619,7 +619,15 @@ int uade_generate_song_title(char *title, size_t dstlen,
       size_t inc;
       char *dat = NULL;
       char tmp[32];
-      c = format[srcoffs + 1]; /* can be terminating null */
+
+      if ((srcoffs + 1) >= srclen) {
+	fprintf(stderr, "Error: no identifier given in song title format: %s\n", format);
+	title[dstoffs] = 0;
+	return 1;
+      }
+
+      c = format[srcoffs + 1];
+
       switch (c) {
       case 'A':
 	snprintf(tmp, sizeof tmp, "%d", us->min_subsong);
