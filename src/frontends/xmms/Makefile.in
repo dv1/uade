@@ -1,5 +1,6 @@
 ARCHFLAGS={ARCHFLAGS}
 CC={CC}
+OBJCOPY={OBJCOPY}
 DEBUGFLAGS={DEBUGFLAGS}
 XMMSFLAGS={XMMSFLAGS}
 XMMSLIBS={XMMSLIBS}
@@ -12,6 +13,7 @@ MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
+	$(OBJCOPY) -G get_iplugin_info $@
 
 amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<

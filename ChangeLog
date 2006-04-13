@@ -17,6 +17,9 @@
 	  on stderr. It seems like snd_pcm_state(pcm) in ALSA output plugin
 	  never comes out of SND_PCM_STATE_RUNNING.
 	- Set song_title default to %F %X [%P]
+	- Fixed all xmms and audacious plugin symbols to be non-exportable
+	  symbols. The get_iplugin_info() remains the only exportable
+	  symbol. 'objcopy -G get_iplugin_info foo.so' should do it, right?
 
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the

@@ -10,8 +10,9 @@ else
     CC="gcc"
 fi
 NATIVECC="$CC"
-TARGETCC=""
+TARGETCC="$NATIVECC"
 CC="false"
+TARGETOBJCOPY="objcopy"
 
 ARCHFLAGS=""
 if test -n "$CFLAGS"; then
@@ -76,7 +77,9 @@ for opt in "$@" ; do
 	        tmpvar=`echo $opt | sed -n 's/--target=\(.*\)/\1/p'`
 		if test -z "$TARGETCC" ; then
 		    TARGETCC="$tmpvar-gcc"
+		    TARGETOBJCOPY="$tmpvar-objcopy"
 		fi
+		tmpvar=""
 		;;
 	--xmms-config=*)
 	        XMMS_CONFIG=`echo $opt | sed -n 's/--xmms-config=\(.*\)/\1/p'`
@@ -165,10 +168,6 @@ for opt in "$@" ; do
 		;;
 	esac
 done
-
-if test -z "$TARGETCC" ; then
-    TARGETCC="$NATIVECC"
-fi
 
 if test -z "$PKG_CONFIG" ; then
     PKG_CONFIG="pkg-config"
@@ -535,6 +534,7 @@ for file in src/Makefile.in src/frontends/*/Makefile.in ; do
 	-e "s|{AUDACIOUSFLAGS}|$AUDACIOUSFLAGS|g" \
 	-e "s|{AUDACIOUSLIBS}|$AUDACIOUSLIBS|g" \
 	-e "s|{CC}|$TARGETCC|g" \
+	-e "s|{OBJCOPY}|$TARGETOBJCOPY|g" \
 	-e "s|{NATIVECC}|$NATIVECC|g" \
 	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|g" \
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
