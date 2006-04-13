@@ -431,9 +431,17 @@ static void *play_loop(void *arg)
 	  if (uadesong->cur_subsong > uadesong->max_subsong) {
 	    song_end_trigger = 1;
 	  } else {
+	    int x = 0;
 	    uade_change_subsong(uadesong->cur_subsong, &uadeipc);
-	    while (uade_ip.output->buffer_playing())
+	    while (uade_ip.output->buffer_playing()) {
+	      /* Sleep at most 5 secs */
+	      if (x >= 500) {
+		fprintf(stderr, "UADE: blocking work-around activated.\n");
+		break;
+	      }
+	      x++;
 	      xmms_usleep(10000);
+	    }
 	    uade_ip.output->flush(0);
 	    subsong_end = 0;
 	    subsong_bytes = 0;

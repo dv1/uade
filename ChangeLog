@@ -10,6 +10,12 @@
 	- Added songtitle feature to audacious plugin and uade.conf (mld)
 	- Added #include <songinfo.h> to audacious plugin and removed some
 	  unused variables.
+	- Added a work-around against ALSA output plugin into XMMS plugin
+	  which avoids to old subsong change blocking bug. Now sleeping is
+	  hardlimited to 5 secs. If work-around is activated, you will see:
+	  	UADE: blocking work-around activated.
+	  on stderr. It seems like snd_pcm_state(pcm) in ALSA output plugin
+	  never comes out of SND_PCM_STATE_RUNNING.
 
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the
