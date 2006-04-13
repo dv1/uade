@@ -25,12 +25,11 @@
 #include <uadeconf.h>
 #include <effects.h>
 #include <sysincludes.h>
-
+#include <songinfo.h>
 
 #include "plugin.h"
 #include "subsongseek.h"
 #include "fileinfo.h"
-
 
 #define PLUGIN_DEBUG 0
 
@@ -866,8 +865,6 @@ static void uade_get_song_info(char *filename, char **title, int *length)
 
 static void uade_info_string(void)
 {
-  char m[96];
-  char p[96];
   char info[256];
   int playtime = uadesong->playtime;
 

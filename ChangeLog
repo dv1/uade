@@ -4,10 +4,12 @@
 	    song_title %F %X [%P]
 	  to uade.conf.
 	- Reverted xmms buffer underrun fix that was ported to audacious
-	  plugin. With produce_sound() one does not need to wait for
+	  plugin. With produce_audio() one does not need to wait for
 	  buffer_free(). (shd)
 	  [Comment: it still locks up here :-\] (mld)
 	- Added songtitle feature to audacious plugin and uade.conf (mld)
+	- Added #include <songinfo.h> to audacious plugin and removed some
+	  unused variables.
 
 2006-04-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed configure script to handle uade.pc file correctly in the
