@@ -539,11 +539,13 @@ static void *play_loop(void *arg)
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_formatname, um->data, sizeof gui_formatname);
+	strlcpy(uadesong->formatname, um->data, sizeof uadesong->formatname);
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_modulename, um->data, sizeof gui_modulename);
+	strlcpy(uadesong->modulename, um->data, sizeof uadesong->modulename);
 	break;
 
       case UADE_REPLY_MSG:
@@ -554,6 +556,7 @@ static void *play_loop(void *arg)
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_playername, um->data, sizeof gui_playername);
+	strlcpy(uadesong->playername, um->data, sizeof uadesong->playername);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -875,30 +878,8 @@ static void uade_info_string(void)
   if (playtime <= 0)
     playtime = 0;
 
-  strlcpy(m, gui_filename, sizeof m);
-
-  if (gui_formatname[0] == 0) {
-    if (gui_playername[0] == 0) {
-      strlcpy(p, "CustomPlay", sizeof p);
-    } else {
-      strlcpy(p, gui_playername, sizeof p);
-    }
-  } else {
-    if (strncmp(gui_formatname, "type: ", 6) == 0) {
-      strlcpy(p, gui_formatname+6, sizeof p);
-    } else {
-      strlcpy(p, gui_formatname, sizeof p);
-    }
-  }
-
-  if (uadesong->cur_subsong <0) {
-    snprintf(info, sizeof info, "%s -  [Guru Meditation #30000001.48454c50]", m);
-  } else {
-    snprintf(info, sizeof info, "%s (%d/%d) -  [%s] ", m,
-	     uadesong->cur_subsong,
-	     uadesong->max_subsong,
-	     p);
-  }
+  if (uade_generate_song_title(info, sizeof info, uadesong, &config))
+    strlcpy(info, gui_filename, sizeof info);
 
   uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND,
 		   UADE_FREQUENCY,
