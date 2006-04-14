@@ -6,6 +6,8 @@
 	    - uade123 is run in verbose mode (-v)
 	    - xmms or audacious plugin starts to play file
 	- Refactored configuration code
+	- Fixed a subsong/total timeout bug in xmms and audacious plugins.
+	  Always ends directive was not obeyed.
 
 2006-04-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Committed a programmable option for displaying song titles on

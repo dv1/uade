@@ -544,7 +544,7 @@ static void *play_loop(void *arg)
 
       nowrite:
 
-	if (config.timeout != -1) {
+	if (config.timeout != -1 && config.use_timeouts) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
 	    if (uadesong->out_bytes / UADE_BYTES_PER_SECOND >= config.timeout)
@@ -553,7 +553,7 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	if (config.subsong_timeout != -1) {
+	if (config.subsong_timeout != -1 && config.use_timeouts) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
 	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= config.subsong_timeout) {
 	      subsong_end = 1;
