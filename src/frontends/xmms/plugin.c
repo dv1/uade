@@ -319,7 +319,7 @@ static int uade_is_our_file(char *filename)
 {
   if (strncmp(filename, "uade://", 7) == 0)
     return TRUE;
-  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1) != NULL ? TRUE : FALSE;
+  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 0) != NULL ? TRUE : FALSE;
 }
 
 
@@ -332,7 +332,7 @@ static int initialize_song(char *filename)
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 0);
+  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1);
   if (ep == NULL)
     return FALSE;
 

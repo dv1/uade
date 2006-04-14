@@ -1,3 +1,11 @@
+2006-04-14  Heikki Orsila <heikki.orsila@iki.fi>
+	- Refactored and changed amifilemagic.c. Changed tracker type magic
+	  values into enums. A warning about differing file size and
+	  calculated file size for protracker modules is given if one of
+	  two conditions happen:
+	    - uade123 is run in verbose mode (-v)
+	    - xmms or audacious plugin starts to play file
+
 2006-04-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Committed a programmable option for displaying song titles on
 	  playlist. Try setting

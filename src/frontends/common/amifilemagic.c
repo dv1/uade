@@ -36,6 +36,22 @@
 #endif
 
 
+enum {
+  MOD_UNDEFINED = 0,
+  MOD_SOUNDTRACKER25_NOISETRACKER10,
+  MOD_NOISETRACKER12,
+  MOD_NOISETRACKER20,
+  MOD_STARTREKKER4,
+  MOD_STARTREKKER8,
+  MOD_AUDIOSCULPTURE4,
+  MOD_AUDIOSCULPTURE8,
+  MOD_PROTRACKER,
+  MOD_FASTTRACKER,
+  MOD_NOISETRACKER,
+  MOD_PTK_COMPATIBLE
+};
+
+
 #define S15_HEADER_LENGTH 600
 #define S31_HEADER_LENGTH 1084
 
@@ -245,18 +261,17 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
 /* returns:				 		*/
 /* 		 0 for no mod				*/
 /*		 1 for a mod with good length		*/
-static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
-		      int header)
+static size_t modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
+			 int header)
 {
   int i;
   int no_of_instr;
   int smpl = 0;
   int plist;
   int maxpattern = 0;
-  size_t calculated_size;
 
   if (header > bufsize)
-    return 0;			/* no mod */
+    return -1;			/* no mod */
 
   if (header == S15_HEADER_LENGTH)   {
     no_of_instr = 15;
@@ -265,7 +280,7 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
     no_of_instr = 31;
     plist = header - 4 - 128;
   } else {
-    return 0;
+    return -1;
   }
 
   for (i = 0; i < 128; i++) {
@@ -274,22 +289,14 @@ static int modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
   }
 
   if (maxpattern > 100)
-    return 0;
+    return -1;
 
   for (i = 0; i < no_of_instr; i++)
     smpl += 2 * read_be_u16(&buf[42 + i * 30]);	/* add sample length in bytes*/
 
-  calculated_size = header + (maxpattern + 1) * 1024 + smpl;
-
-  if ((calculated_size > filesize) && (calculated_size - filesize) < 256) {
-    fprintf(stderr, "Warning, file size is %zd but calculated size for a mod file is %zd.\n", filesize, calculated_size);
-  }
-
-  if (filesize != calculated_size)
-    return 0;
-
-  return 1;
+  return header + (maxpattern + 1) * 1024 + smpl;
 }
+
 
 static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int max_pattern, int pfx[], int pfxarg[])
 {
@@ -332,60 +339,58 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
 }
 
 
-static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
-/* returns:	 0 for undefined                            */
-/* 		 1 for a Soundtracker2.5/Noisetracker 1.0   */
-/*		 2 for a Noisetracker 1.2		    */
-/*		 3 for a Noisetracker 2.0		    */
-/*		 4 for a Startrekker 4ch		    */
-/*		 5 for a Startrekker 8ch		    */
-/*		 6 for Audiosculpture 4 ch/fm		    */
-/*		 7 for Audiosculpture 8 ch/fm		    */
-/*		 8 for a Protracker 			    */
-/*		 9 for a Fasttracker			    */
-/*		 10 for a Noisetracker (M&K!)		    */
-/*		 11 for a PTK Compatible		    */
-
+static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
+		      int verbose)
 {
+  /* mod patterns at file offset 0x438 */
+  char *mod_patterns[] = { "M.K.", ".M.K", 0 };
+  /* startrekker patterns at file offset 0x438 */
+  char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
 
-    /* mod patterns at file offset 0x438 */
-    char *mod_patterns[] = { "M.K.", ".M.K", 0 };
-    /* startrekker patterns at file offset 0x438 */
-    char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
+  int max_pattern = 0;
+  int i, j, t, ret;
+  int pfx[32];
+  int pfxarg[32];
 
-    int max_pattern=0;
-    int i,j,t,ret;
-    int pfx[32];
-    int pfxarg[32];
+  /* instrument var */
+  int vol, slen, srep, sreplen;
 
-    /* instrument var */
-    int vol, slen, srep, sreplen;
+  int has_slen_sreplen_zero = 0; /* sreplen empty of non looping instrument */
+  int no_slen_sreplen_zero = 0; /* sreplen */
 
-    int has_slen_sreplen_zero= 0; /* sreplen empty of non looping instrument */
-    int no_slen_sreplen_zero= 0; /* sreplen */
+  int has_slen_sreplen_one = 0;
+  int no_slen_sreplen_one = 0;
 
-    int has_slen_sreplen_one=0;
-    int no_slen_sreplen_one= 0;
+  int no_slen_has_volume = 0;
+  int finetune_used = 0;
 
-    int no_slen_has_volume= 0;
-    int finetune_used= 0;
+  size_t calculated_size;
 
+  /* returns:	 0 for undefined                            */
+  /* 		 1 for a Soundtracker2.5/Noisetracker 1.0   */
+  /*		 2 for a Noisetracker 1.2		    */
+  /*		 3 for a Noisetracker 2.0		    */
+  /*		 4 for a Startrekker 4ch		    */
+  /*		 5 for a Startrekker 8ch		    */
+  /*		 6 for Audiosculpture 4 ch/fm		    */
+  /*		 7 for Audiosculpture 8 ch/fm		    */
+  /*		 8 for a Protracker 			    */
+  /*		 9 for a Fasttracker			    */
+  /*		 10 for a Noisetracker (M&K!)		    */
+  /*		 11 for a PTK Compatible		    */
 
-    /* Special cases first */
-    if (patterntest(buf, "M&K!", 0x438, 4, bufsize)) {
-      return 10;	/* Noisetracker (M&K!) */
-      }
+  /* Special cases first */
+  if (patterntest(buf, "M&K!", (S31_HEADER_LENGTH - 4), 4, bufsize))
+    return MOD_NOISETRACKER;	/* Noisetracker (M&K!) */
+  
+  if (patterntest(buf, "M!K!", (S31_HEADER_LENGTH - 4), 4, bufsize))
+    return MOD_PROTRACKER;		/* Protracker (100 patterns) */
 
-    if (patterntest(buf, "M!K!", 0x438, 4, bufsize)) {
-      return 8;		/* Protracker (100 patterns) */
-      }
+  if (patterntest(buf, "N.T.", (S31_HEADER_LENGTH - 4), 4, bufsize))
+    return MOD_NOISETRACKER20;		/* Noisetracker2.x */
 
-    if (patterntest(buf, "N.T.", 0x438, 4, bufsize)) {
-      return 3;		/* Noisetracker2.x */
-      }
-
-    for (i = 0; startrekker_patterns[i]; i++) {
-     if (patterntest(buf, startrekker_patterns[i], 0x438, 4, bufsize)) {
+  for (i = 0; startrekker_patterns[i]; i++) {
+    if (patterntest(buf, startrekker_patterns[i], (S31_HEADER_LENGTH - 4), 4, bufsize)) {
       t = 0;
       for (j = 0; j < 30 * 0x1e; j = j + 0x1e) {
 	if (buf[0x2a + j] == 0 && buf[0x2b + j] == 0 && buf[0x2d + j] != 0) {
@@ -394,154 +399,165 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       }
       if (t > 0) {
 	if (buf[0x43b] == '4'){
-		ret=6;			/* Startrekker 4 AM / ADSC */
-	    } else { 		
-		ret=7;			/* Startrekker 8 AM / ADSC */	
-	    }
+	  ret = MOD_STARTREKKER4;	/* Startrekker 4 AM / ADSC */
+	} else { 		
+	  ret = MOD_STARTREKKER8;	/* Startrekker 8 AM / ADSC */	
+	}
       } else {
 	if (buf[0x43b] == '4'){
-		ret=4;			/* Startrekker 4ch */
-	    } else { 		
-		ret=5;			/* Startrekker 8ch */	
-	    }
+	  ret = MOD_STARTREKKER4;	/* Startrekker 4ch */
+	} else { 		
+	  ret = MOD_STARTREKKER8;	/* Startrekker 8ch */	
 	}
+      }
       return ret;
+    }
+  }
+
+  calculated_size = modlentest(buf, bufsize, realfilesize, S31_HEADER_LENGTH);
+
+  if (calculated_size == -1)
+    return MOD_UNDEFINED;
+
+  if (verbose && calculated_size != realfilesize) {
+    fprintf(stderr, "uade: file size is %zd but calculated size for a mod file is %zd.\n", realfilesize, calculated_size);
+  }
+
+  if (calculated_size > realfilesize)
+    return MOD_UNDEFINED;
+
+  /* parse instruments */
+  for (i = 0; i < 31; i++) {
+    vol = buf[45 + i * 30];
+    slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
+    srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
+    sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
+    /* fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol); */
+
+    if (vol > 64)
+      return MOD_UNDEFINED;
+
+    if (buf[44 + i * 30] != 0) {
+      if (buf[44+i*30] > 15) {
+	return MOD_UNDEFINED;
+      } else {
+	finetune_used++;
       }
     }
 
-   if (modlentest(buf, bufsize, realfilesize, S31_HEADER_LENGTH) == 0)
-     return 0; /* modlentest failed */
+    if (slen > 0 && (srep + sreplen) > slen) {
+      /* Old Noisetracker /Soundtracker with repeat offset in bytes */
+      return MOD_SOUNDTRACKER25_NOISETRACKER10;
+    }
 
- /* parse instruments */
-    for (i = 0; i < 31; i++) {
-      vol = buf[45 + i * 30];
-      slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
-      srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
-      sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
-
-      if (vol > 64) return 0;
-      if (buf[44+i*30] != 0) {
-        if (buf[44+i*30] >15){
-		return 0;
-	    }else {
-		finetune_used++;
-	    }
+    if (srep == 0) {
+      if (slen > 0) {
+	if (sreplen == 2){
+	  has_slen_sreplen_one++;
 	}
-
-      if (slen > 0 && (srep+sreplen) > slen) return 1; /* Old Noisetracker /Soundtracker with repeat offset in bytes */
-     
-      if (srep==0) {
-        if (slen >0) {
-    	    if (sreplen==2){
-        	 has_slen_sreplen_one++;
-    		}
-	    if (sreplen==0){
-    		 has_slen_sreplen_zero++;
-		}
+	if (sreplen == 0){
+	  has_slen_sreplen_zero++;
+	}
+      } else {
+	if (sreplen > 0){
+	  no_slen_sreplen_one++;
 	} else {
-    	    if (sreplen>0){
-        	 no_slen_sreplen_one++;
-    		} else {
-    		 no_slen_sreplen_zero++;
-		}
-	    if (vol >0) no_slen_has_volume++;
-	}    
-       }
-      }
-
-
-    for (i = 0; mod_patterns[i]; i++) {
-     if (patterntest(buf, mod_patterns[i], 0x438, 4, bufsize)) {
-	/* seems to be a generic M.K. MOD                              */
-	/* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
-	/*       and Fasttracker checking                               */
-
-
-	for (i = 0; i < 128; i++) {
-    	     max_pattern=(buf[1080 - 130 + 2 + i] > max_pattern) ? buf[1080 - 130 + 2 + i] : max_pattern;
-	    }
-
-	    if (max_pattern > 100) return 0;		/* pattern number can only be  0 <-> 100 for mod*/
-
-
-	
-	memset (pfx,0,sizeof (pfx));
-	memset (pfxarg,0,sizeof (pfxarg));
-	modparsing(buf, bufsize, S31_HEADER_LENGTH-4, max_pattern, pfx, pfxarg);
-
-/* and now for let's see if we can spot the mod */
-
-/* FX used:					  		     */
-/* DOC Soundtracker 2.x(2.5):	0,1,2(3,4)	    a,b,c,d,e,f	     */
-/* Noisetracker 1.x:		0,1,2,3,4	    a,b,c,d,e,f      */
-/* Noisetracker 2.x:		0,1,2,3,4           a,b,c,d,e,f      */
-/* Protracker:			0,1,2,3,4,5,6,7   9,a,b,c,d,e,f	+e## */
-/* PC tracker:			0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f +e## */
-
-	for (j=17; j<=31; j++)
-    	 {
-    	   if (pfx[j] != 0 || finetune_used >0) /* Extended fx used */
-    	  	{
-		if (buf[0x3b7] != 0x7f && buf[0x3b7] != 0x78){
-    		return 9; /* Definetely Fasttracker*/
-		} else {
-		return 8; /* Protracker*/
-    		}
-    	 }
+	  no_slen_sreplen_zero++;
 	}
-
-//	fprintf (stderr, "has_slen_sreplen_zero: %d\n",has_slen_sreplen_zero);
-//	fprintf (stderr, "has_slen_sreplen_one: %d\n",has_slen_sreplen_one);
-//	fprintf (stderr, "no_slen_sreplen_zero: %d\n",no_slen_sreplen_zero);
-//	fprintf (stderr, "no_slen_sreplen_one: %d\n\n",no_slen_sreplen_one);
-
-	if ((buf[0x3b7] == 0x7f) && 
-	    (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero <=no_slen_sreplen_one))
-		return 8; // Protracker
-
-	if (buf[0x3b7] >0x7f) return 11; // Protracker compatible
-
-	if ((buf[0x3b7] == 0) && 
-	    (has_slen_sreplen_zero >  has_slen_sreplen_one) &&
-	    (no_slen_sreplen_zero > no_slen_sreplen_one)){
-		if (pfx[0x10] ==0) {
-		    return 11; // probl. Fastracker or Protracker compatible
-		}
-		/* FIXME: Investigate ?? */
-		// else {
-		//    return 8; // probl. Protracker
-		//}
-	    }
-	    
-    	   if (pfx[0x05] != 0 || pfx[0x06] != 0 || 
-	       pfx[0x07] != 0 || pfx[0x09] != 0)
-    	  	    	return 11; // Protracker compatible
-
-
-	if ((buf[0x3b7] >0 && buf[0x3b7] <= buf[0x3b6]) && 
-	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	        (no_slen_sreplen_zero == 1) &&
-	        (no_slen_sreplen_zero <= no_slen_sreplen_one))    
-	    	    return 2; // Noisetracker 1.2
-
-	if ((buf[0x3b7] <0x80) && 
-
-	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	        (no_slen_sreplen_zero <=no_slen_sreplen_one))    
-			return 3; // Noisetracker 2.x
-
-	if ((buf[0x3b7] <0x80) && 
-	     (pfx[0x0e] ==0) &&
-	        (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
-	        (no_slen_sreplen_zero >=no_slen_sreplen_one))    
-			return 2; // Noisetracker 1.x
-
-    	return 11; // Protracker compatible
+	if (vol > 0)
+	  no_slen_has_volume++;
       }
     }
-return 0;
+  }
+
+  for (i = 0; mod_patterns[i]; i++) {
+    if (patterntest(buf, mod_patterns[i], S31_HEADER_LENGTH - 4, 4, bufsize)) {
+      /* seems to be a generic M.K. MOD                              */
+      /* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
+      /*       and Fasttracker checking                               */
+
+      for (i = 0; i < 128; i++) {
+	if (buf[1080 - 130 + 2 + i] > max_pattern)
+	  max_pattern = buf[1080 - 130 + 2 + i];
+      }
+      
+      if (max_pattern > 100) {
+	/* pattern number can only be  0 <-> 100 for mod*/
+	return MOD_UNDEFINED;
+      }
+
+      memset (pfx, 0, sizeof (pfx));
+      memset (pfxarg, 0, sizeof (pfxarg));
+      modparsing(buf, bufsize, S31_HEADER_LENGTH-4, max_pattern, pfx, pfxarg);
+
+      /* and now for let's see if we can spot the mod */
+
+      /* FX used:					  		     */
+      /* DOC Soundtracker 2.x(2.5):	0,1,2(3,4)	    a,b,c,d,e,f	     */
+      /* Noisetracker 1.x:		0,1,2,3,4	    a,b,c,d,e,f      */
+      /* Noisetracker 2.x:		0,1,2,3,4           a,b,c,d,e,f      */
+      /* Protracker:			0,1,2,3,4,5,6,7   9,a,b,c,d,e,f	+e## */
+      /* PC tracker:			0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f +e## */
+
+      for (j = 17; j <= 31; j++) {
+	if (pfx[j] != 0 || finetune_used >0) /* Extended fx used */ {
+	  if (buf[0x3b7] != 0x7f && buf[0x3b7] != 0x78) {
+	    return MOD_FASTTRACKER; /* Definetely Fasttracker*/
+	  } else {
+	    return MOD_PROTRACKER; /* Protracker*/
+	  }
+	}
+      }
+
+      if ((buf[0x3b7] == 0x7f) && 
+	  (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	  (no_slen_sreplen_zero <=no_slen_sreplen_one))
+	return MOD_PROTRACKER; /* Protracker */
+
+      if (buf[0x3b7] >0x7f)
+	return MOD_PTK_COMPATIBLE; /* Protracker compatible */
+
+      if ((buf[0x3b7] == 0) && 
+	  (has_slen_sreplen_zero >  has_slen_sreplen_one) &&
+	  (no_slen_sreplen_zero > no_slen_sreplen_one)){
+	if (pfx[0x10] == 0) {
+	  /* probl. Fastracker or Protracker compatible */
+	  return MOD_PTK_COMPATIBLE;
+	}
+	  /* FIXME: Investigate
+	  else {
+	  return MOD_PROTRACKER; // probl. Protracker
+	  } */
+      }
+	    
+      if (pfx[0x05] != 0 || pfx[0x06] != 0 || pfx[0x07] != 0 ||
+	  pfx[0x09] != 0) {
+	/* Protracker compatible */
+	return MOD_PTK_COMPATIBLE;
+      }
+
+      if ((buf[0x3b7] >0 && buf[0x3b7] <= buf[0x3b6]) && 
+	  (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	  (no_slen_sreplen_zero == 1) &&
+	  (no_slen_sreplen_zero <= no_slen_sreplen_one))    
+	return MOD_NOISETRACKER12; // Noisetracker 1.2
+
+      if ((buf[0x3b7] <0x80) && 
+	  (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	  (no_slen_sreplen_zero <=no_slen_sreplen_one))    
+	return MOD_NOISETRACKER20; // Noisetracker 2.x
+
+      if ((buf[0x3b7] <0x80) && 
+	  (pfx[0x0e] ==0) &&
+	  (has_slen_sreplen_zero <= has_slen_sreplen_one) &&
+	  (no_slen_sreplen_zero >=no_slen_sreplen_one))    
+	return MOD_SOUNDTRACKER25_NOISETRACKER10; // Noisetracker 1.x
+
+      return MOD_PTK_COMPATIBLE; // Protracker compatible
+    }
+  }
+
+  return MOD_UNDEFINED;
 }
 
 
@@ -561,13 +577,13 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   int sreplen = 0;
   int vol = 0;
 
-  int noof_slen_zero_sreplen_zero=0;
-  int noof_slen_zero_vol_zero=0;
-  int srep_bigger_slen=0;
-  int srep_bigger_ffff=0;
+  int noof_slen_zero_sreplen_zero = 0;
+  int noof_slen_zero_vol_zero = 0;
+  int srep_bigger_slen = 0;
+  int srep_bigger_ffff = 0;
   int st_xy=0;
   
-  int max_pattern=1;
+  int max_pattern = 1;
   int pfx[32];
   int pfxarg[32];
 
@@ -693,7 +709,8 @@ return 3; // anything is played as normal soundtracker
 }
 
 
-void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfilesize)
+void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
+		    size_t realfilesize, int verbose)
 {
   /* char filemagic():
      detects formats like e.g.: tfmx1.5, hip, hipc, fc13, fc1.4      
@@ -710,64 +727,60 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
      have to do at the moment :)
    */
 
-  int i,t;
+  int i, modtype, t;
+
+  struct modtype {
+    int e;
+    char *str;
+  };
+
+  struct modtype mod32types[] = {
+    {.e = MOD_SOUNDTRACKER25_NOISETRACKER10, .str = "MOD_DOC"},
+    {.e = MOD_NOISETRACKER12, .str = "MOD_NTK1"},
+    {.e = MOD_NOISETRACKER20, .str = "MOD_NTK2"},
+    {.e = MOD_STARTREKKER4, .str = "MOD_FLT4"},
+    {.e = MOD_STARTREKKER8, .str = "MOD_FLT8"},
+    {.e = MOD_AUDIOSCULPTURE4, .str = "MOD_ADSC4"},
+    {.e = MOD_AUDIOSCULPTURE8, .str = "MOD_ADSC8"},
+    {.e = MOD_PROTRACKER, .str = "MOD"},
+    {.e = MOD_FASTTRACKER, .str = "MOD_PTKCOMP"},
+    {.e = MOD_NOISETRACKER, .str = "MOD_NTKAMP"},
+    {.e = MOD_PTK_COMPATIBLE, .str = "MOD_PTKCOMP"},
+    {.str = NULL}
+  };
+
+  struct modtype mod15types[] = {
+    {.e = 1, .str = "MOD15"},
+    {.e = 2, .str = "MOD15_UST"},
+    {.e = 3, .str = "MOD15_MST"},
+    {.e = 4, .str = "MOD15_ST-IV"},
+    {.str = NULL}
+  };
 
   /* Mark format unknown by default */
   pre[0] = 0;
 
-  t = mod32check(buf, bufsize, realfilesize);
-  switch (t) { 
-  case 1:
-    strcpy(pre, "MOD_DOC");	/* Soundtracker 32instrument*/
-    return;
-  case 2:
-    strcpy(pre, "MOD_NTK1");	/* Noisetracker 1.x*/
-    return;
-  case 3:
-    strcpy(pre, "MOD_NTK2");	/* Noisetracker 2.x*/
-    return;
-  case 4:
-    strcpy(pre, "MOD_FLT4");	/* Startrekker 4ch*/
-    return;
-  case 5:
-    strcpy(pre, "MOD_FLT8");	/* Startrekker 8ch*/
-    return;
-  case 6:
-    strcpy(pre, "MOD_ADSC4");	/* Audiosculpture 4ch AM*/
-    return;
-  case 7:
-    strcpy(pre, "MOD_ADSC8");	/* Audiosculpture 8ch AM*/
-    return;
-  case 8:
-    strcpy(pre, "MOD");		/* Protracker*/
-    return;
-  case 9:
-    strcpy(pre, "MOD_PTKCOMP");	/* Fasttracker 4 ch*/
-    return;
-  case 10:
-    strcpy(pre, "MOD_NTKAMP");	/* Noisetracker (M&K!)*/
-    return;
-  case 11:
-    strcpy(pre, "MOD_PTKCOMP");	/* PTKCOMP*/
-    return;
+  modtype = mod32check(buf, bufsize, realfilesize, verbose);
+  if (modtype != MOD_UNDEFINED) {
+    for (t = 0; mod32types[t].str != NULL; t++) {
+      if (modtype == mod32types[t].e) {
+	strcpy(pre, mod32types[t].str);
+	return;
+      }
+    }
   }
 
-  t = mod15check(buf, bufsize, realfilesize);
-  switch (t) { 
-  case 1:
-    strcpy(pre, "MOD15");
-    return;
-  case 2:
-    strcpy(pre, "MOD15_UST");
-    return;
-  case 3:
-    strcpy(pre, "MOD15_MST");
-    return;
-  case 4:
-    strcpy(pre, "MOD15_ST-IV");
-    return;
+  modtype = mod15check(buf, bufsize, realfilesize);
+  if (modtype != 0) {
+    for (t = 0; mod15types[t].str != NULL; t++) {
+      if (modtype == mod15types[t].e) {
+	strcpy(pre, mod15types[t].str);
+	return;
+      }
+    }
   }
 
+  /* 0x438 == S31_HEADER_LENGTH - 4 */
   if (((buf[0x438] >= '1' && buf[0x438] <= '3')
        && (buf[0x439] >= '0' && buf[0x439] <= '9') && buf[0x43a] == 'C'
        && buf[0x43b] == 'H') || ((buf[0x438] >= '2' && buf[0x438] <= '8')
@@ -779,7 +792,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre, size_t realfi
 				    && buf[0x43a] == '8'
 				    && buf[0x43b] == '1')) {
     strcpy(pre, "MOD_PC");	/*Multichannel Tracker */
-    
+
   } else if (buf[0x2c] == 'S' && buf[0x2d] == 'C' && buf[0x2e] == 'R'
 	     && buf[0x2f] == 'M') {
     strcpy(pre, "S3M");		/*Scream Tracker */

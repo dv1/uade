@@ -434,7 +434,7 @@ static int process_module(char *credits, size_t credits_len, char *filename)
   modfilelen = st.st_size;
 
   if ((buf = malloc(modfilelen)) == NULL) {
-    fprintf(stderr, "can't allocate mem");
+    fprintf(stderr, "uade: can't allocate mem in process_module()");
     fclose(modfile);
     return 0;
   }
@@ -459,7 +459,7 @@ static int process_module(char *credits, size_t credits_len, char *filename)
   strlcpy (credits, tmpstr,credits_len);
 
   /* here we go */
-  uade_filemagic(buf, modfilelen, pre, modfilelen); /*get filetype in pre*/
+  uade_filemagic(buf, modfilelen, pre, modfilelen, 0); /*get filetype in pre*/
 
   snprintf(tmpstr, sizeof tmpstr, "File prefix:\t%s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
