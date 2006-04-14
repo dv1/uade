@@ -17,8 +17,8 @@
 
 #include <strlrep.h>
 
-#include "uadeconf.h"
-
+#include <uadeconf.h>
+#include <amigafilter.h>
 
 static char config_filename[PATH_MAX];
 
@@ -26,6 +26,56 @@ static char config_filename[PATH_MAX];
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
 static int uade_set_subsong_timeout(struct uade_config *uc, const char *value);
 static int uade_set_timeout(struct uade_config *uc, const char *value);
+
+
+static enum uade_option map_str_to_option(const char *key)
+{
+  size_t i;
+
+  struct optlist {
+    char *str;
+    int l;
+    enum uade_option e;
+  };
+
+  struct optlist ol[] = {
+    {.str = "action_keys",      .l = 1,  .e = UC_ACTION_KEYS},
+    {.str = "buffer_time",      .l = 1,  .e = UC_BUFFER_TIME},
+    {.str = "disable_timeout",  .l = 1,  .e = UC_DISABLE_TIMEOUTS},
+    {.str = "enable_timeout",   .l = 1,  .e = UC_ENABLE_TIMEOUTS},
+    {.str = "filter_type",      .l = 2,  .e = UC_FILTER_TYPE},
+    {.str = "force_led_off",    .l = 12, .e = UC_FORCE_LED_OFF},
+    {.str = "force_led_on",     .l = 12, .e = UC_FORCE_LED_ON},
+    {.str = "force_led",        .l = 9,  .e = UC_FORCE_LED},
+    {.str = "gain",             .l = 1,  .e = UC_GAIN},
+    {.str = "headphones",       .l = 1,  .e = UC_HEADPHONES},
+    {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
+    {.str = "interpolator",     .l = 2,  .e = UC_INTERPOLATOR},
+    {.str = "magic_detection",  .l = 1,  .e = UC_MAGIC_DETECTION},
+    {.str = "no_filter",        .l = 4,  .e = UC_NO_FILTER},
+    {.str = "no_song_end",      .l = 4,  .e = UC_NO_SONG_END},
+    {.str = "ntsc",             .l = 2,  .e = UC_NTSC},
+    {.str = "one_subsong",      .l = 1,  .e = UC_ONE_SUBSONG},
+    {.str = "pal",              .l = 3,  .e = UC_PAL},
+    {.str = "panning_value",    .l = 3,  .e = UC_PANNING_VALUE},
+    {.str = "random_play",      .l = 2,  .e = UC_RANDOM_PLAY},
+    {.str = "recursive_mode",   .l = 2,  .e = UC_RECURSIVE_MODE},
+    {.str = "silence_timeout_value", .l = 2, .e = UC_SILENCE_TIMEOUT_VALUE},
+    {.str = "song_title",       .l = 2,  .e = UC_SONG_TITLE},
+    {.str = "speed_hack",       .l = 2,  .e = UC_SPEED_HACK},
+    {.str = "subsong_timeout_value", .l = 2, .e = UC_SUBSONG_TIMEOUT_VALUE},
+    {.str = "timeout_value",    .l = 1,  .e = UC_TIMEOUT_VALUE},
+    {.str = "verbose",          .l = 1,  .e = UC_VERBOSE},
+    {.str = NULL}
+  }; 
+
+  for (i = 0; ol[i].str != NULL; i++) {
+    if (strncmp(key, ol[i].str, ol[i].l) == 0)
+      return ol[i].e;
+  }
+
+  return 0;
+}
 
 
 static char *nextspace(const char *foo)
@@ -89,6 +139,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   char *key;
   char *value;
   int linenumber = 0;
+  enum uade_option opt;
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
@@ -110,7 +161,11 @@ int uade_load_config(struct uade_config *uc, const char *filename)
       value = nextnonspace(value + 1);
     }
 
-    if (uade_set_config_option(uc, key, value)) {
+    opt = map_str_to_option(key);
+
+    if (opt) {
+      uade_set_config_option(uc, opt, value);
+    } else {
       fprintf(stderr, "Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
     }
   }
@@ -148,7 +203,8 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 }
 
 
-void uade_set_config_effects(struct uade_effect *effects, struct uade_config *uc)
+void uade_set_config_effects(struct uade_effect *effects,
+			     const struct uade_config *uc)
 {
   if (uc->gain_enable) {
     uade_effect_gain_set_amount(effects, uc->gain);
@@ -165,11 +221,12 @@ void uade_set_config_effects(struct uade_effect *effects, struct uade_config *uc
 }
 
 
-int uade_set_config_option(struct uade_config *uc, const char *key,
-			   const char *value)
+void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
+			    const char *value)
 {
   char *endptr;
-  if (strncmp(key, "action_keys", 6) == 0) {
+  switch (opt) {
+  case UC_ACTION_KEYS:
     if (value != NULL) {
       uc->action_keys_set = 1;
       if (strcasecmp(value, "on") == 0 || strcmp(value, "1") == 0) {
@@ -180,24 +237,29 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
 	fprintf(stderr, "uade.conf: Unknown setting for action keys: %s\n", value);
       }
     }
-  } else if (strncmp(key, "buffer_time", 6) == 0) {
+    break;
+  case UC_BUFFER_TIME:
     uc->buffer_time_set = 1;
     uc->buffer_time = strtol(value, &endptr, 10);
     if (uc->buffer_time <= 0 || *endptr != 0) {
       fprintf(stderr, "Invalid buffer_time: %s\n", value);
       uc->buffer_time = 0;
     }
-  } else if (strncmp(key, "disable_timeouts", 3) == 0) {
+    break;
+  case UC_DISABLE_TIMEOUTS:
     uc->use_timeouts = 0;
     uc->use_timeouts_set = 1;
-  } else if (strncmp(key, "enable_timeouts", 3) == 0) {
+    break;
+  case UC_ENABLE_TIMEOUTS:
     uc->use_timeouts = 1;
     uc->use_timeouts_set = 1;
-  } else if (strncmp(key, "filter", 6) == 0) {
+    break;
+  case UC_FILTER_TYPE:
     uade_set_filter_type(uc, value);
     uc->no_filter_set = 1;
     uc->no_filter = 0;
-  } else if (strncmp(key, "force_led", 9) == 0) {
+    break;
+  case UC_FORCE_LED:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 0;
@@ -207,59 +269,75 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
     } else {
       fprintf(stderr, "Unknown force led argument: %s\n", value);
     }
-  } else if (strncmp(key, "force_led_off", 12) == 0) {
+    break;
+  case UC_FORCE_LED_OFF:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 0;
-  } else if (strncmp(key, "force_led_on", 12) == 0) {
+    break;
+  case UC_FORCE_LED_ON:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 1;
-  } else if (strcmp(key, "gain") == 0) {
+    break;
+  case UC_GAIN:
     uc->gain_enable_set = 1;
     uc->gain_enable = 1;
     uc->gain = uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
-  } else if (strncmp(key, "headphones", 4) == 0) {
+    break;
+  case UC_HEADPHONES:
     uc->headphones_set = 1;
     uc->headphones = 1;
-  } else if (strncmp(key, "ignore_player_check", 6) == 0) {
+    break;
+  case UC_IGNORE_PLAYER_CHECK:
     uc->ignore_player_check_set = 1;
     uc->ignore_player_check = 1;
-  } else if (strncmp(key, "interpolator", 5) == 0) {
+    break;
+  case UC_INTERPOLATOR:
     if (value == NULL) {
       fprintf(stderr, "uade.conf: No interpolator given.\n");
     } else {
       uc->interpolator_set = 1;
       uc->interpolator = strdup(value);
     }
-  } else if (strncmp(key, "no_filter", 9) == 0) {
+    break;
+  case UC_NO_FILTER:
     uc->no_filter_set = 1;
     uc->no_filter = 1;
-  } else if (strncmp(key, "no_song_end", 4) == 0) {
+    break;
+  case UC_NO_SONG_END:
     uc->no_song_end = 1;
     uc->no_song_end_set = 1;
-  } else if (strcmp(key, "ntsc") == 0) {
+    break;
+  case UC_NTSC:
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
-  } else if (strncmp(key, "one_subsong", 3) == 0) {
+    break;
+  case UC_ONE_SUBSONG:
     uc->one_subsong_set = 1;
     uc->one_subsong = 1;
-  } else if (strcmp(key, "pal") == 0) {
+    break;
+  case UC_PAL:
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 0;
-  } else if (strncmp(key, "panning_value", 3) == 0) {
+    break;
+  case UC_PANNING_VALUE:
     uc->panning_enable_set = 1;
     uc->panning_enable = 1;
     uc->panning = uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
-  } else if (strncmp(key, "random_play", 6) == 0) {
+    break;
+  case UC_RANDOM_PLAY:
     uc->random_play_set = 1;
     uc->random_play = 1;
-  } else if (strncmp(key, "recursive_mode", 9) == 0) {
+    break;
+  case UC_RECURSIVE_MODE:
     uc->recursive_mode_set = 1;
     uc->recursive_mode = 1;
-  } else if (strncmp(key, "silence_timeout_value", 7) == 0) {
+    break;
+  case UC_SILENCE_TIMEOUT_VALUE:
     uade_set_silence_timeout(uc, value);
-  } else if (strncmp(key, "song_title", 4) == 0) {
+    break;
+  case UC_SONG_TITLE:
     if (value == NULL) {
       fprintf(stderr, "uade.conf: No song_title format given.\n");
     } else {
@@ -269,43 +347,51 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
 	uc->song_title_set = 1;
       }
     }
-  } else if (strncmp(key, "magic_detection", 3) == 0) {
+    break;
+  case UC_SPEED_HACK:
+    uc->speed_hack = 1;
+    uc->speed_hack_set = 1;
+    break;
+  case UC_MAGIC_DETECTION:
     uc->magic_detection = 1;
     uc->magic_detection_set = 1;
-  } else if (strncmp(key, "subsong_timeout_value", 7) == 0) {
+    break;
+  case UC_SUBSONG_TIMEOUT_VALUE:
     uade_set_subsong_timeout(uc, value);
-  } else if (strncmp(key, "timeout_value", 7) == 0) {
+    break;
+  case UC_TIMEOUT_VALUE:
     uade_set_timeout(uc, value);
-  } else if (strncmp(key, "verbose", 3) == 0) {
+    break;
+  case UC_VERBOSE:
     uc->verbose = 1;
     uc->verbose_set = 1;
-  } else {
-    fprintf(stderr, "Unknown option: %s\n", key);
-    return 1;
+    break;
+  default:
+    fprintf(stderr, "Unknown option enum: %d\n", opt);
+    exit(-1);
   }
-  return 0;
 }
 
 
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
   if (ep->attributes & EP_A500)
-    uade_set_filter_type(uc, "a500");
+    uade_set_config_option(uc, UC_FILTER_TYPE, "a500");
 
   if (ep->attributes & EP_A1200)
-    uade_set_filter_type(uc, "a1200");
+    uade_set_config_option(uc, UC_FILTER_TYPE, "a1200");
 
   if (ep->attributes & EP_ALWAYS_ENDS)
-    uade_set_config_option(uc, "disable_timeouts", NULL);
+    uade_set_config_option(uc, UC_DISABLE_TIMEOUTS, NULL);
 
   if (ep->attributes & EP_CONTENT_DETECTION)
-    uade_set_config_option(uc, "magic_detection", NULL);
+    uade_set_config_option(uc, UC_MAGIC_DETECTION, NULL);
 
   if (ep->attributes & EP_NTSC)
-    uade_set_config_option(uc, "ntsc", NULL);
+    uade_set_config_option(uc, UC_NTSC, NULL);
 
   if (ep->attributes & EP_SPEED_HACK)
-    uade_set_config_option(uc, "speed_hack", NULL);
+    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
 }
 
 

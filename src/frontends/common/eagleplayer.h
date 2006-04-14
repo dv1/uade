@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <limits.h>
 
+#include <uadeconfstructure.h>
+
 
 #define EP_A500              (1 << 0)
 #define EP_A1200             (1 << 1)
@@ -76,15 +78,9 @@ struct uade_song {
 
 int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
 struct uade_song *uade_alloc_song(const char *filename);
-
-/* present uade_config in advance to avoid cyclical dependency problem
-   with header files */
-struct uade_config;
-
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     const char *basedir,
 					     struct uade_config *uc);
-
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);
 int uade_read_content_db(const char *filename);

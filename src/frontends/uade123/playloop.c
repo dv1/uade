@@ -159,7 +159,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  pause_terminal();
 	  break;
 	case 'f':
-	  uade_set_config_option(uc, "force_led", uc->led_state ? "off" : "on");
+	  uade_set_config_option(uc, UC_FORCE_LED, uc->led_state ? "off" : "on");
 	  tprintf("\nForcing LED %s\n", (uc->led_state & 1) ? "ON" : "OFF");
 	  uade_send_filter_command(ipc, uc);
 	  break;
@@ -391,26 +391,26 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	debug("\nFormat name: %s\n", (uint8_t *) um->data);
+	debug(uc->verbose, "\nFormat name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
 	  tprintf("formatname: %s\n", (char *) um->data);
 	break;
 	
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	debug("\nModule name: %s\n", (uint8_t *) um->data);
+	debug(uc->verbose, "\nModule name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
 	  tprintf("modulename: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_MSG:
 	uade_check_fix_string(um, 128);
-	debug("\nMessage: %s\n", (char *) um->data);
+	debug(uc->verbose, "\nMessage: %s\n", (char *) um->data);
 	break;
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	debug("\nPlayer name: %s\n", (uint8_t *) um->data);
+	debug(uc->verbose, "\nPlayer name: %s\n", (uint8_t *) um->data);
 	if (uade_info_mode)
 	  tprintf("playername: %s\n", (char *) um->data);
 	break;

@@ -123,54 +123,43 @@ int main(int argc, char *argv[])
   struct uade_ipc uadeipc;
 
   enum {
-    OPT_FILTER = 0x100,
-    OPT_FORCE_LED,
-    OPT_INTERPOLATOR,
+    OPT_BASEDIR = 0x2000,
     OPT_STDERR,
-    OPT_SPEED_HACK,
-    OPT_BASEDIR,
-    OPT_HEADPHONES,
-    OPT_BUFFER_TIME,
-    OPT_NTSC,
-    OPT_PAL,
-    OPT_DISABLE_TIMEOUTS,
-    OPT_ENABLE_TIMEOUTS,
-    OPT_MAGIC
   };
 
   struct option long_options[] = {
-    {"basedir", 1, NULL, OPT_BASEDIR},
-    {"buffer-time", 1, NULL, OPT_BUFFER_TIME},
-    {"debug", 0, NULL, 'd'},
-    {"disable-timeouts", 0, NULL, OPT_DISABLE_TIMEOUTS},
-    {"enable-timeouts", 0, NULL, OPT_ENABLE_TIMEOUTS},
-    {"filter", 2, NULL, OPT_FILTER},
-    {"force-led", 1, NULL, OPT_FORCE_LED},
-    {"get-info", 0, NULL, 'g'},
-    {"gain", 1, NULL, 'G'},
-    {"headphones", 0, NULL, OPT_HEADPHONES},
-    {"help", 0, NULL, 'h'},
-    {"ignore", 0, NULL, 'i'},
-    {"interpolator", 1, NULL, OPT_INTERPOLATOR},
-    {"jump", 1, NULL, 'j'},
-    {"keys", 1, NULL, 'k'},
-    {"list", 1, NULL, '@'},
-    {"magic", 0, NULL, OPT_MAGIC},
-    {"no-song-end", 0, NULL, 'n'},
-    {"ntsc", 0, NULL, OPT_NTSC},
-    {"one", 0, NULL, '1'},
-    {"pal", 0, NULL, OPT_PAL},
-    {"panning", 1, NULL, 'p'},
-    {"recursive", 0, NULL, 'r'},
-    {"shuffle", 0, NULL, 'z'},
-    {"silence-timeout", 1, NULL, 'y'},
-    {"speed-hack", 0, NULL, OPT_SPEED_HACK},
-    {"stderr", 0, NULL, OPT_STDERR},
-    {"subsong", 1, NULL, 's'},
-    {"subsong-timeout", 1, NULL, 'w'},
-    {"timeout", 1, NULL, 't'},
-    {"verbose", 0, NULL, 'v'},
-    {NULL, 0, NULL, 0}
+    {"basedir",          1, NULL, OPT_BASEDIR},
+    {"buffer-time",      1, NULL, UC_BUFFER_TIME},
+    {"debug",            0, NULL, 'd'},
+    {"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
+    {"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
+    {"filter",           2, NULL, UC_FILTER_TYPE},
+    {"force-led",        1, NULL, UC_FORCE_LED},
+    {"get-info",         0, NULL, 'g'},
+    {"gain",             1, NULL, 'G'},
+    {"headphones",       0, NULL, UC_HEADPHONES},
+    {"help",             0, NULL, 'h'},
+    {"ignore",           0, NULL, 'i'},
+    {"interpolator",     1, NULL, UC_INTERPOLATOR},
+    {"jump",             1, NULL, 'j'},
+    {"keys",             1, NULL, 'k'},
+    {"list",             1, NULL, '@'},
+    {"magic",            0, NULL, UC_MAGIC_DETECTION},
+    {"no-song-end",      0, NULL, 'n'},
+    {"ntsc",             0, NULL, UC_NTSC},
+    {"one",              0, NULL, '1'},
+    {"pal",              0, NULL, UC_PAL},
+    {"panning",          1, NULL, 'p'},
+    {"recursive",        0, NULL, 'r'},
+    {"shuffle",          0, NULL, 'z'},
+    {"silence-timeout",  1, NULL, 'y'},
+    {"speed-hack",       0, NULL, UC_SPEED_HACK},
+    {"stderr",           0, NULL, OPT_STDERR},
+    {"subsong",          1, NULL, 's'},
+    {"subsong-timeout",  1, NULL, 'w'},
+    {"timeout",          1, NULL, 't'},
+    {"verbose",          0, NULL, 'v'},
+    {NULL,               0, NULL, 0}
   };
 
   uade_config_set_defaults(&uc_loaded);
@@ -238,7 +227,7 @@ int main(int argc, char *argv[])
       } while (0);
       break;
     case '1':
-      uade_set_config_option(&uc_cmdline, "one_subsong", NULL);
+      uade_set_config_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
       break;
     case 'd':
       debug_mode = 1;
@@ -253,16 +242,16 @@ int main(int argc, char *argv[])
     case 'g':
       uade_info_mode = 1;
       uade_no_output = 1;
-      uade_set_config_option(&uc_cmdline, "action_keys", "off");
+      uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, "off");
       break;
     case 'G':
-      uade_set_config_option(&uc_cmdline, "gain", optarg);
+      uade_set_config_option(&uc_cmdline, UC_GAIN, optarg);
       break;
     case 'h':
       print_help();
       exit(0);
     case 'i':
-      uade_set_config_option(&uc_cmdline, "ignore_player_check", NULL);
+      uade_set_config_option(&uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
       break;
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
@@ -272,17 +261,17 @@ int main(int argc, char *argv[])
       }
       break;
     case 'k':
-      uade_set_config_option(&uc_cmdline, "action_keys", optarg);
+      uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, optarg);
       break;
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       have_modules = 1;
       break;
     case 'n':
-      uade_set_config_option(&uc_cmdline, "no_song_end", NULL);
+      uade_set_config_option(&uc_cmdline, UC_NO_SONG_END, NULL);
       break;
     case 'p':
-      uade_set_config_option(&uc_cmdline, "panning", optarg);
+      uade_set_config_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
       break;
     case 'P':
       GET_OPT_STRING(playername);
@@ -290,7 +279,7 @@ int main(int argc, char *argv[])
       have_modules = 1;
       break;
     case 'r':
-      uade_set_config_option(&uc_cmdline, "recursive_mode", NULL);
+      uade_set_config_option(&uc_cmdline, UC_RECURSIVE_MODE, NULL);
       break;
     case 's':
       subsong = strtol(optarg, &endptr, 10);
@@ -303,73 +292,63 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(scorename);
       break;
     case 't':
-      uade_set_config_option(&uc_cmdline, "timeout", optarg);
+      uade_set_config_option(&uc_cmdline, UC_TIMEOUT_VALUE, optarg);
       break;
     case 'u':
       GET_OPT_STRING(uadename);
       break;
     case 'v':
-      uade_set_config_option(&uc_cmdline, "verbose", NULL);
+      uade_set_config_option(&uc_cmdline, UC_VERBOSE, NULL);
       break;
     case 'w':
-      uade_set_config_option(&uc_cmdline, "subsong_timeout", optarg);
+      uade_set_config_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
       break;
     case 'y':
-      uade_set_config_option(&uc_cmdline, "silence_timeout", optarg);
+      uade_set_config_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
       break;
     case 'z':
-      uade_set_config_option(&uc_cmdline, "random_play", NULL);
+      uade_set_config_option(&uc_cmdline, UC_RANDOM_PLAY, NULL);
       break;
     case '?':
     case ':':
       exit(-1);
-    case OPT_FILTER:
-      if (optarg != NULL) {
-	if (strcasecmp(optarg, "none") == 0) {
-	  uade_set_config_option(&uc_cmdline, "no_filter", NULL);
-	} else {
-	  uade_set_config_option(&uc_cmdline, "filter", optarg);
-	}
-      } else {
-	uade_set_config_option(&uc_cmdline, "filter", NULL);
-      }
-      break;
-    case OPT_FORCE_LED:
-      uade_set_config_option(&uc_cmdline, "force_led", optarg);
-      break;
-    case OPT_INTERPOLATOR:
-      uade_set_config_option(&uc_cmdline, "interpolator", optarg);
-      break;
-    case OPT_STDERR:
-      uade_terminal_file = stderr;
-      break;
-    case OPT_SPEED_HACK:
-      uade_set_config_option(&uc_cmdline, "speed_hack", NULL);
-      break;
+
     case OPT_BASEDIR:
       GET_OPT_STRING(basedir);
       break;
-    case OPT_HEADPHONES:
-      uade_set_config_option(&uc_cmdline, "headphones", NULL);
+
+    case OPT_STDERR:
+      uade_terminal_file = stderr;
       break;
-    case OPT_BUFFER_TIME:
-      uade_set_config_option(&uc_cmdline, "buffer_time", optarg);
+
+    case UC_FILTER_TYPE:
+      if (optarg != NULL) {
+	if (strcasecmp(optarg, "none") == 0) {
+	  uade_set_config_option(&uc_cmdline, UC_NO_FILTER, NULL);
+	} else {
+	  uade_set_config_option(&uc_cmdline, ret, optarg);
+	}
+      } else {
+	uade_set_config_option(&uc_cmdline, ret, NULL);
+      }
       break;
-    case OPT_NTSC:
-      uade_set_config_option(&uc_cmdline, "ntsc", NULL);
+
+    case UC_BUFFER_TIME:
+    case UC_FORCE_LED:
+    case UC_INTERPOLATOR:
+      uade_set_config_option(&uc_cmdline, ret, optarg);
       break;
-    case OPT_PAL:
-      uade_set_config_option(&uc_cmdline, "pal", NULL);
+
+    case UC_SPEED_HACK:
+    case UC_HEADPHONES:
+    case UC_NTSC:
+    case UC_PAL:
+    case UC_DISABLE_TIMEOUTS:
+    case UC_ENABLE_TIMEOUTS:
+    case UC_MAGIC_DETECTION:
+      uade_set_config_option(&uc_cmdline, ret, NULL);
       break;
-    case OPT_DISABLE_TIMEOUTS:
-      uade_set_config_option(&uc_cmdline, "disable_timeouts", NULL);
-      break;
-    case OPT_ENABLE_TIMEOUTS:
-      uade_set_config_option(&uc_cmdline, "enable_timeouts", NULL);
-      break;
-    case OPT_MAGIC:
-      uade_set_config_option(&uc_cmdline, "magic_detection", NULL);
-      break;
+
     default:
       fprintf(stderr, "Impossible option.\n");
       exit(-1);
