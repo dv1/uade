@@ -1703,13 +1703,6 @@ mt_funkend:
 ; Protracker 1.0c Funkrepeat
 
 pt_raster:
-*		moveq	#15-1,d7
-*.ptlo1		move.b	$dff006,d6
-*.ptlo2		cmp.b	$dff006,d6
-*		beq	.ptlo2
-*		dbf	d7,.ptlo1
-*		rts
-
 		movem.l d0-d7/a0-a6,-(a7)
 		move.l	delibase,a5
 		move.l	dtg_WaitAudioDMA(a5),a0
