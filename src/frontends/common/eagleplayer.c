@@ -38,10 +38,9 @@
 #define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
 
-
 struct attrlist {
-  int e;
   char *s;
+  int e;
 };
 
 
@@ -678,18 +677,31 @@ int uade_read_song_conf(const char *filename)
   size_t i, j;
 
   struct attrlist esattrs[] = {
-    {.s = "\\a500", .e = ES_A500},
-    {.s = "\\a1200", .e = ES_A1200},
+    {.s = "\\a500",            .e = ES_A500},
+    {.s = "\\a1200",           .e = ES_A1200},
     {.s = "\\broken_subsongs", .e = ES_BROKEN_SUBSONGS},
-    {.s = "\\led_off", .e = ES_LED_OFF},
-    {.s = "\\led_on", .e = ES_LED_ON},
-    {.s = "\\no_headphones", .e = ES_NO_HEADPHONES},
-    {.s = "\\no_panning", .e = ES_NO_PANNING},
+    {.s = "\\led_off",         .e = ES_LED_OFF},
+    {.s = "\\led_on",          .e = ES_LED_ON},
+    {.s = "\\no_filter",       .e = ES_NO_FILTER},
+    {.s = "\\no_headphones",   .e = ES_NO_HEADPHONES},
+    {.s = "\\no_panning",      .e = ES_NO_PANNING},
     {.s = "\\no_postprocessing", .e = ES_NO_POSTPROCESSING},
-    {.s = "\\ntsc", .e = ES_NTSC},
-    {.s = "\\speed_hack", .e = ES_SPEED_HACK},
-    {.s = "\\vblank", .e = ES_VBLANK},
+    {.s = "\\ntsc",            .e = ES_NTSC},
+    {.s = "\\one_subsong",     .e = ES_ONE_SUBSONG},
+    {.s = "\\pal",             .e = ES_PAL},
+    {.s = "\\speed_hack",      .e = ES_SPEED_HACK},
+    {.s = "\\vblank",          .e = ES_VBLANK},
     {.s = NULL}
+  };
+
+  struct attrlist epvalueattrs[] = {
+    {.s = "\\gain",            .e = ES_GAIN},
+    {.s = "\\interpolator",    .e = ES_INTERPOLATOR},
+    {.s = "\\panning",         .e = ES_PANNING},
+    {.s = "\\silence_timeout", .e = ES_SILENCE_TIMEOUT},
+    {.s = "\\subsongs",        .e = ES_SUBSONGS},
+    {.s = "\\subsong_timeout", .e = ES_SUBSONG_TIMEOUT},
+    {.s = "\\timeout",         .e = ES_TIMEOUT}
   };
 
   if ((f = fopen(filename, "r")) == NULL)
