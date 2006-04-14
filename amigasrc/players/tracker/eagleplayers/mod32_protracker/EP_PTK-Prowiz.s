@@ -9,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-04-05',0
+	dc.b '$VER: Protracker 3.0b player 2006-04-15',0
 	even
 
 PlayerTagArray
@@ -1508,8 +1508,11 @@ pt_settremolocontrol:
 		rts
 pt_karplusstrong:
 		movem.l	d1-d7/a0-a6,-(sp)
-		move.l	10(a6),a1
+		tst.b	pt_ptk30_cme
+		beq.s 	.no
+		move.l	10(a6),d1
 		beq.s	.no
+		move.l	d1,a1
 		move.l	a1,a3
 		move.w	14(a6),d0
 		add.w	d0,d0
@@ -1700,6 +1703,13 @@ mt_funkend:
 ; Protracker 1.0c Funkrepeat
 
 pt_raster:
+*		moveq	#15-1,d7
+*.ptlo1		move.b	$dff006,d6
+*.ptlo2		cmp.b	$dff006,d6
+*		beq	.ptlo2
+*		dbf	d7,.ptlo1
+*		rts
+
 		movem.l d0-d7/a0-a6,-(a7)
 		move.l	delibase,a5
 		move.l	dtg_WaitAudioDMA(a5),a0
