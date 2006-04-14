@@ -8,7 +8,7 @@
 #include <effects.h>
 
 
-#define debug(fmt, args...) if (uade_verbose_mode) { fprintf(stderr, fmt, ## args); }
+#define debug(verbose, fmt, args...) if (verbose) { fprintf(stderr, fmt, ## args); }
 #define tprintf(fmt, args...) do {fprintf(uade_terminal_file ? uade_terminal_file : stdout, fmt, ## args); } while (0)
 
 extern int uade_debug_trigger;
@@ -21,7 +21,6 @@ extern struct playlist uade_playlist;
 extern int uade_song_end_trigger;
 extern int uade_terminated;
 extern FILE *uade_terminal_file;
-extern int uade_verbose_mode;
 
 
 void print_action_keys(void);

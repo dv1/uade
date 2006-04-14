@@ -317,9 +317,14 @@ static void uade_init(void)
 /* XMMS calls this function to check if filename belongs to this plugin. */
 static int uade_is_our_file(char *filename)
 {
+  struct eagleplayer *ep;
+
   if (strncmp(filename, "uade://", 7) == 0)
     return TRUE;
-  return uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 0) != NULL ? TRUE : FALSE;
+
+  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+
+  return (ep != NULL) ? TRUE : FALSE;
 }
 
 
@@ -332,7 +337,8 @@ static int initialize_song(char *filename)
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, 1);
+  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+
   if (ep == NULL)
     return FALSE;
 

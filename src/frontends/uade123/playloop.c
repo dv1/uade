@@ -204,8 +204,8 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  tprintf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
 	  break;
 	case 'v':
-	  uade_verbose_mode ^= 1;
-	  tprintf("\nVerbose mode %s\n", uade_verbose_mode ? "ON" : "OFF");
+	  uc->verbose ^= 1;
+	  tprintf("\nVerbose mode %s\n", uc->verbose ? "ON" : "OFF");
 	  break;
 	case 'x':
 	  us->cur_subsong--;
@@ -332,7 +332,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	}
 
 	/* FIX ME */
-	if (uc->timeout != -1 && uc->always_ends == 0) {
+	if (uc->timeout != -1 && uc->use_timeouts) {
 	  if (uade_song_end_trigger == 0) {
 	    if (total_bytes / UADE_BYTES_PER_SECOND >= uc->timeout) {
 	      fprintf(stderr, "\nSong end (timeout %ds)\n", uc->timeout);
@@ -341,7 +341,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  }
 	}
 
-	if (uc->subsong_timeout != -1 && uc->always_ends == 0) {
+	if (uc->subsong_timeout != -1 && uc->use_timeouts) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
 	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uc->subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uc->subsong_timeout);
@@ -450,7 +450,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	us->min_subsong = ntohl(u32ptr[0]);
 	us->max_subsong = ntohl(u32ptr[1]);
 	us->cur_subsong = ntohl(u32ptr[2]);
-	debug("\nsubsong: %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
+	debug(uc->verbose, "\nsubsong: %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	if (!(-1 <= us->min_subsong && us->min_subsong <= us->cur_subsong && us->cur_subsong <= us->max_subsong)) {
 	  int tempmin = us->min_subsong, tempmax = us->max_subsong;
 	  fprintf(stderr, "\nThe player is broken. Subsong info does not match.\n");

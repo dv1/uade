@@ -5,6 +5,7 @@
 	  two conditions happen:
 	    - uade123 is run in verbose mode (-v)
 	    - xmms or audacious plugin starts to play file
+	- Refactored configuration code
 
 2006-04-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Committed a programmable option for displaying song titles on

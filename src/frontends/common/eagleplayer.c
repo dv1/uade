@@ -28,6 +28,7 @@
 #include <eagleplayer.h>
 #include <amifilemagic.h>
 #include <md5.h>
+#include <uadeconf.h>
 
 
 #define LINESIZE (1024)
@@ -35,6 +36,13 @@
 #define OPTION_DELIMITER ","
 
 #define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
+
+
+
+struct attrlist {
+  int e;
+  char *s;
+};
 
 
 struct contentchecksum {
@@ -185,8 +193,10 @@ struct uade_song *uade_alloc_song(const char *filename)
 }
 
 
-struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     const char *basedir, int verbose)
+static struct eagleplayer *analyze_file_format(int *content,
+					       const char *modulename,
+					       const char *basedir,
+					       int verbose)
 {
   struct stat st;
   char extension[11];
@@ -198,6 +208,8 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   int len;
   static int warnings = 1;
   size_t bufsize;
+
+  *content = 0;
 
   if ((f = fopen(modulename, "rb")) == NULL) {
     fprintf(stderr, "Can not open module: %s\n", modulename);
@@ -214,9 +226,10 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
     return NULL;
   memset(&fileformat_buf[readed], 0, bufsize - readed);
   bufsize = readed;
+
   uade_filemagic(fileformat_buf, bufsize, extension, st.st_size, verbose);
 
-  if (verbose == 2)
+  if (verbose)
     fprintf(stderr, "%s: deduced extension: %s\n", modulename, extension);
 
   if (strcmp(extension, "packed") == 0)
@@ -238,10 +251,15 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
      pre- and postfixes from the modulename */
 
   if (extension[0]) {
+
     candidate = uade_get_eagleplayer(extension, playerstore);
-    if (candidate)
+
+    if (candidate) {
+      *content = 1;
       return candidate;
-    if (verbose >= 1)
+    }
+
+    if (verbose)
       fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
   }
 
@@ -256,17 +274,15 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
 
   /* try prefix first */
   tn = strchr(t, '.');
-  if (tn == NULL) {
-    if (verbose >= 1)
-      fprintf(stderr, "Unknown format: %s\n", modulename);
+  if (tn == NULL)
     return NULL;
-  }
+
   len = ((intptr_t) tn) - ((intptr_t) t);
   if (len < sizeof(extension)) {
     memcpy(extension, t, len);
     extension[len] = 0;
-    candidate = uade_get_eagleplayer(extension, playerstore);
-    if (candidate && (candidate->attributes & EP_CONTENT_DETECTION) == 0)
+
+    if ((candidate = uade_get_eagleplayer(extension, playerstore)) != NULL)
       return candidate;
   }
 
@@ -274,18 +290,39 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   t = strrchr(t, '.');
   if (strlcpy(extension, t + 1, sizeof(extension)) >= sizeof(extension)) {
     /* too long to be an extension */
-    if (verbose >= 1)
-      fprintf(stderr, "Unknown format: %s\n", modulename);
     return NULL;
   }
 
-  candidate = uade_get_eagleplayer(extension, playerstore);
-  if (candidate && (candidate->attributes & EP_CONTENT_DETECTION) == 0)
+  if ((candidate = uade_get_eagleplayer(extension, playerstore)) != NULL)
     return candidate;
 
   return NULL;
 }
 
+
+struct eagleplayer *uade_analyze_file_format(const char *modulename,
+					     const char *basedir,
+					     struct uade_config *uc)
+{
+  struct eagleplayer *ep;
+  int content;
+
+  ep = analyze_file_format(&content, modulename, basedir, uc->verbose);
+
+  if (ep == NULL)
+    return NULL;
+
+  if (content)
+    return ep;
+
+  if (uc->magic_detection && content == 0)
+    return NULL;
+
+  if ((ep->attributes & EP_CONTENT_DETECTION) != 0)
+    return NULL;
+
+  return ep;
+}
 
 static void uade_analyze_song(struct uade_song *us)
 {
@@ -331,7 +368,8 @@ static int uade_find_playtime(const char *md5)
 }
 
 
-struct eagleplayer *uade_get_eagleplayer(const char *extension, struct eagleplayerstore *ps)
+struct eagleplayer *uade_get_eagleplayer(const char *extension,
+					 struct eagleplayerstore *ps)
 {
   struct eagleplayermap *uf = ps->map;
   struct eagleplayermap *f;
@@ -475,7 +513,18 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   size_t lineno = 0;
   struct eagleplayerstore *ps = NULL;
   size_t exti;
-  size_t i;
+  size_t i, j;
+
+  struct attrlist epattrs[] = {
+    {.s = "a500", .e = EP_A500},
+    {.s = "a1200", .e = EP_A1200},
+    {.s = "always_ends", .e = EP_ALWAYS_ENDS},
+    {.s = "content_detection", .e = EP_CONTENT_DETECTION},
+    {.s = "never_ends", .e = EP_NEVER_ENDS},
+    {.s = "ntsc", .e = EP_NTSC},
+    {.s = "speed_hack", .e = EP_SPEED_HACK},
+    {.s = NULL}
+  };
 
   f = fopen(filename, "r");
   if (f == NULL)
@@ -518,6 +567,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
     }
 
     for (i = 1; i < nitems; i++) {
+
       if (strncasecmp(items[i], "prefixes=", 9) == 0) {
 	char prefixes[LINESIZE];
 	char *prefixstart = items[i] + 9;
@@ -551,23 +601,22 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 	p->extensions[pos] = NULL;
 	assert(pos == p->nextensions);
 
-      } else if (strcasecmp(items[i], "a500") == 0) {
-	p->attributes |= EP_A500;
-      } else if (strcasecmp(items[i], "a1200") == 0) {
-	p->attributes |= EP_A1200;
-      } else if (strcasecmp(items[i], "always_ends") == 0) {
-	p->attributes |= EP_ALWAYS_ENDS;
-      } else if (strcasecmp(items[i], "content_detection") == 0) {
-	p->attributes |= EP_CONTENT_DETECTION;
-      } else if (strcasecmp(items[i], "speed_hack") == 0) {
-	p->attributes |= EP_SPEED_HACK;
-      } else if (strcasecmp(items[i], "ntsc") == 0) {
-	p->attributes |= EP_NTSC;
-      } else if (strncasecmp(items[i], "comment:", 8) == 0) {
-	break;
-      } else {
-	fprintf(stderr, "Unrecognized option: %s\n", items[i]);
+	continue;
       }
+
+      for (j = 0; epattrs[j].s != NULL; j++) {
+	if (strcasecmp(items[i], epattrs[j].s) == 0) {
+	  p->attributes |= epattrs[j].e;
+	  break;
+	}
+      }
+      if (epattrs[j].s != NULL)
+	continue;
+
+      if (strncasecmp(items[i], "comment:", 8) == 0)
+	break;
+
+      fprintf(stderr, "Unrecognized option: %s\n", items[i]);
     }
 
     free(items);
@@ -626,7 +675,22 @@ int uade_read_song_conf(const char *filename)
   struct eaglesong *s;
   size_t allocated;
   size_t lineno = 0;
-  size_t i;
+  size_t i, j;
+
+  struct attrlist esattrs[] = {
+    {.s = "\\a500", .e = ES_A500},
+    {.s = "\\a1200", .e = ES_A1200},
+    {.s = "\\broken_subsongs", .e = ES_BROKEN_SUBSONGS},
+    {.s = "\\led_off", .e = ES_LED_OFF},
+    {.s = "\\led_on", .e = ES_LED_ON},
+    {.s = "\\no_headphones", .e = ES_NO_HEADPHONES},
+    {.s = "\\no_panning", .e = ES_NO_PANNING},
+    {.s = "\\no_postprocessing", .e = ES_NO_POSTPROCESSING},
+    {.s = "\\ntsc", .e = ES_NTSC},
+    {.s = "\\speed_hack", .e = ES_SPEED_HACK},
+    {.s = "\\vblank", .e = ES_VBLANK},
+    {.s = NULL}
+  };
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
@@ -670,25 +734,17 @@ int uade_read_song_conf(const char *filename)
     }
 
     for (i = 1; i < nitems; i++) {
-      if (strcasecmp(items[i], "\\a500") == 0) {
-	s->flags |= ES_A500;
-      } else if (strcasecmp(items[i], "\\a1200") == 0) {
-	s->flags |= ES_A1200;
-      } else if (strcasecmp(items[i], "\\broken_subsongs") == 0) {
-	s->flags |= ES_BROKEN_SUBSONGS;
-      } else if (strcasecmp(items[i], "\\led_off") == 0) {
-	s->flags |= ES_LED_OFF;
-      } else if (strcasecmp(items[i], "\\led_on") == 0) {
-	s->flags |= ES_LED_ON;
-      } else if (strcasecmp(items[i], "\\no_headphones") == 0) {
-	s->flags |= ES_NO_HEADPHONES;
-      } else if (strcasecmp(items[i], "\\no_panning") == 0) {
-	s->flags |= ES_NO_PANNING;
-      } else if (strcasecmp(items[i], "\\no_postprocessing") == 0) {
-	s->flags |= ES_NO_POSTPROCESSING;
-      } else if (strcasecmp(items[i], "\\ntsc") == 0) {
-	s->flags |= ES_NTSC;
-      } else if (strncasecmp(items[i], "\\subsongs=", 10) == 0) {
+
+      for (j = 0; esattrs[j].s != NULL; j++) {
+	if (strcasecmp(items[i], esattrs[j].s) == 0) {
+	  s->flags |= esattrs[j].e;
+	  break;
+	}
+      }
+      if (esattrs[j].s != NULL)
+	continue;
+
+      if (strncasecmp(items[i], "\\subsongs=", 10) == 0) {
 	char subsongs[LINESIZE];
 	char *subsongstart = items[i] + 10;
 	char *sp, *str;
@@ -717,10 +773,8 @@ int uade_read_song_conf(const char *filename)
 	}
 	s->subsongs[pos] = -1;
 	assert(pos == s->nsubsongs);
-      } else if (strcasecmp(items[i], "\\speedhack") == 0) {
-	s->flags |= ES_SPEED_HACK;
-      } else if (strcasecmp(items[i], "\\vblank") == 0) {
-	s->flags |= ES_VBLANK;
+
+	continue;
       }
     }
 

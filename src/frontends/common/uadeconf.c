@@ -109,6 +109,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
       *value = 0;
       value = nextnonspace(value + 1);
     }
+
     if (uade_set_config_option(uc, key, value)) {
       fprintf(stderr, "Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
     }
@@ -123,7 +124,6 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 {
   #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
   MERGE_OPTION(action_keys);
-  MERGE_OPTION(always_ends);
   MERGE_OPTION(buffer_time);
   MERGE_OPTION(filter_type);
   MERGE_OPTION(led_forced);
@@ -142,7 +142,9 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(speed_hack);
   MERGE_OPTION(subsong_timeout);
   MERGE_OPTION(timeout);
+  MERGE_OPTION(use_timeouts);
   MERGE_OPTION(use_ntsc);
+  MERGE_OPTION(verbose);
 }
 
 
@@ -185,6 +187,12 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
       fprintf(stderr, "Invalid buffer_time: %s\n", value);
       uc->buffer_time = 0;
     }
+  } else if (strncmp(key, "disable_timeouts", 3) == 0) {
+    uc->use_timeouts = 0;
+    uc->use_timeouts_set = 1;
+  } else if (strncmp(key, "enable_timeouts", 3) == 0) {
+    uc->use_timeouts = 1;
+    uc->use_timeouts_set = 1;
   } else if (strncmp(key, "filter", 6) == 0) {
     uade_set_filter_type(uc, value);
     uc->no_filter_set = 1;
@@ -261,10 +269,16 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
 	uc->song_title_set = 1;
       }
     }
+  } else if (strncmp(key, "magic_detection", 3) == 0) {
+    uc->magic_detection = 1;
+    uc->magic_detection_set = 1;
   } else if (strncmp(key, "subsong_timeout_value", 7) == 0) {
     uade_set_subsong_timeout(uc, value);
   } else if (strncmp(key, "timeout_value", 7) == 0) {
     uade_set_timeout(uc, value);
+  } else if (strncmp(key, "verbose", 3) == 0) {
+    uc->verbose = 1;
+    uc->verbose_set = 1;
   } else {
     fprintf(stderr, "Unknown option: %s\n", key);
     return 1;
@@ -275,25 +289,23 @@ int uade_set_config_option(struct uade_config *uc, const char *key,
 
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
-  if (ep->attributes & EP_ALWAYS_ENDS) {
-    uc->always_ends_set = 1;
-    uc->always_ends = 1;
-  }
+  if (ep->attributes & EP_A500)
+    uade_set_filter_type(uc, "a500");
 
-  if (ep->attributes & EP_A500) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A500;
-  }
+  if (ep->attributes & EP_A1200)
+    uade_set_filter_type(uc, "a1200");
 
-  if (ep->attributes & EP_A1200) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A1200;
-  }
+  if (ep->attributes & EP_ALWAYS_ENDS)
+    uade_set_config_option(uc, "disable_timeouts", NULL);
 
-  if (ep->attributes & EP_SPEED_HACK) {
-    uc->speed_hack_set = 1;
-    uc->speed_hack = 1;
-  }
+  if (ep->attributes & EP_CONTENT_DETECTION)
+    uade_set_config_option(uc, "magic_detection", NULL);
+
+  if (ep->attributes & EP_NTSC)
+    uade_set_config_option(uc, "ntsc", NULL);
+
+  if (ep->attributes & EP_SPEED_HACK)
+    uade_set_config_option(uc, "speed_hack", NULL);
 }
 
 
@@ -305,14 +317,20 @@ void uade_set_filter_type(struct uade_config *uc, const char *model)
   if (model == NULL)
     return;
 
-  if (strcasecmp(model, "a500") == 0) {
-    uc->filter_type = FILTER_MODEL_A500;
-  } else if (strcasecmp(model, "a1200") == 0) {
-    uc->filter_type = FILTER_MODEL_A1200;
-  } else if (strcasecmp(model, "a500e") == 0) {
+  /* a500 and a500e are the same */
+  if (strcasecmp(model, "a500") == 0 || strcasecmp(model, "a500e") == 0) {
     uc->filter_type = FILTER_MODEL_A500E;
-  } else if (strcasecmp(model, "a1200e") == 0) {
+
+    /* a1200 and a1200e are the same */
+  } else if (strcasecmp(model, "a1200") == 0 ||
+	     strcasecmp(model, "a1200e") == 0) {
     uc->filter_type = FILTER_MODEL_A1200E;
+
+    /* simpler but faster a500/a1200 variants */
+  } else if (strcasecmp(model, "a500s") == 0) {
+    uc->filter_type = FILTER_MODEL_A500;
+  } else if (strcasecmp(model, "a1200s") == 0) {
+    uc->filter_type = FILTER_MODEL_A1200;
   } else {
     fprintf(stderr, "Unknown filter model: %s\n", model);
   }

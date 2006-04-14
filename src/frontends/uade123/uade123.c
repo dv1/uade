@@ -51,7 +51,7 @@ struct playlist uade_playlist;
 FILE *uade_terminal_file;
 int uade_terminated;
 int uade_song_end_trigger;
-int uade_verbose_mode;
+
 
 static char basedir[PATH_MAX];
 static int debug_mode;
@@ -132,13 +132,18 @@ int main(int argc, char *argv[])
     OPT_HEADPHONES,
     OPT_BUFFER_TIME,
     OPT_NTSC,
-    OPT_PAL
+    OPT_PAL,
+    OPT_DISABLE_TIMEOUTS,
+    OPT_ENABLE_TIMEOUTS,
+    OPT_MAGIC
   };
 
   struct option long_options[] = {
     {"basedir", 1, NULL, OPT_BASEDIR},
     {"buffer-time", 1, NULL, OPT_BUFFER_TIME},
     {"debug", 0, NULL, 'd'},
+    {"disable-timeouts", 0, NULL, OPT_DISABLE_TIMEOUTS},
+    {"enable-timeouts", 0, NULL, OPT_ENABLE_TIMEOUTS},
     {"filter", 2, NULL, OPT_FILTER},
     {"force-led", 1, NULL, OPT_FORCE_LED},
     {"get-info", 0, NULL, 'g'},
@@ -150,6 +155,7 @@ int main(int argc, char *argv[])
     {"jump", 1, NULL, 'j'},
     {"keys", 1, NULL, 'k'},
     {"list", 1, NULL, '@'},
+    {"magic", 0, NULL, OPT_MAGIC},
     {"no-song-end", 0, NULL, 'n'},
     {"ntsc", 0, NULL, OPT_NTSC},
     {"one", 0, NULL, '1'},
@@ -193,8 +199,6 @@ int main(int argc, char *argv[])
   }
   if (config_loaded == 0)
     config_loaded = uade_load_config(&uc_loaded, UADE_CONFIG_BASE_DIR "/uade.conf");
-  if (config_loaded == 0)
-    debug("Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "Too long a string for option %c.\n", ret); \
@@ -209,7 +213,7 @@ int main(int argc, char *argv[])
   if (config_loaded == 0)
     config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
   if (config_loaded == 0)
-    debug("Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
+    debug(uc_loaded.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
 
   load_content_db();
 
@@ -305,7 +309,7 @@ int main(int argc, char *argv[])
       GET_OPT_STRING(uadename);
       break;
     case 'v':
-      uade_verbose_mode = 2;
+      uade_set_config_option(&uc_cmdline, "verbose", NULL);
       break;
     case 'w':
       uade_set_config_option(&uc_cmdline, "subsong_timeout", optarg);
@@ -356,6 +360,15 @@ int main(int argc, char *argv[])
       break;
     case OPT_PAL:
       uade_set_config_option(&uc_cmdline, "pal", NULL);
+      break;
+    case OPT_DISABLE_TIMEOUTS:
+      uade_set_config_option(&uc_cmdline, "disable_timeouts", NULL);
+      break;
+    case OPT_ENABLE_TIMEOUTS:
+      uade_set_config_option(&uc_cmdline, "enable_timeouts", NULL);
+      break;
+    case OPT_MAGIC:
+      uade_set_config_option(&uc_cmdline, "magic_detection", NULL);
       break;
     default:
       fprintf(stderr, "Impossible option.\n");
@@ -450,15 +463,14 @@ int main(int argc, char *argv[])
 
     if (playernamegiven == 0) {
       struct eagleplayer *ep;
-      debug("\n");
-      ep = uade_analyze_file_format(modulename, basedir, uade_verbose_mode);
+      debug(uc_cmdline.verbose, "\n");
+      ep = uade_analyze_file_format(modulename, basedir, &uc);
       if (ep == NULL) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
 	continue;
       }
-      debug("Player candidate: %s\n", ep->playername);
+      debug(uc_loaded.verbose || uc_cmdline.verbose, "Player candidate: %s\n", ep->playername);
 
-      /* Command line overrides are needed here. NOT IMPLEMENTED. */
       uade_set_ep_attributes(&uc, ep);
 
       if (strcmp(ep->playername, "custom") == 0) {
@@ -495,8 +507,7 @@ int main(int argc, char *argv[])
     uade_set_song_attributes(&uc, &effects, us);
     uade_merge_configs(&uc, &uc_cmdline);
 
-    if (uade_verbose_mode)
-      fprintf(stderr, "Player: %s (%zd bytes)\n", playername, filesize);
+    debug(uc.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
 
@@ -505,7 +516,7 @@ int main(int argc, char *argv[])
 	free(us);
 	goto cleanup;
       } else if (ret == UADECORE_CANT_PLAY) {
-	debug("Uadecore refuses to play the song.\n");
+	debug(uc.verbose, "Uadecore refuses to play the song.\n");
 	free(us);
 	continue;
       }
@@ -524,7 +535,7 @@ int main(int argc, char *argv[])
     free(us);
   }
 
-  debug("Killing child (%d).\n", uadepid);
+  debug(uc_cmdline.verbose || uc_loaded.verbose, "Killing child (%d).\n", uadepid);
   trivial_cleanup();
   return 0;
 
@@ -552,10 +563,15 @@ static void print_help(void)
   printf("Normal options:\n");
   printf(" -1, --one,          Play at most one subsong per file\n");
   printf(" -@ filename, --list=filename,  Read playlist of files from 'filename'\n");
-  printf(" --buffer-time=x     Set audio buffer length to x milliseconds. The default\n");
+  printf(" --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n");
   printf("                     value is determined by the libao.\n");
+  printf(" --disable-timeouts, Disable timeouts. This can be used for songs that are\n");
+  printf("                     known to end. Useful for recording fixed time pieces.\n");
+  printf("                     Some formats, such as protracker, disable timeouts\n");
+  printf("                     automatically, because it is known they will always end.\n");
   printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
   printf("                     format.\n");
+  printf(" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
   printf(" --filter=model      Set filter model to A500, A500E, A1200, A1200E or NONE.\n");
   printf("                     The default is A500E. NONE means disabling filter.\n");
@@ -574,6 +590,7 @@ static void print_help(void)
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
   printf("                     on terminal. \n");
   printf(" -m filename,        Set module name\n");
+  printf(" --magic,            Detect modules strictly by magic.\n");
   printf(" -n, --no-song-end,  Ignore song end report. Just keep playing.\n");
   printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
   printf(" --pal,              Set PAL mode (default)\n");
@@ -707,7 +724,6 @@ static void trivial_sigchld(int sig)
     return;
   if (process == uadepid) {
     successful = (WEXITSTATUS(status) == 0);
-    debug("Uadecore exited %ssuccessfully\n", successful == 1 ? "" : "un");
     uadepid = 0;
     uade_terminated = 1;
   }

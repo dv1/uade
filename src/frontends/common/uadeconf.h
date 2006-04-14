@@ -9,8 +9,6 @@
 struct uade_config {
   int action_keys;
   int action_keys_set;
-  int always_ends;
-  int always_ends_set;
   int buffer_time;
   int buffer_time_set;
   int filter_type;
@@ -27,6 +25,8 @@ struct uade_config {
   int ignore_player_check_set;
   char *interpolator;
   int interpolator_set;
+  int magic_detection;
+  int magic_detection_set;
   int no_filter;
   int no_filter_set;
   int no_song_end;
@@ -50,8 +50,12 @@ struct uade_config {
   int subsong_timeout_set;
   int timeout;
   int timeout_set;
+  int use_timeouts;
+  int use_timeouts_set;
   int use_ntsc;
   int use_ntsc_set;
+  int verbose;
+  int verbose_set;
 };
 
 

@@ -5,12 +5,14 @@
 #include <stdint.h>
 #include <limits.h>
 
+
 #define EP_A500              (1 << 0)
 #define EP_A1200             (1 << 1)
 #define EP_ALWAYS_ENDS       (1 << 2)
 #define EP_CONTENT_DETECTION (1 << 3)
-#define EP_SPEED_HACK        (1 << 4)
-#define EP_NTSC              (1 << 5)
+#define EP_NEVER_ENDS        (1 << 4)
+#define EP_SPEED_HACK        (1 << 5)
+#define EP_NTSC              (1 << 6)
 
 #define ES_A500              (1 <<  0)
 #define ES_A1200             (1 <<  1)
@@ -74,8 +76,15 @@ struct uade_song {
 
 int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
 struct uade_song *uade_alloc_song(const char *filename);
+
+/* present uade_config in advance to avoid cyclical dependency problem
+   with header files */
+struct uade_config;
+
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     const char *basedir, int verbose);
+					     const char *basedir,
+					     struct uade_config *uc);
+
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);
 int uade_read_content_db(const char *filename);
