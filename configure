@@ -103,7 +103,6 @@ for opt in "$@" ; do
 		;;
 
 	--with-xmms)
-		echo "foo"
 		usexmms="yes"
 		;;
 	--without-xmms)
@@ -111,7 +110,6 @@ for opt in "$@" ; do
 		;;
 
 	--with-audacious)
-		echo "foo"
 		useaudacious="yes"
 		;;
 	--without-audacious)
