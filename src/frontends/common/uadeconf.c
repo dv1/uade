@@ -112,6 +112,7 @@ void uade_config_set_defaults(struct uade_config *uc)
   uc->subsong_timeout_set = 1;
   uc->timeout = -1;
   uc->timeout_set = 1;
+  uc->use_timeouts = 1;
 }
 
 

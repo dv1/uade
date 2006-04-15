@@ -826,3 +826,11 @@ static int ufcompare(const void *a, const void *b)
   const struct eagleplayermap *ub = b;
   return strcasecmp(ua->extension, ub->extension);
 }
+
+
+void uade_unalloc_song(struct uade_song *us)
+{
+  free(us->buf);
+  us->buf = NULL;
+  free(us);
+}

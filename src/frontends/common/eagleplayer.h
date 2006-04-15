@@ -97,5 +97,6 @@ int uade_read_content_db(const char *filename);
 struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
 int uade_read_song_conf(const char *filename);
 void uade_save_content_db(const char *filename);
+void uade_unalloc_song(struct uade_song *us);
 
 #endif

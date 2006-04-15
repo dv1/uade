@@ -492,11 +492,11 @@ int main(int argc, char *argv[])
 
     if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &uc))) {
       if (ret == UADECORE_INIT_ERROR) {
-	free(us);
+	uade_unalloc_song(us);
 	goto cleanup;
       } else if (ret == UADECORE_CANT_PLAY) {
 	debug(uc.verbose, "Uadecore refuses to play the song.\n");
-	free(us);
+	uade_unalloc_song(us);
 	continue;
       }
       fprintf(stderr, "Unknown error from uade_song_initialization()\n");
@@ -507,11 +507,11 @@ int main(int argc, char *argv[])
       uade_set_subsong(subsong, &uadeipc);
 
     if (!play_loop(&uadeipc, us, &effects, &uc)) {
-      free(us);
+      uade_unalloc_song(us);
       goto cleanup;
     }
 
-    free(us);
+    uade_unalloc_song(us);
   }
 
   debug(uc_cmdline.verbose || uc_loaded.verbose, "Killing child (%d).\n", uadepid);

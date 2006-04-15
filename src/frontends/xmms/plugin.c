@@ -375,6 +375,8 @@ static int initialize_song(char *filename)
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
       plugin_disabled = 1;
     }
+    uade_unalloc_song(uadesong);
+    uadesong = NULL;
     return FALSE;
   }
 
@@ -791,6 +793,7 @@ static void uade_play_file(char *filename)
 
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
+    uade_unalloc_song(uadesong);
     goto err;
   }
 
@@ -835,7 +838,7 @@ static void uade_stop(void)
 
     /* We must free uadesong after playthread has finished and additional
        GUI windows have been closed. */
-    free(uadesong);
+    uade_unalloc_song(uadesong);
     uadesong = NULL;
   }
 

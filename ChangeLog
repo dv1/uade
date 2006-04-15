@@ -1,10 +1,15 @@
-2006-04-11  Michael Doering <mld@users.sourceforge.net>
+2006-04-15  Michael Doering <mld@users.sourceforge.net>
 	- Fixed bug in sanity check in pt_karplusstrong effect (e8x) in
 	  mod player. (thanks Heikki)
 	- Disabled Effect E8x for Protracker 2.3a, 1.1b and 1.0c compatibility
 	  mode in PTK-Prowiz.
 	  E.g. Playing mod.cyberlogik as PTK3.0 will result in timing bugs,
 	  playing it as PTK2.3a will play ok.
+	- Fixed a very serious memory leak issue. Each played song that was
+	  read into memory was leaked. My chip collection is 230 MiB and
+	  after running
+	      valgrind -zr -t1 --enable-timeouts -f /dev/null /chips
+	  I noticed a huge chunk of mem leaked :( Now it's fixed. (shd)
 
 2006-04-14  Heikki Orsila <heikki.orsila@iki.fi>
 	- Refactored and changed amifilemagic.c. Changed tracker type magic
