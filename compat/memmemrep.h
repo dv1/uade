@@ -16,7 +16,7 @@ void *memmem(const void *haystack, size_t haystacklen,
   unsigned char *s = (unsigned char *) haystack;
 
   if (needlelen == 0)
-    return haystack;
+    return (void *) haystack;
 
   for (offs = 0; (offs + needlelen) <= haystacklen; offs++) {
     if (memcmp(s + offs, needle, needlelen) == 0)
