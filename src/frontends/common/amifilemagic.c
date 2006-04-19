@@ -399,9 +399,9 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
       }
       if (t > 0) {
 	if (buf[0x43b] == '4'){
-	  ret = MOD_STARTREKKER4;	/* Startrekker 4 AM / ADSC */
+	  ret = MOD_AUDIOSCULPTURE4;	/* Startrekker 4 AM / ADSC */
 	} else { 		
-	  ret = MOD_STARTREKKER8;	/* Startrekker 8 AM / ADSC */	
+	  ret = MOD_AUDIOSCULPTURE8;	/* Startrekker 8 AM / ADSC */	
 	}
       } else {
 	if (buf[0x43b] == '4'){
