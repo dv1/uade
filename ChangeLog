@@ -1,3 +1,7 @@
+2006-04-19  Michael Doering <mld@users.sourceforge.net>
+	- Added new replayer for the Dirk Bialluch format by
+	  Don Adan/Wanted Team.
+
 2006-04-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a bug in memmem() replacement. If needle length was zero,
 	  it returned NULL, but glibc would return pointer to haystack.
