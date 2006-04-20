@@ -4,6 +4,8 @@
 	  The mod uses very large instruments with loops which rolled over
 	  to negative checking instrument sizes in words and when large
 	  enough. Stupid bug. Stupid me. :-)
+	- Replaced \t with white spaces. This might fix Joker's bug report
+	  about garbled output in modinfo for audacious.
 
 2006-04-19  Michael Doering <mld@users.sourceforge.net>
 	- Added new replayer for the Dirk Bialluch format by

@@ -209,7 +209,7 @@ static void process_ahx_mod(char *credits, size_t credits_len,
   if (!string_checker(buf, offset, len))
     return;
 
-  snprintf(tmpstr, sizeof tmpstr, "\nSong title:\t%s\n", buf + offset);
+  snprintf(tmpstr, sizeof tmpstr, "\nSong title:     %s\n", buf + offset);
   strlcat(credits, tmpstr, credits_len);
 
   for (i = 0; i < buf[12]; i++) {
@@ -217,7 +217,7 @@ static void process_ahx_mod(char *credits, size_t credits_len,
       break;
     offset = offset + 1 + strlen(buf + offset);
     if (offset < len) {
-      snprintf(tmpstr, 256,"\n\t\t%s", buf + offset);
+      snprintf(tmpstr, 256,"\n           %s", buf + offset);
       strlcat(credits, tmpstr, credits_len);
     }
   }
@@ -233,7 +233,7 @@ static void process_ptk_mod(char *credits, size_t credits_len, int inst,
   if (!string_checker(buf, 0, len))
     return;
 
-  snprintf(tmpstr, 34, "\nSong title:\t%s", buf);
+  snprintf(tmpstr, 35, "\nSong title:     %s", buf);
   strlcat(credits, tmpstr, credits_len);
 
   if (inst == 31) {
@@ -281,7 +281,7 @@ static void process_digi_mod(char *credits, size_t credits_len,
   if (!string_checker(buf, 610, len))
     return;
 
-  snprintf(tmpstr, 0x2f, "\nSong title:\t%s \n", buf+610);
+  snprintf(tmpstr, 0x2f, "\nSong title:     %s \n", buf+610);
   strlcat(credits, tmpstr, credits_len);
 
   snprintf(tmpstr, sizeof tmpstr, "max positions:  %d\n", buf[47]);
@@ -455,13 +455,13 @@ static int process_module(char *credits, size_t credits_len, char *filename)
     return 0;
   }
 
-  snprintf(tmpstr, sizeof tmpstr, "UADE2 MODINFO:\n\nFile name:\t%s\nFile length:\t%zd bytes\n", filename, modfilelen);
+  snprintf(tmpstr, sizeof tmpstr, "UADE2 MODINFO:\n\nFile name:      %s\nFile length:    %zd bytes\n", filename, modfilelen);
   strlcpy (credits, tmpstr,credits_len);
 
   /* here we go */
   uade_filemagic(buf, modfilelen, pre, modfilelen, 0); /*get filetype in pre*/
 
-  snprintf(tmpstr, sizeof tmpstr, "File prefix:\t%s.*\n", pre);
+  snprintf(tmpstr, sizeof tmpstr, "File prefix:    %s.*\n", pre);
   strlcat (credits, tmpstr,credits_len);
 
   if (strcasecmp(pre, "CUST") == 0) {
