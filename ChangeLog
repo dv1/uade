@@ -1,3 +1,10 @@
+2006-04-21  Michael Doering <mld@users.sourceforge.net>
+	- Fixed detection bug triptodestroy.mod in PTK-Prowiz. Thanks to
+	  Joker for the report.
+	  The mod uses very large instruments with loops which rolled over
+	  to negative checking instrument sizes in words and when large
+	  enough. Stupid bug. Stupid me. :-)
+
 2006-04-19  Michael Doering <mld@users.sourceforge.net>
 	- Added new replayer for the Dirk Bialluch format by
 	  Don Adan/Wanted Team.

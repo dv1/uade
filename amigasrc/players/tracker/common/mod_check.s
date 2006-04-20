@@ -686,9 +686,11 @@ ParseInstruments32:
 		beq	.no_doc_stk
 
 		move.l	#0,d2
+		move.l	#0,d3
 		move.w	46(a1),d2		; srep == 0
 		add.w	48(a1),d2		; srep+sreplen > slen
-		cmp.w	42(a1),d2
+		move.w	42(a1),d3
+		cmp.l	d3,d2
 		ble	.no_doc_stk
 		st	repeat_in_bytes_used
 .no_doc_stk:
