@@ -382,7 +382,9 @@ static int initialize_song(char *filename)
       plugin_disabled = 1;
     }
     uade_unalloc_song(uadesong);
+    uade_lock();
     uadesong = NULL;
+    uade_unlock();
     return FALSE;
   }
 
@@ -771,7 +773,9 @@ static void uade_play_file(char *filename)
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     uade_unalloc_song(uadesong);
+    uade_lock();
     uadesong = NULL;
+    uade_unlock();
     goto err;
   }
 
@@ -812,12 +816,13 @@ static void uade_stop(void)
       uadesong->cur_subsong = uadesong->max_subsong;
       uade_info_string();
     }
-    uade_unlock();
 
     /* We must free uadesong after playthread has finished and additional
        GUI windows have been closed. */
     uade_unalloc_song(uadesong);
     uadesong = NULL;
+
+    uade_unlock();
   }
 
   uade_ip.output->close_audio();
