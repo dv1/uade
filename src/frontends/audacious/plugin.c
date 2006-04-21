@@ -207,9 +207,10 @@ void uade_file_info(char *filename)
 int uade_get_cur_subsong(int def)
 {
     int subsong;
-    if (uadesong == NULL) return def;
     uade_lock();
-    subsong = uadesong->cur_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->cur_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -220,9 +221,10 @@ int uade_get_cur_subsong(int def)
 int uade_get_max_subsong(int def)
 {
     int subsong;
-    if (uadesong == NULL) return def;
     uade_lock();
-    subsong = uadesong->max_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->max_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -233,9 +235,10 @@ int uade_get_max_subsong(int def)
 int uade_get_min_subsong(int def)
 {
     int subsong;
-    if (uadesong == NULL) return def;
     uade_lock();
-    subsong = uadesong->min_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->min_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;

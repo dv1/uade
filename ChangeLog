@@ -6,11 +6,13 @@
 	  enough. Stupid bug. Stupid me. :-)
 	- Replaced \t with white spaces. This might fix Joker's bug report
 	  about garbled output in modinfo for audacious.
-	- fixed audacious crash, when trying to access fileinfo while not
+	- Fixed audacious crash, when trying to access fileinfo while not
 	  playing a song... Bug was simple we did't have uadesong struct.
 	  get_cur_subsong, get_max_subsong and get_min_ subsong was trying
 	  read from that struct even when idle and uade went up in a blaze...
-	  Now checking towards uadsong struct exists and all is nice 
+	  Now checking towards uadsong struct exists and all is nice
+	- Fixed the Audacious crash fix. It contained a race condition with
+	  respect to the NULL pointer. Also fixed the XMMS plugin. (shd)
 
 2006-04-19  Michael Doering <mld@users.sourceforge.net>
 	- Added new replayer for the Dirk Bialluch format by

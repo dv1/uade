@@ -209,7 +209,9 @@ int uade_get_cur_subsong(int def)
 {
     int subsong;
     uade_lock();
-    subsong = uadesong->cur_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->cur_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -221,7 +223,9 @@ int uade_get_max_subsong(int def)
 {
     int subsong;
     uade_lock();
-    subsong = uadesong->max_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->max_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -233,7 +237,9 @@ int uade_get_min_subsong(int def)
 {
     int subsong;
     uade_lock();
-    subsong = uadesong->min_subsong;
+    subsong = -1;
+    if (uadesong != NULL)
+      subsong = uadesong->min_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -873,9 +879,8 @@ static int uade_get_time(void)
 
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
-    if (uadesong->max_subsong != -1) {
+    if (uadesong->max_subsong != -1)
       uade_info_string();
-    }
     uade_unlock();
     gui_info_set = 1;
     file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
