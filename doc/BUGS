@@ -1,5 +1,7 @@
 To be solved:
 
+2006-04-24: uadesong structure provided for file info window is not
+	    necessarily the same as currently played song (shd)
 2006-04-03: song.conf is not re-read in xmms plugin (shd)
 2006-03-09: Remove useless symbol exports in plugins. Only get_iplugin_info
 	    should be preserved as an exported symbol. (shd)
