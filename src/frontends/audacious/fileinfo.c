@@ -471,17 +471,9 @@ void uade_player_info(void)
 
     GtkWidget *uadeplay_scrolledwindow;
     GtkWidget *uadeplay_txt;
-    //GtkStyle  *style;
-
-    //GtkTextBuffer *uadeplay_view_buffer;
-    //GtkWidget	*uadeplay_view;
 
 
     if (!playerinfowin) {
-	//style = gtk_style_new();
-	//gdk_font_unref (style->font);
-	//style->font = gdk_font_load ("fixed");
-
 
 	playerinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(playerinfowin), "UADE Playerinfo");
@@ -518,8 +510,6 @@ void uade_player_info(void)
 	uadeplay_txt = gtk_text_new(NULL, NULL);
 	
 
-	//gtk_widget_set_style (uadeplay_txt, style);
-
 	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
 			  uadeplay_txt);
 	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
@@ -527,10 +517,6 @@ void uade_player_info(void)
 
 	gtk_text_set_word_wrap(GTK_TEXT(uadeplay_txt), TRUE);
 	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
-
-//	uadeplay_view = gtk_text_view_new();
-//	uadeplay_view_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(uadeplay_view));
-//	gtk_text_buffer_set_text (uadeplay_view_buffer,credits, -1);
 
 
 
@@ -578,13 +564,9 @@ void uade_mod_info(int modinfo_mode)
 
     GtkWidget *uadeplay_scrolledwindow;
     GtkWidget *uadeplay_txt;
-    //GtkStyle  *style;
 
 
     if (!modinfowin) {
-	//style=gtk_style_new();
-	//gdk_font_unref (style->font);
-	//style->font = gdk_font_load ("fixed");
 
 	modinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(modinfowin), "UADE Modinfo");
@@ -616,14 +598,12 @@ void uade_mod_info(int modinfo_mode)
 				       GTK_POLICY_ALWAYS);
 
 	uadeplay_txt = gtk_text_new(NULL, NULL);
-	//gtk_widget_set_style (uadeplay_txt, style);
 	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
 			  uadeplay_txt);
 	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
 			-1);
 
 	gtk_text_set_word_wrap(GTK_TEXT(uadeplay_txt), TRUE);
-	//gtk_widget_set_usize(uadeplay_scrolledwindow, 400, 240);
 	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
 
 

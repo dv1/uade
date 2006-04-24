@@ -116,6 +116,8 @@ Chk:
 	move.l	song,a0
 	move.l	size,d1
 	bsr.w	mcheck_moduledata
+	cmp.b	#-1,d0
+	beq.b	Chk_fail
 	cmp.b	#mod_PTK,d0
 	beq.w	is_PTK
 	cmp.b	#mod_PTK_vblank,d0
@@ -141,7 +143,6 @@ Chk:
 
 	cmp.b	#mod_FLT4,d0
 	beq.w	is_FLT4
-
 
 Chk_fail:	
 	st	pt_chkfail	
@@ -353,10 +354,9 @@ strncpy:
 ; Init Player
 
 InitPlay:
-
 	move.l	a5,delibase
+	jsr	open_uade_library
 	moveq	#0,d0
-
 	move.l	dtg_AudioAlloc(a5),a0		; Function
 	jsr	(a0)				; returncode is already set !
 	rts

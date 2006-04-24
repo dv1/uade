@@ -42,39 +42,26 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 
 			move.w	#MyVarsEnd-MyVars-1,d0
 			lea.l	MyVars(pc),a1
-
-.cls_myvar:		move.b	#0,(a1)+
+.cls_myvar:		clr.b	(a1)+
 			dbra	d0,.cls_myvar
 
 			move.l	#1084,d0
 			bsr	mcheck_calc_modlen
-			cmp.w	#-1,d0			;mod32 ?
+			cmp.b	#-1,d0			;mod32 ?
 			bne	.mod32			;yup
 			move.l	#600,d0
 			bsr	mcheck_calc_modlen
-			cmp.w	#-1,d0			;mod15 ?
-			beq	.mcheck_fail		;nope
+			cmp.b	#-1,d0			;mod15 ?
+			beq	.mcheck_end		;nope
 
 .mod15:			bsr	mcheck_mod15
-			bra	.mcheck_open_on_uade
+			bra	.mcheck_passed
 
-.mod32:
-			bsr mcheck_mod32
+.mod32:			bsr mcheck_mod32
 
-.mcheck_open_on_uade:	move.l	4.w,a6
-			lea	uadename(pc),a1
-			moveq	#0,d0
-    			jsr	-552(a6)
-			move.l	d0,uadebase
-			tst.l	d0
-			beq.b	.mcheck_fail
-
-			move.l	modtag,d0
+.mcheck_passed:		move.l	modtag,d0
 .mcheck_end:		movem.l	(a7)+,d1-d7/a0-a6
 			rts
-
-.mcheck_fail:		moveq	#-1,d0
-			bra.s	.mcheck_end
 
 ;---- Mod32 Checks ----
 mod32_Magic:
@@ -326,8 +313,7 @@ mcheck_mod15:
 ;	d0 = status (-1 bad len, 0 = len ok)
 ;
 
-mcheck_calc_modlen:
-			cmp.l	d0,d1
+mcheck_calc_modlen:	cmp.l	d0,d1
 			bhi.b	.is_higher
 			moveq	#-1,d0
 			rts
@@ -374,19 +360,32 @@ mcheck_calc_modlen:
 
 			;--- Check file len ---
 			cmp.l	d1,d5
-			bgt	.mcheck_bad_length	; file too short
+			bgt.b	.mcheck_too_short	; file too short
 
 			sub.l	d5,d1
 			cmp.l	#1024,d1		; filesize +1KB is ok
-			bgt	.mcheck_bad_length
-			
-.mcheck_good_length:	moveq	#0,d0
+			bgt	.mcheck_too_long
+
+			; good length
+			moveq	#0,d0
 			bra	.mcheck_end			
 
-.mcheck_bad_length:	moveq	#-1,d0
+			; being too short means a failure
+.mcheck_too_short:	lea tooshortmsg(pc),a0
+			bsr	uade_debug
+			moveq	#-1,d0
+			bra.b	.mcheck_end
+	
+	                ; being long is not a failure, but a reason for warning
+.mcheck_too_long:	lea	toolongmsg(pc),a0
+			bsr	uade_debug
+			moveq	#0,d0
 .mcheck_end:		movem.l	(a7)+,d1-d7/a0-a6
 	    		rts
 
+toolongmsg:		dc.b	'The module file is too long.',0
+tooshortmsg:		dc.b	'The module file is too short.',0
+			even
 
 ;------------------------------------------------------------------------------
 ;
@@ -672,11 +671,11 @@ ParseInstruments32:
 .parseloop:
 		move.b	45(a1),d1
 		cmp.w	#64,d1			; volume > 64
-		bgt	.parse_fail
+		bgt	.volume_fail
 
 		move.b	44(a1),d1
 		cmp.w	#15,d1			; fine_tune > 15
-		bgt	.parse_fail
+		bgt	.finetune_fail
 		cmp.w	#0,d1
 		beq	.parse_no_finetune
 		st	finetune_used		; 0 <finetune <16
@@ -731,6 +730,20 @@ ParseInstruments32:
 .parse_fail	moveq	#-1,d0
 		movem.l	(a7)+,d1-d7/a0-a6
 		rts
+
+.finetune_fail
+		lea	finetune_err(pc),a0
+		bsr	uade_debug
+		bra	.parse_fail
+
+.volume_fail
+		lea	volume_err(pc),a0
+		bsr	uade_debug
+		bra	.parse_fail
+
+finetune_err:	dc.b	"Finetune out of range",10,0
+volume_err:	dc.b	"Volume out of range",10,0
+		even
 
 ;--------------------------------------------------------------------------
 ; parse effects
@@ -792,11 +805,7 @@ mod_SubSongRange:
 	        moveq	#1,d0
 	        move.l	SubSongs,d1
 	        rts
-* Debug vblankT
-*		lea.l	Timer,a1
-*		move.l	(a1),d0
-*		move.l	4(a1),d1
-*		rts
+
 ;--------------------------------------------------------------------------
 ; mod_probe_subsongs
 ; input:  a0=Songdata  
@@ -910,10 +919,26 @@ mod_set_subsong:
 		    move.l	d0,pt_songposition
 		    rts
 
+open_uade_library:
+		move.l	4.w,a6
+		lea	uadename(pc),a1
+		moveq	#0,d0
+		jsr	-552(a6)
+		move.l	d0,uadebase
+		rts
+
+uade_debug:	movem.l	d0-d7/a0-a6,-(a7)
+		move.l	uadebase,d0
+		beq.b	.nouadebase
+		move.l	d0,a6
+		* Message string in A0
+		jsr	-12(a6)
+.nouadebase:	movem.l (a7)+,d0-d7/a0-a6
+		rts
+
 ;--------------------------------------------------------------------------
 ; Datas:
 ;Instrument flags
-
 
 uadebase:		dc.l	0
 uadename:		dc.b	"uade.library",0
