@@ -164,6 +164,7 @@ int main(int argc, char *argv[])
 
   uade_config_set_defaults(&uc_loaded);
   uade_config_set_defaults(&uc_cmdline);
+
   uade_effect_set_defaults(&effects_backup);
 
   if (!playlist_init(&uade_playlist)) {
@@ -355,14 +356,14 @@ int main(int argc, char *argv[])
     }
   }
 
-  for (i = optind; i < argc; i++) {
-    playlist_add(&uade_playlist, argv[i], uc_cmdline.recursive_mode);
-    have_modules = 1;
-  }
-
   /* Merge loaded configurations and command line options */
   uc = uc_loaded;
   uade_merge_configs(&uc, &uc_cmdline);
+
+  for (i = optind; i < argc; i++) {
+    playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
+    have_modules = 1;
+  }
 
   if (uc.random_play)
     playlist_random(&uade_playlist, 1);
@@ -482,9 +483,10 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    uade_merge_configs(&uc, &uc_cmdline);
+
     uade_set_config_effects(&effects, &uc);
     uade_set_song_attributes(&uc, &effects, us);
-    uade_merge_configs(&uc, &uc_cmdline);
 
     debug(uc.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
 

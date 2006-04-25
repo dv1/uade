@@ -1,3 +1,9 @@
+2006-04-26  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed panning, gain and recursive mode to work again. The problem
+	  was the new configuration management system. Command line options
+	  were not merged into used options. Also, even if they were merged,
+	  they would happen before effects were set ;) Sorry. Fixed now.
+
 2006-04-21  Michael Doering <mld@users.sourceforge.net>
 	- Fixed detection bug triptodestroy.mod in PTK-Prowiz. Thanks to
 	  Joker for the report.

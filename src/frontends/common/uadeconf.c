@@ -183,6 +183,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(buffer_time);
   MERGE_OPTION(filter_type);
   MERGE_OPTION(led_forced);
+  MERGE_OPTION(gain);
   MERGE_OPTION(gain_enable);
   MERGE_OPTION(headphones);
   MERGE_OPTION(ignore_player_check);
@@ -190,6 +191,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(no_filter);
   MERGE_OPTION(no_song_end);
   MERGE_OPTION(one_subsong);
+  MERGE_OPTION(panning);
   MERGE_OPTION(panning_enable);
   MERGE_OPTION(random_play);
   MERGE_OPTION(recursive_mode);
@@ -284,6 +286,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case UC_GAIN:
     uc->gain_enable_set = 1;
     uc->gain_enable = 1;
+    uc->gain_set = 1;
     uc->gain = uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
     break;
   case UC_HEADPHONES:
@@ -325,6 +328,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case UC_PANNING_VALUE:
     uc->panning_enable_set = 1;
     uc->panning_enable = 1;
+    uc->panning_set = 1;
     uc->panning = uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
     break;
   case UC_RANDOM_PLAY:

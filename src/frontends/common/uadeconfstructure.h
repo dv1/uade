@@ -44,6 +44,7 @@ struct uade_config {
   int gain_enable;
   int gain_enable_set;
   float gain; /* should be removed of uade_effect integrated */
+  int gain_set;
   int headphones;
   int headphones_set;
   int ignore_player_check;
@@ -58,9 +59,10 @@ struct uade_config {
   int no_song_end_set;
   int one_subsong;
   int one_subsong_set;
+  float panning; /* should be removed */
+  int panning_set;
   int panning_enable;
   int panning_enable_set;
-  float panning; /* should be removed */
   int random_play;
   int random_play_set;
   int recursive_mode;
