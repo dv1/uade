@@ -116,12 +116,14 @@ void uade_config_set_defaults(struct uade_config *uc)
 }
 
 
-double uade_convert_to_double(const char *value, double def, double low, double high, const char *type)
+double uade_convert_to_double(const char *value, double def, double low,
+			      double high, const char *type)
 {
   char *endptr;
   double v;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for %s in config file %s\n", config_filename, type);
+    fprintf(stderr, "Must have a parameter value for %s in config file %s\n",
+	    config_filename, type);
     return def;
   }
   v = strtod(value, &endptr);
@@ -450,6 +452,8 @@ static int uade_set_silence_timeout(struct uade_config *uc, const char *value)
 void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
 			      struct uade_song *us)
 {
+  struct uade_attribute *a;
+
   if (us->flags & ES_A500) {
     uc->filter_type_set = 1;
     uc->filter_type = FILTER_MODEL_A500;
@@ -468,7 +472,10 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
     uc->led_forced = 1;
     uc->led_state = 1;
   }
-
+  if (us->flags & ES_NO_FILTER) {
+    uc->no_filter_set = 1;
+    uc->no_filter = 1;
+  }
   if (us->flags & ES_NO_HEADPHONES) {
     uc->headphones_set = 1;
     uc->headphones = 0;
@@ -481,11 +488,53 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
   }
   if (us->flags & ES_NO_POSTPROCESSING)
     uade_effect_disable(ue, UADE_EFFECT_ALLOW);
-
   if (us->flags & ES_NTSC) {
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
   }
+  if (us->flags & ES_ONE_SUBSONG) {
+    uc->one_subsong_set = 1;
+    uc->one_subsong = 1;
+  }
+  if (us->flags & ES_NTSC)
+    uade_set_config_option(uc, UC_NTSC, NULL);
+  if (us->flags & ES_PAL)
+    uade_set_config_option(uc, UC_PAL, NULL);
+  if (us->flags & ES_SPEED_HACK)
+    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
+
+  a = us->songattributes;
+  while (a != NULL) {
+    switch (a->type) {
+    case ES_GAIN:
+      uade_effect_gain_set_amount(ue, a->d);
+      uade_effect_enable(ue, UADE_EFFECT_GAIN);      
+      break;
+    case ES_INTERPOLATOR:
+      uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
+      break;
+    case ES_PANNING:
+      uade_effect_pan_set_amount(ue, a->d);
+      uade_effect_enable(ue, UADE_EFFECT_PAN);
+      break;
+    case ES_SILENCE_TIMEOUT:
+      uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
+      break;
+    case ES_SUBSONG_TIMEOUT:
+      uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
+      break;
+    case ES_TIMEOUT:
+      uade_set_config_option(uc, UC_TIMEOUT_VALUE, a->s);
+      break;
+    default:
+      fprintf(stderr, "Unknown song attribute integer: 0x%x\n", a->type);
+      break;
+    }
+    a = a->next;
+  }
+
+  if (us->flags & ES_VBLANK)
+    fprintf(stderr, "vblank song option not implemented.\n");
   if (us->subsongs)
     fprintf(stderr, "Subsongs not implemented.\n");
 }

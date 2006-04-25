@@ -41,6 +41,7 @@
 struct attrlist {
   char *s;
   int e;
+  enum uade_attribute_type t;
 };
 
 
@@ -51,10 +52,11 @@ struct contentchecksum {
 
 
 struct eaglesong {
-   int flags;
-   int nsubsongs;
-   uint8_t *subsongs;
-   char md5[33];
+  int flags;
+  int nsubsongs;
+  uint8_t *subsongs;
+  char md5[33];
+  struct uade_attribute *attributes;
 };
 
 
@@ -80,13 +82,15 @@ static int uade_find_playtime(const char *md5);
    to their md5sums */
 static int escompare(const void *a, const void *b)
 {
-  return strcasecmp(((struct eaglesong *) a)->md5, ((struct eaglesong *) b)->md5);
+  return strcasecmp(((struct eaglesong *) a)->md5,
+		    ((struct eaglesong *) b)->md5);
 }
 
 
 static int contentcompare(const void *a, const void *b)
 {
-  return strcasecmp(((struct contentchecksum *) a)->md5, ((struct contentchecksum *) b)->md5);
+  return strcasecmp(((struct contentchecksum *) a)->md5,
+		    ((struct contentchecksum *) b)->md5);
 }
 
 
@@ -323,6 +327,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   return ep;
 }
 
+
 static void uade_analyze_song(struct uade_song *us)
 {
   struct eaglesong key;
@@ -339,9 +344,10 @@ static void uade_analyze_song(struct uade_song *us)
 
   es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
   if (es != NULL) {
-    us->flags = es->flags;
+    us->flags |= es->flags;
     us->nsubsongs = es->nsubsongs;
     us->subsongs = es->subsongs;
+    us->songattributes = es->attributes;
   }
 
   us->playtime = uade_find_playtime(us->md5);
@@ -668,13 +674,10 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 }
 
 
-int uade_read_song_conf(const char *filename)
+static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
 {
-  FILE *f;
-  struct eaglesong *s;
-  size_t allocated;
-  size_t lineno = 0;
-  size_t i, j;
+  int i;
+  size_t len;
 
   struct attrlist esattrs[] = {
     {.s = "\\a500",            .e = ES_A500},
@@ -694,15 +697,88 @@ int uade_read_song_conf(const char *filename)
     {.s = NULL}
   };
 
-  struct attrlist epvalueattrs[] = {
-    {.s = "\\gain",            .e = ES_GAIN},
-    {.s = "\\interpolator",    .e = ES_INTERPOLATOR},
-    {.s = "\\panning",         .e = ES_PANNING},
-    {.s = "\\silence_timeout", .e = ES_SILENCE_TIMEOUT},
-    {.s = "\\subsongs",        .e = ES_SUBSONGS},
-    {.s = "\\subsong_timeout", .e = ES_SUBSONG_TIMEOUT},
-    {.s = "\\timeout",         .e = ES_TIMEOUT}
+  struct attrlist esvalueattrs[] = {
+    {.s = "\\gain",            .t = UA_DOUBLE, .e = ES_GAIN},
+    {.s = "\\interpolator",    .t = UA_STRING, .e = ES_INTERPOLATOR},
+    {.s = "\\panning",         .t = UA_DOUBLE, .e = ES_PANNING},
+    {.s = "\\silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
+    {.s = "\\subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
+    {.s = "\\timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
+    {.s = NULL}
   };
+
+  for (i = 0; esattrs[i].s != NULL; i++) {
+    if (strcasecmp(item, esattrs[i].s) == 0) {
+      s->flags |= esattrs[i].e;
+      return 1;
+    }
+  }
+
+  for (i = 0; esvalueattrs[i].s != NULL; i++) {
+    len = strlen(esvalueattrs[i].s);
+    if (strncasecmp(item, esvalueattrs[i].s, len) == 0) {
+      struct uade_attribute *a;
+      char *str;
+      char *endptr;
+      int success;
+      
+      if (item[len] != '=') {
+	fprintf(stderr, "Invalid song item: %s\n", item);
+	break;
+      }
+      str = item + len + 1;
+      
+      if ((a = calloc(1, sizeof *a)) == NULL)
+	eperror("No memory for song attribute.\n");
+      
+      success = 0;
+      
+      switch (esvalueattrs[i].t) {
+      case UA_DOUBLE:
+	a->d = strtod(str, &endptr);
+	if (*endptr == 0)
+	  success = 1;
+	break;
+      case UA_INT:
+	a->i = strtol(str, &endptr, 10);
+	if (*endptr == 0)
+	  success = 1;
+	break;
+      case UA_STRING:
+	a->s = strdup(str);
+	if (a->s == NULL)
+	  eperror("Out of memory allocating string option for song\n");
+	success = 1;
+	break;
+      default:
+	fprintf(stderr, "Unknown song option: %s\n", item);
+	break;
+      }
+
+      if (success) {
+	a->type = esvalueattrs[i].e;
+      	a->next = s->attributes;
+	s->attributes = a;
+      } else {
+	fprintf(stderr, "Invalid song option: %s\n", item);
+	free(a);
+      }
+      
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+
+int uade_read_song_conf(const char *filename)
+{
+  FILE *f;
+  struct eaglesong *s;
+  size_t allocated;
+  size_t lineno = 0;
+  size_t i;
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
@@ -747,13 +823,7 @@ int uade_read_song_conf(const char *filename)
 
     for (i = 1; i < nitems; i++) {
 
-      for (j = 0; esattrs[j].s != NULL; j++) {
-	if (strcasecmp(items[i], esattrs[j].s) == 0) {
-	  s->flags |= esattrs[j].e;
-	  break;
-	}
-      }
-      if (esattrs[j].s != NULL)
+      if (parse_es_attributes(s, items[i], lineno))
 	continue;
 
       if (strncasecmp(items[i], "\\subsongs=", 10) == 0) {
@@ -788,6 +858,8 @@ int uade_read_song_conf(const char *filename)
 
 	continue;
       }
+
+      fprintf(stderr, "song option %s is invalid\n", items[i]);
     }
 
     free(items);

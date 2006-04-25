@@ -61,10 +61,30 @@ struct eagleplayerstore {
 };
 
 
+enum uade_attribute_type {
+  UA_STRING = 1,
+  UA_INT,
+  UA_DOUBLE
+};
+
+
+struct uade_attribute;
+
+struct uade_attribute {
+  struct uade_attribute *next;
+  enum uade_attribute_type type;
+  char *s;
+  int i;
+  double d;
+};
+
 struct uade_song {
   int flags;
   int nsubsongs;
   uint8_t *subsongs;
+  struct uade_attribute *songattributes;
+  struct uade_attribute *epattributes;
+
   char md5[33];
 
   char module_filename[PATH_MAX];

@@ -5,6 +5,8 @@
 	  they would happen before effects were set ;) Sorry. Fixed now.
 	- Improved gain effect. It can now clip samples if an overflow
 	  happens.
+	- Improved song.conf settings. It now supports all but two
+	  options. See doc/song.conf.
 
 2006-04-21  Michael Doering <mld@users.sourceforge.net>
 	- Fixed detection bug triptodestroy.mod in PTK-Prowiz. Thanks to
