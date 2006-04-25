@@ -558,7 +558,7 @@ static void print_help(void)
   printf("                     The default is A500E. NONE means disabling filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
-  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 1]. Default is 1.0.\n");
+  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h, --help,         Print help\n");

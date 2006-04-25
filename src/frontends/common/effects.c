@@ -114,7 +114,7 @@ static void gain(int gain_amount, int16_t *sm, int frames)
 	    if (o > 32767)
 		o = 32767;
 	    else
-		o = 32768;
+		o = -32768;
 	}
 	sm[i] = o;
     }
