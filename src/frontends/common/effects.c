@@ -25,6 +25,18 @@ static void pan(int pan_amount, int16_t *sm, int frames);
 static void headphones(int16_t *sm, int frames);
 
 
+static inline int sampleclip(int x)
+{
+    if (unlikely(x > 32767 || x < -32768)) {
+	if (x > 32767)
+	    x = 32767;
+	else
+	    x = -32768;
+    }
+    return x;
+}
+
+
 /* Reset effects' state variables.
  * Call this method between before starting playback */
 void uade_effect_reset_internals(void)
@@ -108,16 +120,8 @@ void uade_effect_pan_set_amount(struct uade_effect *ue, float amount)
 static void gain(int gain_amount, int16_t *sm, int frames)
 {
     int i, o;
-    for (i = 0; i < 2 * frames;  i+= 1) {
-	o = (sm[i] * gain_amount) >> 8;
-	if (unlikely(o > 32767 || o < -32768)) {
-	    if (o > 32767)
-		o = 32767;
-	    else
-		o = -32768;
-	}
-	sm[i] = o;
-    }
+    for (i = 0; i < 2 * frames;  i+= 1)
+	sm[i] = sampleclip((sm[i] * gain_amount) >> 8);
 }
 
 /* Panning effect. Turns stereo into mono in a specific degree */
@@ -128,8 +132,8 @@ static void pan(int pan_amount, int16_t *sm, int frames)
     l = sm[0];
     r = sm[1];
     m = (r - l) * pan_amount;
-    sm[0] = ( ((l << 8) + m) >> 8 );
-    sm[1] = ( ((r << 8) - m) >> 8 );
+    sm[0] = ((l << 8) + m) >> 8;
+    sm[1] = ((r << 8) - m) >> 8;
     sm += 2;
   }
 }
@@ -166,25 +170,18 @@ static float headphones_lpf(float in, float *state)
 static void headphones(int16_t *sm, int frames)
 {
     int i;
+    float ld, rd;
+    int l_final, r_final;
     for (i = 0; i < frames; i += 1) {
-	float ld = headphones_allpass_delay(sm[0], headphones_ap_l);
-	float rd = headphones_allpass_delay(sm[1], headphones_ap_r);
+	ld = headphones_allpass_delay(sm[0], headphones_ap_l);
+	rd = headphones_allpass_delay(sm[1], headphones_ap_r);
 	ld = headphones_lpf(ld, headphones_rc_l);
 	rd = headphones_lpf(rd, headphones_rc_r);
 
-	int l_final = (sm[0] + rd * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
-	int r_final = (sm[1] + ld * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
-
-        if (l_final > 32767)
-            l_final = 32767;
-        if (l_final < -32768)
-            l_final = -32768;
-        if (r_final > 32767)
-            r_final = 32767;
-        if (r_final < -32768)
-            r_final = -32768;
-        sm[0] = l_final;
-        sm[1] = r_final;
+	l_final = (sm[0] + rd * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
+	r_final = (sm[1] + ld * UADE_EFFECT_HEADPHONES_CROSSMIX_VOL) / 2;
+        sm[0] = sampleclip(l_final);
+        sm[1] = sampleclip(r_final);
         
 	sm += 2;
     }
