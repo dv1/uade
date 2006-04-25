@@ -53,8 +53,6 @@ struct contentchecksum {
 
 struct eaglesong {
   int flags;
-  int nsubsongs;
-  uint8_t *subsongs;
   char md5[33];
   struct uade_attribute *attributes;
 };
@@ -345,8 +343,6 @@ static void uade_analyze_song(struct uade_song *us)
   es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
   if (es != NULL) {
     us->flags |= es->flags;
-    us->nsubsongs = es->nsubsongs;
-    us->subsongs = es->subsongs;
     us->songattributes = es->attributes;
   }
 
@@ -682,7 +678,6 @@ static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
   struct attrlist esattrs[] = {
     {.s = "\\a500",            .e = ES_A500},
     {.s = "\\a1200",           .e = ES_A1200},
-    {.s = "\\broken_subsongs", .e = ES_BROKEN_SUBSONGS},
     {.s = "\\led_off",         .e = ES_LED_OFF},
     {.s = "\\led_on",          .e = ES_LED_ON},
     {.s = "\\no_filter",       .e = ES_NO_FILTER},
@@ -703,6 +698,7 @@ static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
     {.s = "\\panning",         .t = UA_DOUBLE, .e = ES_PANNING},
     {.s = "\\silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
     {.s = "\\subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
+    {.s = "\\subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
     {.s = "\\timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
     {.s = NULL}
   };
@@ -768,6 +764,8 @@ static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
     }
   }
 
+  fprintf(stderr, "song option %s is invalid\n", item);
+
   return 0;
 }
 
@@ -822,44 +820,8 @@ int uade_read_song_conf(const char *filename)
     }
 
     for (i = 1; i < nitems; i++) {
-
       if (parse_es_attributes(s, items[i], lineno))
 	continue;
-
-      if (strncasecmp(items[i], "\\subsongs=", 10) == 0) {
-	char subsongs[LINESIZE];
-	char *subsongstart = items[i] + 10;
-	char *sp, *str;
-	size_t pos;
-
-	s->nsubsongs = 0;
-	strlcpy(subsongs, subsongstart, sizeof subsongs);
-	sp = subsongs;
-	while ((str = strsep(&sp, OPTION_DELIMITER)) != NULL) {
-	  if (*str == 0)
-	    continue;
-	  s->nsubsongs++;
-	}
-
-	s->subsongs = malloc((s->nsubsongs + 1) * sizeof(s->subsongs[0]));
-	if (s->subsongs == NULL)
-	  eperror("No memory for subsongs.");
-
-	pos = 0;
-	sp = subsongstart;
-	while ((str = strsep(&sp, OPTION_DELIMITER)) != NULL) {
-	  if (*str == 0)
-	    continue;
-	  s->subsongs[pos] = atoi(str);
-	  pos++;
-	}
-	s->subsongs[pos] = -1;
-	assert(pos == s->nsubsongs);
-
-	continue;
-      }
-
-      fprintf(stderr, "song option %s is invalid\n", items[i]);
     }
 
     free(items);

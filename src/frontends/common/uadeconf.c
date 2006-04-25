@@ -11,14 +11,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-
+#include <assert.h>
 #include <limits.h>
 #include <unistd.h>
 
-#include <strlrep.h>
-
-#include <uadeconf.h>
-#include <amigafilter.h>
+#include "strlrep.h"
+#include "uadeconf.h"
+#include "amigafilter.h"
 
 static char config_filename[PATH_MAX];
 
@@ -207,6 +206,51 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(verbose);
 }
 
+
+int uade_parse_subsongs(int **subsongs, char *option)
+{
+  char substr[256];
+  char *sp, *str;
+  size_t pos;
+  int nsubsongs;
+
+  nsubsongs = 0;
+  *subsongs = NULL;
+
+  if (strlcpy(substr, option, sizeof subsongs) >= sizeof subsongs) {
+    fprintf(stderr, "Too long a subsong option: %s\n", option);
+    return -1;
+  }
+
+  sp = substr;
+  while ((str = strsep(&sp, ",")) != NULL) {
+    if (*str == 0)
+      continue;
+    nsubsongs++;
+  }
+
+  *subsongs = malloc((nsubsongs + 1) * sizeof((*subsongs)[0]));
+  if (*subsongs == NULL) {
+    fprintf(stderr, "No memory for subsongs.\n");
+    return -1;
+  }
+
+  strlcpy(substr, option, sizeof subsongs);
+
+  pos = 0;
+  sp = substr;
+  while ((str = strsep(&sp, ",")) != NULL) {
+    if (*str == 0)
+      continue;
+    (*subsongs)[pos] = atoi(str);
+    pos++;
+  }
+
+  (*subsongs)[pos] = -1;
+  assert(pos == nsubsongs);
+
+  return nsubsongs;
+}
 
 void uade_set_config_effects(struct uade_effect *effects,
 			     const struct uade_config *uc)
@@ -492,12 +536,12 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
   }
+  if (us->flags & ES_NTSC)
+    uade_set_config_option(uc, UC_NTSC, NULL);
   if (us->flags & ES_ONE_SUBSONG) {
     uc->one_subsong_set = 1;
     uc->one_subsong = 1;
   }
-  if (us->flags & ES_NTSC)
-    uade_set_config_option(uc, UC_NTSC, NULL);
   if (us->flags & ES_PAL)
     uade_set_config_option(uc, UC_PAL, NULL);
   if (us->flags & ES_SPEED_HACK)
@@ -520,6 +564,9 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
     case ES_SILENCE_TIMEOUT:
       uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
       break;
+    case ES_SUBSONGS:
+      fprintf(stderr, "Subsongs not implemented.\n");
+      break;
     case ES_SUBSONG_TIMEOUT:
       uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
       break;
@@ -535,8 +582,6 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
 
   if (us->flags & ES_VBLANK)
     fprintf(stderr, "vblank song option not implemented.\n");
-  if (us->subsongs)
-    fprintf(stderr, "Subsongs not implemented.\n");
 }
 
 
