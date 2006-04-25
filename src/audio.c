@@ -23,6 +23,7 @@
 #include "audio.h"
 #include "amigafilter.h"
 #include "uade.h"
+#include "compilersupport.h"
 
 #include "sinctable.h"
 
@@ -134,10 +135,12 @@ static int filter(int input, struct filter_state *fs)
 
     o = gui_ledstate ? led_output : normal_output;
 
-    if (o > 32767) {
+    if (unlikely(o > 32767 || o < -32768)) {
+      if (o > 32767) {
 	o = 32767;
-    } else if (o < -32768) {
+      } else {
 	o = -32768;
+      }
     }
 
     return o;
