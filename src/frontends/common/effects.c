@@ -119,7 +119,7 @@ void uade_effect_pan_set_amount(struct uade_effect *ue, float amount)
 
 static void gain(int gain_amount, int16_t *sm, int frames)
 {
-    int i, o;
+    int i;
     for (i = 0; i < 2 * frames;  i+= 1)
 	sm[i] = sampleclip((sm[i] * gain_amount) >> 8);
 }
