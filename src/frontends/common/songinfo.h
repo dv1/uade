@@ -17,4 +17,3 @@ int uade_generate_song_title(char *title, size_t dstlen,
 int uade_song_info(char *info, size_t maxlen, char *filename, enum song_info_type type);
 
 #endif
-

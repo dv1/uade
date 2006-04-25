@@ -10,6 +10,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <compilersupport.h>
+
 #include "effects.h"
 
 
@@ -105,11 +107,18 @@ void uade_effect_pan_set_amount(struct uade_effect *ue, float amount)
 
 static void gain(int gain_amount, int16_t *sm, int frames)
 {
-    int i;
-    for (i = 0; i < 2 * frames;  i+= 1)
-	sm[i] = (sm[i] * gain_amount) >> 8;
+    int i, o;
+    for (i = 0; i < 2 * frames;  i+= 1) {
+	o = (sm[i] * gain_amount) >> 8;
+	if (unlikely(o > 32767 || o < -32768)) {
+	    if (o > 32767)
+		o = 32767;
+	    else
+		o = 32768;
+	}
+	sm[i] = o;
+    }
 }
-
 
 /* Panning effect. Turns stereo into mono in a specific degree */
 static void pan(int pan_amount, int16_t *sm, int frames)
