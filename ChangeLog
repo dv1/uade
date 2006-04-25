@@ -3,6 +3,8 @@
 	  was the new configuration management system. Command line options
 	  were not merged into used options. Also, even if they were merged,
 	  they would happen before effects were set ;) Sorry. Fixed now.
+	- Improved gain effect. It can now clip samples if an overflow
+	  happens.
 
 2006-04-21  Michael Doering <mld@users.sourceforge.net>
 	- Fixed detection bug triptodestroy.mod in PTK-Prowiz. Thanks to

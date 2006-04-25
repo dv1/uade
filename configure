@@ -461,7 +461,6 @@ if test "$?" = "0" ; then
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 EOF
 else
-    echo "The compiler doesn't support likely() and unlikely()"
     cat >> "$csfile" <<EOF
 #define likely(x) (!!(x))
 #define unlikely(x) (!!(x))
