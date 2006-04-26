@@ -89,3 +89,10 @@ In Debian/Ubuntu, the required libraries can be downloaded by:
 	apt-get install audacious-dev (get a mirror from
 	                               audacious-mediaplayer.org)
 
+Hints for Solaris
+=================
+
+ - Change configure scripts #!/bin/sh to #!/bin/bash
+ - Change reference of floorf() function in src/audio.c to floor()
+ - Use gmake instead of make
+ - Add #include <sys/time.h> into src/unixatomic.c
