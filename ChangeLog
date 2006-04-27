@@ -1,6 +1,8 @@
 2006-04-27  Michael Doering <mld@users.sourceforge.net>
 	- Fixed misdetection of a digibooster mod as protracker in
 	  amifilemagic.
+	- Fortified modplayer checks against amifilemagic's new policy
+	  to accept modfiles with trailing garbage...
 
 2006-04-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed panning, gain and recursive mode to work again. The problem

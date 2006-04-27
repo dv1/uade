@@ -47,18 +47,19 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 
 			move.l	#600,d0
 			bsr	mcheck_calc_modlen
-			cmp.b	#0,d0			;mod15 hasto  have exact len
-			beq	.mod15			;yup
+			cmp.b	#0,d0			;mod15 has to  have exact len
+			bne	.nomod15		;nope
+			bsr	mcheck_mod15
+			cmp.w	#-1,modtag
+			bne	.mcheck_passed
 
-			move.l	#1084,d0
+.nomod15		move.l	#1084,d0
 			bsr	mcheck_calc_modlen
 			cmp.b	#-1,d0			;mod32 ?
 			beq.s	.mcheck_end		; nope
 
 .mod32:			bsr mcheck_mod32
 			bra	.mcheck_passed
-
-.mod15:			bsr	mcheck_mod15
 
 
 .mcheck_passed:		move.l	modtag,d0
@@ -301,20 +302,20 @@ mcheck_is_flt4:		rts
 
 ;******  Mod15 Checks *******************************************************
 mcheck_mod15:
-*			moveq	#0,d0
-*			move.b	$1d6(a0),d0 	; max pos = 0
-*			tst.b	d0
-*			beq.s	.no_mod15
+			moveq	#0,d0
+			move.b	$1d6(a0),d0 	; max pos = 0
+			tst.b	d0
+			beq.s	.no_mod15
 			
-*			cmp.w	#$81,d0
-*			bge.s	.no_mod15
+			cmp.w	#$81,d0
+			bge.s	.no_mod15
 			
-*			cmp.b	#1,$1f3(a0)
-*			bne.s	.mod15
+			cmp.b	#1,$1f3(a0)
+			bne.s	.mod15
 
 
-*.nomod15		move.l #-1,modtag
-*			rts
+.no_mod15		move.l #-1,modtag
+			rts
 
 .mod15:			move.l #mod_DOC,modtag
 			rts
