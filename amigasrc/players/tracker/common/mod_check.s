@@ -45,19 +45,21 @@ mcheck_moduledata:	; Current implemation is just a hack for uade only.
 .cls_myvar:		clr.b	(a1)+
 			dbra	d0,.cls_myvar
 
+			move.l	#600,d0
+			bsr	mcheck_calc_modlen
+			cmp.b	#0,d0			;mod15 hasto  have exact len
+			beq	.mod15			;yup
+
 			move.l	#1084,d0
 			bsr	mcheck_calc_modlen
 			cmp.b	#-1,d0			;mod32 ?
-			bne	.mod32			;yup
-			move.l	#600,d0
-			bsr	mcheck_calc_modlen
-			cmp.b	#-1,d0			;mod15 ?
-			beq	.mcheck_end		;nope
-
-.mod15:			bsr	mcheck_mod15
-			bra	.mcheck_passed
+			beq.s	.mcheck_end		; nope
 
 .mod32:			bsr mcheck_mod32
+			bra	.mcheck_passed
+
+.mod15:			bsr	mcheck_mod15
+
 
 .mcheck_passed:		move.l	modtag,d0
 .mcheck_end:		movem.l	(a7)+,d1-d7/a0-a6
@@ -299,7 +301,22 @@ mcheck_is_flt4:		rts
 
 ;******  Mod15 Checks *******************************************************
 mcheck_mod15:
-			move.l #mod_DOC,modtag
+*			moveq	#0,d0
+*			move.b	$1d6(a0),d0 	; max pos = 0
+*			tst.b	d0
+*			beq.s	.no_mod15
+			
+*			cmp.w	#$81,d0
+*			bge.s	.no_mod15
+			
+*			cmp.b	#1,$1f3(a0)
+*			bne.s	.mod15
+
+
+*.nomod15		move.l #-1,modtag
+*			rts
+
+.mod15:			move.l #mod_DOC,modtag
 			rts
 
 ;--------------------------------------------------------------------------
@@ -310,7 +327,7 @@ mcheck_mod15:
 ;	d1.l = file length
 ;
 ; returns:
-;	d0 = status (-1 bad len, 0 = len ok)
+;	d0 = status (-1 too short, 0 = len ok, 1 = too long)
 ;
 
 mcheck_calc_modlen:	cmp.l	d0,d1
@@ -363,7 +380,8 @@ mcheck_calc_modlen:	cmp.l	d0,d1
 			bgt.b	.mcheck_too_short	; file too short
 
 			sub.l	d5,d1
-			cmp.l	#1024,d1		; filesize +1KB is ok
+			cmp.l	#1024,d1		; filesize +4KB is ok, kind of
+			
 			bgt	.mcheck_too_long
 
 			; good length
@@ -371,21 +389,22 @@ mcheck_calc_modlen:	cmp.l	d0,d1
 			bra	.mcheck_end			
 
 			; being too short means a failure
-.mcheck_too_short:	lea tooshortmsg(pc),a0
-			bsr	uade_debug
+.mcheck_too_short:	;lea tooshortmsg(pc),a0
+			;bsr	uade_debug
 			moveq	#-1,d0
 			bra.b	.mcheck_end
 	
 	                ; being long is not a failure, but a reason for warning
-.mcheck_too_long:	lea	toolongmsg(pc),a0
-			bsr	uade_debug
-			moveq	#0,d0
+			; this is debatable! -- mld
+.mcheck_too_long:	;lea	toolongmsg(pc),a0
+			;bsr	uade_debug
+			moveq	#1,d0
 .mcheck_end:		movem.l	(a7)+,d1-d7/a0-a6
 	    		rts
 
-toolongmsg:		dc.b	'The module file is too long.',0
-tooshortmsg:		dc.b	'The module file is too short.',0
-			even
+;toolongmsg:		dc.b	'The module file is too long.',0
+;tooshortmsg:		dc.b	'The module file is too short.',0
+;			even
 
 ;------------------------------------------------------------------------------
 ;

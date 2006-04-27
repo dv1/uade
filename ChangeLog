@@ -1,3 +1,7 @@
+2006-04-27  Michael Doering <mld@users.sourceforge.net>
+	- Fixed misdetection of a digibooster mod as protracker in
+	  amifilemagic.
+
 2006-04-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed panning, gain and recursive mode to work again. The problem
 	  was the new configuration management system. Command line options

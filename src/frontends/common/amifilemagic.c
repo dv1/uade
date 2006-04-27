@@ -259,7 +259,7 @@ static int tfmxtest(unsigned char *buf, size_t bufsize, char *pre)
 /*				data in buf for a 	*/
 /*				succesful calculation	*/
 /* returns:				 		*/
-/* 		 0 for no mod				*/
+/* 		 -1 for no mod				*/
 /*		 1 for a mod with good length		*/
 static size_t modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 			 int header)
@@ -417,14 +417,8 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
   calculated_size = modlentest(buf, bufsize, realfilesize, S31_HEADER_LENGTH);
 
   if (calculated_size == -1)
-    return MOD_UNDEFINED;
+  return MOD_UNDEFINED;
 
-  if (verbose && calculated_size != realfilesize) {
-    fprintf(stderr, "uade: file size is %zd but calculated size for a mod file is %zd.\n", realfilesize, calculated_size);
-  }
-
-  if (calculated_size > realfilesize)
-    return MOD_UNDEFINED;
 
   /* parse instruments */
   for (i = 0; i < 31; i++) {
@@ -443,11 +437,6 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
       } else {
 	finetune_used++;
       }
-    }
-
-    if (slen > 0 && (srep + sreplen) > slen) {
-      /* Old Noisetracker /Soundtracker with repeat offset in bytes */
-      return MOD_SOUNDTRACKER25_NOISETRACKER10;
     }
 
     if (srep == 0) {
@@ -473,8 +462,25 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
   for (i = 0; mod_patterns[i]; i++) {
     if (patterntest(buf, mod_patterns[i], S31_HEADER_LENGTH - 4, 4, bufsize)) {
       /* seems to be a generic M.K. MOD                              */
-      /* TODO: DOC Soundtracker, Noisetracker 1.0 & 2.0, Protracker  */
-      /*       and Fasttracker checking                               */
+      /* only spam filesize message when it's a tracker module */
+
+    if (calculated_size != realfilesize) {
+      fprintf(stderr, "uade: file size is %zd but calculated size for a mod file is %zd.\n", realfilesize, calculated_size); 
+    }
+
+    if (calculated_size > realfilesize) {
+        fprintf(stderr, "uade: file is truncated and won't get played.\n");
+      return MOD_UNDEFINED;
+    }
+
+    if (calculated_size < realfilesize) {
+        fprintf(stderr, "uade: file has trailing garbage behind the actual module data. Please fix it.\n");
+    }
+
+    if (slen > 0 && (srep + sreplen) > slen) {
+      /* Old Noisetracker /Soundtracker with repeat offset in bytes */
+      return MOD_SOUNDTRACKER25_NOISETRACKER10;
+    }
 
       for (i = 0; i < 128; i++) {
 	if (buf[1080 - 130 + 2 + i] > max_pattern)
@@ -593,7 +599,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
-  if (modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH) == 0)
+  if (modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH) == -1)
     return 0; /* modlentest failed */
 
  /* check for 15 instruments */
