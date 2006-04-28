@@ -116,10 +116,12 @@ uade.conf.
 \fB\-\-filter=\fRx
 Set filter emulation mode to
 .BR x .
-x is a500, a500e, a1200, a1200e or none. A500E is
+x is a500, a500s, a1200, a1200s or none. A500 is
 the default. 'none' means disabling the filter. Please note that A500 and A1200
 are audibly different on every
-song even if a song doesn't use filtering. Surprisingly, the biggest
+song even if a song doesn't use filtering.
+A500S and A1200S are faster but less accurate filter versions.
+Surprisingly, the biggest
 difference between A500 and A1200 is filter behavior when LED is off (i.e.
 song doesn't use filtering). When LED is off, A1200 does very little filtering
 but A500 does some filtering that can be easily heard. Please try switching
@@ -370,8 +372,8 @@ plugin too.
 
 The valid commands are:
 .sp 1
-    filter x           Set filter emulation mode to be A500, A500E,
-                       A1200 or A1200E.
+    filter x           Set filter emulation mode to be A500, A500S,
+                       A1200 or A1200S.
 .br
     headphone          Enable headphone effect.
 .br

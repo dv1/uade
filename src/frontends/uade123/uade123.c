@@ -570,8 +570,8 @@ static void print_help(void)
   printf("                     format.\n");
   printf(" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=model      Set filter model to A500, A500E, A1200, A1200E or NONE.\n");
-  printf("                     The default is A500E. NONE means disabling filter.\n");
+  printf(" --filter=model      Set filter model to A500, A500S, A1200, A1200S or NONE.\n");
+  printf("                     The default is A500. NONE means disabling filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");
