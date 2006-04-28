@@ -115,7 +115,9 @@ int main(int argc, char *argv[])
   int have_modules = 0;
   int ret;
   char *endptr;
-  int config_loaded;
+  int uadeconf_loaded, songconf_loaded;
+  char songconfname[PATH_MAX] = "";
+  char uadeconfname[PATH_MAX] = "";
   char *home;
   struct stat st;
   struct uade_effect effects, effects_backup;
@@ -182,28 +184,30 @@ int main(int argc, char *argv[])
   }
 
   /* First try to load config from ~/.uade2/uade.conf */
-  config_loaded = 0;
+  uadeconf_loaded = 0;
   if (home) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/uade.conf", home);
-    config_loaded = uade_load_config(&uc_loaded, tmpstr);
+    snprintf(uadeconfname, sizeof uadeconfname, "%s/.uade2/uade.conf", home);
+    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
   }
-  if (config_loaded == 0)
-    config_loaded = uade_load_config(&uc_loaded, UADE_CONFIG_BASE_DIR "/uade.conf");
+  if (uadeconf_loaded == 0) {
+    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
+    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
+  }
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "Too long a string for option %c.\n", ret); \
          exit(-1); \
       }
 
-  config_loaded = 0;
+  songconf_loaded = 0;
   if (home != NULL) {
-    snprintf(tmpstr, sizeof(tmpstr), "%s/.uade2/song.conf", home);
-    config_loaded = uade_read_song_conf(tmpstr);
+    snprintf(songconfname, sizeof songconfname, "%s/.uade2/song.conf", home);
+    songconf_loaded = uade_read_song_conf(songconfname);
   }
-  if (config_loaded == 0)
-    config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
-  if (config_loaded == 0)
-    debug(uc_loaded.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
+  if (songconf_loaded == 0) {
+    snprintf(songconfname, sizeof songconfname, "%s/song.conf", UADE_CONFIG_BASE_DIR);
+    songconf_loaded = uade_read_song_conf(songconfname);
+  }
 
   load_content_db();
 
@@ -359,6 +363,18 @@ int main(int argc, char *argv[])
   /* Merge loaded configurations and command line options */
   uc = uc_loaded;
   uade_merge_configs(&uc, &uc_cmdline);
+
+  if (uadeconf_loaded == 0) {
+    debug(uc.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);    
+  } else {
+    debug(uc.verbose, "Loaded configuration: %s/uade.conf\n", uadeconfname);
+  }
+
+  if (songconf_loaded == 0) {
+    debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
+  } else {
+    debug(uc.verbose, "Loaded song.conf: %s/song.conf\n", songconfname);
+  }
 
   for (i = optind; i < argc; i++) {
     playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
