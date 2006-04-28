@@ -458,7 +458,6 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
 	  finetune_used++;
         }
       }
-	fprintf (stderr, "i: %d slen: %d, srep+sreplen: %d\n", i, slen,srep+sreplen);
 
       if (slen > 0 && (srep + sreplen) > slen) {
         /* Old Noisetracker /Soundtracker with repeat offset in bytes */
