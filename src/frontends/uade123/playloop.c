@@ -32,11 +32,13 @@ void print_song_info(struct uade_song *us, enum song_info_type t)
   char *info = malloc(infosize);
   FILE *f = uade_terminal_file ? uade_terminal_file : stdout;
 
-  if (!info)
+  if (info == NULL)
     return;
 
   if (!uade_song_info(info, infosize, us->module_filename, t))
     fprintf(f, "\n%s\n", info);
+
+  free(info);
 }
 
 

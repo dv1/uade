@@ -1,3 +1,6 @@
+2006-04-29  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed hexdump of module/player to show 2 KiBs of text.
+
 2006-04-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed another config bug introduced by last config refactorization.
 	  Filter type could not be set from config file in uade123. The bug

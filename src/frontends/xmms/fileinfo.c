@@ -464,7 +464,7 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename,
 
 void uade_player_info(void)
 {
-    char credits[8192];
+    char credits[16384];
     GtkWidget *playerinfo_button_box;
     GtkWidget *close_button;
     GtkWidget *playerinfo_base_vbox;
@@ -561,7 +561,7 @@ void uade_mod_info_module(void)
 
 void uade_mod_info(int modinfo_mode)
 {
-    char credits[8192];
+    char credits[16384];
     GtkWidget *modinfo_button_box;
     GtkWidget *close_button;
     GtkWidget *modinfo_base_vbox;

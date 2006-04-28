@@ -34,20 +34,25 @@ static void asciiline(char *dst, unsigned char *buf)
 }
 
 
-static int hexdump(char *info, size_t maxlen, char *filename)
+static int hexdump(char *info, size_t maxlen, char *filename, size_t toread)
 {
-  FILE *f = fopen(filename, "rb");
+  FILE *f;
   size_t rb, ret;
-  uint8_t buf[1024];
+  uint8_t *buf;
 
   assert(maxlen >= 8192);
 
+  f = fopen(filename, "rb");
   if (f == NULL)
     return 0;
 
+  buf = malloc(toread);
+  if (buf == NULL)
+    return 0;
+
   rb = 0;
-  while (rb < sizeof buf) {
-    ret = fread(&buf[rb], 1, sizeof(buf) - rb, f);
+  while (rb < toread) {
+    ret = fread(&buf[rb], 1, toread - rb, f);
     if (ret == 0)
       break;
     rb += ret;
@@ -110,6 +115,7 @@ static int hexdump(char *info, size_t maxlen, char *filename)
   }
 
   fclose(f);
+  free(buf);
   return rb == 0;
 }
 
@@ -689,9 +695,9 @@ int uade_song_info(char *info, size_t maxlen, char *filename,
 {
   switch (type) {
   case UADE_MODULE_INFO:
-    return process_module(info,maxlen,filename);
+    return process_module(info, maxlen, filename);
   case UADE_HEX_DUMP_INFO:
-    return hexdump(info, maxlen, filename);
+    return hexdump(info, maxlen, filename, 2048);
   default:
     fprintf(stderr, "Illegal info requested.\n");
     exit(-1);
