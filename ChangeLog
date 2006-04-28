@@ -1,3 +1,8 @@
+2006-04-28  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed another config bug introduced by last config refactorization.
+	  Filter type could not be set from config file in uade123. The bug
+	  did not happen on Audacious/XMMS plugins.
+
 2006-04-28  Michael Doering <mld@users.sourceforge.net>
 	- Fixed bug in Soundtracker 31 instruments check introduced
 	  by fixing the misdetection of a digibooster as protracker mod which

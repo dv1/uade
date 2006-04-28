@@ -448,7 +448,6 @@ void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 
 void uade_set_filter_type(struct uade_config *uc, const char *model)
 {
-  uc->filter_type_set = 1;
   uc->filter_type = FILTER_MODEL_A500E;
 
   if (model == NULL)
