@@ -2,6 +2,8 @@
 	- Fixed another config bug introduced by last config refactorization.
 	  Filter type could not be set from config file in uade123. The bug
 	  did not happen on Audacious/XMMS plugins.
+	- uade123 -v now prints the uade.conf and song.conf files that were
+	  loaded.
 
 2006-04-28  Michael Doering <mld@users.sourceforge.net>
 	- Fixed bug in Soundtracker 31 instruments check introduced

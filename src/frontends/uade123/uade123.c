@@ -367,13 +367,13 @@ int main(int argc, char *argv[])
   if (uadeconf_loaded == 0) {
     debug(uc.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);    
   } else {
-    debug(uc.verbose, "Loaded configuration: %s/uade.conf\n", uadeconfname);
+    debug(uc.verbose, "Loaded configuration: %s\n", uadeconfname);
   }
 
   if (songconf_loaded == 0) {
     debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
   } else {
-    debug(uc.verbose, "Loaded song.conf: %s/song.conf\n", songconfname);
+    debug(uc.verbose, "Loaded song.conf: %s\n", songconfname);
   }
 
   for (i = optind; i < argc; i++) {
