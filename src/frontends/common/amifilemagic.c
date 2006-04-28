@@ -48,7 +48,8 @@ enum {
   MOD_PROTRACKER,
   MOD_FASTTRACKER,
   MOD_NOISETRACKER,
-  MOD_PTK_COMPATIBLE
+  MOD_PTK_COMPATIBLE,
+  MOD_SOUNDTRACKER24
 };
 
 
@@ -378,6 +379,7 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
   /*		 9 for a Fasttracker			    */
   /*		 10 for a Noisetracker (M&K!)		    */
   /*		 11 for a PTK Compatible		    */
+  /*		 12 for a Soundtracker 31instr. with repl in bytes	    */
 
   /* Special cases first */
   if (patterntest(buf, "M&K!", (S31_HEADER_LENGTH - 4), 4, bufsize))
@@ -420,45 +422,6 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
   return MOD_UNDEFINED;
 
 
-  /* parse instruments */
-  for (i = 0; i < 31; i++) {
-    vol = buf[45 + i * 30];
-    slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
-    srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
-    sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-    /* fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol); */
-
-    if (vol > 64)
-      return MOD_UNDEFINED;
-
-    if (buf[44 + i * 30] != 0) {
-      if (buf[44+i*30] > 15) {
-	return MOD_UNDEFINED;
-      } else {
-	finetune_used++;
-      }
-    }
-
-    if (srep == 0) {
-      if (slen > 0) {
-	if (sreplen == 2){
-	  has_slen_sreplen_one++;
-	}
-	if (sreplen == 0){
-	  has_slen_sreplen_zero++;
-	}
-      } else {
-	if (sreplen > 0){
-	  no_slen_sreplen_one++;
-	} else {
-	  no_slen_sreplen_zero++;
-	}
-	if (vol > 0)
-	  no_slen_has_volume++;
-      }
-    }
-  }
-
   for (i = 0; mod_patterns[i]; i++) {
     if (patterntest(buf, mod_patterns[i], S31_HEADER_LENGTH - 4, 4, bufsize)) {
       /* seems to be a generic M.K. MOD                              */
@@ -477,10 +440,50 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
         fprintf(stderr, "uade: file has trailing garbage behind the actual module data. Please fix it.\n");
     }
 
-    if (slen > 0 && (srep + sreplen) > slen) {
-      /* Old Noisetracker /Soundtracker with repeat offset in bytes */
-      return MOD_SOUNDTRACKER25_NOISETRACKER10;
-    }
+    /* parse instruments */
+    for (i = 0; i < 31; i++) {
+      vol = buf[45 + i * 30];
+      slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
+      srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]) *2;
+      sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
+      /* fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol); */
+
+      if (vol > 64)
+        return MOD_UNDEFINED;
+
+      if (buf[44 + i * 30] != 0) {
+        if (buf[44+i*30] > 15) {
+  	  return MOD_UNDEFINED;
+        } else {
+	  finetune_used++;
+        }
+      }
+	fprintf (stderr, "i: %d slen: %d, srep+sreplen: %d\n", i, slen,srep+sreplen);
+
+      if (slen > 0 && (srep + sreplen) > slen) {
+        /* Old Noisetracker /Soundtracker with repeat offset in bytes */
+        return MOD_SOUNDTRACKER24;
+      }
+
+      if (srep == 0) {
+        if (slen > 0) {
+	  if (sreplen == 2){
+	    has_slen_sreplen_one++;
+	  }
+	  if (sreplen == 0){
+	    has_slen_sreplen_zero++;
+	  }
+        } else {
+	  if (sreplen > 0){
+	    no_slen_sreplen_one++;
+	  } else {
+	    no_slen_sreplen_zero++;
+	  }
+	  if (vol > 0)
+	    no_slen_has_volume++;
+        }
+       }
+     }
 
       for (i = 0; i < 128; i++) {
 	if (buf[1080 - 130 + 2 + i] > max_pattern)
@@ -741,7 +744,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
   };
 
   struct modtype mod32types[] = {
-    {.e = MOD_SOUNDTRACKER25_NOISETRACKER10, .str = "MOD_DOC"},
+    {.e = MOD_SOUNDTRACKER25_NOISETRACKER10, .str = "MOD_NTK"},
     {.e = MOD_NOISETRACKER12, .str = "MOD_NTK1"},
     {.e = MOD_NOISETRACKER20, .str = "MOD_NTK2"},
     {.e = MOD_STARTREKKER4, .str = "MOD_FLT4"},
@@ -752,6 +755,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
     {.e = MOD_FASTTRACKER, .str = "MOD_PTKCOMP"},
     {.e = MOD_NOISETRACKER, .str = "MOD_NTKAMP"},
     {.e = MOD_PTK_COMPATIBLE, .str = "MOD_PTKCOMP"},
+    {.e = MOD_SOUNDTRACKER24, .str = "MOD_DOC"},
     {.str = NULL}
   };
 

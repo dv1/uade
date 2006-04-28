@@ -1,3 +1,14 @@
+2006-04-28  Michael Doering <mld@users.sourceforge.net>
+	- Fixed bug in Soundtracker 31 instruments check introduced
+	  by fixing the misdetection of a digibooster as protracker mod which
+	  was introduced by easing accepting mods with bad length...
+	  See a pattern there, folks?!?
+	- Along the way, added a distinction between Soundtracker 2.5/
+	  Noisetracker1.0 and Soundtracker 2.4. ST2.5/NT1.0 obviously shared
+	  the same replay by Kaktus & Mahoney, while ST2.4 was still based on
+	  the old 2.3 replay by Unknown and Mnemotron (using repeat offset in
+	  bytes).
+
 2006-04-27  Michael Doering <mld@users.sourceforge.net>
 	- Fixed misdetection of a digibooster mod as protracker in
 	  amifilemagic.
