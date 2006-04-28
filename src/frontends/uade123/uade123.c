@@ -501,8 +501,9 @@ int main(int argc, char *argv[])
 
     uade_merge_configs(&uc, &uc_cmdline);
 
+    uade_set_song_attributes(&uc, us);
+
     uade_set_config_effects(&effects, &uc);
-    uade_set_song_attributes(&uc, &effects, us);
 
     debug(uc.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
 

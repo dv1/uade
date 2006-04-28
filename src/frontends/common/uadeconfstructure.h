@@ -55,6 +55,8 @@ struct uade_config {
   int magic_detection_set;
   int no_filter;
   int no_filter_set;
+  int no_postprocessing;
+  int no_postprocessing_set;
   int no_song_end;
   int no_song_end_set;
   int one_subsong;

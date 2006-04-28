@@ -255,6 +255,9 @@ int uade_parse_subsongs(int **subsongs, char *option)
 void uade_set_config_effects(struct uade_effect *effects,
 			     const struct uade_config *uc)
 {
+  if (uc->no_postprocessing)
+    uade_effect_disable(effects, UADE_EFFECT_ALLOW);
+
   if (uc->gain_enable) {
     uade_effect_gain_set_amount(effects, uc->gain);
     uade_effect_enable(effects, UADE_EFFECT_GAIN);
@@ -492,8 +495,7 @@ static int uade_set_silence_timeout(struct uade_config *uc, const char *value)
 }
 
 
-void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
-			      struct uade_song *us)
+void uade_set_song_attributes(struct uade_config *uc, struct uade_song *us)
 {
   struct uade_attribute *a;
 
@@ -522,15 +524,15 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
   if (us->flags & ES_NO_HEADPHONES) {
     uc->headphones_set = 1;
     uc->headphones = 0;
-    uade_effect_disable(ue, UADE_EFFECT_HEADPHONES);
   }
   if (us->flags & ES_NO_PANNING) {
     uc->panning_enable_set = 1;
     uc->panning_enable = 0;
-    uade_effect_disable(ue, UADE_EFFECT_PAN);
   }
-  if (us->flags & ES_NO_POSTPROCESSING)
-    uade_effect_disable(ue, UADE_EFFECT_ALLOW);
+  if (us->flags & ES_NO_POSTPROCESSING) {
+    uc->no_postprocessing = 1;
+    uc->no_postprocessing_set = 1;
+  }
   if (us->flags & ES_NTSC) {
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
@@ -550,15 +552,19 @@ void uade_set_song_attributes(struct uade_config *uc, struct uade_effect *ue,
   while (a != NULL) {
     switch (a->type) {
     case ES_GAIN:
-      uade_effect_gain_set_amount(ue, a->d);
-      uade_effect_enable(ue, UADE_EFFECT_GAIN);      
+      uc->gain = a->d;
+      uc->gain_set = 1;
+      uc->gain_enable = 1;
+      uc->gain_enable_set = 1;
       break;
     case ES_INTERPOLATOR:
       uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
       break;
     case ES_PANNING:
-      uade_effect_pan_set_amount(ue, a->d);
-      uade_effect_enable(ue, UADE_EFFECT_PAN);
+      uc->panning = a->d;
+      uc->panning_set = 1;
+      uc->panning_enable = 1;
+      uc->panning_enable_set = 1;
       break;
     case ES_SILENCE_TIMEOUT:
       uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);

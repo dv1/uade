@@ -372,8 +372,8 @@ static int initialize_song(char *filename)
   if ((uadesong = uade_alloc_song(filename)) == NULL)
     return FALSE;
 
+  uade_set_song_attributes(&config, uadesong);
   uade_set_config_effects(&effects, &config);
-  uade_set_song_attributes(&config, &effects, uadesong);
 
   ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &config);
   if (ret) {
