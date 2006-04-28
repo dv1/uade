@@ -542,6 +542,9 @@ static int process_module(char *credits, size_t credits_len, char *filename)
     process_WTWT_mod(credits, credits_len, buf, modfilelen, "DAGL", "ISH!",
 		     0x14);
   }
+
+  free(buf);
+
   return 0;
 }
 

@@ -1,5 +1,6 @@
 2006-04-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed hexdump of module/player to show 2 KiBs of text.
+	- Fixed some memory leaks in eagleplayer.c and songinfo.c.
 
 2006-04-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed another config bug introduced by last config refactorization.

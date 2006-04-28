@@ -620,6 +620,9 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
       fprintf(stderr, "Unrecognized option: %s\n", items[i]);
     }
 
+    for (i = 0; items[i] != NULL; i++)
+      free(items[i]);
+
     free(items);
   }
 
@@ -823,6 +826,9 @@ int uade_read_song_conf(const char *filename)
       if (parse_es_attributes(s, items[i], lineno))
 	continue;
     }
+
+    for (i = 0; items[i] != NULL; i++)
+      free(items[i]);
 
     free(items);
   }
