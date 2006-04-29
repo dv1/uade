@@ -217,7 +217,7 @@ void uade_gui_seek_subsong(int to)
 void uade_gui_subsong_changed(int subsong)
 {
     if (seekpopup) {
-	GTK_ADJUSTMENT(subsong_adj)->value=subsong;
+	GTK_ADJUSTMENT(subsong_adj)->value = subsong;
         gtk_adjustment_changed(GTK_ADJUSTMENT(subsong_adj));	/*here GTK gets the signal */
 	}
 }
@@ -274,7 +274,7 @@ static void uade_seek_previous(void)
 static void uade_seek_update_display(int subsong)
 {
     /*update scale with new subsong value */
-    GTK_ADJUSTMENT(subsong_adj)->value=subsong;
+    GTK_ADJUSTMENT(subsong_adj)->value = subsong;
     gtk_adjustment_value_changed(GTK_ADJUSTMENT(subsong_adj));	/*here GTK gets the signal */
 }
 

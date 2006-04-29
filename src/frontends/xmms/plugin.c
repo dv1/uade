@@ -465,9 +465,7 @@ static void *play_loop(void *arg)
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 
-	    uade_unlock();
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
-	    uade_lock();
 
 	    uade_info_string();
 	  }
