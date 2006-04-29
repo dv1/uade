@@ -17,7 +17,8 @@ To be solved:
 	    XMMS plugin. (shd)
 2005-12-06: Is FA-18 Interceptor still buggy? (shd)
 2005-12-06: Uadecore possibly consumes too much CPU time (shd)
-2005-12-06: FRED player ends some songs too soon (shd)
+2005-12-06: FRED player ends some songs too soon. This is an ancient bug
+	    caused by my faulty song end detection heuristics. (shd)
 2005-12-06: Remove dupes when loading contentdb (shd)
 2005-11-03: 'make soundcheck' uses uade.conf if it can find one. (shd)
 2005-10-30: THM.BlueAngel69 subsong 2 is very buggy (shd)
