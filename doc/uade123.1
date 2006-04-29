@@ -289,8 +289,7 @@ always_ends          A song will always end. This means that song end
                      can be ignored. However, timeouts given from
                      command line will override this setting.
 .br
-broken_song_end      Eagleplayer can not detect song end so timeouts should
-                     be enabled. NOT IMPLEMENTED.
+broken_song_end      Song end reported by the eagleplayer is ignored.
 .br
 content_detection    A song can only be detected by contents, never
                      by filename prefix or postfix.
@@ -333,6 +332,8 @@ Valid options are:
 	a500
 .br
 	a1200
+.br
+        broken_song_end (songends reported by the eagleplayer are ignored)
 .br
 	gain=x
 .br
