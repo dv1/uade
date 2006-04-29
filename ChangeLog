@@ -11,6 +11,8 @@
 	- Marked song end detection of FRED format as defective in
 	  eagleplayer.conf:
 	      Fred    prefixes=fred    broken_song_end
+	- Unified eagleplayer.conf and song.conf settings. See uade123
+	  man page for those options.
 
 2006-04-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed another config bug introduced by last config refactorization.

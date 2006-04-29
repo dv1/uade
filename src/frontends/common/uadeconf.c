@@ -131,84 +131,64 @@ double uade_convert_to_double(const char *value, double def, double low,
 }
 
 
-void uade_handle_song_attributes(struct uade_config *uc,
-				 char *playername,
-				 size_t playernamelen,
-				 struct uade_song *us)
+static void handle_attributes(struct uade_config *uc,
+			      char *playername, size_t playernamelen,
+			      int flags, struct uade_attribute *attributelist)
 {
   struct uade_attribute *a;
+  struct atcon {
+    int f;
+    int o;
+    char *v;
+  };
+  struct atcon optlist[] = {
+    {.f = ES_A500,              .o = UC_FILTER_TYPE,       .v = "a500"},
+    {.f = ES_A1200,             .o = UC_FILTER_TYPE,       .v = "a1200"},
+    {.f = ES_ALWAYS_ENDS,       .o = UC_DISABLE_TIMEOUTS},
+    {.f = ES_BROKEN_SONG_END,   .o = UC_NO_SONG_END},
+    {.f = ES_CONTENT_DETECTION, .o = UC_MAGIC_DETECTION},
+    {.f = ES_LED_OFF,           .o = UC_FORCE_LED_OFF},
+    {.f = ES_LED_ON,            .o = UC_FORCE_LED_ON},
+    {.f = ES_NO_FILTER,         .o = UC_NO_FILTER},
+    {.f = ES_NO_HEADPHONES,     .o = UC_NO_HEADPHONES},
+    {.f = ES_NO_PANNING,        .o = UC_NO_PANNING},
+    {.f = ES_NO_POSTPROCESSING, .o = UC_NO_POSTPROCESSING},
+    {.f = ES_NTSC,              .o = UC_NTSC},
+    {.f = ES_ONE_SUBSONG,       .o = UC_ONE_SUBSONG},
+    {.f = ES_PAL,               .o = UC_PAL},
+    {.f = ES_SPEED_HACK,        .o = UC_SPEED_HACK},
+    {.f = 0}
+  };
+  size_t i;
 
-  if (us->flags & ES_A500) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A500;
+  for (i = 0; optlist[i].f != 0; i++) {
+    if (flags & optlist[i].f)
+      uade_set_config_option(uc, optlist[i].o, optlist[i].v);
   }
-  if (us->flags & ES_A1200) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A1200;
-  }
-  if (us->flags & ES_BROKEN_SONG_END)
-    uade_set_config_option(uc, UC_NO_SONG_END, NULL);
-  if (us->flags & ES_LED_OFF) {
-    uc->led_forced_set = 1;
-    uc->led_forced = 1;
-    uc->led_state = 0;
-  }
-  if (us->flags & ES_LED_ON) {
-    uc->led_forced_set = 1;
-    uc->led_forced = 1;
-    uc->led_state = 1;
-  }
-  if (us->flags & ES_NO_FILTER) {
-    uc->no_filter_set = 1;
-    uc->no_filter = 1;
-  }
-  if (us->flags & ES_NO_HEADPHONES) {
-    uc->headphones_set = 1;
-    uc->headphones = 0;
-  }
-  if (us->flags & ES_NO_PANNING) {
-    uc->panning_enable_set = 1;
-    uc->panning_enable = 0;
-  }
-  if (us->flags & ES_NO_POSTPROCESSING) {
-    uc->no_postprocessing = 1;
-    uc->no_postprocessing_set = 1;
-  }
-  if (us->flags & ES_NTSC) {
-    uc->use_ntsc_set = 1;
-    uc->use_ntsc = 1;
-  }
-  if (us->flags & ES_NTSC)
-    uade_set_config_option(uc, UC_NTSC, NULL);
-  if (us->flags & ES_ONE_SUBSONG) {
-    uc->one_subsong_set = 1;
-    uc->one_subsong = 1;
-  }
-  if (us->flags & ES_PAL)
-    uade_set_config_option(uc, UC_PAL, NULL);
-  if (us->flags & ES_SPEED_HACK)
-    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
 
-  a = us->songattributes;
+  if (flags & ES_NEVER_ENDS)
+    fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
+  if (flags & ES_VBLANK)
+    fprintf(stderr, "uade: ES_VBLANK not implemented.\n");
+
+  a = attributelist;
   while (a != NULL) {
     switch (a->type) {
     case ES_GAIN:
-      uc->gain = a->d;
-      uc->gain_set = 1;
-      uc->gain_enable = 1;
-      uc->gain_enable_set = 1;
+      uade_set_config_option(uc, UC_GAIN, a->s);
       break;
     case ES_INTERPOLATOR:
       uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
       break;
     case ES_PANNING:
-      uc->panning = a->d;
-      uc->panning_set = 1;
-      uc->panning_enable = 1;
-      uc->panning_enable_set = 1;
+      uade_set_config_option(uc, UC_PANNING_VALUE, a->s);
       break;
     case ES_PLAYER:
-      snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
+      if (playername) {
+	snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
+      } else {
+	fprintf(stderr, "Error: attribute handling was given playername == NULL.\n");
+      }
       break;
     case ES_SILENCE_TIMEOUT:
       uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
@@ -228,9 +208,16 @@ void uade_handle_song_attributes(struct uade_config *uc,
     }
     a = a->next;
   }
+}
 
-  if (us->flags & ES_VBLANK)
-    fprintf(stderr, "vblank song option not implemented.\n");
+
+void uade_handle_song_attributes(struct uade_config *uc,
+				 char *playername,
+				 size_t playernamelen,
+				 struct uade_song *us)
+{
+  handle_attributes(uc, playername, playernamelen,
+		    us->flags, us->songattributes);
 }
 
 
@@ -282,12 +269,13 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
   MERGE_OPTION(filter_type);
-  MERGE_OPTION(led_forced);
   MERGE_OPTION(gain);
   MERGE_OPTION(gain_enable);
   MERGE_OPTION(headphones);
   MERGE_OPTION(ignore_player_check);
   MERGE_OPTION(interpolator);
+  MERGE_OPTION(led_forced);
+  MERGE_OPTION(led_state);
   MERGE_OPTION(no_filter);
   MERGE_OPTION(no_postprocessing);
   MERGE_OPTION(no_song_end);
@@ -465,6 +453,18 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->no_filter_set = 1;
     uc->no_filter = 1;
     break;
+  case UC_NO_HEADPHONES:
+    uc->headphones_set = 1;
+    uc->headphones = 0;
+    break;
+  case UC_NO_PANNING:
+    uc->panning_enable_set = 1;
+    uc->panning_enable = 0;
+    break;
+  case  UC_NO_POSTPROCESSING:
+    uc->no_postprocessing = 1;
+    uc->no_postprocessing_set = 1;
+    break;
   case UC_NO_SONG_END:
     uc->no_song_end = 1;
     uc->no_song_end_set = 1;
@@ -536,29 +536,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
-  if (ep->attributes & ES_A500)
-    uade_set_config_option(uc, UC_FILTER_TYPE, "a500");
-
-  if (ep->attributes & ES_A1200)
-    uade_set_config_option(uc, UC_FILTER_TYPE, "a1200");
-
-  if (ep->attributes & ES_ALWAYS_ENDS)
-    uade_set_config_option(uc, UC_DISABLE_TIMEOUTS, NULL);
-
-  if (ep->attributes & ES_BROKEN_SONG_END)
-    uade_set_config_option(uc, UC_NO_SONG_END, NULL);
-
-  if (ep->attributes & ES_CONTENT_DETECTION)
-    uade_set_config_option(uc, UC_MAGIC_DETECTION, NULL);
-
-  if (ep->attributes & ES_NTSC)
-    uade_set_config_option(uc, UC_NTSC, NULL);
-
-  if (ep->attributes & ES_PAL)
-    uade_set_config_option(uc, UC_PAL, NULL);
-
-  if (ep->attributes & ES_SPEED_HACK)
-    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
+  handle_attributes(uc, NULL, 0, ep->flags, ep->attributelist);
 }
 
 

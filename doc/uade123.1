@@ -265,9 +265,8 @@ lines are ignored.
 .SH eagleplayer.conf
 Each line in
 .BR eagleplayer.conf
-is a configuration file for setting eagleplayer specific options. It used
-used, among other things, to specify file name extensions to different
-formats. It has the format:
+sets eagleplayer specific options. It is used, among other things,
+to specify file name extensions to different formats. It has the format:
 .sp 1
 playername prefixes=prefix1,prefix2,... [opt1 opt2 ...] [comment]
 .sp 1
@@ -278,32 +277,12 @@ is a list of file prefixes and postfixes that are associated with
 this eagleplayer.
 .BR opt1 ,
 .BR opt2
-and so forth are options that can be given to the player. Valid options are:
+and so forth are options that can be given to the player.
+
+Valid options for eagleplayer.conf are listed in the
+.BR song.conf
+section.
 .sp 1
-a500                 Use A500 filter emulation.
-.br
-a1200                Use A1200 filter emulation.
-.br
-always_ends          A song will always end. This means that song end
-                     detection code is perfect so timeouts in uade.conf
-                     can be ignored. However, timeouts given from
-                     command line will override this setting.
-.br
-broken_song_end      Song end reported by the eagleplayer is ignored.
-.br
-content_detection    A song can only be detected by contents, never
-                     by filename prefix or postfix.
-.br
-ntsc                 Uses NTSC timing (can be buggy)
-.br
-pal                  Uses PAL timing
-.br
-speed_hack           Enable speed hack.
-
-.BR comment
-is a tag after which everything is considered just a comment
-about the line.
-
 Some example lines for eagleplayer.conf:
 .sp 1
 custom          prefixes=cust
@@ -327,53 +306,68 @@ The file shall have lines of following format:
 .sp 1
 md5=XXX option1 [option2 ...] [comment: YYY]
 .sp 1
-Valid options are:
+Valid options for eagleplayer.conf and song.conf:
 .sp 1
-	a500
+a500                 Use A500 filter emulation
 .br
-	a1200
+a1200                Use A1200 filter emulation
 .br
-        broken_song_end (songends reported by the eagleplayer are ignored)
+always_ends          A song will always end. This means that song end
+                     detection code is perfect so timeouts in uade.conf
+                     can be ignored. However, timeouts given from
+                     command line will override this setting.
 .br
-	gain=x
+broken_song_end      Song end reported by the eagleplayer is ignored
 .br
-	interpolator=x
+content_detection    A song can only be detected by contents, never
+                     by filename prefix or postfix
 .br
-	led_off
+gain=x               Set gain value to x
 .br
-	led_on
+interpolator=x       Select interpolator
 .br
-	no_filter
+led_off              Force LED off
 .br
-	no_headphones,
+led_on               Force LED on
 .br
-	no_panning
+no_filter            No filtering (avoid this option, using a1200 is
+                     better)
 .br
-	no_postprocessing
+no_headphones,       No headphone effect
 .br
-	ntsc
+no_panning           No panning
 .br
-	one_subsong
+no_postprocessing    No postprocessing effects
 .br
-	pal
+ntsc                 Uses NTSC timing (can be buggy)
 .br
-	panning=x
+one_subsong          Play only one subsong per file
 .br
-	player=name (where name is an eagleplayer name in players/ dir)
+pal                  Uses PAL timing
 .br
-	silence_timeout=x
+panning=x            Set panning value to x
 .br
-	speed_hack
+player=name          Set eagleplayer, where name is the directory entry
+                     in players/ dir. This option is not allowed in
+                     eagleplayer.conf.
 .br
-	subsongs=x,y,... (not implemented yet)
+silence_timeout=x    Set silence timeout
 .br
-	subsong_timeout=x
+speed_hack           Enable speed hack
 .br
-	timeout=x
+subsongs=x,y,...     Set playable subsong (not implemented yet)
 .br
-	vblank (not implemented yet)
+subsong_timeout=x    Set subsong timeout
+.br
+timeout=x            Set timeout
+.br
+vblank               Play in vblank mode (not implemented yet)
 .sp 1
-Those options should be self-explanatory ;) A few example lines:
+.BR comment
+is a tag after which everything is considered just a comment
+about the line.
+.sp 1
+Those options should be self-explanatory ;) A few example lines for song.conf:
 .sp 1
 md5=09ad7aed28ec0043e232060546259767 broken_subsongs comment cust.Bubble_Bobble reports wrong subsong numbers                        
 .sp 1

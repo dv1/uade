@@ -39,7 +39,8 @@ struct eagleplayer {
   char *playername;
   size_t nextensions;
   char **extensions;
-  int attributes;
+  int flags;
+  struct uade_attribute *attributelist;
 };
 
 
@@ -79,7 +80,6 @@ struct uade_song {
   int nsubsongs;
   uint8_t *subsongs;
   struct uade_attribute *songattributes;
-  struct uade_attribute *epattributes;
 
   char md5[33];
 

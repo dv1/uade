@@ -19,6 +19,9 @@ enum uade_option {
   UC_INTERPOLATOR,
   UC_MAGIC_DETECTION,
   UC_NO_FILTER,
+  UC_NO_HEADPHONES,
+  UC_NO_PANNING,
+  UC_NO_POSTPROCESSING,
   UC_NO_SONG_END,
   UC_NTSC,
   UC_ONE_SUBSONG,
@@ -50,6 +53,7 @@ struct uade_config {
   int led_forced;
   int led_forced_set;
   int led_state;
+  int led_state_set;
   int gain_enable;
   int gain_enable_set;
   float gain; /* should be removed of uade_effect integrated */
