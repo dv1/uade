@@ -8,34 +8,30 @@
 #include <uadeconfstructure.h>
 
 
-#define EP_A500              (1 << 0)
-#define EP_A1200             (1 << 1)
-#define EP_ALWAYS_ENDS       (1 << 2)
-#define EP_CONTENT_DETECTION (1 << 3)
-#define EP_NEVER_ENDS        (1 << 4)
-#define EP_SPEED_HACK        (1 << 5)
-#define EP_NTSC              (1 << 6)
-
 #define ES_A500              (1 <<  0)
 #define ES_A1200             (1 <<  1)
-#define ES_GAIN              (1 <<  2)
-#define ES_INTERPOLATOR      (1 <<  3)
-#define ES_LED_OFF           (1 <<  4)
-#define ES_LED_ON            (1 <<  5)
-#define ES_NO_FILTER         (1 <<  6)
-#define ES_NO_HEADPHONES     (1 <<  7)
-#define ES_NO_PANNING        (1 <<  8)
-#define ES_NO_POSTPROCESSING (1 <<  9)
-#define ES_NTSC              (1 << 10)
-#define ES_ONE_SUBSONG       (1 << 11)
-#define ES_PAL               (1 << 12)
-#define ES_PANNING           (1 << 13)
-#define ES_SILENCE_TIMEOUT   (1 << 14)
-#define ES_SPEED_HACK        (1 << 15)
-#define ES_SUBSONGS          (1 << 16)
-#define ES_SUBSONG_TIMEOUT   (1 << 17)
-#define ES_TIMEOUT           (1 << 18)
-#define ES_VBLANK            (1 << 19)
+#define ES_ALWAYS_ENDS       (1 <<  2)
+#define ES_CONTENT_DETECTION (1 <<  3)
+#define ES_GAIN              (1 <<  4)
+#define ES_INTERPOLATOR      (1 <<  5)
+#define ES_LED_OFF           (1 <<  6)
+#define ES_LED_ON            (1 <<  7)
+#define ES_NEVER_ENDS        (1 <<  8)
+#define ES_NO_FILTER         (1 <<  9)
+#define ES_NO_HEADPHONES     (1 << 10)
+#define ES_NO_PANNING        (1 << 11)
+#define ES_NO_POSTPROCESSING (1 << 12)
+#define ES_NTSC              (1 << 13)
+#define ES_ONE_SUBSONG       (1 << 14)
+#define ES_PAL               (1 << 15)
+#define ES_PANNING           (1 << 16)
+#define ES_PLAYER            (1 << 17)
+#define ES_SILENCE_TIMEOUT   (1 << 18)
+#define ES_SPEED_HACK        (1 << 19)
+#define ES_SUBSONGS          (1 << 20)
+#define ES_SUBSONG_TIMEOUT   (1 << 21)
+#define ES_TIMEOUT           (1 << 22)
+#define ES_VBLANK            (1 << 23)
 
 
 struct eagleplayer {
@@ -108,7 +104,6 @@ struct uade_song {
 int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
 struct uade_song *uade_alloc_song(const char *filename);
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     const char *basedir,
 					     struct uade_config *uc);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);

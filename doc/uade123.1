@@ -265,7 +265,9 @@ lines are ignored.
 .SH eagleplayer.conf
 Each line in
 .BR eagleplayer.conf
-has the format:
+is a configuration file for setting eagleplayer specific options. It used
+used, among other things, to specify file name extensions to different
+formats. It has the format:
 .sp 1
 playername prefixes=prefix1,prefix2,... [opt1 opt2 ...] [comment]
 .sp 1
@@ -287,10 +289,15 @@ always_ends          A song will always end. This means that song end
                      can be ignored. However, timeouts given from
                      command line will override this setting.
 .br
+broken_song_end      Eagleplayer can not detect song end so timeouts should
+                     be enabled. NOT IMPLEMENTED.
+.br
 content_detection    A song can only be detected by contents, never
                      by filename prefix or postfix.
 .br
 ntsc                 Uses NTSC timing (can be buggy)
+.br
+pal                  Uses PAL timing
 .br
 speed_hack           Enable speed hack.
 
@@ -323,39 +330,61 @@ md5=XXX option1 [option2 ...] [comment: YYY]
 .sp 1
 Valid options are:
 .sp 1
-	\\broken_subsongs
+	a500
 .br
-	\\led_off
+	a1200
 .br
-	\\led_on
+	gain=x
 .br
-	\\no_headphones,
+	interpolator=x
 .br
-	\\no_panning
+	led_off
 .br
-	\\no_postprocessing
+	led_on
 .br
-	\\ntsc
+	no_filter
 .br
-	\\speed_hack
+	no_headphones,
 .br
-	\\subsongs=x,y,...
+	no_panning
 .br
-	\\vblank
+	no_postprocessing
+.br
+	ntsc
+.br
+	one_subsong
+.br
+	pal
+.br
+	panning=x
+.br
+	player=name (where name is an eagleplayer name in players/ dir)
+.br
+	silence_timeout=x
+.br
+	speed_hack
+.br
+	subsongs=x,y,... (not implemented yet)
+.br
+	subsong_timeout=x
+.br
+	timeout=x
+.br
+	vblank (not implemented yet)
 .sp 1
 Those options should be self-explanatory ;) A few example lines:
 .sp 1
-md5=09ad7aed28ec0043e232060546259767 \\broken_subsongs \\comment cust.Bubble_Bobble reports wrong subsong numbers                        
+md5=09ad7aed28ec0043e232060546259767 broken_subsongs comment cust.Bubble_Bobble reports wrong subsong numbers                        
 .sp 1
-md5=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \\speed_hack \\comment this is the only song in format foo that needs speedhack    
+md5=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx speed_hack comment this is the only song in format foo that needs speedhack    
 .sp 1
-md5=yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy \\led_off \\comment this song just sucks with filtering                  
+md5=yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy led_off comment this song just sucks with filtering                  
 .sp 1
-md5=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz \\led_on \\comment turning LED ON makes this song sound c00l       
+md5=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz led_on comment turning LED ON makes this song sound c00l       
 .sp 1
-md5=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww \\no_panning subsongs=2,5 \\comment only subsongs 2 and 5 sound good
+md5=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww no_panning subsongs=2,5 comment only subsongs 2 and 5 sound good
 .sp 1
-md5=c351076a79033336a0ea1747b6d78783    \\ntsc \\comment Play Platoon song in NTSC mode
+md5=c351076a79033336a0ea1747b6d78783 ntsc comment Play Platoon song in NTSC mode
 .SH uade.conf
 .BR uade.conf
 sets default variables for configuration settings. Each line

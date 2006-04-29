@@ -302,13 +302,12 @@ static struct eagleplayer *analyze_file_format(int *content,
 
 
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     const char *basedir,
 					     struct uade_config *uc)
 {
   struct eagleplayer *ep;
   int content;
 
-  ep = analyze_file_format(&content, modulename, basedir, uc->verbose);
+  ep = analyze_file_format(&content, modulename, uc->basedir.name, uc->verbose);
 
   if (ep == NULL)
     return NULL;
@@ -319,7 +318,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   if (uc->magic_detection && content == 0)
     return NULL;
 
-  if ((ep->attributes & EP_CONTENT_DETECTION) != 0)
+  if ((ep->attributes & ES_CONTENT_DETECTION) != 0)
     return NULL;
 
   return ep;
@@ -517,13 +516,14 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   size_t i, j;
 
   struct attrlist epattrs[] = {
-    {.s = "a500", .e = EP_A500},
-    {.s = "a1200", .e = EP_A1200},
-    {.s = "always_ends", .e = EP_ALWAYS_ENDS},
-    {.s = "content_detection", .e = EP_CONTENT_DETECTION},
-    {.s = "never_ends", .e = EP_NEVER_ENDS},
-    {.s = "ntsc", .e = EP_NTSC},
-    {.s = "speed_hack", .e = EP_SPEED_HACK},
+    {.s = "a500",              .e = ES_A500},
+    {.s = "a1200",             .e = ES_A1200},
+    {.s = "always_ends",       .e = ES_ALWAYS_ENDS},
+    {.s = "content_detection", .e = ES_CONTENT_DETECTION},
+    {.s = "never_ends",        .e = ES_NEVER_ENDS},
+    {.s = "ntsc",              .e = ES_NTSC},
+    {.s = "pal",               .e = ES_PAL},
+    {.s = "speed_hack",        .e = ES_SPEED_HACK},
     {.s = NULL}
   };
 
@@ -614,7 +614,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
       if (epattrs[j].s != NULL)
 	continue;
 
-      if (strncasecmp(items[i], "comment:", 8) == 0)
+      if (strncasecmp(items[i], "comment:", 7) == 0)
 	break;
 
       fprintf(stderr, "Unrecognized option: %s\n", items[i]);
@@ -679,30 +679,31 @@ static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
   size_t len;
 
   struct attrlist esattrs[] = {
-    {.s = "\\a500",            .e = ES_A500},
-    {.s = "\\a1200",           .e = ES_A1200},
-    {.s = "\\led_off",         .e = ES_LED_OFF},
-    {.s = "\\led_on",          .e = ES_LED_ON},
-    {.s = "\\no_filter",       .e = ES_NO_FILTER},
-    {.s = "\\no_headphones",   .e = ES_NO_HEADPHONES},
-    {.s = "\\no_panning",      .e = ES_NO_PANNING},
-    {.s = "\\no_postprocessing", .e = ES_NO_POSTPROCESSING},
-    {.s = "\\ntsc",            .e = ES_NTSC},
-    {.s = "\\one_subsong",     .e = ES_ONE_SUBSONG},
-    {.s = "\\pal",             .e = ES_PAL},
-    {.s = "\\speed_hack",      .e = ES_SPEED_HACK},
-    {.s = "\\vblank",          .e = ES_VBLANK},
+    {.s = "a500",            .e = ES_A500},
+    {.s = "a1200",           .e = ES_A1200},
+    {.s = "led_off",         .e = ES_LED_OFF},
+    {.s = "led_on",          .e = ES_LED_ON},
+    {.s = "no_filter",       .e = ES_NO_FILTER},
+    {.s = "no_headphones",   .e = ES_NO_HEADPHONES},
+    {.s = "no_panning",      .e = ES_NO_PANNING},
+    {.s = "no_postprocessing", .e = ES_NO_POSTPROCESSING},
+    {.s = "ntsc",            .e = ES_NTSC},
+    {.s = "one_subsong",     .e = ES_ONE_SUBSONG},
+    {.s = "pal",             .e = ES_PAL},
+    {.s = "speed_hack",      .e = ES_SPEED_HACK},
+    {.s = "vblank",          .e = ES_VBLANK},
     {.s = NULL}
   };
 
   struct attrlist esvalueattrs[] = {
-    {.s = "\\gain",            .t = UA_DOUBLE, .e = ES_GAIN},
-    {.s = "\\interpolator",    .t = UA_STRING, .e = ES_INTERPOLATOR},
-    {.s = "\\panning",         .t = UA_DOUBLE, .e = ES_PANNING},
-    {.s = "\\silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
-    {.s = "\\subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
-    {.s = "\\subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
-    {.s = "\\timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
+    {.s = "gain",            .t = UA_DOUBLE, .e = ES_GAIN},
+    {.s = "interpolator",    .t = UA_STRING, .e = ES_INTERPOLATOR},
+    {.s = "panning",         .t = UA_DOUBLE, .e = ES_PANNING},
+    {.s = "player",          .t = UA_STRING, .e = ES_PLAYER},
+    {.s = "silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
+    {.s = "subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
+    {.s = "subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
+    {.s = "timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
     {.s = NULL}
   };
 

@@ -1,8 +1,11 @@
 #ifndef _UADECONF_STRUCTURE_H_
 #define _UADECONF_STRUCTURE_H_
 
+#include <limits.h>
+
 enum uade_option {
   UC_ACTION_KEYS = 0x1000,
+  UC_BASE_DIR,
   UC_BUFFER_TIME,
   UC_DISABLE_TIMEOUTS,
   UC_ENABLE_TIMEOUTS,
@@ -31,9 +34,15 @@ enum uade_option {
   UC_VERBOSE
 };
 
+struct uade_dir {
+  char name[PATH_MAX];
+};
+
 struct uade_config {
   int action_keys;
   int action_keys_set;
+  struct uade_dir basedir;
+  int basedir_set;
   int buffer_time;
   int buffer_time_set;
   int filter_type;

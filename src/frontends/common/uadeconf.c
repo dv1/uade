@@ -17,9 +17,8 @@
 
 #include "strlrep.h"
 #include "uadeconf.h"
+#include "uadeconfig.h"
 #include "amigafilter.h"
-
-static char config_filename[PATH_MAX];
 
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
@@ -97,20 +96,20 @@ static char *nextnonspace(const char *foo)
 }
 
 
+/* The function sets the default options. No *_set variables are set because
+   we don't want any option to become mergeable by default. See
+   uade_merge_configs(). */
 void uade_config_set_defaults(struct uade_config *uc)
 {
   memset(uc, 0, sizeof(*uc));
   uc->action_keys = 1;
-  uc->action_keys_set = 1;
+  strlcpy(uc->basedir.name, UADE_CONFIG_BASE_DIR, sizeof uc->basedir.name);
   uade_set_filter_type(uc, NULL);
   uc->gain = 1.0;
   uc->panning = 0.7;
   uc->silence_timeout = 20;
-  uc->silence_timeout_set = 1;
   uc->subsong_timeout = 512;
-  uc->subsong_timeout_set = 1;
   uc->timeout = -1;
-  uc->timeout_set = 1;
   uc->use_timeouts = 1;
 }
 
@@ -121,8 +120,6 @@ double uade_convert_to_double(const char *value, double def, double low,
   char *endptr;
   double v;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for %s in config file %s\n",
-	    config_filename, type);
     return def;
   }
   v = strtod(value, &endptr);
@@ -131,6 +128,107 @@ double uade_convert_to_double(const char *value, double def, double low,
     v = def;
   }
   return v;
+}
+
+
+void uade_handle_song_attributes(struct uade_config *uc,
+				 char *playername,
+				 size_t playernamelen,
+				 struct uade_song *us)
+{
+  struct uade_attribute *a;
+
+  if (us->flags & ES_A500) {
+    uc->filter_type_set = 1;
+    uc->filter_type = FILTER_MODEL_A500;
+  }
+  if (us->flags & ES_A1200) {
+    uc->filter_type_set = 1;
+    uc->filter_type = FILTER_MODEL_A1200;
+  }
+  if (us->flags & ES_LED_OFF) {
+    uc->led_forced_set = 1;
+    uc->led_forced = 1;
+    uc->led_state = 0;
+  }
+  if (us->flags & ES_LED_ON) {
+    uc->led_forced_set = 1;
+    uc->led_forced = 1;
+    uc->led_state = 1;
+  }
+  if (us->flags & ES_NO_FILTER) {
+    uc->no_filter_set = 1;
+    uc->no_filter = 1;
+  }
+  if (us->flags & ES_NO_HEADPHONES) {
+    uc->headphones_set = 1;
+    uc->headphones = 0;
+  }
+  if (us->flags & ES_NO_PANNING) {
+    uc->panning_enable_set = 1;
+    uc->panning_enable = 0;
+  }
+  if (us->flags & ES_NO_POSTPROCESSING) {
+    uc->no_postprocessing = 1;
+    uc->no_postprocessing_set = 1;
+  }
+  if (us->flags & ES_NTSC) {
+    uc->use_ntsc_set = 1;
+    uc->use_ntsc = 1;
+  }
+  if (us->flags & ES_NTSC)
+    uade_set_config_option(uc, UC_NTSC, NULL);
+  if (us->flags & ES_ONE_SUBSONG) {
+    uc->one_subsong_set = 1;
+    uc->one_subsong = 1;
+  }
+  if (us->flags & ES_PAL)
+    uade_set_config_option(uc, UC_PAL, NULL);
+  if (us->flags & ES_SPEED_HACK)
+    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
+
+  a = us->songattributes;
+  while (a != NULL) {
+    switch (a->type) {
+    case ES_GAIN:
+      uc->gain = a->d;
+      uc->gain_set = 1;
+      uc->gain_enable = 1;
+      uc->gain_enable_set = 1;
+      break;
+    case ES_INTERPOLATOR:
+      uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
+      break;
+    case ES_PANNING:
+      uc->panning = a->d;
+      uc->panning_set = 1;
+      uc->panning_enable = 1;
+      uc->panning_enable_set = 1;
+      break;
+    case ES_PLAYER:
+      snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
+      break;
+    case ES_SILENCE_TIMEOUT:
+      uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
+      break;
+    case ES_SUBSONGS:
+      fprintf(stderr, "Subsongs not implemented.\n");
+      break;
+    case ES_SUBSONG_TIMEOUT:
+      uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
+      break;
+    case ES_TIMEOUT:
+      uade_set_config_option(uc, UC_TIMEOUT_VALUE, a->s);
+      break;
+    default:
+      fprintf(stderr, "Unknown song attribute integer: 0x%x\n", a->type);
+      break;
+    }
+    a = a->next;
+  }
+
+  if (us->flags & ES_VBLANK)
+    fprintf(stderr, "vblank song option not implemented.\n");
 }
 
 
@@ -145,8 +243,6 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
-
-  strlcpy(config_filename, filename, sizeof config_filename);
 
   while (fgets(line, sizeof(line), f) != NULL) {
     linenumber++;
@@ -181,6 +277,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 {
   #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
   MERGE_OPTION(action_keys);
+  MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
   MERGE_OPTION(filter_type);
   MERGE_OPTION(led_forced);
@@ -190,6 +287,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(ignore_player_check);
   MERGE_OPTION(interpolator);
   MERGE_OPTION(no_filter);
+  MERGE_OPTION(no_postprocessing);
   MERGE_OPTION(no_song_end);
   MERGE_OPTION(one_subsong);
   MERGE_OPTION(panning);
@@ -252,8 +350,9 @@ int uade_parse_subsongs(int **subsongs, char *option)
   return nsubsongs;
 }
 
-void uade_set_config_effects(struct uade_effect *effects,
-			     const struct uade_config *uc)
+
+void uade_set_effects(struct uade_effect *effects,
+		      const struct uade_config *uc)
 {
   if (uc->no_postprocessing)
     uade_effect_disable(effects, UADE_EFFECT_ALLOW);
@@ -288,6 +387,12 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       } else {
 	fprintf(stderr, "uade.conf: Unknown setting for action keys: %s\n", value);
       }
+    }
+    break;
+  case UC_BASE_DIR:
+    if (value != NULL) {
+      strlcpy(uc->basedir.name, value, sizeof uc->basedir.name);
+      uc->basedir_set = 1;
     }
     break;
   case UC_BUFFER_TIME:
@@ -429,22 +534,25 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
-  if (ep->attributes & EP_A500)
+  if (ep->attributes & ES_A500)
     uade_set_config_option(uc, UC_FILTER_TYPE, "a500");
 
-  if (ep->attributes & EP_A1200)
+  if (ep->attributes & ES_A1200)
     uade_set_config_option(uc, UC_FILTER_TYPE, "a1200");
 
-  if (ep->attributes & EP_ALWAYS_ENDS)
+  if (ep->attributes & ES_ALWAYS_ENDS)
     uade_set_config_option(uc, UC_DISABLE_TIMEOUTS, NULL);
 
-  if (ep->attributes & EP_CONTENT_DETECTION)
+  if (ep->attributes & ES_CONTENT_DETECTION)
     uade_set_config_option(uc, UC_MAGIC_DETECTION, NULL);
 
-  if (ep->attributes & EP_NTSC)
+  if (ep->attributes & ES_NTSC)
     uade_set_config_option(uc, UC_NTSC, NULL);
 
-  if (ep->attributes & EP_SPEED_HACK)
+  if (ep->attributes & ES_PAL)
+    uade_set_config_option(uc, UC_PAL, NULL);
+
+  if (ep->attributes & ES_SPEED_HACK)
     uade_set_config_option(uc, UC_SPEED_HACK, NULL);
 }
 
@@ -481,7 +589,6 @@ static int uade_set_silence_timeout(struct uade_config *uc, const char *value)
   char *endptr;
   int t;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for silence timeout in config file %s\n", config_filename);
     return -1;
   }
   t = strtol(value, &endptr, 10);
@@ -495,107 +602,11 @@ static int uade_set_silence_timeout(struct uade_config *uc, const char *value)
 }
 
 
-void uade_set_song_attributes(struct uade_config *uc, struct uade_song *us)
-{
-  struct uade_attribute *a;
-
-  if (us->flags & ES_A500) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A500;
-  }
-  if (us->flags & ES_A1200) {
-    uc->filter_type_set = 1;
-    uc->filter_type = FILTER_MODEL_A1200;
-  }
-  if (us->flags & ES_LED_OFF) {
-    uc->led_forced_set = 1;
-    uc->led_forced = 1;
-    uc->led_state = 0;
-  }
-  if (us->flags & ES_LED_ON) {
-    uc->led_forced_set = 1;
-    uc->led_forced = 1;
-    uc->led_state = 1;
-  }
-  if (us->flags & ES_NO_FILTER) {
-    uc->no_filter_set = 1;
-    uc->no_filter = 1;
-  }
-  if (us->flags & ES_NO_HEADPHONES) {
-    uc->headphones_set = 1;
-    uc->headphones = 0;
-  }
-  if (us->flags & ES_NO_PANNING) {
-    uc->panning_enable_set = 1;
-    uc->panning_enable = 0;
-  }
-  if (us->flags & ES_NO_POSTPROCESSING) {
-    uc->no_postprocessing = 1;
-    uc->no_postprocessing_set = 1;
-  }
-  if (us->flags & ES_NTSC) {
-    uc->use_ntsc_set = 1;
-    uc->use_ntsc = 1;
-  }
-  if (us->flags & ES_NTSC)
-    uade_set_config_option(uc, UC_NTSC, NULL);
-  if (us->flags & ES_ONE_SUBSONG) {
-    uc->one_subsong_set = 1;
-    uc->one_subsong = 1;
-  }
-  if (us->flags & ES_PAL)
-    uade_set_config_option(uc, UC_PAL, NULL);
-  if (us->flags & ES_SPEED_HACK)
-    uade_set_config_option(uc, UC_SPEED_HACK, NULL);
-
-  a = us->songattributes;
-  while (a != NULL) {
-    switch (a->type) {
-    case ES_GAIN:
-      uc->gain = a->d;
-      uc->gain_set = 1;
-      uc->gain_enable = 1;
-      uc->gain_enable_set = 1;
-      break;
-    case ES_INTERPOLATOR:
-      uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
-      break;
-    case ES_PANNING:
-      uc->panning = a->d;
-      uc->panning_set = 1;
-      uc->panning_enable = 1;
-      uc->panning_enable_set = 1;
-      break;
-    case ES_SILENCE_TIMEOUT:
-      uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
-      break;
-    case ES_SUBSONGS:
-      fprintf(stderr, "Subsongs not implemented.\n");
-      break;
-    case ES_SUBSONG_TIMEOUT:
-      uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
-      break;
-    case ES_TIMEOUT:
-      uade_set_config_option(uc, UC_TIMEOUT_VALUE, a->s);
-      break;
-    default:
-      fprintf(stderr, "Unknown song attribute integer: 0x%x\n", a->type);
-      break;
-    }
-    a = a->next;
-  }
-
-  if (us->flags & ES_VBLANK)
-    fprintf(stderr, "vblank song option not implemented.\n");
-}
-
-
 static int uade_set_subsong_timeout(struct uade_config *uc, const char *value)
 {
   char *endptr;
   int t;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for subsong timeout in config file %s\n", config_filename);
     return -1;
   }
   t = strtol(value, &endptr, 10);
@@ -614,7 +625,6 @@ static int uade_set_timeout(struct uade_config *uc, const char *value)
   char *endptr;
   int t;
   if (value == NULL) {
-    fprintf(stderr, "Must have a parameter value for timeout value in config file %s\n", config_filename);
     return -1;
   }
   t = strtol(value, &endptr, 10);

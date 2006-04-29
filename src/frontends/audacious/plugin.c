@@ -328,7 +328,7 @@ static int uade_is_our_file(char *filename)
   if (strncmp(filename, "uade://", 7) == 0)
     return TRUE;
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+  ep = uade_analyze_file_format(filename, &config_backup);
 
   return (ep != NULL) ? TRUE : FALSE;
 }
@@ -343,13 +343,13 @@ static int initialize_song(char *filename)
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+  config = config_backup;
+  effects = effects_backup;
+
+  ep = uade_analyze_file_format(filename, &config);
 
   if (ep == NULL)
     return FALSE;
-
-  config = config_backup;
-  effects = effects_backup;
 
   uade_set_ep_attributes(&config, ep);
 
@@ -360,20 +360,20 @@ static int initialize_song(char *filename)
 
   if (strcmp(ep->playername, "custom") == 0) {
     strlcpy(playername, modulename, sizeof playername);
-    strlcpy(gui_player_filename, modulename, sizeof gui_player_filename);
     modulename[0] = 0;
     gui_module_filename[0] = 0;
   } else {
     snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
-    strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
   }
 
   assert(uadesong == NULL);
   if ((uadesong = uade_alloc_song(filename)) == NULL)
     return FALSE;
 
-  uade_set_song_attributes(&config, uadesong);
-  uade_set_config_effects(&effects, &config);
+  uade_handle_song_attributes(&config, playername, sizeof playername, uadesong);
+  uade_set_effects(&effects, &config);
+
+  strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 
   ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &config);
   if (ret) {

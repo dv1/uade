@@ -1,6 +1,6 @@
 /* uade123 - a simple command line frontend for uadecore.
 
-   Copyright (C) 2005 Heikki Orsila <heikki.orsila@iki.fi>
+   Copyright (C) 2005-2006 Heikki Orsila <heikki.orsila@iki.fi>
 
    This source code module is dual licensed under GPL and Public Domain.
    Hence you may use _this_ module (not another code module) in any way you
@@ -52,8 +52,6 @@ FILE *uade_terminal_file;
 int uade_terminated;
 int uade_song_end_trigger;
 
-
-static char basedir[PATH_MAX];
 static int debug_mode;
 static char md5name[PATH_MAX];
 static time_t md5_load_time;
@@ -69,7 +67,7 @@ static void trivial_sigint(int sig);
 static void trivial_cleanup(void);
 
 
-static void load_content_db(void)
+static void load_content_db(struct uade_config *uc)
 {
   struct stat st;
   time_t curtime = time(NULL);
@@ -97,7 +95,7 @@ static void load_content_db(void)
     }
   }
 
-  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+  snprintf(name, sizeof name, "%s/contentdb", uc->basedir.name);
   if (stat(name, &st) == 0)
     uade_read_content_db(name);
 }
@@ -167,8 +165,6 @@ int main(int argc, char *argv[])
   uade_config_set_defaults(&uc_loaded);
   uade_config_set_defaults(&uc_cmdline);
 
-  uade_effect_set_defaults(&effects_backup);
-
   if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "Can not initialize playlist.\n");
     exit(-1);
@@ -183,33 +179,10 @@ int main(int argc, char *argv[])
       mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
   }
 
-  /* First try to load config from ~/.uade2/uade.conf */
-  uadeconf_loaded = 0;
-  if (home) {
-    snprintf(uadeconfname, sizeof uadeconfname, "%s/.uade2/uade.conf", home);
-    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
-  }
-  if (uadeconf_loaded == 0) {
-    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
-    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
-  }
-
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "Too long a string for option %c.\n", ret); \
          exit(-1); \
       }
-
-  songconf_loaded = 0;
-  if (home != NULL) {
-    snprintf(songconfname, sizeof songconfname, "%s/.uade2/song.conf", home);
-    songconf_loaded = uade_read_song_conf(songconfname);
-  }
-  if (songconf_loaded == 0) {
-    snprintf(songconfname, sizeof songconfname, "%s/song.conf", UADE_CONFIG_BASE_DIR);
-    songconf_loaded = uade_read_song_conf(songconfname);
-  }
-
-  load_content_db();
 
   while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
     switch (ret) {
@@ -319,7 +292,7 @@ int main(int argc, char *argv[])
       exit(-1);
 
     case OPT_BASEDIR:
-      GET_OPT_STRING(basedir);
+      uade_set_config_option(&uc_cmdline, UC_BASE_DIR, optarg);
       break;
 
     case OPT_STDERR:
@@ -360,21 +333,51 @@ int main(int argc, char *argv[])
     }
   }
 
+  /* First try to load config from ~/.uade2/uade.conf */
+  uadeconf_loaded = 0;
+  if (uc_cmdline.basedir_set) {
+    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", uc_cmdline.basedir.name);
+    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
+  }
+  if (uadeconf_loaded == 0 && home != NULL) {
+    snprintf(uadeconfname, sizeof uadeconfname, "%s/.uade2/uade.conf", home);
+    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
+  }
+  if (uadeconf_loaded == 0) {
+    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", uc_cmdline.basedir.name);
+    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
+  }
+
   /* Merge loaded configurations and command line options */
   uc = uc_loaded;
   uade_merge_configs(&uc, &uc_cmdline);
 
   if (uadeconf_loaded == 0) {
-    debug(uc.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);    
+    debug(uc.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
   } else {
     debug(uc.verbose, "Loaded configuration: %s\n", uadeconfname);
   }
 
+  songconf_loaded = 0;
+  if (uc_cmdline.basedir_set) {
+    snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc_cmdline.basedir.name);
+    songconf_loaded = uade_read_song_conf(songconfname);
+  }
+  if (songconf_loaded == 0 && home != NULL) {
+    snprintf(songconfname, sizeof songconfname, "%s/.uade2/song.conf", home);
+    songconf_loaded = uade_read_song_conf(songconfname);
+  }
   if (songconf_loaded == 0) {
-    debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", UADE_CONFIG_BASE_DIR);
+    snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc.basedir.name);
+    songconf_loaded = uade_read_song_conf(songconfname);
+  }
+  if (songconf_loaded == 0) {
+    debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
   } else {
     debug(uc.verbose, "Loaded song.conf: %s\n", songconfname);
   }
+
+  load_content_db(&uc);
 
   for (i = optind; i < argc; i++) {
     playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
@@ -396,41 +399,35 @@ int main(int argc, char *argv[])
   if (uc.action_keys)
     setup_terminal();
 
-  if (basedir[0] == 0)
-    strlcpy(basedir, UADE_CONFIG_BASE_DIR, sizeof(basedir));
-
-#define CHECK_EXISTENCE(x, y) do { if ((x)[0] == 0) { fprintf(stderr, "Must have %s\n", (y)); exit(-1); } } while (0)
-
-  if (basedir[0]) {
+  do {
     DIR *bd;
-    if ((bd = opendir(basedir)) == NULL) {
-      fprintf(stderr, "Could not access dir %s: %s\n", basedir, strerror(errno));
+    if ((bd = opendir(uc.basedir.name)) == NULL) {
+      fprintf(stderr, "Could not access dir %s: %s\n", uc.basedir.name, strerror(errno));
       exit(-1);
     }
     closedir(bd);
-    snprintf(configname, sizeof(configname), "%s/uaerc", basedir);
-    if (scorename[0] == 0)
-      snprintf(scorename, sizeof(scorename), "%s/score", basedir);
-    if (uadename[0] == 0)
-      strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof(uadename));
-  } else {
-    CHECK_EXISTENCE(configname, "config name");
-    CHECK_EXISTENCE(scorename, "score name");
-    CHECK_EXISTENCE(uadename, "uade executable name");
-  }
 
-  if (access(configname, R_OK)) {
-    fprintf(stderr, "Could not read %s: %s\n", configname, strerror(errno));
-    exit(-1);
-  }
-  if (access(scorename, R_OK)) {
-    fprintf(stderr, "Could not read %s: %s\n", scorename, strerror(errno));
-    exit(-1);
-  }
-  if (access(uadename, X_OK)) {
-    fprintf(stderr, "Could not execute %s: %s\n", uadename, strerror(errno));
-    exit(-1);
-  }
+    snprintf(configname, sizeof configname, "%s/uaerc", uc.basedir.name);
+
+    if (scorename[0] == 0)
+      snprintf(scorename, sizeof scorename, "%s/score", uc.basedir.name);
+
+    if (uadename[0] == 0)
+      strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof uadename);
+
+    if (access(configname, R_OK)) {
+      fprintf(stderr, "Could not read %s: %s\n", configname, strerror(errno));
+      exit(-1);
+    }
+    if (access(scorename, R_OK)) {
+      fprintf(stderr, "Could not read %s: %s\n", scorename, strerror(errno));
+      exit(-1);
+    }
+    if (access(uadename, X_OK)) {
+      fprintf(stderr, "Could not execute %s: %s\n", uadename, strerror(errno));
+      exit(-1);
+    }
+  } while (0);
 
   setup_sighandlers();
 
@@ -438,6 +435,8 @@ int main(int argc, char *argv[])
 
   if (!audio_init(uc.buffer_time))
     goto cleanup;
+
+  uade_effect_set_defaults(&effects_backup);
 
   while (1) {
     ssize_t filesize;
@@ -449,6 +448,7 @@ int main(int argc, char *argv[])
        will become a zero-string with custom songs. */
     char modulename[PATH_MAX];
     char songname[PATH_MAX];
+    struct eagleplayer *ep = NULL;
 
     if (!playlist_get_next(modulename, sizeof modulename, &uade_playlist))
       break;
@@ -458,14 +458,15 @@ int main(int argc, char *argv[])
     uc = uc_loaded;
 
     if (playernamegiven == 0) {
-      struct eagleplayer *ep;
       debug(uc_cmdline.verbose, "\n");
-      ep = uade_analyze_file_format(modulename, basedir, &uc);
+
+      ep = uade_analyze_file_format(modulename, &uc);
       if (ep == NULL) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
 	continue;
       }
-      debug(uc_loaded.verbose || uc_cmdline.verbose, "Player candidate: %s\n", ep->playername);
+
+      debug(uc_cmdline.verbose, "Player candidate: %s\n", ep->playername);
 
       uade_set_ep_attributes(&uc, ep);
 
@@ -473,23 +474,13 @@ int main(int argc, char *argv[])
 	strlcpy(playername, modulename, sizeof playername);
 	modulename[0] = 0;
       } else {
-	snprintf(playername, sizeof playername, "%s/players/%s", basedir, ep->playername);
+	snprintf(playername, sizeof playername, "%s/players/%s", uc_cmdline.basedir.name, ep->playername);
       }
     }
 
     if (playername[0] == 0) {
       fprintf(stderr, "Empty playername.\n");
       goto cleanup;
-    }
-
-    if (access(playername, R_OK)) {
-      fprintf(stderr, "Can not read %s: %s\n", playername, strerror(errno));
-      continue;
-    }
-
-    if ((filesize = stat_file_size(playername)) < 0) {
-      fprintf(stderr, "Can not stat player: %s\n", playername);
-      continue;
     }
 
     strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
@@ -499,11 +490,19 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    /* The order is important:
+       1. handle song attributes
+       2. merge command line options */
+    uade_handle_song_attributes(&uc, playername, sizeof playername, us);
+
     uade_merge_configs(&uc, &uc_cmdline);
 
-    uade_set_song_attributes(&uc, us);
+    uade_set_effects(&effects, &uc);
 
-    uade_set_config_effects(&effects, &uc);
+    if ((filesize = stat_file_size(playername)) < 0) {
+      fprintf(stderr, "Can not stat player: %s (%s)\n", playername, strerror(errno));
+      continue;
+    }
 
     debug(uc.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
 

@@ -190,6 +190,7 @@ int uade_song_initialization(const char *scorename,
       goto cleanup;
     }
   }
+
   if (uc->use_ntsc) {
     if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, ipc)) {
       fprintf(stderr, "Can not send ntsc command.\n");

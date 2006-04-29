@@ -168,7 +168,7 @@ static void load_content_db(void)
     }
   }
 
-  snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
+  snprintf(name, sizeof name, "%s/contentdb.conf", config_backup.basedir.name);
   if (stat(name, &st) == 0)
     uade_read_content_db(name);
 }
@@ -278,6 +278,7 @@ static void uade_init(void)
   char *home = getenv("HOME");
   struct stat st;
   int config_loaded;
+  char tmpstr[PATH_MAX];
 
   set_defaults();
 
@@ -296,7 +297,7 @@ static void uade_init(void)
     goto loadsongconf;
 
   /* No uade.conf in $HOME/.uade2/. */
-  snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
+  snprintf(configname, sizeof configname, "%s/uade.conf", config_backup.basedir.name);
   if (stat(configname, &st) == 0)
     goto loadsongconf;
 
@@ -310,13 +311,14 @@ static void uade_init(void)
   config_loaded = 0;
 
   if (home) {
-    char tmpstr[PATH_MAX];
     snprintf(tmpstr, sizeof tmpstr, "%s/.uade2/song.conf", home);
     config_loaded = uade_read_song_conf(tmpstr);
   }
 
-  if (config_loaded == 0)
-    config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
+  if (config_loaded == 0) {
+    snprintf(tmpstr, sizeof tmpstr, "%s/song.conf", config_backup.basedir.name);
+    config_loaded = uade_read_song_conf(tmpstr);
+  }
 }
 
 
@@ -328,7 +330,7 @@ static int uade_is_our_file(char *filename)
   if (strncmp(filename, "uade://", 7) == 0)
     return TRUE;
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+  ep = uade_analyze_file_format(filename, &config_backup);
 
   return (ep != NULL) ? TRUE : FALSE;
 }
@@ -343,7 +345,7 @@ static int initialize_song(char *filename)
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  ep = uade_analyze_file_format(filename, UADE_CONFIG_BASE_DIR, &config_backup);
+  ep = uade_analyze_file_format(filename, &config_backup);
 
   if (ep == NULL)
     return FALSE;
@@ -356,16 +358,14 @@ static int initialize_song(char *filename)
   strlcpy(modulename, filename, sizeof modulename);
   strlcpy(gui_module_filename, filename, sizeof gui_module_filename);
 
-  snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
+  snprintf(scorename, sizeof scorename, "%s/score", config.basedir.name);
 
   if (strcmp(ep->playername, "custom") == 0) {
     strlcpy(playername, modulename, sizeof playername);
-    strlcpy(gui_player_filename, modulename, sizeof gui_player_filename);
     modulename[0] = 0;
     gui_module_filename[0] = 0;
   } else {
-    snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
-    strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
+    snprintf(playername, sizeof playername, "%s/players/%s", config.basedir.name, ep->playername);
   }
 
   assert(uadesong == NULL);
@@ -373,8 +373,10 @@ static int initialize_song(char *filename)
   if ((uadesong = uade_alloc_song(filename)) == NULL)
     return FALSE;
 
-  uade_set_song_attributes(&config, uadesong);
-  uade_set_config_effects(&effects, &config);
+  uade_handle_song_attributes(&config, playername, sizeof playername, uadesong);
+  uade_set_effects(&effects, &config);
+
+  strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 
   ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &config);
   if (ret) {
@@ -764,7 +766,7 @@ static void uade_play_file(char *filename)
 
   if (!uadepid) {
     char configname[PATH_MAX];
-    snprintf(configname, sizeof configname, "%s/uaerc", UADE_CONFIG_BASE_DIR);
+    snprintf(configname, sizeof configname, "%s/uaerc", config_backup.basedir.name);
     uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname);
   }
 
