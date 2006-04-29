@@ -3,7 +3,7 @@
  * Copyright 2005 Heikki Orsila <heikki.orsila@iki.fi>
  *
  * Loads contents of 'eagleplayer.conf' and 'song.conf'. The file formats are
- * specified in doc/eagleplayer.conf and doc/song.conf.
+ * specified in doc/uade123.1.
  *
  * This source code module is dual licensed under GPL and Public Domain.
  * Hence you may use _this_ module (not another code module) in any you
@@ -21,14 +21,16 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <strlrep.h>
 
-#include <eagleplayer.h>
-#include <amifilemagic.h>
-#include <md5.h>
-#include <uadeconf.h>
+#include "eagleplayer.h"
+#include "amifilemagic.h"
+#include "md5.h"
+#include "uadeconf.h"
+#include "unixatomic.h"
 
 
 #define LINESIZE (1024)
@@ -71,7 +73,8 @@ static struct eaglesong *songstore;
 
 
 static int ufcompare(const void *a, const void *b);
-static void uade_md5(struct uade_song *us);
+static void md5_from_buffer(char *dest, size_t destlen,
+			    uint8_t *buf, size_t bufsize);
 static void uade_analyze_song(struct uade_song *us);
 static int uade_find_playtime(const char *md5);
 
@@ -139,19 +142,6 @@ int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
 struct uade_song *uade_alloc_song(const char *filename)
 {
   struct uade_song *us = NULL;
-  FILE *f;
-  size_t fs;
-  size_t off;
-
-  if ((f = fopen(filename, "rb")) == NULL)
-    goto error;
-
-  if (fseek(f, 0, SEEK_END))
-    goto error;
-  if ((fs = ftell(f)) == 0)
-    goto error;
-  if (fseek(f, 0, SEEK_SET))
-    goto error;
 
   if ((us = calloc(1, sizeof *us)) == NULL)
     goto error;
@@ -161,31 +151,15 @@ struct uade_song *uade_alloc_song(const char *filename)
 
   strlcpy(us->module_filename, filename, sizeof us->module_filename);
 
-  us->bufsize = fs;
-  if ((us->buf = malloc(fs)) == NULL)
+  us->buf = atomic_read_file(&us->bufsize, filename);
+  if (us->buf == NULL)
     goto error;
-
-  off = 0;
-  while (off < fs) {
-    size_t ret = fread(&us->buf[off], 1, fs - off, f);
-    if (ret == 0)
-      break;
-    off += ret;
-  }
-  if (off < fs) {
-    fprintf(stderr, "Not able to read the whole file %s\n", filename);
-    goto error;
-  }
-
-  fclose(f);
 
   /* Get song specific flags and info based on the md5sum */
   uade_analyze_song(us);
   return us;
 
  error:
-  if (f != NULL)
-    fclose(f);
   if (us != NULL) {
     free(us->buf);
     free(us);
@@ -434,7 +408,7 @@ static void uade_analyze_song(struct uade_song *us)
   struct eaglesong key;
   struct eaglesong *es;
 
-  uade_md5(us);
+  md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
 
   if (strlen(us->md5) != ((sizeof key.md5) - 1)) {
     fprintf(stderr, "Invalid md5sum: %s\n", us->md5);
@@ -547,14 +521,20 @@ static char **split_line(size_t *nitems, size_t *lineno, FILE *f,
 }
 
 
-static void uade_md5(struct uade_song *us)
+static void md5_from_buffer(char *dest, size_t destlen,
+			    uint8_t *buf, size_t bufsize)
 {
-  MD5_CTX ctx;
   uint8_t md5[16];
+  int ret;
+  MD5_CTX ctx;
   MD5Init(&ctx);
-  MD5Update(&ctx, us->buf, us->bufsize);
+  MD5Update(&ctx, buf, bufsize);
   MD5Final(md5, &ctx);
-  snprintf(us->md5, sizeof us->md5, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  if (ret >= destlen) {
+    fprintf(stderr, "md5 buffer too short (%d/%zd)\n", ret, destlen);
+    exit(-1);
+  }
 }
 
 
@@ -861,4 +841,152 @@ void uade_unalloc_song(struct uade_song *us)
   free(us->buf);
   us->buf = NULL;
   free(us);
+}
+
+
+int uade_update_song_conf(const char *songconfin, const char *songconfout,
+			  const char *songname, const char *options)
+{
+  int ret;
+  int fd;
+  char md5[33];
+  void *mem = NULL;
+  size_t filesize;
+  int found = 0;
+  size_t inputsize;
+  uint8_t *input;
+  uint8_t *inputptr;
+  uint8_t *outputptr;
+  size_t inputoffs;
+  char newline[256];
+  size_t i;
+  int need_newline = 0;
+
+  if (strlen(options) > 128) {
+    fprintf(stderr, "Too long song.conf options.\n");
+    return 0;
+  }
+
+  fd = open(songconfout, O_RDWR);
+  if (fd < 0) {
+    if (errno == ENOENT) {
+      fd = open(songconfout, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      if (fd < 0)
+	return 0;
+    } else {
+      return 0;
+    }
+  }
+
+  ret = lockf(fd, F_LOCK, 0);
+  if (ret) {
+    fprintf(stderr, "uade: Unable to to lock file: %s\n", strerror(errno));
+    atomic_close(fd);
+    return 0;
+  }
+
+  input = atomic_read_file(&inputsize, songconfin);
+  if (input == NULL) {
+    fprintf(stderr, "Can not read song.conf: %s\n", songconfin);
+    atomic_close(fd); /* closes the lock too */
+    return 0;
+  }
+
+  mem = realloc(input, inputsize + strlen(options) + strlen(songname) + 64);
+  if (mem == NULL) {
+    fprintf(stderr, "Can not realloc the input file buffer for song.conf.\n");
+    free(input);
+    atomic_close(fd); /* closes the lock too */
+    return 0;
+  }
+  input = mem;
+
+  mem = atomic_read_file(&filesize, songname);
+  if (mem == NULL)
+    goto error;
+
+  md5_from_buffer(md5, sizeof md5, mem, filesize);
+
+  inputptr = outputptr = input;
+  inputoffs = 0;
+
+  while (inputoffs < inputsize) {
+    if (inputptr[0] == '#')
+      goto copyline;
+
+    if ((inputoffs + 37) >= inputsize)
+      goto copyline;
+
+    if (strncasecmp(inputptr, "md5=", 4) != 0)
+      goto copyline;
+
+    if (strncasecmp(inputptr + 4, md5, 32) == 0) {
+      if (found) {
+	fprintf(stderr, "Warning: dupe entry in song.conf: %s (%s)\n"
+		"Need manual resolving.\n", songname, md5);
+	goto copyline;
+      }
+      found = 1;
+      snprintf(newline, sizeof newline, "md5=%s\t%s\n", md5, options);
+
+      /* Skip this line. It will be appended later to the end of the buffer */
+      for (i = inputoffs; i < inputsize; i++) {
+	if (input[i] == '\n') {
+	  i = i + 1 - inputoffs;
+	  break;
+	}
+      }
+      if (i == inputsize) {
+	i = inputsize - inputoffs;
+	found = 0;
+	need_newline = 1;
+      }
+      inputoffs += i;
+      inputptr += i;
+      continue;
+    }
+
+  copyline:
+    /* Copy the line */
+    for (i = inputoffs; i < inputsize; i++) {
+      if (input[i] == '\n') {
+	i = i + 1 - inputoffs;
+	break;
+      }
+    }
+    if (i == inputsize) {
+      i = inputsize - inputoffs;
+      need_newline = 1;
+    }
+    memmove(outputptr, inputptr, i);
+    inputoffs += i;
+    inputptr += i;
+    outputptr += i;
+  }
+
+  if (need_newline) {
+    snprintf(outputptr, 2, "\n");
+    outputptr += 1;
+  }
+
+  /* there is enough space */
+  ret = snprintf(outputptr, PATH_MAX + 256, "md5=%s\t%s\tcomment %s\n", md5, options, songname);
+  outputptr += ret;
+
+  if (ftruncate(fd, 0)) {
+    fprintf(stderr, "Can not truncate the file.\n");
+    goto error;
+  }
+
+  /* Final file size */
+  i = (size_t) (outputptr - input);
+
+  if (atomic_write(fd, input, i) < i)
+    fprintf(stderr, "Unable to write file contents back. Data loss happened. CRAP!\n");
+
+ error:
+  atomic_close(fd); /* Closes the lock too */
+  free(input);
+  free(mem);
+  return 1;
 }

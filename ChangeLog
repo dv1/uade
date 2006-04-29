@@ -1,3 +1,12 @@
+2006-04-30  Heikki Orsila <heikki.orsila@iki.fi>
+	- It's now possible to set options into song.conf by using uade123
+	  directly. This is not the final feature, only a step towards
+	  a more usable feature. Try:
+	    # uade123 --set="gain=2" foo
+	  It should add the associated entry into ~/.uade2/song.conf.
+	  Eventually uade123 should be used like:
+	    # uade123 --set --gain=2 foo
+
 2006-04-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed hexdump of module/player to show 2 KiBs of text.
 	- Fixed some memory leaks in eagleplayer.c and songinfo.c.

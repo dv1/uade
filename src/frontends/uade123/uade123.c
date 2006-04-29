@@ -121,9 +121,12 @@ int main(int argc, char *argv[])
   struct uade_effect effects, effects_backup;
   struct uade_config uc, uc_cmdline, uc_loaded;
   struct uade_ipc uadeipc;
+  char songoptions[256] = "";
+  char homesongconfname[PATH_MAX];
 
   enum {
     OPT_BASEDIR = 0x2000,
+    OPT_SET,
     OPT_STDERR,
   };
 
@@ -152,6 +155,7 @@ int main(int argc, char *argv[])
     {"panning",          1, NULL, 'p'},
     {"recursive",        0, NULL, 'r'},
     {"shuffle",          0, NULL, 'z'},
+    {"set",              1, NULL, OPT_SET},
     {"silence-timeout",  1, NULL, 'y'},
     {"speed-hack",       0, NULL, UC_SPEED_HACK},
     {"stderr",           0, NULL, OPT_STDERR},
@@ -295,6 +299,10 @@ int main(int argc, char *argv[])
       uade_set_config_option(&uc_cmdline, UC_BASE_DIR, optarg);
       break;
 
+    case OPT_SET:
+      strlcpy(songoptions, optarg, sizeof songoptions);
+      break;
+
     case OPT_STDERR:
       uade_terminal_file = stderr;
       break;
@@ -363,14 +371,24 @@ int main(int argc, char *argv[])
     snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc_cmdline.basedir.name);
     songconf_loaded = uade_read_song_conf(songconfname);
   }
+
+  /* Generate song.conf name in the home directory. Maybe needed later for
+     setting song.conf options. */
+  if (home != NULL)
+    snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf", home);
+
+  /* Try to load from home dir */
   if (songconf_loaded == 0 && home != NULL) {
-    snprintf(songconfname, sizeof songconfname, "%s/.uade2/song.conf", home);
+    snprintf(songconfname, sizeof songconfname, "%s", homesongconfname);
     songconf_loaded = uade_read_song_conf(songconfname);
   }
+
+  /* No? Try install path */
   if (songconf_loaded == 0) {
     snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc.basedir.name);
     songconf_loaded = uade_read_song_conf(songconfname);
   }
+
   if (songconf_loaded == 0) {
     debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
   } else {
@@ -380,9 +398,29 @@ int main(int argc, char *argv[])
   load_content_db(&uc);
 
   for (i = optind; i < argc; i++) {
-    playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
-    have_modules = 1;
+    if (songoptions[0] == 0) {
+      /* Play files */
+      playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
+      have_modules = 1;
+    } else {
+      /* Make song.conf settings */
+      if (home == NULL) {
+	fprintf(stderr, "No $HOME for song.conf :(\n");
+	exit(-1);
+      }
+      if (songconf_loaded == 0) {
+	strlcpy(songconfname, homesongconfname, sizeof songconfname);
+	songconf_loaded = 1;
+      }
+      if (uade_update_song_conf(songconfname, homesongconfname, argv[i], songoptions) == 0) {
+	fprintf(stderr, "Could not update song.conf entry for %s\n", argv[i]);
+	break;
+      }
+    }
   }
+
+  if (songoptions[0] != 0)
+    exit(0);
 
   if (uc.random_play)
     playlist_random(&uade_playlist, 1);
@@ -596,6 +634,7 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r, --recursive,    Recursive directory scan\n");
   printf(" -s x, --subsong=x,  Set subsong 'x'\n");
+  printf(" --set=\"options\"     Set song.conf options for each given song.\n");
   printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");
   printf(" --stderr,           Print messages on stderr.\n");
   printf(" -t x, --timeout=x,  Set song timeout in seconds. -1 is infinite.\n");
