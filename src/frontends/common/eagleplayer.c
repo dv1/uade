@@ -519,6 +519,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
     {.s = "a500",              .e = ES_A500},
     {.s = "a1200",             .e = ES_A1200},
     {.s = "always_ends",       .e = ES_ALWAYS_ENDS},
+    {.s = "broken_song_end",   .e = ES_BROKEN_SONG_END},
     {.s = "content_detection", .e = ES_CONTENT_DETECTION},
     {.s = "never_ends",        .e = ES_NEVER_ENDS},
     {.s = "ntsc",              .e = ES_NTSC},
@@ -681,6 +682,7 @@ static int parse_es_attributes(struct eaglesong *s, char *item, size_t lineno)
   struct attrlist esattrs[] = {
     {.s = "a500",            .e = ES_A500},
     {.s = "a1200",           .e = ES_A1200},
+    {.s = "broken_song_end", .e = ES_BROKEN_SONG_END},
     {.s = "led_off",         .e = ES_LED_OFF},
     {.s = "led_on",          .e = ES_LED_ON},
     {.s = "no_filter",       .e = ES_NO_FILTER},
@@ -824,6 +826,8 @@ int uade_read_song_conf(const char *filename)
     }
 
     for (i = 1; i < nitems; i++) {
+      if (strncasecmp(items[i], "comment:", 7) == 0)
+	break;
       if (parse_es_attributes(s, items[i], lineno))
 	continue;
     }

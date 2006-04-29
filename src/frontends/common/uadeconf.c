@@ -146,6 +146,8 @@ void uade_handle_song_attributes(struct uade_config *uc,
     uc->filter_type_set = 1;
     uc->filter_type = FILTER_MODEL_A1200;
   }
+  if (us->flags & ES_BROKEN_SONG_END)
+    uade_set_config_option(uc, UC_NO_SONG_END, NULL);
   if (us->flags & ES_LED_OFF) {
     uc->led_forced_set = 1;
     uc->led_forced = 1;
@@ -542,6 +544,9 @@ void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 
   if (ep->attributes & ES_ALWAYS_ENDS)
     uade_set_config_option(uc, UC_DISABLE_TIMEOUTS, NULL);
+
+  if (ep->attributes & ES_BROKEN_SONG_END)
+    uade_set_config_option(uc, UC_NO_SONG_END, NULL);
 
   if (ep->attributes & ES_CONTENT_DETECTION)
     uade_set_config_option(uc, UC_MAGIC_DETECTION, NULL);

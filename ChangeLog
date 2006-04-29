@@ -4,6 +4,13 @@
 	- Removed doc/eagleplayer.conf and doc/song.conf. doc/uade123.1 is
 	  the authorative documentation for all configuration files.
 	- Many uade song attribute and configuration management changes.
+	- Added broken song end directive for eagleplayers and songs.
+	  To work-around a defective timeout logics in song.conf you could
+	  add a following line to your song.conf:
+	     md5=60f3bb11cc1bacaf77d7c16d13361844 broken_song_end timeout=200 comment FRED.Hybris_Light
+	- Marked song end detection of FRED format as defective in
+	  eagleplayer.conf:
+	      Fred    prefixes=fred    broken_song_end
 
 2006-04-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed another config bug introduced by last config refactorization.
