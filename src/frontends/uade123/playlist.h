@@ -8,19 +8,18 @@
 
 struct playlist {
   int valid;
-  int lower_bound;
-  int upper_bound;
+  size_t pos;
   int randomize;
   int repeat;
   struct chrarray list;
 };
 
+int playlist_add(struct playlist *pl, const char *name, int recursive);
+int playlist_empty(struct playlist *pl);
+int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir);
 int playlist_init(struct playlist *pl);
 int playlist_random(struct playlist *pl, int enable);
+void playlist_randomize(struct playlist *pl);
 void playlist_repeat(struct playlist *pl);
-int playlist_empty(struct playlist *pl);
-int playlist_add(struct playlist *pl, const char *name, int recursive);
-int playlist_get_next(char *name, size_t maxlen, struct playlist *pl);
-void playlist_flush(struct playlist *pl);
 
 #endif

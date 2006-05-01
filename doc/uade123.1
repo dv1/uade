@@ -187,6 +187,9 @@ Set filename of the eagleplayer.
 .TP 
 \fB\-r, \-\-recursive\fR
 Play directories recursively.
+.TP
+\fB\-\-repeat\fR
+Play playlist over and over again.
 .TP 
 \fB\-s\fR n\fB, \-\-subsong=\fRn
 Choose subsong n.
@@ -226,16 +229,18 @@ Set silence timeout to x seconds. If x seconds of silence is detected the
 (sub)song ends.
 .TP 
 \fB\-z, \-\-shuffle\fR
-Turn shuffle mode on. Plays songs in random order.
+Randomize playlist order before playing.
 .SH ACTION KEYS
 uade123 can be controlled interactively on the command line by pressing
 specific action keys.
 .br
  [0-9]         Change subsong.
 .br
+ '<'           Previous song.
+.br
  '.'           Skip 10 seconds forward.
 .br
- SPACE, 'b'    Go to next subsong.
+ SPACE, 'b'    Next subsong.
 .br
  'c'           Pause.
 .br
@@ -243,7 +248,7 @@ specific action keys.
 .br
  'g'           Toggle gain effect.
 .br
- 'h'           Print this list.
+ 'h'           Print keyboard commands (this list)
 .br
  'H'           Toggle headphones effect.
 .br

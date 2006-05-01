@@ -1,3 +1,13 @@
+2006-05-01  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changing to a previous song is now possible in uade123. Try
+	  pressing '<'. -z option now means randomizing the playlist
+	  order before playing, but random play mode (press 's') does
+	  randomizing on the fly. Both alternatives support seeking to
+	  previous song in the same way, but seeking to next song will
+	  always be random in random play mode (not with -z).
+	- Added --repeat option into uade123 to play playlist over and
+	  over again.
+
 2006-04-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- It's now possible to set options into song.conf by using uade123
 	  directly. This is not the final feature, only a step towards

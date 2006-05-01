@@ -104,8 +104,8 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   int64_t subsong_bytes = 0;
   int deciseconds;
   int jump_sub = 0;
-
   int have_subsong_info = 0;
+  int plistdir = 1;
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
 
@@ -146,6 +146,10 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
       if (uc->action_keys) {
 	switch ((ret = poll_terminal())) {
 	case 0:
+	  break;
+	case '<':
+	  plistdir = -1;
+	  uade_song_end_trigger = 1;
 	  break;
 	case '.':
 	  if (skip_bytes == 0) {
@@ -215,12 +219,18 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  jump_sub = 1;
 	  break;
 	case 'z':
-	  new_sub = us->cur_subsong - 1;
+	  if (us->cur_subsong == 0 ||
+	      (us->min_subsong >= 0 && us->cur_subsong == us->min_subsong)) {
+	    plistdir = -1;
+	    uade_song_end_trigger = 1;
+	    break;
+	  }
+	  new_sub = us->cur_subsong - 2;
 	  if (new_sub < 0)
-	    new_sub = 0;
+	    new_sub = -1;
 	  if (us->min_subsong >= 0 && new_sub < us->min_subsong)
-	    new_sub = us->min_subsong;
-	  us->cur_subsong = new_sub - 1;
+	    new_sub = us->min_subsong - 1;
+	  us->cur_subsong = new_sub;
 	  subsong_end = 1;
 	  jump_sub = 1;
 	  break;
@@ -490,5 +500,5 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
   tprintf("\n");
-  return 1;
+  return plistdir;
 }

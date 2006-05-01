@@ -123,9 +123,11 @@ int main(int argc, char *argv[])
   struct uade_ipc uadeipc;
   char songoptions[256] = "";
   char homesongconfname[PATH_MAX];
+  int plistdir;
 
   enum {
     OPT_BASEDIR = 0x2000,
+    OPT_REPEAT,
     OPT_SET,
     OPT_STDERR,
   };
@@ -154,6 +156,7 @@ int main(int argc, char *argv[])
     {"pal",              0, NULL, UC_PAL},
     {"panning",          1, NULL, 'p'},
     {"recursive",        0, NULL, 'r'},
+    {"repeat",           0, NULL, OPT_REPEAT},
     {"shuffle",          0, NULL, 'z'},
     {"set",              1, NULL, OPT_SET},
     {"silence-timeout",  1, NULL, 'y'},
@@ -299,6 +302,10 @@ int main(int argc, char *argv[])
       uade_set_config_option(&uc_cmdline, UC_BASE_DIR, optarg);
       break;
 
+    case OPT_REPEAT:
+      playlist_repeat(&uade_playlist);
+      break;
+
     case OPT_SET:
       strlcpy(songoptions, optarg, sizeof songoptions);
       break;
@@ -423,7 +430,7 @@ int main(int argc, char *argv[])
     exit(0);
 
   if (uc.random_play)
-    playlist_random(&uade_playlist, 1);
+    playlist_randomize(&uade_playlist);
 
   if (have_modules == 0) {
     print_help();
@@ -476,6 +483,8 @@ int main(int argc, char *argv[])
 
   uade_effect_set_defaults(&effects_backup);
 
+  plistdir = 0;
+
   while (1) {
     ssize_t filesize;
     struct uade_song *us;
@@ -488,8 +497,10 @@ int main(int argc, char *argv[])
     char songname[PATH_MAX];
     struct eagleplayer *ep = NULL;
 
-    if (!playlist_get_next(modulename, sizeof modulename, &uade_playlist))
+    if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
       break;
+
+    plistdir = 1;
 
     effects = effects_backup;
 
@@ -562,12 +573,12 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       uade_set_subsong(subsong, &uadeipc);
 
-    if (!play_loop(&uadeipc, us, &effects, &uc)) {
-      uade_unalloc_song(us);
-      goto cleanup;
-    }
+    plistdir = play_loop(&uadeipc, us, &effects, &uc);
 
     uade_unalloc_song(us);
+
+    if (plistdir == 0)
+      goto cleanup;
   }
 
   debug(uc_cmdline.verbose || uc_loaded.verbose, "Killing child (%d).\n", uadepid);
@@ -633,6 +644,7 @@ static void print_help(void)
   printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");
   printf(" -P filename,        Set player name\n");
   printf(" -r, --recursive,    Recursive directory scan\n");
+  printf(" --repeat,           Play playlist over and over again\n");
   printf(" -s x, --subsong=x,  Set subsong 'x'\n");
   printf(" --set=\"options\"     Set song.conf options for each given song.\n");
   printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");
@@ -644,7 +656,7 @@ static void print_help(void)
   printf("                             Default is 512s\n");
   printf(" -y x, --silence-timeout=x,  Set silence timeout in seconds. -1 is infinite.\n");
   printf("                         Default is 20s\n");
-  printf(" -z, --shuffle,      Set shuffling mode for playlist\n");
+  printf(" -z, --shuffle,      Randomize playlist order before playing.\n");
   printf("\n");
   print_action_keys();
   printf("\n");
@@ -657,8 +669,9 @@ void print_action_keys(void)
 {
   tprintf("Action keys for interactive mode:\n");
   tprintf(" [0-9]         Change subsong.\n");
+  tprintf(" '<'           Previous song.\n");
   tprintf(" '.'           Skip 10 seconds forward.\n");
-  tprintf(" SPACE, 'b'    Go to next subsong.\n");
+  tprintf(" SPACE, 'b'    Next subsong.\n");
   tprintf(" 'c'           Pause.\n");
   tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
   tprintf(" 'g'           Toggle gain effect.\n");
@@ -670,7 +683,7 @@ void print_action_keys(void)
   tprintf(" 'p'           Toggle postprocessing effects.\n");
   tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");
   tprintf(" 'q'           Quit.\n");
-  tprintf(" 's'           Toggle between shuffle mode and normal play.\n");
+  tprintf(" 's'           Toggle between random and normal play.\n");
   tprintf(" 'v'           Toggle verbose mode.\n");
   tprintf(" 'x'           Restart current subsong.\n");
   tprintf(" 'z'           Previous subsong.\n");

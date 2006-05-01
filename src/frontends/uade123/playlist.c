@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <unixwalkdir.h>
 #include <uadeconfig.h>
@@ -60,30 +61,30 @@ static int get_random(int max)
       using_urandom = 0;
       goto nourandom;
     }
-    return ((double) max) * ((* (uint32_t * ) buf) & 0x3fffffff) / 0x40000000;
+    return ((double) max * ((* (uint32_t * ) buf) & 0x3fffffff)) / 0x40000000;
   }
  nourandom:
-  return ((double) max) * random() / (RAND_MAX + 1.0);
+  return ((double) max * random()) / (RAND_MAX + 1.0);
 }
 
 
 int playlist_init(struct playlist *pl)
 {
-  int ret;
-  pl->lower_bound = 0;
-  pl->upper_bound = 0;
+  random_init();
+  pl->pos = 0;
   pl->randomize = 0;
   pl->repeat = 0;
-  ret = chrarray_init(&pl->list);
-  pl->valid = ret ? 1 : 0;
-  random_init();
-  return ret;
+  pl->valid = chrarray_init(&pl->list) ? 1 : 0;
+  return pl->valid;
 }
 
 
 /* enable == 0: disable random play
    enable == 1: enable random play
-   enable == -1: toggle random play state between enabled and disabled */
+   enable == -1: toggle random play state between enabled and disabled
+
+   Returns new state value.
+*/
 int playlist_random(struct playlist *pl, int enable)
 {
   if (enable < 0) {
@@ -91,7 +92,33 @@ int playlist_random(struct playlist *pl, int enable)
   } else {
     pl->randomize = enable ? 1 : 0;
   }
+
   return pl->randomize;
+}
+
+
+/* Shuffle the whole deck at once */
+void playlist_randomize(struct playlist *pl)
+{
+  size_t i;
+  size_t n;
+  struct chrentry t;
+  struct chrarray *l = &pl->list;
+  size_t ri;
+
+  assert(l->n_entries >= 0);
+
+  n = l->n_entries;
+
+  for (i = 0; i < n; i++) {
+    ri = i + get_random(n - i);
+    if (ri != i) {
+      /* swap i and ri */
+      t = l->entries[i];
+      l->entries[i] = l->entries[ri];
+      l->entries[ri] = t;
+    }
+  }
 }
 
 
@@ -107,15 +134,11 @@ int playlist_empty(struct playlist *pl)
     fprintf(stderr, "playlist invalid\n");
     return 1;
   }
-  if (!pl->list.n_entries)
+  if (pl->list.n_entries == 0)
     return 1;
   if (pl->repeat)
     return 0;
-  if (pl->randomize) {
-    return pl->upper_bound == 0;
-  } else {
-    return pl->lower_bound == pl->list.n_entries;
-  }
+  return pl->pos == pl->list.n_entries;
 }
 
 
@@ -173,72 +196,108 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
     ret = 1;
   }
 
-  pl->upper_bound = pl->list.n_entries;
   return ret;
 }
 
 
-int playlist_get_next(char *name, size_t maxlen, struct playlist *pl)
+static int pl_get_random(char **s, int *len, struct playlist *pl)
 {
-  int len;
-  char *s;
-  if (!pl->valid)
-    return 0;
-  if (!pl->list.n_entries)
-    return 0;
-  if (!maxlen) {
-    fprintf(stderr, "uade123: playlist_get_next(): given maxlen = 0\n");
-    return 0;
+  int i;
+  struct chrentry t;
+
+  pl->pos++;
+  if (pl->pos >= pl->list.n_entries) {
+    if (!pl->repeat)
+      return 0;
+    pl->pos = 0;
   }
 
-  if (pl->randomize) {
-    int i;
-    struct chrentry t;
-    /* take a random entry from chrarray. basically this suffles an entry
-       from a random position to the tail of the array */
-    if (!pl->upper_bound) {
-      if (!pl->repeat)
-	return 0;
-      pl->upper_bound = pl->list.n_entries;
-    }
-    i = get_random(pl->upper_bound);
-    t = pl->list.entries[i];
-    if (i != (pl->upper_bound - 1)) {
-      /* not end of the list => need to shuffle (swap places) */
-      pl->list.entries[i] = pl->list.entries[pl->upper_bound - 1];
-      pl->list.entries[pl->upper_bound - 1] = t;
-    }
-    s = &pl->list.data[t.off];
-    len = t.len;
-    /* decrease upper_bound. the entry chosen this time is at the tail, so
-       it won't be chosen next time (unless if upper_bound is increased
-       due to repeat) */
-    pl->upper_bound--;
+  i = pl->pos + get_random(pl->list.n_entries - pl->pos);
 
-  } else {
+  t = pl->list.entries[i];
 
-    /* non-random pick. take the first from the list, and increase
-       lower_bound (unless we are repeating this time) */
-    if (pl->lower_bound == pl->list.n_entries) {
-      if (!pl->repeat) {
-	return 0;
-      }
-      pl->lower_bound = 0;
-    }
-    s = &pl->list.data[pl->list.entries[pl->lower_bound].off];
-    len = pl->list.entries[pl->lower_bound].len;
-    pl->lower_bound++;
+  if (i != pl->pos) {
+    pl->list.entries[i] = pl->list.entries[pl->pos];
+    pl->list.entries[pl->pos] = t;
   }
-  if (len > maxlen) {
-    fprintf(stderr, "uade: playlist_get_next(): too long a string: %s\n", s);
-    return 0;
-  }
-  memcpy(name, s, len);
+
+  *s = &pl->list.data[t.off];
+  *len = t.len;
   return 1;
 }
 
 
-void playlist_flush(struct playlist *pl)
+static void pl_get_cur(char **s, int *len, struct playlist *pl)
 {
-  chrarray_flush(&pl->list);
+  struct chrentry *t;
+  t = &pl->list.entries[pl->pos];
+  *s = &pl->list.data[t->off];
+  *len = t->len;
+}
+
+
+static int pl_get_next(char **s, int *len, struct playlist *pl)
+{
+  pl->pos++;
+  if (pl->pos >= pl->list.n_entries) {
+    if (!pl->repeat)
+      return 0;
+    pl->pos = 0;
+  }
+
+  pl_get_cur(s, len, pl);
+  return 1;
+}
+
+
+static void pl_get_prev(char **s, int *len, struct playlist *pl)
+{
+  if (pl->pos == 0) {
+    if (pl->repeat)
+      pl->pos = pl->list.n_entries - 1;
+  } else {
+    pl->pos--;
+  }
+
+  pl_get_cur(s, len, pl);
+}
+
+
+int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir)
+{
+  int len;
+  char *s;
+
+  if (!pl->valid)
+    return 0;
+
+  if (pl->list.n_entries == 0)
+    return 0;
+
+  if (!maxlen) {
+    fprintf(stderr, "uade123: playlist_get(): given maxlen = 0\n");
+    return 0;
+  }
+
+  if (dir > 0) {
+    if (pl->randomize) {
+      if (pl_get_random(&s, &len, pl) == 0)
+	return 0;
+    } else {
+      if (pl_get_next(&s, &len, pl) == 0)
+	return 0;
+    }
+  } else if (dir < 0) {
+    pl_get_prev(&s, &len, pl);
+  } else if (dir == 0) {
+    pl_get_cur(&s, &len, pl);
+  }
+
+  if (len > maxlen) {
+    fprintf(stderr, "uade: playlist_get(): too long a string: %s\n", s);
+    return 0;
+  }
+
+  memcpy(name, s, len);
+  return 1;
 }
