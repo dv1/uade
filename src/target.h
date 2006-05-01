@@ -8,12 +8,4 @@
 
 #define TARGET_NAME "x11"
 
-#define OPTIONSFILENAME ".xmms/uade/uaerc"
-#define OPTIONS_IN_HOME
-
-#define DEFPRTNAME "lpr"
-#define DEFSERNAME "/dev/ttyS1"
-
-#define PICASSO96_SUPPORTED
-
 #define write_log write_log_standard

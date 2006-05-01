@@ -135,7 +135,7 @@ void default_prefs (struct uae_prefs *p)
 
     strcpy (p->romfile, "kick.rom");
     strcpy (p->keyfile, "");
-    strcpy (p->prtname, DEFPRTNAME);
+    strcpy (p->prtname, "");
 
     strcpy (p->path_rom, "./");
     strcpy (p->path_floppy, "./");
