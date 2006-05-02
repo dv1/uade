@@ -10,6 +10,7 @@
 
 static GtkWidget *seekpopup = NULL;
 static GtkObject *subsong_adj;
+static int seekpopup_open = 0;
 
 
 static void uade_seek_directly(void);
@@ -207,6 +208,7 @@ void uade_gui_seek_subsong(int to)
 			   ffwd_button);
 
 	gtk_widget_show_all(seekpopup);
+	seekpopup_open = 1;
 
     } else {
 	gdk_window_raise(seekpopup->window);
@@ -216,7 +218,7 @@ void uade_gui_seek_subsong(int to)
 
 void uade_gui_subsong_changed(int subsong)
 {
-    if (seekpopup) {
+    if (seekpopup_open) {
 	GTK_ADJUSTMENT(subsong_adj)->value = subsong;
         gtk_adjustment_changed(GTK_ADJUSTMENT(subsong_adj));	/*here GTK gets the signal */
 	}
@@ -281,6 +283,7 @@ static void uade_seek_update_display(int subsong)
 
 static void focus_out_event(void)
 {
+    seekpopup_open = 0;
     gtk_widget_destroy(seekpopup);
 }
 
@@ -289,6 +292,8 @@ static void focus_out_event(void)
  */
 void uade_gui_close_subsong_win(void)
 {
-    if (seekpopup)
+    if (seekpopup_open){
+    	seekpopup_open = 0;
 	gtk_widget_destroy(seekpopup);
+    }
 }

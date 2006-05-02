@@ -1,3 +1,11 @@
+2006-05-02  Michael Doering <mld@users.sourceforge.net>
+	- Fixed crash due to uninitialized pointer to subsong scale in seek
+	  window for xmms and auda plugin. 
+	  Seems the UI got into a race condition when trying to update the
+	  scale belonging to the seek window and the pointer for the seek
+	  window was there, while the scale wasn't ready. This happend for
+	  very short subsongs only...
+
 2006-05-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a small bug that allows resetting song.conf options from
 	  the command line. Use 'uade123 --set= foo' to reset options.
