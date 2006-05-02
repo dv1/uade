@@ -497,6 +497,7 @@ static int process_module(char *credits, size_t credits_len, char *filename)
   } else if ((strcasecmp(pre, "MOD") == 0) ||
 
 	     (strcasecmp(pre, "MOD_DOC") == 0) ||
+	     (strcasecmp(pre, "MOD_NTK") == 0) ||
 	     (strcasecmp(pre, "MOD_NTK1") == 0) ||
 	     (strcasecmp(pre, "MOD_NTK2") == 0) ||
 	     (strcasecmp(pre, "MOD_FLT4") == 0) ||

@@ -108,6 +108,7 @@ static const char *offset_0000_patterns[] = {
   "FTM", "FTM",			/* Face The Music */
   "MXTX", "MXTX",		/* Maxtrax*/
   "M1.0", "FUZZ",		/* Fuzzac*/
+  "MSNG", "TPU",		/* Dirk Bialluch*/
   "YM!", "",                   /* stplay -- intentionally sabotaged */
   NULL, NULL
 };
