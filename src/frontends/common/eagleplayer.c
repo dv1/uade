@@ -297,6 +297,7 @@ static int parse_attribute(struct uade_attribute **attributelist, int *flags,
     {.s = "ntsc",            .e = ES_NTSC},
     {.s = "one_subsong",     .e = ES_ONE_SUBSONG},
     {.s = "pal",             .e = ES_PAL},
+    {.s = "reject",          .e = ES_REJECT},
     {.s = "speed_hack",      .e = ES_SPEED_HACK},
     {.s = "vblank",          .e = ES_VBLANK},
     {.s = NULL}

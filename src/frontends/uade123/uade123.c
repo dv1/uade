@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
   struct uade_config uc, uc_cmdline, uc_loaded;
   struct uade_ipc uadeipc;
   char songoptions[256] = "";
+  int have_song_options = 0;
   char homesongconfname[PATH_MAX];
   int plistdir;
 
@@ -307,6 +308,7 @@ int main(int argc, char *argv[])
       break;
 
     case OPT_SET:
+      have_song_options = 1;
       strlcpy(songoptions, optarg, sizeof songoptions);
       break;
 
@@ -405,7 +407,7 @@ int main(int argc, char *argv[])
   load_content_db(&uc);
 
   for (i = optind; i < argc; i++) {
-    if (songoptions[0] == 0) {
+    if (!have_song_options) {
       /* Play files */
       playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
       have_modules = 1;
@@ -426,7 +428,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (songoptions[0] != 0)
+  if (have_song_options)
     exit(0);
 
   if (uc.random_play)
@@ -541,8 +543,16 @@ int main(int argc, char *argv[])
 
     /* The order is important:
        1. handle song attributes
-       2. merge command line options */
-    uade_handle_song_attributes(&uc, playername, sizeof playername, us);
+       2. merge command line options
+       3. set effects
+       4. check that the player exists */
+
+    if (uade_handle_song_attributes(&uc, playername, sizeof playername, us)) {
+      debug(uc_cmdline.verbose, "Song rejected based on attributes: %s\n",
+	    us->module_filename);
+      uade_unalloc_song(us);
+      continue;
+    }
 
     uade_merge_configs(&uc, &uc_cmdline);
 
@@ -550,6 +560,7 @@ int main(int argc, char *argv[])
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not stat player: %s (%s)\n", playername, strerror(errno));
+      uade_unalloc_song(us);
       continue;
     }
 

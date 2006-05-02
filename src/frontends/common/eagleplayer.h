@@ -27,12 +27,13 @@
 #define ES_PAL               (1 << 16)
 #define ES_PANNING           (1 << 17)
 #define ES_PLAYER            (1 << 18)
-#define ES_SILENCE_TIMEOUT   (1 << 19)
-#define ES_SPEED_HACK        (1 << 20)
-#define ES_SUBSONGS          (1 << 21)
-#define ES_SUBSONG_TIMEOUT   (1 << 22)
-#define ES_TIMEOUT           (1 << 23)
-#define ES_VBLANK            (1 << 24)
+#define ES_REJECT            (1 << 19)
+#define ES_SILENCE_TIMEOUT   (1 << 20)
+#define ES_SPEED_HACK        (1 << 21)
+#define ES_SUBSONGS          (1 << 22)
+#define ES_SUBSONG_TIMEOUT   (1 << 23)
+#define ES_TIMEOUT           (1 << 24)
+#define ES_VBLANK            (1 << 25)
 
 
 struct eagleplayer {

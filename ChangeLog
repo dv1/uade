@@ -1,3 +1,7 @@
+2006-05-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed a small bug that allows resetting song.conf options from
+	  the command line. Use 'uade123 --set= foo' to reset options.
+
 2006-05-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changing to a previous song is now possible in uade123. Try
 	  pressing '<'. -z option now means randomizing the playlist

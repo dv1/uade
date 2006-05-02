@@ -8,10 +8,10 @@
 void uade_config_set_defaults(struct uade_config *uc);
 double uade_convert_to_double(const char *value, double def,
 			      double low, double high, const char *type);
-void uade_handle_song_attributes(struct uade_config *uc,
-				 char *playername,
-				 size_t playernamelen,
-				 struct uade_song *us);
+int uade_handle_song_attributes(struct uade_config *uc,
+				char *playername,
+				size_t playernamelen,
+				struct uade_song *us);
 int uade_load_config(struct uade_config *uc, const char *filename);
 void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs);
 int uade_parse_subsongs(int **subsongs, char *option);

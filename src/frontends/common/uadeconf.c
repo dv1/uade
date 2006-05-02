@@ -131,9 +131,9 @@ double uade_convert_to_double(const char *value, double def, double low,
 }
 
 
-static void handle_attributes(struct uade_config *uc,
-			      char *playername, size_t playernamelen,
-			      int flags, struct uade_attribute *attributelist)
+static int handle_attributes(struct uade_config *uc,
+			     char *playername, size_t playernamelen,
+			     int flags, struct uade_attribute *attributelist)
 {
   struct uade_attribute *a;
   struct atcon {
@@ -166,6 +166,8 @@ static void handle_attributes(struct uade_config *uc,
       uade_set_config_option(uc, optlist[i].o, optlist[i].v);
   }
 
+  if (flags & ES_REJECT)
+    return -1;
   if (flags & ES_NEVER_ENDS)
     fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
   if (flags & ES_VBLANK)
@@ -208,16 +210,17 @@ static void handle_attributes(struct uade_config *uc,
     }
     a = a->next;
   }
+  return 0;
 }
 
 
-void uade_handle_song_attributes(struct uade_config *uc,
-				 char *playername,
-				 size_t playernamelen,
-				 struct uade_song *us)
+int uade_handle_song_attributes(struct uade_config *uc,
+				char *playername,
+				size_t playernamelen,
+				struct uade_song *us)
 {
-  handle_attributes(uc, playername, playernamelen,
-		    us->flags, us->songattributes);
+  return handle_attributes(uc, playername, playernamelen,
+			   us->flags, us->songattributes);
 }
 
 
