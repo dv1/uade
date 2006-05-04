@@ -9,12 +9,20 @@
 *									    *
 *****************************************************************************
 
-		include		Mline:Source/Include/misc/DeliPlayer.i
+	incdir	Include:
+	include		Include:misc/DeliPlayer.i
 
+	        include LVO3.0/exec_lib.i
+                include dos/dos.i
+                include LVO3.0/intuition_lib.i
+                include exec/exec.i
+                include intuition/intuition.i
+                include LVO3.0/dos_lib.i
+	
 Version		macro
-
 		dc.b	"1.02"
 		endm
+
 VerNum		macro
 		dc.w	$0102
 		endm
@@ -1777,6 +1785,8 @@ DmaWaitServer	dc.l 0,0
 		dc.l 0,PlayDma
 
 dmawaitname	dc.b "ml_DMAWait",0
+
+	even
 
 TempoServer	dc.l 0,0
 		dc.b 2,0
@@ -6406,7 +6416,7 @@ Channel8	lea	Channel8Buf,a4
 * Data                                                Last Change: 92-10-24 *
 *****************************************************************************
 
-		include		Mline:Source/Include/EffectsMac.i
+		include		Mline:Include/EffectsMac.i
 
 		incdir	Mline:raw/
 SizerOffset256	incbin	sizeroffset.256
