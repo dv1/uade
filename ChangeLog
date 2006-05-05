@@ -1,3 +1,7 @@
+2006-05-05  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed --filter=x to work again. More bugs introducted in latest
+	  refactorizations..
+
 2006-05-02  Michael Doering <mld@users.sourceforge.net>
 	- Fixed crash due to uninitialized pointer to subsong scale in seek
 	  window for xmms and auda plugin. 

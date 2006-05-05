@@ -406,6 +406,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     break;
   case UC_FILTER_TYPE:
     uade_set_filter_type(uc, value);
+    uc->filter_type_set = 1;
     uc->no_filter_set = 1;
     uc->no_filter = 0;
     break;
