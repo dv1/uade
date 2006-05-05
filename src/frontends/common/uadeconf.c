@@ -420,16 +420,19 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     } else {
       fprintf(stderr, "Unknown force led argument: %s\n", value);
     }
+    uc->led_state_set = 1;
     break;
   case UC_FORCE_LED_OFF:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 0;
+    uc->led_state_set = 1;
     break;
   case UC_FORCE_LED_ON:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 1;
+    uc->led_state_set = 1;
     break;
   case UC_GAIN:
     uc->gain_enable_set = 1;

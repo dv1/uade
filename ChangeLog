@@ -1,6 +1,5 @@
 2006-05-05  Heikki Orsila <heikki.orsila@iki.fi>
-	- Fixed --filter=x to work again. More bugs introducted in latest
-	  refactorizations..
+	- Fixed --filter=x and --force-led=y to work again.
 
 2006-05-02  Michael Doering <mld@users.sourceforge.net>
 	- Fixed crash due to uninitialized pointer to subsong scale in seek
