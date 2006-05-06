@@ -135,7 +135,6 @@ extern void fixup_prefs_dimensions (struct uae_prefs *prefs);
 
 extern void check_prefs_changed_custom (void);
 extern void check_prefs_changed_cpu (void);
-extern void check_prefs_changed_audio (void);
 extern int check_prefs_changed_gfx (void);
 
 #define JSEM_DECODEVAL(n,v) ((n) == 0 ? (v)->jport0 : (v)->jport1)

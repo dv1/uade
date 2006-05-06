@@ -43,7 +43,8 @@ extern void AUDxLCL (int nr, uae_u16 value);
 extern void AUDxLEN (int nr, uae_u16 value);
 
 void audio_reset (void);
-void select_audio_interpolator(char *name);
+void audio_set_rate (int rate);
+void audio_set_resampler(char *name);
 void update_audio (void);
 
 #endif
