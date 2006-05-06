@@ -37,9 +37,9 @@ int setup_sound (void)
 
 void set_sound_freq(int x)
 {
-  /* Validation is done in init_sound() */
-  currprefs.sound_freq = x;
-  init_sound();
+  /* Validation is done later in init_sound() */
+  changed_prefs.sound_freq = x;
+  check_prefs_changed_audio();
 }
 
 
