@@ -19,6 +19,7 @@
 #include "uadeconf.h"
 #include "uadeconfig.h"
 #include "amigafilter.h"
+#include "uadeconstants.h"
 
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
@@ -105,6 +106,7 @@ void uade_config_set_defaults(struct uade_config *uc)
   uc->action_keys = 1;
   strlcpy(uc->basedir.name, UADE_CONFIG_BASE_DIR, sizeof uc->basedir.name);
   uade_set_filter_type(uc, NULL);
+  uc->frequency = UADE_DEFAULT_FREQUENCY;
   uc->gain = 1.0;
   uc->panning = 0.7;
   uc->silence_timeout = 20;
@@ -272,6 +274,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
   MERGE_OPTION(filter_type);
+  MERGE_OPTION(frequency);
   MERGE_OPTION(gain);
   MERGE_OPTION(gain_enable);
   MERGE_OPTION(headphones);
@@ -369,6 +372,8 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			    const char *value)
 {
   char *endptr;
+  long x;
+
   switch (opt) {
   case UC_ACTION_KEYS:
     if (value != NULL) {
@@ -433,6 +438,20 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->led_forced = 1;
     uc->led_state = 1;
     uc->led_state_set = 1;
+    break;
+  case UC_FREQUENCY:
+    x = strtol(value, &endptr, 10);
+    if (*endptr != 0) {
+      fprintf(stderr, "Invalid frequency number: %s\n", value);
+      break;
+    }
+    /* The upper bound is NTSC Amigas bus freq */
+    if (x < 1 || x > 3579545) {
+      fprintf(stderr, "Frequency out of bounds: %ld\n", x);
+      x = UADE_DEFAULT_FREQUENCY;
+    }
+    uc->frequency = x;
+    uc->frequency_set = 1;
     break;
   case UC_GAIN:
     uc->gain_enable_set = 1;

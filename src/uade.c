@@ -461,6 +461,14 @@ void uade_handle_r_state(void)
       uade_put_long(SCORE_FORCE, 1);
       break;
 
+    case UADE_COMMAND_SET_FREQUENCY:
+      if (um->size != 4) {
+	fprintf(stderr, "Invalid frequency message size: %u\n", um->size);
+	exit(-1);
+      }
+      set_sound_freq(ntohl(((uint32_t *) um->data)[0]));
+      break;
+
     case UADE_COMMAND_SET_INTERPOLATION_MODE:
       uade_check_fix_string(um, 16);
       select_audio_interpolator((char *) um->data);
@@ -878,6 +886,9 @@ void uade_reset(void)
     fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
     exit(-1);
   }
+
+  set_sound_freq(UADE_DEFAULT_FREQUENCY);
+
   return;
 
  skiptonextsong:

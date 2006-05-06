@@ -218,6 +218,30 @@ int uade_send_string(enum uade_msgtype com, const char *str, struct uade_ipc *ip
 }
 
 
+int uade_send_u32(enum uade_msgtype com, uint32_t u, struct uade_ipc *ipc)
+{
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+  um->msgtype = com;
+  um->size = 4;
+  * (uint32_t *) um->data = htonl(u);
+  return uade_send_message(um, ipc);
+}
+
+
+int uade_send_two_u32s(enum uade_msgtype com, uint32_t u1, uint32_t u2,
+		       struct uade_ipc *ipc)
+{
+  uint8_t space[UADE_MAX_MESSAGE_SIZE];
+  struct uade_msg *um = (struct uade_msg *) space;
+  um->msgtype = com;
+  um->size = 8;
+  ((uint32_t *) um->data)[0] = htonl(u1);
+  ((uint32_t *) um->data)[1] = htonl(u2);
+  return uade_send_message(um, ipc);
+}
+
+
 void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, const char *output)
 {
   assert(peer_is_client == 0 || peer_is_client == 1);

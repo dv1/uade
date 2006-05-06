@@ -21,6 +21,7 @@ enum uade_msgtype {
   UADE_COMMAND_SONG_END_NOT_POSSIBLE,
   UADE_COMMAND_SET_NTSC,
   UADE_COMMAND_FILTER,
+  UADE_COMMAND_SET_FREQUENCY,
   UADE_COMMAND_SET_INTERPOLATION_MODE,
   UADE_COMMAND_SPEED_HACK,
   UADE_COMMAND_CHANGE_SUBSONG,
@@ -65,6 +66,8 @@ int uade_receive_string(char *s, enum uade_msgtype msgtype, size_t maxlen, struc
 int uade_send_message(struct uade_msg *um, struct uade_ipc *ipc);
 int uade_send_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc);
 int uade_send_string(enum uade_msgtype msgtype, const char *str, struct uade_ipc *ipc);
+int uade_send_u32(enum uade_msgtype com, uint32_t u, struct uade_ipc *ipc);
+int uade_send_two_u32s(enum uade_msgtype com, uint32_t u1, uint32_t u2, struct uade_ipc *ipc);
 void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, const char *output);
 
 #endif

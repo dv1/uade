@@ -16,10 +16,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <uadecontrol.h>
-#include <uadeipc.h>
-#include <unixatomic.h>
-#include <sysincludes.h>
+#include "uadecontrol.h"
+#include "uadeipc.h"
+#include "unixatomic.h"
+#include "sysincludes.h"
+#include "uadeconstants.h"
 
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
@@ -33,19 +34,11 @@ void uade_change_subsong(int subsong, struct uade_ipc *ipc)
 
 int uade_read_request(struct uade_ipc *ipc)
 {
-  int left;
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
-
-  left = UADE_MAX_MESSAGE_SIZE - sizeof(*um);
-  um->msgtype = UADE_COMMAND_READ;
-  um->size = 4;
-  * (uint32_t *) um->data = htonl(left);
-  if (uade_send_message(um, ipc)) {
+  uint32_t left = UADE_MAX_MESSAGE_SIZE - sizeof(struct uade_msg);
+  if (uade_send_u32(UADE_COMMAND_READ, left, ipc)) {
     fprintf(stderr, "\ncan not send read command\n");
     return 0;
   }
-
   return left;
 }
 
@@ -53,8 +46,6 @@ int uade_read_request(struct uade_ipc *ipc)
 void uade_send_filter_command(struct uade_ipc *ipc,
 			      struct uade_config *uadeconf)
 {
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
   int filter_type = uadeconf->filter_type;
   int filter_state = uadeconf->led_state;
   int force_filter = uadeconf->led_forced;
@@ -65,10 +56,7 @@ void uade_send_filter_command(struct uade_ipc *ipc,
   /* Note that filter state is not normally forced */
   filter_state = force_filter ? (2 + (filter_state & 1)) : 0;
 
-  *um = (struct uade_msg) {.msgtype = UADE_COMMAND_FILTER, .size = 8};
-  ((uint32_t *) um->data)[0] = htonl(filter_type);
-  ((uint32_t *) um->data)[1] = htonl(filter_state);
-  if (uade_send_message(um, ipc)) {
+  if (uade_send_two_u32s(UADE_COMMAND_FILTER, filter_type, filter_state, ipc)) {
     fprintf(stderr, "Can not setup filters.\n");
     exit(-1);
   }
@@ -194,6 +182,14 @@ int uade_song_initialization(const char *scorename,
   if (uc->use_ntsc) {
     if  (uade_send_short_message(UADE_COMMAND_SET_NTSC, ipc)) {
       fprintf(stderr, "Can not send ntsc command.\n");
+      goto cleanup;
+    }
+  }
+
+  if (uc->frequency != UADE_DEFAULT_FREQUENCY) {
+    fprintf(stderr, "UADE WARNING: FILTERING IS TOTALLY BROKEN WHEN FREQUENCY IS NOT 44100 Hz.\n");
+    if (uade_send_u32(UADE_COMMAND_SET_FREQUENCY, uc->frequency, ipc)) {
+      fprintf(stderr, "Can not send frequency.\n");
       goto cleanup;
     }
   }

@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
     {"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
     {"filter",           2, NULL, UC_FILTER_TYPE},
     {"force-led",        1, NULL, UC_FORCE_LED},
+    {"frequency",        1, NULL, UC_FREQUENCY},
     {"get-info",         0, NULL, 'g'},
     {"gain",             1, NULL, 'G'},
     {"headphones",       0, NULL, UC_HEADPHONES},
@@ -330,6 +331,7 @@ int main(int argc, char *argv[])
 
     case UC_BUFFER_TIME:
     case UC_FORCE_LED:
+    case UC_FREQUENCY:
     case UC_INTERPOLATOR:
       uade_set_config_option(&uc_cmdline, ret, optarg);
       break;
@@ -480,7 +482,7 @@ int main(int argc, char *argv[])
 
   uade_spawn(&uadeipc, &uadepid, uadename, configname);
 
-  if (!audio_init(uc.buffer_time))
+  if (!audio_init(uc.frequency, uc.buffer_time))
     goto cleanup;
 
   uade_effect_set_defaults(&effects_backup);

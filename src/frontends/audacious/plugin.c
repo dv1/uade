@@ -423,7 +423,7 @@ static void *play_loop(void *arg)
 
       uade_lock();
       if (uade_seek_forward) {
-	skip_bytes += uade_seek_forward * UADE_BYTES_PER_SECOND;
+	skip_bytes += uade_seek_forward * (UADE_BYTES_PER_FRAME * config.frequency);
 	uade_ip.output->flush(uade_ip.output->written_time() + uade_seek_forward * 1000);
 	uade_seek_forward = 0;
       }
@@ -528,7 +528,7 @@ static void *play_loop(void *arg)
 	if (config.timeout != -1 && config.use_timeouts) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
-	    if (uadesong->out_bytes / UADE_BYTES_PER_SECOND >= config.timeout)
+	    if (uadesong->out_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.timeout)
 	      song_end_trigger = 1;
 	    uade_unlock();
 	  }
@@ -536,7 +536,7 @@ static void *play_loop(void *arg)
 
 	if (config.subsong_timeout != -1 && config.use_timeouts) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
-	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= config.subsong_timeout) {
+	    if (subsong_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.subsong_timeout) {
 	      subsong_end = 1;
 	    }
 	  }
@@ -688,7 +688,7 @@ static int test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / UADE_BYTES_PER_SECOND >= config.silence_timeout) {
+    if (silence_count / (UADE_BYTES_PER_FRAME * config.frequency) >= config.silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -738,7 +738,7 @@ static void uade_play_file(char *filename)
     uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname);
   }
 
-  if (!uade_ip.output->open_audio(sample_format, UADE_FREQUENCY, UADE_CHANNELS)) {
+  if (!uade_ip.output->open_audio(sample_format, config_backup.frequency, UADE_CHANNELS)) {
     abort_playing = 1;
     return;
   }
@@ -808,7 +808,7 @@ static void uade_stop(void)
     uade_lock();
     play_time = uadesong->playtime;
     if (out_bytes_valid) {
-      play_time = (uadesong->out_bytes * 1000) / UADE_BYTES_PER_SECOND;
+      play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
       if (uadesong->md5[0] != 0)
         uade_add_playtime(uadesong->md5, play_time, 1);
 
@@ -900,7 +900,6 @@ static void uade_info_string(void)
   if (uade_generate_song_title(info, sizeof info, uadesong, &config))
     strlcpy(info, gui_filename, sizeof info);
 
-  uade_ip.set_info(info, playtime, UADE_BYTES_PER_SECOND,
-		   UADE_FREQUENCY,
-		   UADE_CHANNELS);
+  uade_ip.set_info(info, playtime, (UADE_BYTES_PER_FRAME * config.frequency),
+		   config.frequency, UADE_CHANNELS);
 }

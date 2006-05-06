@@ -1,3 +1,11 @@
+2006-05-06  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added two util functions into uadeipc.c. They are uade_send_u32()
+	  and uade_send_two_u32s().
+	- Started changes towards changeable output frequency. You can
+	  experiment with --freq=x but filter emulation only works for
+	  44,1 kHz at the moment. Note that filter emulation always has an
+	  effect on sound.
+
 2006-05-05  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed --filter=x and --force-led=y to work again.
 

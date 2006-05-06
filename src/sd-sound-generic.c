@@ -34,6 +34,15 @@ int setup_sound (void)
    return 1;
 }
 
+
+void set_sound_freq(int x)
+{
+  /* Validation is done in init_sound() */
+  currprefs.sound_freq = x;
+  init_sound();
+}
+
+
 void init_sound (void)
 {
   int channels;
@@ -52,6 +61,10 @@ void init_sound (void)
 
   if (dspbits != (UADE_BYTES_PER_SAMPLE * 8)) {
     fprintf(stderr, "Only 16 bit sounds supported.\n");
+    exit(-1);
+  }
+  if (rate < 1 || rate > SOUNDTICKS_NTSC) {
+    fprintf(stderr, "Too small or high a rate: %u\n", rate);
     exit(-1);
   }
   if (channels != UADE_CHANNELS) {

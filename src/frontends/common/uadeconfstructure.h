@@ -13,6 +13,7 @@ enum uade_option {
   UC_FORCE_LED_OFF,
   UC_FORCE_LED_ON,
   UC_FORCE_LED,
+  UC_FREQUENCY,
   UC_GAIN,
   UC_HEADPHONES,
   UC_IGNORE_PLAYER_CHECK,
@@ -50,6 +51,8 @@ struct uade_config {
   int buffer_time_set;
   int filter_type;
   int filter_type_set;
+  int frequency;
+  int frequency_set;
   int led_forced;
   int led_forced_set;
   int led_state;

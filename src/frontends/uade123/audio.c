@@ -21,7 +21,7 @@ void audio_close(void)
 
 /* buffer_time is given in milliseconds */
 
-int audio_init(int buffer_time)
+int audio_init(int frequency, int buffer_time)
 {
   int driver;
   ao_sample_format format;
@@ -33,7 +33,7 @@ int audio_init(int buffer_time)
 
   format.bits = UADE_BYTES_PER_SAMPLE * 8;
   format.channels = UADE_CHANNELS;
-  format.rate = UADE_FREQUENCY; /* Rate means sampling frequency */
+  format.rate = frequency;
   format.byte_format = AO_FMT_NATIVE;
 
   if (uade_output_file_name[0]) {

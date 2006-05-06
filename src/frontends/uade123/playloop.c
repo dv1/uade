@@ -69,7 +69,7 @@ static int uade_test_silence(void *buf, size_t size, struct uade_config *uc)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / UADE_BYTES_PER_SECOND >= uc->silence_timeout) {
+    if (silence_count / (UADE_BYTES_PER_FRAME * uc->frequency) >= uc->silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -109,10 +109,12 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
 
+  const int bytes_per_second = UADE_BYTES_PER_FRAME * uc->frequency;
+
   uade_effect_reset_internals();
 
   /* Skip bytes must be a multiple of audio frame size */
-  skip_bytes = uade_jump_pos * UADE_BYTES_PER_SECOND;
+  skip_bytes = uade_jump_pos * bytes_per_second;
   skip_bytes = (skip_bytes / framesize) * framesize;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
@@ -130,7 +132,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
     if (state == UADE_S_STATE) {
 
       if (skip_bytes == 0) {
-	deciseconds = us->out_bytes * 10 / (UADE_BYTES_PER_SECOND);
+	deciseconds = us->out_bytes * 10 / bytes_per_second;
 	if (!uade_no_output) {
 	  if (us->playtime >= 0) {
 	    int ptimesecs = us->playtime / 1000;
@@ -154,7 +156,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case '.':
 	  if (skip_bytes == 0) {
 	    fprintf(stderr, "\nSkipping 10 seconds\n");
-	    skip_bytes = UADE_BYTES_PER_SECOND * 10;
+	    skip_bytes = bytes_per_second * 10;
 	  }
 	  break;
 	case ' ':
@@ -346,7 +348,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	/* FIX ME */
 	if (uc->timeout != -1 && uc->use_timeouts) {
 	  if (uade_song_end_trigger == 0) {
-	    if (total_bytes / UADE_BYTES_PER_SECOND >= uc->timeout) {
+	    if (total_bytes / bytes_per_second >= uc->timeout) {
 	      fprintf(stderr, "\nSong end (timeout %ds)\n", uc->timeout);
 	      uade_song_end_trigger = 1;
 	    }
@@ -355,7 +357,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 
 	if (uc->subsong_timeout != -1 && uc->use_timeouts) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    if (subsong_bytes / UADE_BYTES_PER_SECOND >= uc->subsong_timeout) {
+	    if (subsong_bytes / bytes_per_second >= uc->subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uc->subsong_timeout);
 	      subsong_end = 1;
 	    }

@@ -17,6 +17,7 @@ extern float sample_evtime_interval;
  * if unsure, say yes.  Any call to init_sound may change the value.  */
 extern int setup_sound (void);
 
+extern void set_sound_freq (int x);
 extern void init_sound (void);
 extern void flush_sound (void);
 extern void close_sound (void);
