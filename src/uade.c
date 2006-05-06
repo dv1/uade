@@ -471,7 +471,7 @@ void uade_handle_r_state(void)
 
     case UADE_COMMAND_SET_INTERPOLATION_MODE:
       uade_check_fix_string(um, 16);
-      select_audio_interpolator((char *) um->data);
+      audio_set_resampler((char *) um->data);
       break;
 
     case UADE_COMMAND_SPEED_HACK:

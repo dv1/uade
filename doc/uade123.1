@@ -116,11 +116,10 @@ uade.conf.
 \fB\-\-filter=\fRx
 Set filter emulation mode to
 .BR x .
-x is a500, a500s, a1200, a1200s or none. A500 is
+x is a500, a1200 or none. A500 is
 the default. 'none' means disabling the filter. Please note that A500 and A1200
 are audibly different on every
 song even if a song doesn't use filtering.
-A500S and A1200S are faster but less accurate filter versions.
 Surprisingly, the biggest
 difference between A500 and A1200 is filter behavior when LED is off (i.e.
 song doesn't use filtering). When LED is off, A1200 does very little filtering
@@ -408,32 +407,32 @@ plugin too.
 
 The valid commands are:
 .sp 1
-    filter x           Set filter emulation mode to be A500, A500S,
-                       A1200 or A1200S.
+    action_keys x      Set action keys "off" or "on".
 .br
-    headphone          Enable headphone effect.
+    buffer_time x      Set audio buffer length to x milliseconds.
 .br
-    panning x          Set panning value to x inside range [0, 2].
-                       The default is 0.
+    filter x           Set filter emulation mode to be A500, A1200
+                       none.
+.br
+    force_led_off      Forces LED to "off" state.
 .br
     gain x             Set gain value to x which is a non-negative
                        value. The default value is 1.0.
 .br
-    interpolator x     Set interpolator to x which is either default
-                       (anti), anti or none.
-.br
-    subsong_timeout x  Set subsong timeout value to x seconds.
-.br
-    action_keys x      Set action keys "off" or "on".
-.br
-    no_filter          Turn filter emulation off.
-.br
-    force_led_off      Forces LED to "off" state.
+    headphone          Enable headphone effect.
 .br
     ignore_player_check    Force eagleplayers to recognize any given
                            song.
 .br
+    interpolator x     Set interpolator to x which is either default
+                       (anti), anti or none.
+.br
+    no_filter          Turn filter emulation off. Same as "filter none".
+.br
     ntsc               Set NTSC mode.
+.br
+    panning x          Set panning value to x inside range [0, 2].
+                       The default is 0.
 .br
     random_play        Set random play or shuffle mode. Used for
                        uade123 only.
@@ -443,9 +442,9 @@ The valid commands are:
 .br
     silence_timeout x  Set silence timeout value to x seconds.
 .br
-    timeout x          Set timeout value to x seconds.
+    subsong_timeout x  Set subsong timeout value to x seconds.
 .br
-    buffer_time x      Set audio buffer length to x milliseconds.
+    timeout x          Set timeout value to x seconds.
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
 .SH "FILES"

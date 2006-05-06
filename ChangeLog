@@ -1,3 +1,14 @@
+2006-05-07  Heikki Orsila <heikki.orsila@iki.fi>
+	- Improved filters to work on arbitrary frequency (alankila)
+	- Removed A500S and A1200S filters. For compatibility, they're now
+	  aliased to A500 and A1200.
+	- Moved computation of audio emulation parameters away from
+	  init_sound() to audio_set_rate(). init_sound() calls
+	  audio_set_rate().
+	- It's now possible to use frequency directive in uade.conf to
+	  set playback frequency. But watch out, it can cause bugs
+	  and sound quality degradation.
+
 2006-05-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added two util functions into uadeipc.c. They are uade_send_u32()
 	  and uade_send_two_u32s().

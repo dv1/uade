@@ -32,7 +32,7 @@ void (*sample_handler) (void);
 static void (*sample_prehandler) (unsigned long best_evtime);
 
 /* Average time in bus cycles to output a new sample */
-float sample_evtime_interval;
+static float sample_evtime_interval;
 static float next_sample_evtime;
 
 int sound_available;
@@ -46,6 +46,10 @@ static int audperhack;
 static struct filter_state {
     float rc1, rc2, rc3, rc4, rc5;
 } sound_filter_state[2];
+
+static float a500e_filter1_a0;
+static float a500e_filter2_a0;
+static float filter_a0; /* a500e and a1200e use the same */
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
  * on A500 and the LED filter. This code emulates both.
@@ -68,62 +72,27 @@ static int filter(int input, struct filter_state *fs)
     int o;
     float tmp, normal_output, led_output;
 
-    /* white noise generator for filter debugging
-    data = 65535 * (drand48() - 0.5);
-    */
     switch (sound_use_filter) {
-        
     case FILTER_MODEL_A500: 
-	tmp  = 0.36 * input;
-	tmp += 0.64 * fs->rc1;
-	fs->rc1 = tmp;
-        normal_output = fs->rc1;
-    
-        /* lowpass */
-        tmp  = 0.33 * normal_output;
-        tmp += 0.67 * fs->rc2;
-        fs->rc2 = tmp;
-
-        /* highboost */
-        tmp  = 1.35 * fs->rc2;
-        tmp -= 0.35 * fs->rc3;
-        fs->rc3 = tmp;
-        led_output = fs->rc3 * 0.98;
-        break;
-        
-    case FILTER_MODEL_A1200:
-        normal_output = input;
-        
-        /* lowpass */
-        tmp  = 0.33 * normal_output;
-        tmp += 0.67 * fs->rc2;
-        fs->rc2 = tmp;
-
-        /* highboost */
-        tmp  = 1.35 * fs->rc2;
-        tmp -= 0.35 * fs->rc3;
-        fs->rc3 = tmp;
-        led_output = fs->rc3 * 0.98;
-        break;
-
     case FILTER_MODEL_A500E:
-	fs->rc1 = 0.52 * input   + 0.48 * fs->rc1;
-	fs->rc2 = 0.92 * fs->rc1 + 0.08 * fs->rc2;
+	fs->rc1 = a500e_filter1_a0 * input + (1 - a500e_filter1_a0) * fs->rc1;
+	fs->rc2 = a500e_filter2_a0 * fs->rc1 + (1-a500e_filter2_a0) * fs->rc2;
 	normal_output = fs->rc2;
 
-	fs->rc3 = 0.48 * normal_output + 0.52 * fs->rc3;
-	fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
-	fs->rc5 = 0.48 * fs->rc4       + 0.52 * fs->rc5;
+	fs->rc3 = filter_a0 * normal_output + (1 - filter_a0) * fs->rc3;
+	fs->rc4 = filter_a0 * fs->rc3       + (1 - filter_a0) * fs->rc4;
+	fs->rc5 = filter_a0 * fs->rc4       + (1 - filter_a0) * fs->rc5;
 
 	led_output = fs->rc5;
         break;
         
+    case FILTER_MODEL_A1200:
     case FILTER_MODEL_A1200E:
         normal_output = input;
 
-        fs->rc2 = 0.48 * normal_output + 0.52 * fs->rc2;
-        fs->rc3 = 0.48 * fs->rc2       + 0.52 * fs->rc3;
-        fs->rc4 = 0.48 * fs->rc3       + 0.52 * fs->rc4;
+        fs->rc2 = filter_a0 * normal_output + (1 - filter_a0) * fs->rc2;
+        fs->rc3 = filter_a0 * fs->rc2       + (1 - filter_a0) * fs->rc3;
+        fs->rc4 = filter_a0 * fs->rc3       + (1 - filter_a0) * fs->rc4;
 
         led_output = fs->rc4;
         break;
@@ -434,37 +403,45 @@ void audio_reset (void)
 
     memset(sound_filter_state, 0, sizeof sound_filter_state);
 
-    select_audio_interpolator(NULL);
+    audio_set_resampler(NULL);
 }
 
 
-static int sound_prefs_changed (void)
+/* This computes the 1st order low-pass filter term b0.
+ * The a1 term is 1.0 - b0. The center frequency marks the -3 dB point. */
+static float rc_calculate_a0(int sample_rate, int cutoff_freq)
 {
-    return (changed_prefs.produce_sound != currprefs.produce_sound
-	    || changed_prefs.stereo != currprefs.stereo
-	    || changed_prefs.sound_freq != currprefs.sound_freq
-	    || changed_prefs.sound_bits != currprefs.sound_bits);
+    /* The BLT correction formula below blows up if the cutoff is above nyquist. */
+    if (cutoff_freq >= sample_rate / 2)
+        return 1.0;
+
+    float omega = 2 * M_PI * cutoff_freq / sample_rate;
+    /* Compensate for the bilinear transformation. This allows us to specify the
+     * stop frequency more exactly, but the filter becomes less steep further
+     * from stopband. */
+    omega = tan(omega / 2) * 2;
+    return 1 / (1 + 1/omega);
 }
 
 
-void check_prefs_changed_audio (void)
+void audio_set_rate(int rate)
 {
-    if (sound_available && sound_prefs_changed ()) {
-	close_sound ();
+    sample_evtime_interval = ((float) SOUNDTICKS) / rate;
 
-	currprefs.produce_sound = changed_prefs.produce_sound;
-	currprefs.stereo = changed_prefs.stereo;
-	currprefs.sound_bits = changed_prefs.sound_bits;
-	currprefs.sound_freq = changed_prefs.sound_freq;
-
-	init_sound ();
-	last_audio_cycles = cycles - 1;
-	next_sample_evtime = sample_evtime_interval;
-    }
+    /* Although these numbers are in Hz, these values should not be taken to
+     * be the true filter cutoff values of Amiga 500 and Amiga 1200.
+     * This is because these filters are composites. The true values are
+     * 5 kHz (or 4.5 kHz possibly on some models) for A500 fixed lowpass filter
+     * and 1.7 kHz 12 db/oct Butterworth for the LED filter. We need to upsample 
+     * to have digital filters behave like analog ones over the entire audible
+     * frequency band. */
+    a500e_filter1_a0 = rc_calculate_a0(rate, 6200);
+    a500e_filter2_a0 = rc_calculate_a0(rate, 20000);
+    filter_a0 = rc_calculate_a0(rate, 7000);
 }
 
 
-void select_audio_interpolator(char *name)
+void audio_set_resampler(char *name)
 {
     sample_prehandler = NULL;
 
@@ -482,7 +459,7 @@ void select_audio_interpolator(char *name)
     } else {
 	sample_handler = sample16si_anti_handler;
 	sample_prehandler = anti_sinc_prehandler;
-	fprintf(stderr, "\nUnknown interpolation mode: %s. Using default.\n", name);
+	fprintf(stderr, "\nUnknown resampling method: %s. Using default.\n", name);
     }
 }
 

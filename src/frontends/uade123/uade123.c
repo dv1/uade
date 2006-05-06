@@ -319,11 +319,7 @@ int main(int argc, char *argv[])
 
     case UC_FILTER_TYPE:
       if (optarg != NULL) {
-	if (strcasecmp(optarg, "none") == 0) {
-	  uade_set_config_option(&uc_cmdline, UC_NO_FILTER, NULL);
-	} else {
-	  uade_set_config_option(&uc_cmdline, ret, optarg);
-	}
+	uade_set_config_option(&uc_cmdline, ret, optarg);
       } else {
 	uade_set_config_option(&uc_cmdline, ret, NULL);
       }
@@ -632,8 +628,8 @@ static void print_help(void)
   printf("                     format.\n");
   printf(" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=model      Set filter model to A500, A500S, A1200, A1200S or NONE.\n");
-  printf("                     The default is A500. NONE means disabling filter.\n");
+  printf(" --filter=model      Set filter model to A500, A1200 or NONE. The default is\n");
+  printf("                     A500. NONE means disabling the filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");

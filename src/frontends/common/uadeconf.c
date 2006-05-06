@@ -46,6 +46,7 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "force_led_off",    .l = 12, .e = UC_FORCE_LED_OFF},
     {.str = "force_led_on",     .l = 12, .e = UC_FORCE_LED_ON},
     {.str = "force_led",        .l = 9,  .e = UC_FORCE_LED},
+    {.str = "frequency",        .l = 2,  .e = UC_FREQUENCY},
     {.str = "gain",             .l = 1,  .e = UC_GAIN},
     {.str = "headphones",       .l = 1,  .e = UC_HEADPHONES},
     {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
@@ -410,10 +411,15 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->use_timeouts_set = 1;
     break;
   case UC_FILTER_TYPE:
-    uade_set_filter_type(uc, value);
-    uc->filter_type_set = 1;
-    uc->no_filter_set = 1;
-    uc->no_filter = 0;
+    if (strcasecmp(value, "none") != 0) {
+      uade_set_filter_type(uc, value);
+      uc->filter_type_set = 1;
+      uc->no_filter_set = 1;
+      uc->no_filter = 0;
+    } else {
+      uc->no_filter_set = 1;
+      uc->no_filter = 1;
+    }
     break;
   case UC_FORCE_LED:
     uc->led_forced_set = 1;
@@ -582,7 +588,7 @@ void uade_set_filter_type(struct uade_config *uc, const char *model)
 	     strcasecmp(model, "a1200e") == 0) {
     uc->filter_type = FILTER_MODEL_A1200E;
 
-    /* simpler but faster a500/a1200 variants */
+    /* for compatibility */
   } else if (strcasecmp(model, "a500s") == 0) {
     uc->filter_type = FILTER_MODEL_A500;
   } else if (strcasecmp(model, "a1200s") == 0) {

@@ -299,7 +299,6 @@ int uade_main (int argc, char **argv)
 
     fix_options ();
     changed_prefs = currprefs;
-    check_prefs_changed_audio();
     check_prefs_changed_cpu();
 
     memory_init ();

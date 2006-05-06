@@ -187,7 +187,6 @@ int uade_song_initialization(const char *scorename,
   }
 
   if (uc->frequency != UADE_DEFAULT_FREQUENCY) {
-    fprintf(stderr, "UADE WARNING: FILTERING IS TOTALLY BROKEN WHEN FREQUENCY IS NOT 44100 Hz.\n");
     if (uade_send_u32(UADE_COMMAND_SET_FREQUENCY, uc->frequency, ipc)) {
       fprintf(stderr, "Can not send frequency.\n");
       goto cleanup;

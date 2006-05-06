@@ -14,7 +14,7 @@
 #include "custom.h"
 #include "gensound.h"
 #include "sd-sound.h"
-
+#include "audio.h"
 #include "uade.h"
 
 uae_u16 sndbuffer[MAX_SOUND_BUF_SIZE / 2];
@@ -38,8 +38,8 @@ int setup_sound (void)
 void set_sound_freq(int x)
 {
   /* Validation is done later in init_sound() */
-  changed_prefs.sound_freq = x;
-  check_prefs_changed_audio();
+  currprefs.sound_freq = x;
+  init_sound();
 }
 
 
@@ -73,8 +73,8 @@ void init_sound (void)
   }
 
   sound_bytes_per_second = (dspbits / 8) *  channels * rate;
-  
-  sample_evtime_interval = ((float) SOUNDTICKS) / rate;
+
+  audio_set_rate(rate);
 
   sound_available = 1;
   
