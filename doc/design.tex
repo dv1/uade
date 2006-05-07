@@ -100,7 +100,7 @@ Initially the client has the token so it may send commands for the uadecore.
 The messaging protocol has following commands which are only sent by
 the client. There is an exception, however. The uadecore may send a
 \emph{token}-command, but it is not really considered a command.
-All the commands can be found from the file \mbox{src/include/uademsg.h}.
+All the commands can be found from the file \mbox{src/include/uadeipc.h}.
 
 \begin{description}
 \item [Config] command is used to pass a file name of the emulation
@@ -128,8 +128,10 @@ for the uadecore.
 if ever).
 \item [Song end not possible] command is not necessary.
 \item [Set ntsc] command is not necessary.
-\item [Filter] command is not necessary.
-\item [Set interpolation mode] command is not necessary.
+\item [Filter] command is used to select between A500, A1200 or no filter
+  emulation.
+\item [Set frequency] command is used to set sample rate for output.
+\item [Set resampling mode] command is not necessary.
 \item [Speed hack] command is not necessary.
 \item [Change subsong] command is not necessary.
 \item [Activate debugger] command is not necessary.
@@ -140,7 +142,7 @@ if ever).
 \subsection{Messaging protocol replies for commands}
 
 Messages are answered by following replies.
-All the replies can be found from the file \mbox{src/include/uademsg.h}.
+All the replies can be found from the file \mbox{src/include/uadeipc.h}.
 
 \begin{description}
 \item [MSG] reply is just any random text string message that the client should
@@ -297,7 +299,7 @@ Command & Player\\
 \hline
 Command & Score\\
 \hline
-Command & Set interpolation mode\\
+Command & Set resampling mode\\
 \hline
 Reply & Format name\\
 \hline
@@ -316,12 +318,13 @@ Reply & Player name\\
 Custom message is any kind of message which is not short or string message.
 We quickly present all different custom messages in following tables.
 
-Table \ref{tab:reply_data} shows format of sound data reply message.
-Table \ref{tab:reply_subsong_info} shows format of subsong info reply message.
-Table \ref{tab:reply_song_end} shows format of song end reply message.
-Table \ref{tab:command_read} shows format of read command message.
-Table \ref{tab:command_filter} shows format of filter command message.
-Table \ref{tab:command_subsong} shows format of subsong command messages
+Table \ref{tab:reply_data} shows format of sound data reply.
+Table \ref{tab:reply_subsong_info} shows format of subsong info reply.
+Table \ref{tab:reply_song_end} shows format of song end reply.
+Table \ref{tab:command_read} shows format of read command.
+Table \ref{tab:command_filter} shows format of filter command.
+Table \ref{tab:command_set_frequency} shows format of set frequency command.
+Table \ref{tab:command_subsong} shows format of subsong commands
 which are set subsong and change subsong.
 
 \begin{table}
@@ -385,7 +388,7 @@ data bytes.\\
 
 \begin{table}
 \begin{center}
-\caption{Read command message}
+\caption{Read command}
 \label{tab:command_read}
 \begin{tabular}{|r|l|}
 \hline
@@ -401,7 +404,7 @@ data bytes.\\
 
 \begin{table}
 \begin{center}
-\caption{Filter command message}
+\caption{Filter command}
 \label{tab:command_filter}
 \begin{tabular}{|r|l|}
 \hline
@@ -420,7 +423,23 @@ data bytes.\\
 
 \begin{table}
 \begin{center}
-\caption{Subsong command message}
+\caption{Frequency command}
+\label{tab:command_set_frequency}
+\begin{tabular}{|r|l|}
+\hline
+\textbf{uint32\_t} & Command: Set frequency\\
+\hline
+\textbf{uint32\_t} & 4\\
+\hline
+\textbf{uint32\_t} & Sample rate (big-endian)\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}
+\begin{center}
+\caption{Subsong command}
 \label{tab:command_subsong}
 \begin{tabular}{|r|l|}
 \hline
@@ -482,7 +501,7 @@ Based on that log and previous explanation of messages, you should be able
 to write an independent frontend by doing little reverse-engineering into
 uade headers. More specifically, you need following information:
 \begin{itemize}
-\item Message type numbers (see \mbox{src/include/uademsg.h})
+\item Message type numbers (see \mbox{src/include/uadeipc.h})
 \item Filter setting codes (see \mbox{src/include/amigafilter.h})
 \item something else you will find out..
 \end{itemize}
