@@ -39,6 +39,11 @@ int sound_available;
 
 static int sound_use_filter = FILTER_MODEL_A500;
 
+/* denormals are very small floating point numbers that force FPUs into slow
+   mode. All lowpass filters using floats are suspectible to denormals unless
+   a small offset is added to avoid very small floating point numbers. */
+#define DENORMAL_OFFSET (1E-10)
+
 static unsigned long last_audio_cycles;
 
 static int audperhack;
@@ -74,7 +79,7 @@ static int filter(int input, struct filter_state *fs)
 
     switch (sound_use_filter) {
     case FILTER_MODEL_A500: 
-	fs->rc1 = a500e_filter1_a0 * input + (1 - a500e_filter1_a0) * fs->rc1;
+	fs->rc1 = a500e_filter1_a0 * input + (1 - a500e_filter1_a0) * fs->rc1 + DENORMAL_OFFSET;
 	fs->rc2 = a500e_filter2_a0 * fs->rc1 + (1-a500e_filter2_a0) * fs->rc2;
 	normal_output = fs->rc2;
 
@@ -84,7 +89,7 @@ static int filter(int input, struct filter_state *fs)
 
 	led_output = fs->rc5;
         break;
-        
+
     case FILTER_MODEL_A1200:
         normal_output = input;
 

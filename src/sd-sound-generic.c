@@ -79,9 +79,6 @@ void init_sound (void)
   sound_available = 1;
   
   sndbufpt = sndbuffer;
-#ifdef FRAME_RATE_HACK
-  vsynctime = vsynctime * 9 / 10;
-#endif	
 }
 
 /* this should be called between subsongs when remote slave changes subsong */

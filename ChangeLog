@@ -14,6 +14,14 @@
 	- Renamed interpolator to be resampler in command line options
 	  and configuration files. Use --resampler=x instead of
 	  --interpolator=x.
+	- Fixed IIR filter not to waste CPU time with denormal numbers.
+	  This idea was presented to us by Antti Huovilainen, thanks.
+	  Try playing BD.Mickey_mouse with an older version and see how
+	  much cpu it takes with A500 filter. The new version is one
+	  quarter CPU time on an AMD64 machine (alankila)
+	- Optimized event handling in include/events.h by removing
+	  redundant vsynctime check that relied upon processor/OS
+	  specific timers (that we've removed long ago).
 
 2006-05-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added two util functions into uadeipc.c. They are uade_send_u32()

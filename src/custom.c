@@ -45,8 +45,6 @@ unsigned long int cycles, nextevent, is_lastline;
 static int rpt_did_reset;
 struct ev eventtab[ev_max];
 
-frame_time_t vsynctime, vsyncmintime;
-
 static int vpos;
 static uae_u16 lof;
 static int next_lineno;
@@ -75,7 +73,6 @@ int maxvpos = MAXVPOS_PAL;
 int minfirstline = MINFIRSTLINE_PAL;
 int vblank_endline = VBLANK_ENDLINE_PAL;
 int vblank_hz = VBLANK_HZ_PAL;
-unsigned long syncbase;
 static int fmode;
 static unsigned int beamcon0, new_beamcon0;
 static int ntscmode = 0;
@@ -206,7 +203,6 @@ void reset_frame_rate_hack (void)
 
     rpt_did_reset = 1;
     is_lastline = 0;
-    vsyncmintime = read_processor_time() + vsynctime;
     write_log ("Resetting frame rate hack\n");
 }
 
@@ -273,8 +269,6 @@ static void init_hz (void)
 	vblank_endline = VBLANK_ENDLINE_NTSC;
 	vblank_hz = VBLANK_HZ_NTSC;
     }
-    vsynctime = syncbase / vblank_hz;
-
     // write_log ("Using %s timing\n", isntsc ? "NTSC" : "PAL");
 }
 
@@ -1187,16 +1181,8 @@ static void adjust_array_sizes (void)
 
 static void vsync_handler (void)
 {
-    if (currprefs.m68k_speed == -1) {
-	frame_time_t curr_time = read_processor_time ();
-	vsyncmintime += vsynctime;
-	/* @@@ Mathias? How do you think we should do this? */
-	/* If we are too far behind, or we just did a reset, adjust the
-	 * needed time. */
-	if ((long int)(curr_time - vsyncmintime) > 0 || rpt_did_reset)
-	    vsyncmintime = curr_time + vsynctime;
+    if (currprefs.m68k_speed == -1)
 	rpt_did_reset = 0;
-    }
 
     INTREQ (0x8020);
     if (bplcon0 & 4)

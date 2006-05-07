@@ -9,8 +9,6 @@
   * Copyright 1995-1998 Bernd Schmidt
   */
 
-#include "machdep/rpt.h"
-extern frame_time_t vsynctime, vsyncmintime;
 extern void reset_frame_rate_hack (void);
 extern int rpt_available;
 
@@ -58,10 +56,6 @@ static void events_schedule (void)
 }
 
 static void do_cycles_slow (unsigned long cycles_to_add) {
-  if (is_lastline && eventtab[ev_hsync].evtime-cycles <= cycles_to_add
-      && (long int)(read_processor_time () - vsyncmintime) < 0)
-    return;
-
   if ((nextevent - cycles) <= cycles_to_add) {
     for (; cycles_to_add != 0; cycles_to_add--) {
       if (++cycles == nextevent) {
