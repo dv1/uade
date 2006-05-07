@@ -11,6 +11,8 @@
 	- Now only two models (FILTER_MODEL_(A500|A1200)) exist in
 	  amigafilter.h.
 	- Code cleanups
+	- Renamed interpolator to be resampler in command line options
+	  and configuration files.
 
 2006-05-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added two util functions into uadeipc.c. They are uade_send_u32()
