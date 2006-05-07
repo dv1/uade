@@ -93,7 +93,7 @@ static int filter(int input, struct filter_state *fs)
     case FILTER_MODEL_A1200:
         normal_output = input;
 
-        fs->rc2 = filter_a0 * normal_output + (1 - filter_a0) * fs->rc2;
+        fs->rc2 = filter_a0 * normal_output + (1 - filter_a0) * fs->rc2 + DENORMAL_OFFSET;
         fs->rc3 = filter_a0 * fs->rc2       + (1 - filter_a0) * fs->rc3;
         fs->rc4 = filter_a0 * fs->rc3       + (1 - filter_a0) * fs->rc4;
 
