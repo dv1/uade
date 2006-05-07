@@ -454,7 +454,7 @@ void uade_handle_r_state(void)
       set_sound_freq(x);
       break;
 
-    case UADE_COMMAND_SET_INTERPOLATION_MODE:
+    case UADE_COMMAND_SET_RESAMPLING_MODE:
       uade_check_fix_string(um, 16);
       audio_set_resampler((char *) um->data);
       break;

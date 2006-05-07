@@ -50,7 +50,7 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "gain",             .l = 1,  .e = UC_GAIN},
     {.str = "headphones",       .l = 1,  .e = UC_HEADPHONES},
     {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
-    {.str = "interpolator",     .l = 2,  .e = UC_INTERPOLATOR},
+    {.str = "interpolator",     .l = 2,  .e = UC_RESAMPLER},
     {.str = "magic_detection",  .l = 1,  .e = UC_MAGIC_DETECTION},
     {.str = "no_filter",        .l = 4,  .e = UC_NO_FILTER},
     {.str = "no_song_end",      .l = 4,  .e = UC_NO_SONG_END},
@@ -58,8 +58,9 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "one_subsong",      .l = 1,  .e = UC_ONE_SUBSONG},
     {.str = "pal",              .l = 3,  .e = UC_PAL},
     {.str = "panning_value",    .l = 3,  .e = UC_PANNING_VALUE},
-    {.str = "random_play",      .l = 2,  .e = UC_RANDOM_PLAY},
-    {.str = "recursive_mode",   .l = 2,  .e = UC_RECURSIVE_MODE},
+    {.str = "random_play",      .l = 3,  .e = UC_RANDOM_PLAY},
+    {.str = "recursive_mode",   .l = 3,  .e = UC_RECURSIVE_MODE},
+    {.str = "resampler",        .l = 3,  .e = UC_RESAMPLER},
     {.str = "silence_timeout_value", .l = 2, .e = UC_SILENCE_TIMEOUT_VALUE},
     {.str = "song_title",       .l = 2,  .e = UC_SONG_TITLE},
     {.str = "speed_hack",       .l = 2,  .e = UC_SPEED_HACK},
@@ -182,8 +183,8 @@ static int handle_attributes(struct uade_config *uc,
     case ES_GAIN:
       uade_set_config_option(uc, UC_GAIN, a->s);
       break;
-    case ES_INTERPOLATOR:
-      uade_set_config_option(uc, UC_INTERPOLATOR, a->s);
+    case ES_RESAMPLER:
+      uade_set_config_option(uc, UC_RESAMPLER, a->s);
       break;
     case ES_PANNING:
       uade_set_config_option(uc, UC_PANNING_VALUE, a->s);
@@ -280,7 +281,6 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(gain_enable);
   MERGE_OPTION(headphones);
   MERGE_OPTION(ignore_player_check);
-  MERGE_OPTION(interpolator);
   MERGE_OPTION(led_forced);
   MERGE_OPTION(led_state);
   MERGE_OPTION(no_filter);
@@ -291,6 +291,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(panning_enable);
   MERGE_OPTION(random_play);
   MERGE_OPTION(recursive_mode);
+  MERGE_OPTION(resampler);
   MERGE_OPTION(silence_timeout);
   MERGE_OPTION(song_title);
   MERGE_OPTION(speed_hack);
@@ -473,12 +474,16 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->ignore_player_check_set = 1;
     uc->ignore_player_check = 1;
     break;
-  case UC_INTERPOLATOR:
+  case UC_RESAMPLER:
     if (value == NULL) {
-      fprintf(stderr, "uade.conf: No interpolator given.\n");
+      fprintf(stderr, "uade.conf: No resampler given.\n");
     } else {
-      uc->interpolator_set = 1;
-      uc->interpolator = strdup(value);
+      uc->resampler = strdup(value);
+      if (uc->resampler != NULL) {
+	uc->resampler_set = 1;
+      } else {
+	fprintf(stderr, "uade.conf: no memory for resampler.\n");
+      }
     }
     break;
   case UC_NO_FILTER:

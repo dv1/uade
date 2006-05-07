@@ -148,8 +148,8 @@ Enable headphone postprocessing effect.
 \fB\-i,	\-\-ignore\fR
 Force eagleplayer to play the song.
 .TP
-\fB\-\-interpolator=\fRs
-Set interpolator to
+\fB\-\-resampler=\fRs
+Set resampling method to
 .BR s .
 It can be
 .BR default
@@ -332,8 +332,6 @@ content_detection    A song can only be detected by contents, never
 .br
 gain=x               Set gain value to x
 .br
-interpolator=x       Select interpolator
-.br
 led_off              Force LED off
 .br
 led_on               Force LED on
@@ -361,6 +359,8 @@ player=name          Set eagleplayer, where name is the directory entry
 .br
 reject               Reject a song (usable for blacklisting). This
                      option is not allowed in eagleplayer.conf.
+.br
+resampler=x          Set resampling method
 .br
 silence_timeout=x    Set silence timeout
 .br
@@ -424,10 +424,8 @@ The valid commands are:
     ignore_player_check    Force eagleplayers to recognize any given
                            song.
 .br
-    interpolator x     Set interpolator to x which is either default
-                       (anti), anti or none.
-.br
-    no_filter          Turn filter emulation off. Same as "filter none".
+    no_filter          Turn filter emulation off. Same as
+                       "filter none".
 .br
     ntsc               Set NTSC mode.
 .br
@@ -439,6 +437,9 @@ The valid commands are:
 .br
     recursive_mode     Scan directories recursively. Used for uade123
                        only.
+.br
+    resampler x        Set resampling method to x. It is either
+                       default (anti), anti, sinc or none.
 .br
     silence_timeout x  Set silence timeout value to x seconds.
 .br

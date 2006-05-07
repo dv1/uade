@@ -17,7 +17,6 @@ enum uade_option {
   UC_GAIN,
   UC_HEADPHONES,
   UC_IGNORE_PLAYER_CHECK,
-  UC_INTERPOLATOR,
   UC_MAGIC_DETECTION,
   UC_NO_FILTER,
   UC_NO_HEADPHONES,
@@ -30,6 +29,7 @@ enum uade_option {
   UC_PANNING_VALUE,
   UC_RANDOM_PLAY,
   UC_RECURSIVE_MODE,
+  UC_RESAMPLER,
   UC_SILENCE_TIMEOUT_VALUE,
   UC_SONG_TITLE,
   UC_SPEED_HACK,
@@ -65,8 +65,8 @@ struct uade_config {
   int headphones_set;
   int ignore_player_check;
   int ignore_player_check_set;
-  char *interpolator;
-  int interpolator_set;
+  char *resampler;
+  int resampler_set;
   int magic_detection;
   int magic_detection_set;
   int no_filter;

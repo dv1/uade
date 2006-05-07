@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     {"headphones",       0, NULL, UC_HEADPHONES},
     {"help",             0, NULL, 'h'},
     {"ignore",           0, NULL, 'i'},
-    {"interpolator",     1, NULL, UC_INTERPOLATOR},
+    {"interpolator",     1, NULL, UC_RESAMPLER},
     {"jump",             1, NULL, 'j'},
     {"keys",             1, NULL, 'k'},
     {"list",             1, NULL, '@'},
@@ -159,6 +159,7 @@ int main(int argc, char *argv[])
     {"panning",          1, NULL, 'p'},
     {"recursive",        0, NULL, 'r'},
     {"repeat",           0, NULL, OPT_REPEAT},
+    {"resampler",        1, NULL, UC_RESAMPLER},
     {"shuffle",          0, NULL, 'z'},
     {"set",              1, NULL, OPT_SET},
     {"silence-timeout",  1, NULL, 'y'},
@@ -328,7 +329,7 @@ int main(int argc, char *argv[])
     case UC_BUFFER_TIME:
     case UC_FORCE_LED:
     case UC_FREQUENCY:
-    case UC_INTERPOLATOR:
+    case UC_RESAMPLER:
       uade_set_config_option(&uc_cmdline, ret, optarg);
       break;
 
@@ -628,8 +629,8 @@ static void print_help(void)
   printf("                     format.\n");
   printf(" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n");
   printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=model      Set filter model to A500, A500S, A1200, A1200S or NONE.\n");
-  printf("                     The default is A500. NONE means disabling filter.\n");
+  printf(" --filter=model      Set filter model to A500, A1200 or NONE. The default is\n");
+  printf("                     A500. NONE means disabling the filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");
@@ -638,8 +639,6 @@ static void print_help(void)
   printf(" -h, --help,         Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
-  printf(" --interpolator=x    Set interpolator to x, where x = default, anti, sinc or\n");
-  printf("                     none.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
@@ -654,6 +653,8 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r, --recursive,    Recursive directory scan\n");
   printf(" --repeat,           Play playlist over and over again\n");
+  printf(" --resampler=x       Set resampling method to x, where x = default, anti, sinc\n");
+  printf("                     or none.\n");
   printf(" -s x, --subsong=x,  Set subsong 'x'\n");
   printf(" --set=\"options\"     Set song.conf options for each given song.\n");
   printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");

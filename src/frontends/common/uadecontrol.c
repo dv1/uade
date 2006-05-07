@@ -63,17 +63,17 @@ void uade_send_filter_command(struct uade_ipc *ipc,
 }
 
 
-void uade_send_interpolation_command(struct uade_ipc *ipc,
-				     struct uade_config *uadeconf)
+static void uade_send_resampling_command(struct uade_ipc *ipc,
+				  struct uade_config *uadeconf)
 {
-  char *mode = uadeconf->interpolator;
+  char *mode = uadeconf->resampler;
   if (mode != NULL) {
     if (strlen(mode) == 0) {
-      fprintf(stderr, "Interpolation mode may not be empty.\n");
+      fprintf(stderr, "Resampling mode may not be empty.\n");
       exit(-1);
     }
-    if (uade_send_string(UADE_COMMAND_SET_INTERPOLATION_MODE, mode, ipc)) {
-      fprintf(stderr, "Can not set interpolation mode.\n");
+    if (uade_send_string(UADE_COMMAND_SET_RESAMPLING_MODE, mode, ipc)) {
+      fprintf(stderr, "Can not set resampling mode.\n");
       exit(-1);
     }
   }
@@ -82,14 +82,8 @@ void uade_send_interpolation_command(struct uade_ipc *ipc,
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc)
 {
-  uint8_t space[UADE_MAX_MESSAGE_SIZE];
-  struct uade_msg *um = (struct uade_msg *) space;
-
   assert(subsong >= 0 && subsong < 256);
-
-  *um = (struct uade_msg) {.msgtype = command, .size = 4};
-  * (uint32_t *) um->data = htonl(subsong);
-  if (uade_send_message(um, ipc) < 0) {
+  if (uade_send_u32(command, (uint32_t) subsong, ipc) < 0) {
     fprintf(stderr, "Could not changet subsong\n");
     exit(-1);
   }
@@ -170,7 +164,7 @@ int uade_song_initialization(const char *scorename,
 
   uade_send_filter_command(ipc, uc);
 
-  uade_send_interpolation_command(ipc, uc);
+  uade_send_resampling_command(ipc, uc);
 
   if (uc->speed_hack) {
     if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, ipc)) {

@@ -14,7 +14,7 @@
 #define ES_BROKEN_SONG_END   (1 <<  3)
 #define ES_CONTENT_DETECTION (1 <<  4)
 #define ES_GAIN              (1 <<  5)
-#define ES_INTERPOLATOR      (1 <<  6)
+#define ES_RESAMPLER         (1 <<  6)
 #define ES_LED_OFF           (1 <<  7)
 #define ES_LED_ON            (1 <<  8)
 #define ES_NEVER_ENDS        (1 <<  9)

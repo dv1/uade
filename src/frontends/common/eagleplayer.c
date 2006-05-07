@@ -305,9 +305,10 @@ static int parse_attribute(struct uade_attribute **attributelist, int *flags,
 
   struct attrlist esvalueattrs[] = {
     {.s = "gain",            .t = UA_STRING, .e = ES_GAIN},
-    {.s = "interpolator",    .t = UA_STRING, .e = ES_INTERPOLATOR},
+    {.s = "interpolator",    .t = UA_STRING, .e = ES_RESAMPLER},
     {.s = "panning",         .t = UA_STRING, .e = ES_PANNING},
     {.s = "player",          .t = UA_STRING, .e = ES_PLAYER},
+    {.s = "resampler",       .t = UA_STRING, .e = ES_RESAMPLER},
     {.s = "silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
     {.s = "subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
     {.s = "subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
