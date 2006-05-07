@@ -574,25 +574,19 @@ void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 
 void uade_set_filter_type(struct uade_config *uc, const char *model)
 {
-  uc->filter_type = FILTER_MODEL_A500E;
+  uc->filter_type = FILTER_MODEL_A500;
 
   if (model == NULL)
     return;
 
   /* a500 and a500e are the same */
-  if (strcasecmp(model, "a500") == 0 || strcasecmp(model, "a500e") == 0) {
-    uc->filter_type = FILTER_MODEL_A500E;
+  if (strncasecmp(model, "a500", 4) == 0) {
+    uc->filter_type = FILTER_MODEL_A500;
 
     /* a1200 and a1200e are the same */
-  } else if (strcasecmp(model, "a1200") == 0 ||
-	     strcasecmp(model, "a1200e") == 0) {
-    uc->filter_type = FILTER_MODEL_A1200E;
-
-    /* for compatibility */
-  } else if (strcasecmp(model, "a500s") == 0) {
-    uc->filter_type = FILTER_MODEL_A500;
-  } else if (strcasecmp(model, "a1200s") == 0) {
+  } else if (strncasecmp(model, "a1200", 5) == 0) {
     uc->filter_type = FILTER_MODEL_A1200;
+
   } else {
     fprintf(stderr, "Unknown filter model: %s\n", model);
   }

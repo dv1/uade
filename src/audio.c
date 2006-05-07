@@ -37,7 +37,7 @@ static float next_sample_evtime;
 
 int sound_available;
 
-int sound_use_filter = FILTER_MODEL_A500E;
+static int sound_use_filter = FILTER_MODEL_A500;
 
 static unsigned long last_audio_cycles;
 
@@ -49,7 +49,7 @@ static struct filter_state {
 
 static float a500e_filter1_a0;
 static float a500e_filter2_a0;
-static float filter_a0; /* a500e and a1200e use the same */
+static float filter_a0; /* a500 and a1200 use the same */
 
 /* Amiga has two separate filtering circuits per channel, a static RC filter
  * on A500 and the LED filter. This code emulates both.
@@ -74,7 +74,6 @@ static int filter(int input, struct filter_state *fs)
 
     switch (sound_use_filter) {
     case FILTER_MODEL_A500: 
-    case FILTER_MODEL_A500E:
 	fs->rc1 = a500e_filter1_a0 * input + (1 - a500e_filter1_a0) * fs->rc1;
 	fs->rc2 = a500e_filter2_a0 * fs->rc1 + (1-a500e_filter2_a0) * fs->rc2;
 	normal_output = fs->rc2;
@@ -87,7 +86,6 @@ static int filter(int input, struct filter_state *fs)
         break;
         
     case FILTER_MODEL_A1200:
-    case FILTER_MODEL_A1200E:
         normal_output = input;
 
         fs->rc2 = filter_a0 * normal_output + (1 - filter_a0) * fs->rc2;
@@ -421,6 +419,27 @@ static float rc_calculate_a0(int sample_rate, int cutoff_freq)
      * from stopband. */
     omega = tan(omega / 2) * 2;
     return 1 / (1 + 1/omega);
+}
+
+
+void audio_set_filter(int filter_type, int filter_force)
+{
+  /* If filter_type is zero, filtering is disabled, but if it's
+     non-zero, it contains the filter type (a500 or a1200) */
+  if (filter_type < 0 || filter_type >= FILTER_MODEL_UPPER_BOUND) {
+    fprintf(stderr, "Invalid filter number: %d\n", filter_type);
+    exit(-1);
+  }
+  sound_use_filter = filter_type;
+
+  gui_ledstate &= ~1;
+  if (filter_force & 2) {
+    gui_ledstate_forced = filter_force & 3;
+    gui_ledstate = gui_ledstate_forced & 1;
+  } else {
+    gui_ledstate_forced = 0;
+    gui_ledstate = (~ciaapra & 2) >> 1;
+  }
 }
 
 

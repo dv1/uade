@@ -71,6 +71,26 @@ static void copy_from_inputbuffer(void *dst, int bytes, struct uade_ipc *ipc)
 }
 
 
+int uade_parse_u32_message(uint32_t *u1, struct uade_msg *um)
+{
+  if (um->size != 4)
+    return -1;
+  *u1 = ntohl(* (uint32_t *) um->data);
+  return 0;
+}
+
+
+int uade_parse_two_u32s_message(uint32_t *u1, uint32_t *u2,
+				struct uade_msg *um)
+{
+  if (um->size != 8)
+    return -1;
+  *u1 = ntohl(((uint32_t *) um->data)[0]);
+  *u2 = ntohl(((uint32_t *) um->data)[1]);
+  return 0;
+}
+
+
 int uade_receive_message(struct uade_msg *um, size_t maxbytes, struct uade_ipc *ipc)
 {
   size_t fullsize;

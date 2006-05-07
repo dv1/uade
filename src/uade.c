@@ -401,7 +401,7 @@ void uade_handle_r_state(void)
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) space;
   int ret;
-  uint32_t x;
+  uint32_t x, y;
 
   while (1) {
 
@@ -426,34 +426,19 @@ void uade_handle_r_state(void)
       break;
 
     case UADE_COMMAND_CHANGE_SUBSONG:
-      if (um->size != 4) {
+      if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size with change subsong.\n");
 	exit(-1);
       }
-      x = ntohl(* (uint32_t *) um->data);
       change_subsong(x);
       break;
 
     case UADE_COMMAND_FILTER:
-      if (um->size != 8) {
+      if (uade_parse_two_u32s_message(&x, &y, um)) {
 	fprintf(stderr, "uadecore: Invalid size with filter command\n");
 	exit(-1);
       }
-      do {
-	int filter_force;
-	/* If sound_use_filter is zero, filtering is disabled, but if it's
-	   non-zero, it contains the filter type (a500 or a1200) */
-	sound_use_filter = ntohl(((uint32_t *) um->data)[0]);
-	filter_force = ntohl(((uint32_t *) um->data)[1]);
-	gui_ledstate &= ~1;
-	if (filter_force & 2) {
-	  gui_ledstate_forced = filter_force & 3;
-	  gui_ledstate = gui_ledstate_forced & 1;
-	} else {
-	  gui_ledstate_forced = 0;
-	  gui_ledstate = (~ciaapra & 2) >> 1;
-	}
-      } while (0);
+      audio_set_filter(x, y);
       break;
 
     case UADE_COMMAND_IGNORE_CHECK:
@@ -462,11 +447,11 @@ void uade_handle_r_state(void)
       break;
 
     case UADE_COMMAND_SET_FREQUENCY:
-      if (um->size != 4) {
+      if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "Invalid frequency message size: %u\n", um->size);
 	exit(-1);
       }
-      set_sound_freq(ntohl(((uint32_t *) um->data)[0]));
+      set_sound_freq(x);
       break;
 
     case UADE_COMMAND_SET_INTERPOLATION_MODE:
@@ -483,11 +468,11 @@ void uade_handle_r_state(void)
 	fprintf(stderr, "uadecore: Read not allowed when uade_read_size > 0.\n");
 	exit(-1);
       }
-      if (um->size != 4) {
+      if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size on read command.\n");
 	exit(-1);
       }
-      uade_read_size = ntohl(* (uint32_t *) um->data);
+      uade_read_size = x;
       if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE || (uade_read_size & 3) != 0) {
 	fprintf(stderr, "uadecore: Invalid read size: %d\n", uade_read_size);
 	exit(-1);
@@ -508,12 +493,12 @@ void uade_handle_r_state(void)
       break;
 
     case UADE_COMMAND_SET_SUBSONG:
-      if (um->size != 4) {
+      if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size on set subsong command.\n");
 	exit(-1);
       }
       uade_put_long(SCORE_SET_SUBSONG, 1);
-      uade_put_long(SCORE_SUBSONG, ntohl(* (uint32_t *) um->data));
+      uade_put_long(SCORE_SUBSONG, x);
       break;
 
     default:

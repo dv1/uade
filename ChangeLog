@@ -8,6 +8,9 @@
 	- It's now possible to use frequency directive in uade.conf to
 	  set playback frequency. But watch out, it can cause bugs
 	  and sound quality degradation.
+	- Now only two models (FILTER_MODEL_(A500|A1200)) exist in
+	  amigafilter.h.
+	- Code cleanups
 
 2006-05-06  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added two util functions into uadeipc.c. They are uade_send_u32()

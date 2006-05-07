@@ -60,6 +60,8 @@ struct uade_ipc {
 };
 
 void uade_check_fix_string(struct uade_msg *um, size_t maxlen);
+int uade_parse_u32_message(uint32_t *u1, struct uade_msg *um);
+int uade_parse_two_u32s_message(uint32_t *u1, uint32_t *u2, struct uade_msg *um);
 int uade_receive_message(struct uade_msg *um, size_t maxbytes, struct uade_ipc *ipc);
 int uade_receive_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc);
 int uade_receive_string(char *s, enum uade_msgtype msgtype, size_t maxlen, struct uade_ipc *ipc);
