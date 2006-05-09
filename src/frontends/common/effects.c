@@ -103,6 +103,15 @@ void uade_effect_set_defaults(struct uade_effect *ue)
 }
 
 
+/* Rate of 0 means undefined. Effects that depend on sample rate must
+   self-check against this because they can not implemented properly */
+void uade_effect_set_sample_rate(struct uade_effect *ue, int rate)
+{
+    assert(rate >= 0);
+    ue->rate = rate;
+}
+
+
 void uade_effect_gain_set_amount(struct uade_effect *ue, float amount)
 {
     assert(amount >= 0.0 && amount <= 128.0);

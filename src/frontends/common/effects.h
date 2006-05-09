@@ -14,6 +14,7 @@ struct uade_effect {
     uade_effect_t enabled;
     int gain;
     int pan;
+    int rate;
 };
 
 
@@ -21,6 +22,7 @@ void uade_effect_disable(struct uade_effect *ue, uade_effect_t effect);
 void uade_effect_disable_all(struct uade_effect *ue);
 void uade_effect_enable(struct uade_effect *ue, uade_effect_t effect);
 int uade_effect_is_enabled(struct uade_effect *ue, uade_effect_t effect);
+void uade_effect_set_sample_rate(struct uade_effect *ue, int rate);
 void uade_effect_toggle(struct uade_effect *ue, uade_effect_t effect);
 
 
