@@ -140,6 +140,8 @@ static int get_info_for_ep(char *dst, char *src, int maxlen)
 		epoptions, maxlen);
       }
     }
+  } else {
+    uade_send_debug("Unknown eagleplayer attribute queried: %s\n", src);
   }
   return ret;
 }
