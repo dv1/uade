@@ -49,6 +49,7 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "frequency",        .l = 2,  .e = UC_FREQUENCY},
     {.str = "gain",             .l = 1,  .e = UC_GAIN},
     {.str = "headphones",       .l = 1,  .e = UC_HEADPHONES},
+    {.str = "headphones2",      .l = 1,  .e = UC_HEADPHONES2},
     {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
     {.str = "interpolator",     .l = 2,  .e = UC_RESAMPLER},
     {.str = "magic_detection",  .l = 1,  .e = UC_MAGIC_DETECTION},
@@ -300,6 +301,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(gain);
   MERGE_OPTION(gain_enable);
   MERGE_OPTION(headphones);
+  MERGE_OPTION(headphones2);
   MERGE_OPTION(ignore_player_check);
   MERGE_OPTION(led_forced);
   MERGE_OPTION(led_state);
@@ -382,6 +384,9 @@ void uade_set_effects(struct uade_effect *effects,
 
   if (uc->headphones)
     uade_effect_enable(effects, UADE_EFFECT_HEADPHONES);
+
+  if (uc->headphones2)
+    uade_effect_enable(effects, UADE_EFFECT_HEADPHONES2);
 
   if (uc->panning_enable) {
     uade_effect_pan_set_amount(effects, uc->panning);
@@ -492,6 +497,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->headphones_set = 1;
     uc->headphones = 1;
     break;
+  case UC_HEADPHONES2:
+    uc->headphones2_set = 1;
+    uc->headphones2 = 1;
+    break;
   case UC_IGNORE_PLAYER_CHECK:
     uc->ignore_player_check_set = 1;
     uc->ignore_player_check = 1;
@@ -515,6 +524,8 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case UC_NO_HEADPHONES:
     uc->headphones_set = 1;
     uc->headphones = 0;
+    uc->headphones2_set = 1;
+    uc->headphones2 = 0;
     break;
   case UC_NO_PANNING:
     uc->panning_enable_set = 1;

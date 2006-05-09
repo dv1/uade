@@ -28,6 +28,7 @@ static float headphones_rc_r[4];
 static void gain(int gain_amount, int16_t *sm, int frames);
 static void pan(int pan_amount, int16_t *sm, int frames);
 static void headphones(int16_t *sm, int frames);
+static void headphones2(int16_t *sm, int frames);
 
 
 static inline int sampleclip(int x)
@@ -86,6 +87,8 @@ void uade_effect_run(struct uade_effect *ue, int16_t *samples, int frames)
 	    pan(ue->pan, samples, frames);
 	if (ue->enabled & (1 << UADE_EFFECT_HEADPHONES))
 	    headphones(samples, frames);
+	if (ue->enabled & (1 << UADE_EFFECT_HEADPHONES2) && ue->rate)
+	    headphones2(samples, frames);
 	if (ue->enabled & (1 << UADE_EFFECT_GAIN))
 	    gain(ue->gain, samples, frames);
     }
@@ -201,3 +204,7 @@ static void headphones(int16_t *sm, int frames)
     }
 }
 
+
+static void headphones2(int16_t *sm, int frames)
+{
+}

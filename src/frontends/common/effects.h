@@ -7,6 +7,7 @@ typedef enum {
     UADE_EFFECT_ALLOW,
     UADE_EFFECT_GAIN,
     UADE_EFFECT_HEADPHONES,
+    UADE_EFFECT_HEADPHONES2,
     UADE_EFFECT_PAN,
 } uade_effect_t;
 

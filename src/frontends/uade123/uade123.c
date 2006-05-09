@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
     {"get-info",         0, NULL, 'g'},
     {"gain",             1, NULL, 'G'},
     {"headphones",       0, NULL, UC_HEADPHONES},
+    {"headphones2",       0, NULL, UC_HEADPHONES2},
     {"help",             0, NULL, 'h'},
     {"ignore",           0, NULL, 'i'},
     {"interpolator",     1, NULL, UC_RESAMPLER},
@@ -335,6 +336,7 @@ int main(int argc, char *argv[])
 
     case UC_SPEED_HACK:
     case UC_HEADPHONES:
+    case UC_HEADPHONES2:
     case UC_NTSC:
     case UC_PAL:
     case UC_DISABLE_TIMEOUTS:
@@ -638,6 +640,7 @@ static void print_help(void)
   printf("                     Do not play.\n");
   printf(" -h, --help,         Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
+  printf(" --headphone2,        Enable headphone2 postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");

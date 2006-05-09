@@ -16,6 +16,7 @@ enum uade_option {
   UC_FREQUENCY,
   UC_GAIN,
   UC_HEADPHONES,
+  UC_HEADPHONES2,
   UC_IGNORE_PLAYER_CHECK,
   UC_MAGIC_DETECTION,
   UC_NO_FILTER,
@@ -63,6 +64,8 @@ struct uade_config {
   int gain_set;
   int headphones;
   int headphones_set;
+  int headphones2;
+  int headphones2_set;
   int ignore_player_check;
   int ignore_player_check_set;
   char *resampler;
