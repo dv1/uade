@@ -191,7 +191,7 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
       free(strippedname);
 
     } else {
-      debug("Not adding directory %s. Use -r to add recursively.\n", name);
+      debug(1, "Not adding directory %s. Use -r to add recursively.\n", name);
     }
     ret = 1;
   }
