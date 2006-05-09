@@ -367,6 +367,8 @@ void uade_set_effects(struct uade_effect *effects,
     uade_effect_pan_set_amount(effects, uc->panning);
     uade_effect_enable(effects, UADE_EFFECT_PAN);
   }
+
+  uade_effect_set_sample_rate(effects, uc->frequency);
 }
 
 

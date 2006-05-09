@@ -1,3 +1,6 @@
+2006-05-09  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added information about sample rate into effects API.
+
 2006-05-07  Heikki Orsila <heikki.orsila@iki.fi>
 	- Improved filters to work on arbitrary frequency (alankila)
 	- Removed A500S and A1200S filters. For compatibility, they're now

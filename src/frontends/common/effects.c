@@ -15,6 +15,11 @@
 #include "effects.h"
 
 
+#define UADE_EFFECT_HEADPHONES_DELAY_LENGTH 22
+#define UADE_EFFECT_HEADPHONES_DELAY_DIRECT 0.3
+#define UADE_EFFECT_HEADPHONES_CROSSMIX_VOL 0.80
+
+
 static float headphones_ap_l[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_ap_r[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_rc_l[4];
