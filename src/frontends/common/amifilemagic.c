@@ -109,7 +109,9 @@ static const char *offset_0000_patterns[] = {
   "MXTX", "MXTX",		/* Maxtrax*/
   "M1.0", "FUZZ",		/* Fuzzac*/
   "MSNG", "TPU",		/* Dirk Bialluch*/
-  "YM!", "",                   /* stplay -- intentionally sabotaged */
+  "YM!", "",                    /* stplay -- intentionally sabotaged */
+  "ST1.2 ModuleINFO", "",       /* Startrekker AM .NT -- intentionally sabotaged */
+  "AudioSculpture10", "",       /* Audiosculpture .AS -- intentionally sabotaged */
   NULL, NULL
 };
 

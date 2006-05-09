@@ -19,6 +19,144 @@ mod_ADSC8=42
 mod_FTK=43
 
 
+query_eagleopts:
+	tst.l	uadebase
+	beq.b	.no_uade_options
+
+	lea	query(pc),a0
+	lea	response(pc),a1
+	move.l	#256,d0
+	jsr	-18(a6)
+	tst.l	d0
+	bmi.b	.unknown_attribute
+	cmp.l	#256,d0
+	bhi.b	.too_short_buffer
+	move.l	d0,d2
+
+	lea	response(pc),a3
+.loopah	lea	eagleoptlist,a2
+.loopah2
+	move.l	(a2)+,d0
+	beq.b	.eloop
+
+	move.l	(a2)+,a4
+
+	; the eagleoption in eagleoptlist can be shorter than the
+	; actual given option given from uade. this happens when
+	; eagleoption gets a value, like ciatempo=150. to handle
+	; this, eagleopt list would only contain "ciatempo" and
+	; the following code only compares strlen("ciatempo")
+	; amount of bytes from the data given from uade.
+
+	move.l	d0,a0
+	bsr	strlen
+
+	; we now have eagleopt length in d0 and the eagleoption
+	; pointer is still in a0 (strlen preservers registers)
+
+	; now do a limited string comparison against the eagleoption
+	; and data given from uade
+	
+	move.l	a3,a1
+	bsr	strcmp
+	bne.b	.loopah2
+
+	; woah! equal! celebrate it by spamming the user:
+	move.l	a3,a0
+	jsr	uade_debug
+
+	; copy a pointer of the eagleoption to the associated
+	; data variable. boolean variables can later be checked by
+	; testing with tst.l datavariable, but since we provide a
+	; pointer here, other uses are possible too, like passing
+	; numerical/string values.
+	
+	move.l	a3,(a4)
+.eloop
+	; get next option from response, or quit if no more eagleoptions.
+	move.l	a3,a0
+	bsr	strlen
+	addq.l	#1,d0
+	add.l	d0,a3
+	sub.l	d0,d2
+	bpl.b	.loopah
+
+	moveq	#0,d0
+	rts
+
+.unknown_attribute
+	lea	unknownattr_err(pc),a0
+	jsr	uade_debug
+.no_uade_options
+	moveq	#-1,d0
+	rts
+.too_short_buffer
+	lea too_short_msg_err(pc),a0
+	jsr	uade_debug
+	moveq	#-1,d0
+	rts
+
+strlen	moveq	#-1,d0
+.strlenloop
+	addq.l	#1,d0
+	tst.b	(a0)+
+	bne.b	.strlenloop
+	rts
+
+* a0 src1, a1 src2, d0 max length to compare
+* returns d0: zero => same, non-zero => not same (not usable for sorting)
+strcmp
+	movem.l	d1/a0-a1,-(a7)
+	move.l	d0,d1
+	beq.b	.stnrcmp_notsame
+.strncmp_loop
+	move.b	(a0)+,d0
+	cmp.b	(a1)+,d0
+	bne.b	.stnrcmp_notsame
+	subq.l	#1,d1
+	beq.b	.strncmp_same
+	tst.b	d0
+	bne.b	.strncmp_loop
+.strncmp_same
+	movem.l	(a7)+,d1/a0-a1
+	moveq	#0,d0
+	rts
+.stnrcmp_notsame
+	movem.l	(a7)+,d1/a0-a1
+	moveq	#-1,d0
+	rts
+* following options are just examples. i didn't check what
+* prowiz/filemagic really use. you can adapt these to proper names and
+* values.
+
+eagleoptlist	dc.l	pt10cname,pt10cdata
+		dc.l	pt11bname,pt11bdata
+		dc.l	pt23aname,pt23adata
+		dc.l	pt30bname,pt30bdata
+		dc.l	pthackname,pthackdata
+		dc.l	vblankname,vblankdata
+		dc.l	0
+
+pt10cdata	dc.l	0
+pt11bdata	dc.l	0
+pt23adata	dc.l	0
+pt30bdata	dc.l	0
+pthackdata	dc.l	0
+vblankdata	dc.l	0
+
+pt10cname	dc.b	'pt10c',0
+pt11bname	dc.b	'pt11b',0
+pt23aname	dc.b	'pt23a',0
+pt30bname	dc.b	'pt30b',0
+pthackname	dc.b	'hack',0
+vblankname	dc.b	'vblank',0
+
+query		dc.b	'eagleoptions',0
+response	dcb.b	256,0
+
+unknownattr_err:	dc.b	"eagleopt: unknown attribut",10,0
+too_short_msg_err:	dc.b	"eagleopt: too short msg",10,0
+		even
 
 ******************************************************************************
 ** general check mod routine (mldoering@gmx.net)

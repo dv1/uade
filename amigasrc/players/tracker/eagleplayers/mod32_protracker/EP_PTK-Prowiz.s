@@ -9,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-04-27',0
+	dc.b '$VER: Protracker 3.0b player 2006-05-09',0
 	even
 
 PlayerTagArray
@@ -169,72 +169,44 @@ Chk_ok_MName:
 ;reads the ptk config file
 ;
 read_config_file:
-	; Set Protracker compatibility
 	movem.l	d0-d7/a0-a6,-(sp)
-	move.l	dtg_DOSBase(a5),a6
-	move.l	#cfgfile,d1
-	move.l	#1005,d2		* MODE_OLDFILE
-	jsr	_LVOOpen(a6)
-	move.l	d0,d1
-	beq.w	dont_read_cfgfile
-	move.l	d1,-(a7)
-	move.l	#cfgbuffer,d2
-	move.l	#256,d3
-	jsr	_LVORead(a6)
-	movem.l	d0-d7/a0-a6,-(sp)
-	lea	cfgbuffer,a0
-	move.b	#256-2,d1
+	jsr query_eagleopts		* get options from uade.conf
+	move.l	vblankdata,d0
 
-	move.b	(a0)+,d0
-	sub.b	#$30,d0
-	and.l	#$7,d0
-	move.b	d0,pt_vblank	; 0 = CIA, 1= VBI
+.VBI	move.b	d0,pt_vblank		; 0 = CIA, 1= VBI
+	
+.ptk23	tst.l	pt23adata
+	beq	.ptkdef
+	move.b	#PTK23,pt_ptk_type
+	beq.s	.end
 
-.cfgloop:
-	move.b	(a0)+,d0	
-	cmp.b	#10,d0
-	beq.b	.cfgloopend
-	dbra	d1,.cfgloop
-	bra.s	illegal_config_file
-
-.cfgloopend:
-	move.b	(a0)+,d0
-	sub.b	#$30,d0
-	move.b	d0,pt_ptk_type		; 0 = Protracker 3.0, 1 = Protracker 2.3; etc.
-
-.ptk23	cmp.b	#PTK23,d0
-	beq.s	illegal_config_file
-
-.ptkdef	cmp.b	#PTKHACK,d0		; Hybrid: 2.3 pt_CheckMoreEffects
-	bne.s	.ptk30			;         3.0 Volume setting
+.ptkdef	tst.l	pthackdata
+	beq.s	.ptk30			; 3.0 Volume setting
 	 move.b	#PTK30,pt_ptk_type
-	 bra.s	illegal_config_file
+	 bra.s	.end
 
-.ptk30	cmp.b	#PTK30,d0
-	bne.s	.ptk10c
+.ptk30	tst.l	pt30bdata
+	beq.s	.ptk10c
+	 move.b	#PTK30,pt_ptk_type
 	 st	pt_ptk30_cme
-	 bra.s	illegal_config_file
+	 bra.s	.end
 
-.ptk10c	cmp.b	#PTK10,d0
-	bne.s	.ptk21a
+.ptk10c	tst.l	pt10cdata
+	beq.s	.ptk11b
+	 move.b	#PTK10,pt_ptk_type
 	 move.b	#6,pt_vibshift
 	 move.w	#37*2,pt_oldstk		; apart from the different vibrato
 	 move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
-	 bra.b 	illegal_config_file	; for accessing the period table
-.ptk21a:
-	cmp.b	#PTK21,d0
-	bne.s	illegal_config_file
+	 bra.b 	.end			; for accessing the period table
+.ptk11b:
+	tst.l	pt11bdata
+	beq.s	.end
+	 move.b	#PTK21,pt_ptk_type
 	 move.w	#37*2,pt_oldstk		; mixed value accesing the period
 	 move.w	#36*2,pt_oldstk2	; table...
-
-illegal_config_file:
-	movem.l	(sp)+,d0-d7/a0-a6
-	move.l	(a7)+,d1
-	jsr	_LVOClose(a6)
-
-dont_read_cfgfile:
-	movem.l	(sp)+,d0-d7/a0-a6
-	rts
+	
+.end	movem.l	(sp)+,d0-d7/a0-a6
+    	rts
 
 
 ;-------------------------------------------------------------------------
