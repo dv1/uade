@@ -170,6 +170,11 @@ Chk_ok_MName:
 ;
 read_config_file:
 	movem.l	d0-d7/a0-a6,-(sp)
+
+	tst.l	uadebase
+	bne	.uadelib_open
+	jsr	open_uade_library
+.uadelib_open
 	jsr query_eagleopts		* get options from uade.conf
 	move.l	vblankdata,d0
 
@@ -327,7 +332,6 @@ strncpy:
 
 InitPlay:
 	move.l	a5,delibase
-	jsr	open_uade_library
 	moveq	#0,d0
 	move.l	dtg_AudioAlloc(a5),a0		; Function
 	jsr	(a0)				; returncode is already set !

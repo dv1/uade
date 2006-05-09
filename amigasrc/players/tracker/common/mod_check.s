@@ -23,6 +23,8 @@ query_eagleopts:
 	tst.l	uadebase
 	beq.b	.no_uade_options
 
+
+	move.l	uadebase,a6
 	lea	query(pc),a0
 	lea	response(pc),a1
 	move.l	#256,d0
@@ -129,7 +131,18 @@ strcmp
 * prowiz/filemagic really use. you can adapt these to proper names and
 * values.
 
-eagleoptlist	dc.l	pt10cname,pt10cdata
+eagleoptlist
+		dc.l	ustname,ustdata	
+		dc.l	stivname,stivdata
+		dc.l	mod15name,mod15data
+		dc.l	st25name,st25data
+		dc.l	nt1xname,nt1xdata
+		dc.l	nt2xname,nt2xdata
+		dc.l	ntampname,ntampdata
+		dc.l	flt4name,flt4data
+		dc.l	adscname,adscdata
+		dc.l	ptcompname,ptcompdata
+		dc.l	pt10cname,pt10cdata
 		dc.l	pt11bname,pt11bdata
 		dc.l	pt23aname,pt23adata
 		dc.l	pt30bname,pt30bdata
@@ -137,6 +150,16 @@ eagleoptlist	dc.l	pt10cname,pt10cdata
 		dc.l	vblankname,vblankdata
 		dc.l	0
 
+ustdata		dc.l	0
+stivdata	dc.l	0
+mod15data	dc.l	0
+st25data	dc.l	0
+nt1xdata	dc.l	0
+nt2xdata	dc.l	0
+ntampdata	dc.l	0
+flt4data	dc.l	0
+adscdata	dc.l	0
+ptcompdata	dc.l	0
 pt10cdata	dc.l	0
 pt11bdata	dc.l	0
 pt23adata	dc.l	0
@@ -144,11 +167,31 @@ pt30bdata	dc.l	0
 pthackdata	dc.l	0
 vblankdata	dc.l	0
 
+		; --- mod15 ---
+ustname		dc.b	'ust',0
+stivname	dc.b	'stiv',0
+mod15name	dc.b	'st20',0
+
+		; --- mod32 ---
+st25name	dc.b	'st25',0
+
+nt1xname	dc.b	'nt10',0
+nt2xname	dc.b	'nt10',0
+ntampname	dc.b	'ntamp',0
+
+flt4name	dc.b	'flt4',0
+adscname	dc.b	'adsc',0
+
+ptcompname	dc.b	'ptcomp',0
+
+		; -- replay flavours ---
 pt10cname	dc.b	'pt10c',0
 pt11bname	dc.b	'pt11b',0
 pt23aname	dc.b	'pt23a',0
 pt30bname	dc.b	'pt30b',0
 pthackname	dc.b	'hack',0
+
+		;--- flags ---
 vblankname	dc.b	'vblank',0
 
 query		dc.b	'eagleoptions',0
