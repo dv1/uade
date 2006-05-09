@@ -99,6 +99,7 @@ void uade_set_subsong(int subsong, struct uade_ipc *ipc)
 int uade_song_initialization(const char *scorename,
 			     const char *playername,
 			     const char *modulename,
+			     struct uade_song *us,
 			     struct uade_ipc *ipc,
 			     struct uade_config *uc)
 {
@@ -184,6 +185,20 @@ int uade_song_initialization(const char *scorename,
     if (uade_send_u32(UADE_COMMAND_SET_FREQUENCY, uc->frequency, ipc)) {
       fprintf(stderr, "Can not send frequency.\n");
       goto cleanup;
+    }
+  }
+
+  if (us->epoptionsize > 0) {
+    size_t i = 0;
+    while (i < us->epoptionsize) {
+      char *s = &us->epoptions[i];
+      size_t l = strlen(s) + 1;
+      assert((i + l) <= us->epoptionsize);
+      if (uade_send_string(UADE_COMMAND_SET_PLAYER_OPTION, s, ipc)) {
+	fprintf(stderr, "Can not send eagleplayer option.\n");
+	goto cleanup;
+      }
+      i += l;
     }
   }
 

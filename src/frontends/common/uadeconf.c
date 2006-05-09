@@ -135,7 +135,27 @@ double uade_convert_to_double(const char *value, double def, double low,
 }
 
 
-static int handle_attributes(struct uade_config *uc,
+static void add_ep_option(struct uade_song *us, const char *s)
+{
+  size_t bufsize, l, i;
+
+  if (us == NULL)
+    return;
+
+  bufsize = sizeof us->epoptions;
+  l = strlen(s) + 1;
+  i = us->epoptionsize;
+
+  if (strlcpy(&us->epoptions[i], s, bufsize - i) >= (bufsize - i)) {
+    fprintf(stderr, "Warning: uade eagleplayer option overflow: %s\n", s);
+    return;
+  }
+
+  us->epoptionsize += l;
+}
+
+
+static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			     char *playername, size_t playernamelen,
 			     int flags, struct uade_attribute *attributelist)
 {
@@ -175,7 +195,7 @@ static int handle_attributes(struct uade_config *uc,
   if (flags & ES_NEVER_ENDS)
     fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
   if (flags & ES_VBLANK)
-    fprintf(stderr, "uade: ES_VBLANK not implemented.\n");
+    add_ep_option(us, "vblank");
 
   a = attributelist;
   while (a != NULL) {
@@ -223,7 +243,7 @@ int uade_handle_song_attributes(struct uade_config *uc,
 				size_t playernamelen,
 				struct uade_song *us)
 {
-  return handle_attributes(uc, playername, playernamelen,
+  return handle_attributes(uc, us, playername, playernamelen,
 			   us->flags, us->songattributes);
 }
 
@@ -575,7 +595,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 
 void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
 {
-  handle_attributes(uc, NULL, 0, ep->flags, ep->attributelist);
+  handle_attributes(uc, NULL, NULL, 0, ep->flags, ep->attributelist);
 }
 
 

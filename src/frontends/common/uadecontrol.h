@@ -18,7 +18,9 @@ void uade_send_filter_command(struct uade_ipc *ipc,
 			      struct uade_config *uadeconf);
 void uade_set_subsong(int subsong, struct uade_ipc *ipc);
 int uade_song_initialization(const char *scorename, const char *playername,
-			     const char *modulename, struct uade_ipc *ipc,
+			     const char *modulename,
+			     struct uade_song *us,
+			     struct uade_ipc *ipc,
 			     struct uade_config *uadeconf);
 void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
 		const char *configname);

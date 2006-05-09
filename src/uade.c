@@ -31,7 +31,6 @@
 #include "uade.h"
 #include "amigamsg.h"
 #include "strlrep.h"
-#include "players.h"
 #include "uadeipc.h"
 #include "ossupport.h"
 #include "sysincludes.h"
@@ -103,6 +102,47 @@ static char uade_player_dir[UADE_PATH_MAX];
 static struct uade_song song;
 static int uade_speed_hack = 0;
 static int voltestboolean = 0;
+
+static char epoptions[256];
+static size_t epoptionsize;
+
+
+static void add_ep_option(const char *s)
+{
+  size_t bufsize, l, i;
+
+  bufsize = sizeof epoptions;
+  l = strlen(s) + 1;
+  i = epoptionsize;
+
+  if (strlcpy(&epoptions[i], s, bufsize - i) >= (bufsize - i)) {
+    fprintf(stderr, "Warning: uade eagleplayer option overflow: %s\n", s);
+    return;
+  }
+
+  epoptionsize += l;
+}
+
+
+/* This is called when an eagleplayer queries for attributes. The query result
+   is returned through 'dst', and the result is at most maxlen bytes long.
+   'src' contains the full query. */
+static int get_info_for_ep(char *dst, char *src, int maxlen)
+{
+  int ret = -1;
+  if (strcasecmp(src, "eagleoptions") == 0) {
+    if (epoptionsize > 0) {
+      if (epoptionsize <= maxlen) {
+	ret = epoptionsize;
+	memcpy(dst, epoptions, ret);
+      } else {
+	fprintf(stderr, "uadecore: too long options: %s maxlen = %d\n",
+		epoptions, maxlen);
+      }
+    }
+  }
+  return ret;
+}
 
 
 static void change_subsong(int subsong)
@@ -392,7 +432,7 @@ void uade_get_amiga_message(void)
     srcstr = (char *) get_real_address(src);
     dststr = (char *) get_real_address(dst);
     uade_send_debug("score issued an info request: %s (maxlen %d)\n", srcstr, len);
-    len = uade_get_info(dststr, srcstr, len);
+    len = get_info_for_ep(dststr, srcstr, len);
     uade_send_debug("reply to score: %s (total len %d)\n", dststr, len);
     uade_put_long(0x20C, len);
     break;
@@ -465,6 +505,11 @@ void uade_handle_r_state(void)
 	exit(-1);
       }
       set_sound_freq(x);
+      break;
+
+    case UADE_COMMAND_SET_PLAYER_OPTION:
+      uade_check_fix_string(um, 256);
+      add_ep_option((char *) um->data);
       break;
 
     case UADE_COMMAND_SET_RESAMPLING_MODE:
@@ -886,6 +931,7 @@ void uade_reset(void)
   }
 
   set_sound_freq(UADE_DEFAULT_FREQUENCY);
+  epoptionsize = 0;
 
   return;
 

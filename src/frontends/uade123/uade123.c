@@ -567,7 +567,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
 
-    if ((ret = uade_song_initialization(scorename, playername, modulename, &uadeipc, &uc))) {
+    if ((ret = uade_song_initialization(scorename, playername, modulename, us, &uadeipc, &uc))) {
       if (ret == UADECORE_INIT_ERROR) {
 	uade_unalloc_song(us);
 	goto cleanup;

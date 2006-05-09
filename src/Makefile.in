@@ -22,7 +22,7 @@ CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7
 OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
        missing.o sd-sound.o md-support.o cfgfile.o fpp.o debug.o \
        readcpu.o cpudefs.o $(CPUEMUOBJS) \
-       uade.o players.o strlrep.o uadeipc.o unixatomic.o ossupport.o \
+       uade.o strlrep.o uadeipc.o unixatomic.o ossupport.o \
        ipcsupport.o uademain.o sinctable.o
 
 all:	uadecore
@@ -135,8 +135,6 @@ fpp.o:
 uade.o: include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h
 
 uadeipc.o:	include/uadeipc.h
-
-players.o:	players.c players.h
 
 ossupport.o:	include/uade.h ossupport.c {OSSUPPORTMODULES}
 

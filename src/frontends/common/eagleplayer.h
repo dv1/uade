@@ -82,6 +82,9 @@ struct uade_song {
   uint8_t *subsongs;
   struct uade_attribute *songattributes;
 
+  uint8_t epoptions[256];
+  size_t epoptionsize;
+
   char md5[33];
 
   char module_filename[PATH_MAX];
