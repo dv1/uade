@@ -65,7 +65,6 @@ static size_t nccalloc;
 static size_t nccused;
 static int ccmodified;
 
-static uint8_t fileformat_buf[8192];
 static struct eagleplayerstore *playerstore;
 
 static int nsongs;
@@ -183,6 +182,7 @@ static struct eagleplayer *analyze_file_format(int *content,
   int len;
   static int warnings = 1;
   size_t bufsize;
+  uint8_t fileformat_buf[8192];
 
   *content = 0;
 
@@ -195,7 +195,7 @@ static struct eagleplayer *analyze_file_format(int *content,
     exit(-1);
   }
   bufsize = sizeof fileformat_buf;
-  readed = fread(fileformat_buf, 1, bufsize, f);
+  readed = atomic_fread(fileformat_buf, 1, bufsize, f);
   fclose(f);
   if (readed == 0)
     return NULL;

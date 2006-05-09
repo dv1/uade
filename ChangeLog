@@ -1,5 +1,15 @@
 2006-05-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added information about sample rate into effects API.
+	- Fixed a race condition for Audacious and XMMS plugins.
+	  A shared static buffer was not locked for file magic detection
+	  in eagleplayer.c:analyze_file_format().
+	- Fixed a bug in eagleplayer.c:analyze_file_format() that might
+	  have caused a partial read for file to be detected.
+	- Fixed a buffer overrun bug in uade.c:uade_get_amiga_message().
+	  With AMIGAMSG_GET_INFO request, the eagleplayer could
+	  cause a slight overrun of the amiga memory to uade data memory.
+	  The attacker could not however choose the string to be written
+	  over the bounds.
 
 2006-05-07  Heikki Orsila <heikki.orsila@iki.fi>
 	- Improved filters to work on arbitrary frequency (alankila)

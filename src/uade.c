@@ -215,6 +215,7 @@ void uade_get_amiga_message(void)
   int status;
   int src, dst, off, len;
   char tmpstr[256];
+  char *srcstr, *dststr;
 
   uint32_t *u32ptr;
   uint8_t space[256];
@@ -376,11 +377,23 @@ void uade_get_amiga_message(void)
     src = uade_get_u32(0x204);
     dst = uade_get_u32(0x208);
     len = uade_get_u32(0x20C);
-    if (!uade_valid_string(src) || !uade_valid_string(dst)) {
-      fprintf(stderr, "uadecore: Invalid address from 0x%x or 0x%x\n", src, dst);
+    if (!uade_valid_string(src)) {
+      fprintf(stderr, "uadecore: get info: Invalid src: 0x%x\n", src);
       break;
     }
-    len = uade_get_info((char *) get_real_address(dst), (char *) get_real_address(src), len);
+    if (len <= 0) {
+      fprintf(stderr, "uadecore: get info: len = %d\n", len);
+      break;
+    }
+    if (!valid_address(dst, len)) {
+      fprintf(stderr, "uadecore: get info: Invalid dst: 0x%x\n", dst);
+      break;
+    }
+    srcstr = (char *) get_real_address(src);
+    dststr = (char *) get_real_address(dst);
+    uade_send_debug("score issued an info request: %s (maxlen %d)\n", srcstr, len);
+    len = uade_get_info(dststr, srcstr, len);
+    uade_send_debug("reply to score: %s (total len %d)\n", dststr, len);
     uade_put_long(0x20C, len);
     break;
 

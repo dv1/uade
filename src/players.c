@@ -11,10 +11,13 @@
    'src' contains the full query. */
 int uade_get_info(char *dst, char *src, int maxlen)
 {
+  int ret = -1;
+  /* Return the amount of bytes that a full result needs, or -1. */
   if (strcasecmp(src, "VBLANK") == 0) {
-    int ret = strlcpy(dst, "No", maxlen);
-    /* Return the amount of bytes that a full result needs */
-    return ret + 1;
+    ret = strlcpy(dst, "No", maxlen) + 1;
+  } else if (strcasecmp(src, "eagleoptions") == 0) {
+    memcpy(dst, "foo\0bar\0", 8);
+    ret = 8;
   }
-  return -1;
+  return ret;
 }
