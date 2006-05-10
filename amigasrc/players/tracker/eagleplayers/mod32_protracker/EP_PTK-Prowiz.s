@@ -176,9 +176,11 @@ read_config_file:
 	jsr	open_uade_library
 .uadelib_open
 	jsr query_eagleopts		* get options from uade.conf
-	move.l	vblankdata,d0
 
-.VBI	move.b	d0,pt_vblank		; 0 = CIA, 1= VBI
+	move.b	#0,pt_vblank		; 0 = CIA
+	tst.l	vblankdata
+	beq	.ptk23
+.VBI	addq.b	#1,pt_vblank		; 1 = VBI
 	
 .ptk23	tst.l	pt23adata
 	beq	.ptkdef

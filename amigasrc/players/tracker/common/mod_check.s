@@ -29,10 +29,6 @@ query_eagleopts:
 	lea	response(pc),a1
 	move.l	#256,d0
 	jsr	-18(a6)
-	tst.l	d0
-	bmi.b	.unknown_attribute
-	cmp.l	#256,d0
-	bhi.b	.too_short_buffer
 	move.l	d0,d2
 
 	lea	response(pc),a3
@@ -74,6 +70,7 @@ query_eagleopts:
 	; numerical/string values.
 	
 	move.l	a3,(a4)
+
 .eloop
 	; get next option from response, or quit if no more eagleoptions.
 	move.l	a3,a0
@@ -86,22 +83,14 @@ query_eagleopts:
 	moveq	#0,d0
 	rts
 
-.unknown_attribute
-	lea	unknownattr_err(pc),a0
-	jsr	uade_debug
 .no_uade_options
-	moveq	#-1,d0
-	rts
-.too_short_buffer
-	lea too_short_msg_err(pc),a0
-	jsr	uade_debug
 	moveq	#-1,d0
 	rts
 
 strlen	moveq	#-1,d0
 .strlenloop
 	addq.l	#1,d0
-	tst.b	(a0)+
+	tst.b	(a0,d0.w)
 	bne.b	.strlenloop
 	rts
 
@@ -132,21 +121,21 @@ strcmp
 * values.
 
 eagleoptlist
-		dc.l	ustname,ustdata	
-		dc.l	stivname,stivdata
-		dc.l	mod15name,mod15data
-		dc.l	st25name,st25data
-		dc.l	nt1xname,nt1xdata
-		dc.l	nt2xname,nt2xdata
-		dc.l	ntampname,ntampdata
-		dc.l	flt4name,flt4data
-		dc.l	adscname,adscdata
-		dc.l	ptcompname,ptcompdata
-		dc.l	pt10cname,pt10cdata
-		dc.l	pt11bname,pt11bdata
-		dc.l	pt23aname,pt23adata
-		dc.l	pt30bname,pt30bdata
-		dc.l	pthackname,pthackdata
+;		dc.l	ustname,ustdata	
+;		dc.l	stivname,stivdata
+;		dc.l	mod15name,mod15data
+;		dc.l	st25name,st25data
+;		dc.l	nt1xname,nt1xdata
+;		dc.l	nt2xname,nt2xdata
+;		dc.l	ntampname,ntampdata
+;		dc.l	flt4name,flt4data
+;		dc.l	adscname,adscdata
+;		dc.l	ptcompname,ptcompdata
+;		dc.l	pt10cname,pt10cdata
+;		dc.l	pt11bname,pt11bdata
+;		dc.l	pt23aname,pt23adata
+;		dc.l	pt30bname,pt30bdata
+;		dc.l	pthackname,pthackdata
 		dc.l	vblankname,vblankdata
 		dc.l	0
 
@@ -197,8 +186,6 @@ vblankname	dc.b	'vblank',0
 query		dc.b	'eagleoptions',0
 response	dcb.b	256,0
 
-unknownattr_err:	dc.b	"eagleopt: unknown attribut",10,0
-too_short_msg_err:	dc.b	"eagleopt: too short msg",10,0
 		even
 
 ******************************************************************************
