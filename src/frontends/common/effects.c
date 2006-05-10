@@ -9,21 +9,51 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 #include <compilersupport.h>
 
 #include "effects.h"
 
-
+/*** old headphone effect ***/
 #define UADE_EFFECT_HEADPHONES_DELAY_LENGTH 22
 #define UADE_EFFECT_HEADPHONES_DELAY_DIRECT 0.3
 #define UADE_EFFECT_HEADPHONES_CROSSMIX_VOL 0.80
-
 
 static float headphones_ap_l[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_ap_r[UADE_EFFECT_HEADPHONES_DELAY_LENGTH];
 static float headphones_rc_l[4];
 static float headphones_rc_r[4];
+
+/*** new headphone effect ***/
+
+/* delay time defines the width of the head. 0.5 ms gives us 15 cm virtual distance
+ * between sound arriving to either ear. */
+#define HEADPHONE2_DELAY_TIME 0.50e-3
+#define HEADPHONE2_DELAY_K 0.50
+/* head shadow frequency cutoff */
+#define HEADPHONE2_SHADOW_FREQ 7500.0
+/* high shelve keeps frequencies below cutoff intact and attenuates
+ * the rest in an uniform way. The effect is to make bass more "mono" than "stereo". */
+#define HEADPHONE2_SHELVE_FREQ 150.0
+#define HEADPHONE2_SHELVE_LEVEL -1.5
+
+#define MAXIMUM_SAMPLING_RATE 96000
+#define HEADPHONE2_DELAY_MAX_LENGTH ((int)(MAXIMUM_SAMPLING_RATE*HEADPHONE2_DELAY_TIME+1))
+#define DENORMAL_OFFSET 1E-10
+
+typedef struct {
+    float b0, b1, b2, a1, a2, x[2], y[2];   
+} biquad_t;
+
+static float headphone2_ap_l[HEADPHONE2_DELAY_MAX_LENGTH];
+static float headphone2_ap_r[HEADPHONE2_DELAY_MAX_LENGTH];
+static int headphone2_delay_length;
+static biquad_t headphone2_shelve_l;
+static biquad_t headphone2_shelve_r;
+static biquad_t headphone2_rc_l;
+static biquad_t headphone2_rc_r;
+
 
 static void gain(int gain_amount, int16_t *sm, int frames);
 static void pan(int pan_amount, int16_t *sm, int frames);
@@ -43,14 +73,96 @@ static inline int sampleclip(int x)
 }
 
 
+/* calculate a high shelve filter */
+static void calculate_shelve(double fs, double fc, double g, biquad_t *bq)
+{
+    float A, omega, sn, cs, beta, b0, b1, b2, a0, a1, a2;
+    
+    A = powf(10, g / 40);
+    omega = 2 * M_PI * fc / fs;
+    omega = tan(omega / 2) * 2;
+    sn = sin(omega);
+    cs = cos(omega);
+    beta = sqrt(A + A);
+
+    b0 = A * ((A + 1) + (A - 1) * cs + beta * sn);
+    b1 = -2 * A * ((A - 1) + (A + 1) * cs);
+    b2 = A * ((A + 1) + (A - 1) * cs - beta * sn);
+    a0 = (A + 1) - (A - 1) * cs + beta * sn;
+    a1 = 2 * ((A - 1) - (A + 1) * cs);
+    a2 = (A + 1) - (A - 1) * cs - beta * sn;
+
+    bq->b0 = b0 / a0;
+    bq->b1 = b1 / a0;
+    bq->b2 = b2 / a0;
+    bq->a1 = a1 / a0;
+    bq->a2 = a2 / a0;
+}
+
+
+/* calculate 1st order lowpass filter */
+static void calculate_rc(double fs, double fc, biquad_t *bq)
+{
+    float omega;
+    
+    if (fc >= fs / 2) {
+        bq->b0 = 1.0;
+        bq->b1 = 0.0;
+        bq->b2 = 0.0;
+        bq->a1 = 0.0;
+        bq->a2 = 0.0;
+        return;
+    }
+    omega = 2 * M_PI * fc / fs;
+    omega = tan(omega / 2) * 2;
+
+    bq->b0 = 1 / (1 + 1/omega);
+    bq->b1 = 0;
+    bq->b2 = 0;
+    bq->a1  = -1 + bq->b0;
+    bq->a2 = 0;
+}
+
+
+static inline float evaluate_biquad(float input, biquad_t *bq)
+{
+    float output = DENORMAL_OFFSET;
+
+    output += input * bq->b0 + bq->x[0] * bq->b1 + bq->x[1] * bq->b2;
+    output -=                  bq->y[0] * bq->a1 + bq->y[1] * bq->a2;
+
+    bq->x[1] = bq->x[0];
+    bq->x[0] = input;
+
+    bq->y[1] = bq->y[0];
+    bq->y[0] = output;
+
+    return output;
+}
+
+
+static void reset_biquad(biquad_t *bq) {
+    bq->x[0] = bq->x[1] = bq->y[0] = bq->y[1] = 0;
+}
+
+
 /* Reset effects' state variables.
  * Call this method between before starting playback */
 void uade_effect_reset_internals(void)
 {
+    /* old headphones */
     memset(headphones_ap_l, 0, sizeof(headphones_ap_l));
     memset(headphones_ap_r, 0, sizeof(headphones_ap_r));
     memset(headphones_rc_l, 0, sizeof(headphones_rc_l));
     memset(headphones_rc_r, 0, sizeof(headphones_rc_r));
+
+    /* new headphones */
+    memset(headphone2_ap_l, 0, sizeof(headphone2_ap_l));
+    memset(headphone2_ap_r, 0, sizeof(headphone2_ap_r));
+    reset_biquad(&headphone2_shelve_l);
+    reset_biquad(&headphone2_shelve_r);
+    reset_biquad(&headphone2_rc_l);
+    reset_biquad(&headphone2_rc_r);
 }
 
 
@@ -117,6 +229,19 @@ void uade_effect_set_sample_rate(struct uade_effect *ue, int rate)
 {
     assert(rate >= 0);
     ue->rate = rate;
+
+    if (rate == 0)
+        return;
+
+    calculate_shelve(rate, HEADPHONE2_SHELVE_FREQ, HEADPHONE2_SHELVE_LEVEL, &headphone2_shelve_l);
+    calculate_shelve(rate, HEADPHONE2_SHELVE_FREQ, HEADPHONE2_SHELVE_LEVEL, &headphone2_shelve_r);
+    calculate_rc(rate, HEADPHONE2_SHADOW_FREQ, &headphone2_rc_l);
+    calculate_rc(rate, HEADPHONE2_SHADOW_FREQ, &headphone2_rc_r);
+    headphone2_delay_length = HEADPHONE2_DELAY_TIME * rate + 0.5;
+    if (headphone2_delay_length > HEADPHONE2_DELAY_MAX_LENGTH) {
+        fprintf(stderr, "effects.c: truncating headphone delay line due to samplerate exceeding 96 kHz.\n");
+        headphone2_delay_length = HEADPHONE2_DELAY_MAX_LENGTH;
+    }
 }
 
 
@@ -205,6 +330,43 @@ static void headphones(int16_t *sm, int frames)
 }
 
 
+static float headphone2_allpass_delay(float in, float *state)
+{
+    int i;
+    float tmp, output;
+
+    tmp = in - HEADPHONE2_DELAY_K * state[0];
+    output = state[0] + HEADPHONE2_DELAY_K * tmp;
+
+    /* FIXME: use modulo and index */
+    for (i = 1; i < headphone2_delay_length; i += 1)
+        state[i - 1] = state[i];
+    state[headphone2_delay_length - 1] = tmp;
+
+    return output;
+}
+
+
 static void headphones2(int16_t *sm, int frames)
 {
+    int i;
+    for (i = 0; i < frames; i += 1) {
+	float ld, rd;
+        
+        ld = headphone2_allpass_delay(sm[0], headphone2_ap_l);
+	rd = headphone2_allpass_delay(sm[1], headphone2_ap_r);
+	ld = evaluate_biquad(ld, &headphone2_rc_l);
+	rd = evaluate_biquad(rd, &headphone2_rc_r);
+        ld = evaluate_biquad(ld, &headphone2_shelve_l);
+        rd = evaluate_biquad(rd, &headphone2_shelve_r);
+        /* division by two is required for flat response to come out as mono */
+        ld /= 2;
+        rd /= 2;
+        
+        /* you can view this as an act of panning that is dependant of the frequency
+         * response of the filters above */
+	sm[0] = sampleclip(sm[0] - ld + rd);
+	sm[1] = sampleclip(sm[1] - rd + ld);
+	sm += 2;
+    }
 }

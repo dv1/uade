@@ -640,7 +640,7 @@ static void print_help(void)
   printf("                     Do not play.\n");
   printf(" -h, --help,         Print help\n");
   printf(" --headphone,        Enable headphone postprocessing effect.\n");
-  printf(" --headphone2,        Enable headphone2 postprocessing effect.\n");
+  printf(" --headphone2,       Enable headphone2 postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");

@@ -6,7 +6,7 @@ XMMSFLAGS={XMMSFLAGS}
 XMMSLIBS={XMMSLIBS}
 SHAREDLIBRARYFLAGS={SHAREDLIBRARYFLAGS}
 CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) $(DEBUGFLAGS) $(XMMSFLAGS) $(ARCHFLAGS) -I../common -I../../include
-CLIBS = $(XMMSLIBS)
+CLIBS = $(XMMSLIBS) -lm
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \
 	unixipc.o fileinfo.o songinfo.o
