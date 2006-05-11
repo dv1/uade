@@ -1,3 +1,6 @@
+2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
+	- Updated documentation to reflect implementation.
+
 2006-05-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added information about sample rate into effects API.
 	- Fixed a race condition for Audacious and XMMS plugins.

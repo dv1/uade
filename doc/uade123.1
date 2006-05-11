@@ -99,8 +99,14 @@ by the libao. Notice that libao support for ALSA has a bug
 in versions 0.8.6 and earlier that buffer_time must actually be given in
 microseconds rather than milliseconds.
 .TP
-\fB\-d\fR
+\fB\-d, \-\-debug\fR
 Turn debug mode on. Experts only.
+.TP
+\fB\-\-disable\-timeouts\fR
+Disable timeouts. The frontend will never timeout a song.
+.TP
+\fB\-\-enable\-timeouts\fR
+Enable timeouts. The frontend will normally timeout a song.
 .TP
 \fB\-e\fR format
 Set output file format. Use with
@@ -130,6 +136,10 @@ Amigas too :-)
 \fB\-\-force\-led=\fRx
 Force Amiga filter on or off. 0 means "OFF" and 1 means "ON".
 .TP
+\fB\-\-frequency=\fRx
+Set output frequency to x Hz. The default is 44,1 kHz. Note that this option
+applies to all frontends (including Audacious and XMMS plugins).
+.TP
 \fB\-G, \-\-gain=\fRx
 Set volume gain to
 .BR x .
@@ -139,24 +149,17 @@ x must be a non-negative value. The default value is 1.0.
 Print playername and subsong information to stdout and then exit. This is
 useful for recording script.
 .TP
+\fB\-\-headphones\fR
+Enable headphones postprocessing effect.
+.TP
+\fB\-\-headphones2\fR
+Enable headphones 2 postprocessing effect.
+.TP
 \fB\-h, \-\-help\fR
 Print command line help.
-.TP
-\fB\-\-headphone\fR
-Enable headphone postprocessing effect.
 .TP 
 \fB\-i,	\-\-ignore\fR
 Force eagleplayer to play the song.
-.TP
-\fB\-\-resampler=\fRs
-Set resampling method to
-.BR s .
-It can be
-.BR default
-(anti),
-.BR anti
-or
-.BR none .
 .TP
 \fB\-j\fR x\fB, \-\-jump=\fRx
 Jump to song position of x seconds.
@@ -167,14 +170,18 @@ Turn action keys on (x = 1) or off (x = 0).
 \fB\-m\fR filename
 Set module filename.
 .TP
-\fB\-n, \-\-no-filter\fR
-Disable filter emulation.
-.TP 
-\fB\-\-no\-song\-end\fR
+\fB\-\-magic\fR
+Set file magic mode. The songs are only detected by contents rather than
+using name based heuristics.
+.TP
+\fB\-n, \-\-no\-song\-end\fR
 Play music ad infinitum by ignoring song end.
 .TP
 \fB\-\-ntsc\fR
 Set NTSC mode. This can be buggy.
+.TP
+\fB\-\-pal\fR
+Set PAL mode. This is the default.
 .TP 
 \fB\-p\fR x, \-\-panning=\fRx
 Set panning effect to x. This means mixing left and right channel affinely
@@ -189,6 +196,16 @@ Play directories recursively.
 .TP
 \fB\-\-repeat\fR
 Play playlist over and over again.
+.TP
+\fB\-\-resampler=\fRs
+Set resampling method to
+.BR s .
+It can be
+.BR default
+(anti),
+.BR anti
+or
+.BR none .
 .TP 
 \fB\-s\fR n\fB, \-\-subsong=\fRn
 Choose subsong n.
@@ -372,7 +389,7 @@ subsong_timeout=x    Set subsong timeout
 .br
 timeout=x            Set timeout
 .br
-vblank               Play in vblank mode (not implemented yet)
+vblank               Play in vblank mode (works only for protracker variants)
 .sp 1
 .BR comment
 is a tag after which everything is considered just a comment
@@ -411,23 +428,43 @@ The valid commands are:
 .br
     buffer_time x      Set audio buffer length to x milliseconds.
 .br
-    filter x           Set filter emulation mode to be A500, A1200
-                       none.
+    disable_timeout    A song will never timeout.
 .br
-    force_led_off      Forces LED to "off" state.
+    enable_timeout     A will timeout normally.
+.br
+    filter x           Set filter emulation mode to be A500, A1200
+                       or none.
+.br
+    force_led x        Force LED "on" or "off"
+.br
+    force_led_off      Same as "force_led off"
+.br
+    force_led_on       Same as "force_led on"
+.br
+    frequency x        Set output frequency to x Hz. The default is
+                       44,1 kHz.
 .br
     gain x             Set gain value to x which is a non-negative
                        value. The default value is 1.0.
 .br
-    headphone          Enable headphone effect.
+    headphones         Enable headphone effect.
+.br
+    headphones2        Enable headphone effect 2.
 .br
     ignore_player_check    Force eagleplayers to recognize any given
                            song.
 .br
-    no_filter          Turn filter emulation off. Same as
-                       "filter none".
+    magic_detection    Only detect files by content.
 .br
-    ntsc               Set NTSC mode.
+    no_filter          Same as "filter none".
+.br
+    no_song_end        Disable eagleplayers ability to end song.
+.br
+    ntsc               Set NTSC mode. (might not work properly)
+.br
+    one_subsong        Play only one subsong per file.
+.br
+    pal                Set PAL mode.
 .br
     panning x          Set panning value to x inside range [0, 2].
                        The default is 0.
@@ -443,9 +480,37 @@ The valid commands are:
 .br
     silence_timeout x  Set silence timeout value to x seconds.
 .br
+    song_title x       Set song title for GUI plugins according to
+                       given specification x. See section SONG TITLE
+                       SPECIFICATION.
+.br
+    speed_hack         Enable speed hack mode.
+.br
     subsong_timeout x  Set subsong timeout value to x seconds.
 .br
     timeout x          Set timeout value to x seconds.
+.br
+    verbose            Enable verbose mode
+.br
+.SH "SONG TITLE SPECIFICATION"
+Song title for GUI frontends can be specified by using song_title option
+in uade.conf. The default value for specification is %F %X [%P].
+Following items are allowed in the specification:
+.sp 1
+    %F - filename                 %T - songtitle
+.br
+    %P - player or formatname 
+.br
+    %A - minimum subsong          %B - current subsong
+.br
+    %C - maximum subsong          %X - only display subsongs when more
+                                  than one
+.sp 1
+An example of alternative specification that displays the song name
+received from the eagleplayer (as opposed to file name):
+.sp 1
+    song_title %T %X [%P]
+
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
 .SH "FILES"

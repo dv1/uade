@@ -142,10 +142,10 @@ int main(int argc, char *argv[])
     {"filter",           2, NULL, UC_FILTER_TYPE},
     {"force-led",        1, NULL, UC_FORCE_LED},
     {"frequency",        1, NULL, UC_FREQUENCY},
-    {"get-info",         0, NULL, 'g'},
     {"gain",             1, NULL, 'G'},
+    {"get-info",         0, NULL, 'g'},
     {"headphones",       0, NULL, UC_HEADPHONES},
-    {"headphones2",       0, NULL, UC_HEADPHONES2},
+    {"headphones2",      0, NULL, UC_HEADPHONES2},
     {"help",             0, NULL, 'h'},
     {"ignore",           0, NULL, 'i'},
     {"interpolator",     1, NULL, UC_RESAMPLER},
@@ -635,12 +635,13 @@ static void print_help(void)
   printf("                     A500. NONE means disabling the filter.\n");
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
+  printf(" --frequency=x,      Set output frequency to x Hz. The default is 44,1 kHz.\n");
   printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h, --help,         Print help\n");
-  printf(" --headphone,        Enable headphone postprocessing effect.\n");
-  printf(" --headphone2,       Enable headphone2 postprocessing effect.\n");
+  printf(" --headphones,       Enable headphones postprocessing effect.\n");
+  printf(" --headphones2       Enable headphones 2 postprocessing effect.\n");
   printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
   printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
   printf("                     fractions of a second are allowed too.\n");
