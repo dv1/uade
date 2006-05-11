@@ -131,11 +131,11 @@ eagleoptlist
 ;		dc.l	flt4name,flt4data
 ;		dc.l	adscname,adscdata
 ;		dc.l	ptcompname,ptcompdata
-;		dc.l	pt10cname,pt10cdata
-;		dc.l	pt11bname,pt11bdata
-;		dc.l	pt23aname,pt23adata
-;		dc.l	pt30bname,pt30bdata
-;		dc.l	pthackname,pthackdata
+		dc.l	pt10cname,pt10cdata
+		dc.l	pt11bname,pt11bdata
+		dc.l	pt23aname,pt23adata
+		dc.l	pt30bname,pt30bdata
+		dc.l	pthackname,pthackdata
 		dc.l	vblankname,vblankdata
 		dc.l	0
 
