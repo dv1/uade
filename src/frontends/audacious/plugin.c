@@ -351,8 +351,6 @@ static int initialize_song(char *filename)
   if (ep == NULL)
     return FALSE;
 
-  uade_set_ep_attributes(&config, ep);
-
   strlcpy(modulename, filename, sizeof modulename);
   strlcpy(gui_module_filename, filename, sizeof gui_module_filename);
 
@@ -369,6 +367,8 @@ static int initialize_song(char *filename)
   assert(uadesong == NULL);
   if ((uadesong = uade_alloc_song(filename)) == NULL)
     return FALSE;
+
+  uade_set_ep_attributes(&config, uadesong, ep);
 
   uade_handle_song_attributes(&config, playername, sizeof playername, uadesong);
   uade_set_effects(&effects, &config);

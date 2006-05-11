@@ -1,5 +1,8 @@
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
+	- Added support for eagleplayer/song specific eagleplayer options.
+	  Use epopt=x in eagleplayer.conf and song.conf. Look at the
+	  man page section "EAGLEPLAYER OPTIONS" for valid options.
 
 2006-05-09  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added information about sample rate into effects API.

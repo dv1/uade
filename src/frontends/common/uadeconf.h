@@ -18,7 +18,8 @@ int uade_parse_subsongs(int **subsongs, char *option);
 void uade_set_config_option(struct uade_config *uc, enum uade_option opt, const char *value);
 void uade_set_effects(struct uade_effect *effects,
 		      const struct uade_config *uc);
-void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep);
+void uade_set_ep_attributes(struct uade_config *uc, struct uade_song *us,
+			    struct eagleplayer *ep);
 void uade_set_filter_type(struct uade_config *uc, const char *value);
 
 #endif

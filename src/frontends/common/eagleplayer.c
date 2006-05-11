@@ -299,11 +299,11 @@ static int parse_attribute(struct uade_attribute **attributelist, int *flags,
     {.s = "pal",             .e = ES_PAL},
     {.s = "reject",          .e = ES_REJECT},
     {.s = "speed_hack",      .e = ES_SPEED_HACK},
-    {.s = "vblank",          .e = ES_VBLANK},
     {.s = NULL}
   };
 
   struct attrlist esvalueattrs[] = {
+    {.s = "epopt",           .t = UA_STRING, .e = ES_EP_OPTION},
     {.s = "gain",            .t = UA_STRING, .e = ES_GAIN},
     {.s = "interpolator",    .t = UA_STRING, .e = ES_RESAMPLER},
     {.s = "panning",         .t = UA_STRING, .e = ES_PANNING},

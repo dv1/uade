@@ -195,12 +195,15 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
     return -1;
   if (flags & ES_NEVER_ENDS)
     fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
-  if (flags & ES_VBLANK)
-    add_ep_option(us, "vblank");
 
   a = attributelist;
   while (a != NULL) {
     switch (a->type) {
+    case ES_EP_OPTION:
+      if (uc->verbose)
+	fprintf(stderr, "Using eagleplayer option %s\n", a->s);
+      add_ep_option(us, a->s);
+      break;
     case ES_GAIN:
       uade_set_config_option(uc, UC_GAIN, a->s);
       break;
@@ -604,9 +607,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 }
 
 
-void uade_set_ep_attributes(struct uade_config *uc, struct eagleplayer *ep)
+void uade_set_ep_attributes(struct uade_config *uc, struct uade_song *us,
+			    struct eagleplayer *ep)
 {
-  handle_attributes(uc, NULL, NULL, 0, ep->flags, ep->attributelist);
+  handle_attributes(uc, us, NULL, 0, ep->flags, ep->attributelist);
 }
 
 

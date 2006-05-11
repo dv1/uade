@@ -347,6 +347,9 @@ broken_song_end      Song end reported by the eagleplayer is ignored
 content_detection    A song can only be detected by contents, never
                      by filename prefix or postfix
 .br
+epopt=x              Append option x for eagleplayer. Valid options
+                     are listed in section "EAGLEPLAYER OPTIONS".
+.br
 gain=x               Set gain value to x
 .br
 led_off              Force LED off
@@ -511,6 +514,13 @@ received from the eagleplayer (as opposed to file name):
 .sp 1
     song_title %T %X [%P]
 
+.SH "EAGLEPLAYER OPTIONS"
+Eagleplayers can be given song specific or general options in song.conf
+and eagleplayer.conf. Use epopt=x to set one option. It can be used many
+times. Valid options for eagleplayers:
+.sp 1
+PTK-Prowiz          epopt=vblank
+.br
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
 .SH "FILES"

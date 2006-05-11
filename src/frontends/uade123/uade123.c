@@ -509,8 +509,11 @@ int main(int argc, char *argv[])
 
     uc = uc_loaded;
 
+    if (uc_cmdline.verbose)
+      uc.verbose = 1;
+
     if (playernamegiven == 0) {
-      debug(uc_cmdline.verbose, "\n");
+      debug(uc.verbose, "\n");
 
       ep = uade_analyze_file_format(modulename, &uc);
       if (ep == NULL) {
@@ -518,9 +521,7 @@ int main(int argc, char *argv[])
 	continue;
       }
 
-      debug(uc_cmdline.verbose, "Player candidate: %s\n", ep->playername);
-
-      uade_set_ep_attributes(&uc, ep);
+      debug(uc.verbose, "Player candidate: %s\n", ep->playername);
 
       if (strcmp(ep->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof playername);
@@ -542,6 +543,9 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    if (ep != NULL)
+      uade_set_ep_attributes(&uc, us, ep);
+
     /* The order is important:
        1. handle song attributes
        2. merge command line options
@@ -549,7 +553,7 @@ int main(int argc, char *argv[])
        4. check that the player exists */
 
     if (uade_handle_song_attributes(&uc, playername, sizeof playername, us)) {
-      debug(uc_cmdline.verbose, "Song rejected based on attributes: %s\n",
+      debug(uc.verbose, "Song rejected based on attributes: %s\n",
 	    us->module_filename);
       uade_unalloc_song(us);
       continue;
