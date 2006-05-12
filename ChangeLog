@@ -1,3 +1,11 @@
+2006-05-12  Michael Doering <mld@users.sourceforge.net>
+	- Audacious modinfo GTK-2.8's assertion error fixed by "porting"
+	  the legacy gdk_font_load/gtk_text to gtk2's tag, viewport,
+	  buffer system.
+	- Worked around gtk2's assumption any text has to be clean UTF-8
+	  which obviously will break when displaying binaryhexdumps or
+	  Amiga locale strings.
+
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
 	- Added support for eagleplayer/song specific eagleplayer options.
