@@ -5,6 +5,8 @@
 	- Worked around gtk2's assumption any text has to be clean UTF-8
 	  which obviously will break when displaying binaryhexdumps or
 	  Amiga locale strings.
+	- Merged man page update from Alankila, explaining filter and
+	  resampling features.
 
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
