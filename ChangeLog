@@ -5,10 +5,9 @@
 	- Worked around gtk2's assumption any text has to be clean UTF-8
 	  which obviously will break when displaying binaryhexdumps or
 	  Amiga locale strings.
-	- Merged man page update from alankila, explaining filter and
-	  resampling features (shd)
-	- Merged headphones 2 effect patch from alankila, making it sample
-	  rate independent (shd)
+	- Merged man page update from Alankila, explaining filter and
+	  resampling features.
+	- Merged headphones 2 effect patch from Alankila
 
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
