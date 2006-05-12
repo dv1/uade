@@ -23,7 +23,7 @@
 #include <limits.h>
 #include <libgen.h>
 
-#define GTK_ENABLE_BROKEN
+//#define GTK_ENABLE_BROKEN
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <audacious/plugin.h>
@@ -42,7 +42,6 @@ static char module_filename[PATH_MAX];
 static char player_filename[PATH_MAX];
 
 static GtkWidget *fileinfowin = NULL;
-static GtkWidget *playerinfowin = NULL;
 static GtkWidget *modinfowin = NULL;
 static GtkTooltips *fileinfo_tooltips;
 static GtkWidget *fileinfo_hexinfo_button;
@@ -55,7 +54,7 @@ static GtkWidget *fileinfo_minsubsong_txt;
 static GtkWidget *fileinfo_subsong_txt;
 
 
-static void uade_mod_info(int modinfo_mode);
+static void uade_mod_info(char *credits, int creditslen);
 static void uade_mod_info_hex(void);
 static void uade_mod_info_module(void);
 
@@ -465,108 +464,64 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename,
 void uade_player_info(void)
 {
     char credits[16384];
-    GtkWidget *playerinfo_button_box;
-    GtkWidget *close_button;
-    GtkWidget *playerinfo_base_vbox;
-
-    GtkWidget *uadeplay_scrolledwindow;
-    GtkWidget *uadeplay_txt;
-
-
-    if (!playerinfowin) {
-
-	playerinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(playerinfowin), "UADE Playerinfo");
-	gtk_window_set_position(GTK_WINDOW(playerinfowin),
-				GTK_WIN_POS_MOUSE);
-	gtk_container_set_border_width(GTK_CONTAINER(playerinfowin), 10);
-	gtk_window_set_policy(GTK_WINDOW(playerinfowin), FALSE, FALSE,
-			      FALSE);
-	gtk_signal_connect(GTK_OBJECT(playerinfowin), "destroy",
-			   GTK_SIGNAL_FUNC(gtk_widget_destroyed),
-			   &playerinfowin);
-//Start of Contents Box
-
-	playerinfo_base_vbox = gtk_vbox_new(FALSE, 10);
-
-	gtk_container_set_border_width(GTK_CONTAINER(playerinfo_base_vbox),
-				       5);
-	gtk_container_add(GTK_CONTAINER(playerinfowin),
-			  playerinfo_base_vbox);
-
-
 	if ((uade_song_info(credits, sizeof credits, player_filename, UADE_HEX_DUMP_INFO))) {
 	  strcpy(credits, "No info for player.\n");
 	}
-
-	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
-	gtk_container_add(GTK_CONTAINER(playerinfo_base_vbox),
-			  uadeplay_scrolledwindow);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
-				       (uadeplay_scrolledwindow),
-				       GTK_POLICY_NEVER,
-				       GTK_POLICY_ALWAYS);
-
-	uadeplay_txt = gtk_text_new(NULL, NULL);
-	
-
-	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
-			  uadeplay_txt);
-	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
-			-1);
-
-	gtk_text_set_word_wrap(GTK_TEXT(uadeplay_txt), TRUE);
-	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
-
-
-
-// Start of Close Button Box
-
-	playerinfo_button_box = gtk_hbutton_box_new();
-
-	gtk_button_box_set_layout(GTK_BUTTON_BOX(playerinfo_button_box),
-				  GTK_BUTTONBOX_END);
-	gtk_button_box_set_spacing(GTK_BUTTON_BOX(playerinfo_button_box),
-				   5);
-	gtk_box_pack_start(GTK_BOX(playerinfo_base_vbox),
-			   playerinfo_button_box, FALSE, FALSE, 0);
-
-	close_button = gtk_button_new_with_label("Close");
-	GTK_WIDGET_SET_FLAGS(close_button, GTK_CAN_DEFAULT);
-	gtk_signal_connect_object(GTK_OBJECT(close_button), "clicked",
-				  GTK_SIGNAL_FUNC(gtk_widget_destroy),
-				  GTK_OBJECT(playerinfowin));
-
-	gtk_box_pack_start_defaults(GTK_BOX(playerinfo_button_box),
-				    close_button);
-	gtk_widget_show_all(playerinfowin);
-    } else {
-	gdk_window_raise(playerinfowin->window);
-    }
+        uade_mod_info(credits, sizeof credits);
 }
 
 void uade_mod_info_hex(void)
 {
-    uade_mod_info(UADE_HEX_DUMP_INFO);
+    char credits[16384];
+    if (uade_song_info(credits, sizeof credits, module_filename, UADE_HEX_DUMP_INFO))
+        snprintf(credits, sizeof credits, "Unable to process file %s\n", module_filename);
+
+
+    uade_mod_info(credits, sizeof credits);
 }
 
 void uade_mod_info_module(void)
 {
-    uade_mod_info(UADE_MODULE_INFO);
+    char credits[16384];
+    if (uade_song_info(credits, sizeof credits, module_filename, UADE_MODULE_INFO))
+	snprintf(credits, sizeof credits, "Unable to process file %s\n", module_filename);
+
+    uade_mod_info(credits, sizeof credits);
 }
 
-void uade_mod_info(int modinfo_mode)
+void uade_mod_info(char *credits, int creditslen)
 {
-    char credits[16384];
     GtkWidget *modinfo_button_box;
     GtkWidget *close_button;
     GtkWidget *modinfo_base_vbox;
 
     GtkWidget *uadeplay_scrolledwindow;
-    GtkWidget *uadeplay_txt;
+    GtkWidget *uadeplay_textview;
 
+    GtkTextBuffer *uadeplay_textbuffer;
+    GtkTextIter textIter;
+
+    gchar *text =NULL;
+    GError *error = NULL;
 
     if (!modinfowin) {
+
+	/* *sigh* code inflation to get just a simple fixed font text view*/
+	/* first we have to convert to utf-8 */
+	/* then we have to mess around with Iters,Tags, Views and Buffer */
+	/* gtk1.2 was easier to use in that aspect */
+	
+	if (!g_utf8_validate (credits, -1, NULL))
+	{
+	 text = g_locale_to_utf8 (credits, -1, NULL, NULL, &error);
+	 if (!text)
+	    {
+		g_error_free (error);
+		text = g_convert_with_fallback(credits, creditslen, "UTF8", "ISO-8859-1", ".", NULL, NULL, NULL);
+		if (!text) text = g_strdup ("unable to convert to UTF-8");
+	    
+	     }
+	  } else text = g_strdup (credits);
 
 	modinfowin = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(modinfowin), "UADE Modinfo");
@@ -584,11 +539,8 @@ void uade_mod_info(int modinfo_mode)
 				       5);
 	gtk_container_add(GTK_CONTAINER(modinfowin), modinfo_base_vbox);
 
-
-	if (uade_song_info(credits, sizeof credits, module_filename, modinfo_mode))
-	    snprintf(credits, sizeof credits, "Unable to process file %s\n", module_filename);
-
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
+	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
 
 	gtk_container_add(GTK_CONTAINER(modinfo_base_vbox),
 			  uadeplay_scrolledwindow);
@@ -597,14 +549,28 @@ void uade_mod_info(int modinfo_mode)
 				       GTK_POLICY_NEVER,
 				       GTK_POLICY_ALWAYS);
 
-	uadeplay_txt = gtk_text_new(NULL, NULL);
-	gtk_container_add(GTK_CONTAINER(uadeplay_scrolledwindow),
-			  uadeplay_txt);
-	gtk_text_insert(GTK_TEXT(uadeplay_txt), NULL, NULL, NULL, credits,
-			-1);
+	uadeplay_textview = gtk_text_view_new();
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(uadeplay_textview), FALSE);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(uadeplay_scrolledwindow), uadeplay_textview);
+	
 
-	gtk_text_set_word_wrap(GTK_TEXT(uadeplay_txt), TRUE);
-	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
+
+	uadeplay_textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(uadeplay_textview));
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(uadeplay_textview), uadeplay_textbuffer);	
+
+	gtk_text_buffer_get_iter_at_offset(GTK_TEXT_BUFFER(uadeplay_textbuffer), &textIter,0);
+	gtk_text_buffer_create_tag (uadeplay_textbuffer, "monospaced", 
+				    "family", "monospace",
+				     "wrap_mode", GTK_WRAP_WORD,
+				     NULL);
+
+	gtk_text_buffer_insert_with_tags_by_name(uadeplay_textbuffer,
+					&textIter,
+					text, -1,
+					"monospaced", NULL);
+					
+				 
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(uadeplay_textview), uadeplay_textbuffer);	
 
 
 // Start of Close Button Box
