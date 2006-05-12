@@ -640,7 +640,7 @@ static void print_help(void)
   printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
   printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
   printf(" --frequency=x,      Set output frequency to x Hz. The default is 44,1 kHz.\n");
-  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1.0.\n");
+  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1,0.\n");
   printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
   printf("                     Do not play.\n");
   printf(" -h, --help,         Print help\n");
@@ -657,7 +657,7 @@ static void print_help(void)
   printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
   printf(" --pal,              Set PAL mode (default)\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
-  printf("                     1 is mono, and 2 is inverse stereo. The default is 0.7.\n");
+  printf("                     1 is mono, and 2 is inverse stereo. The default is 0,7.\n");
   printf(" -P filename,        Set player name\n");
   printf(" -r, --recursive,    Recursive directory scan\n");
   printf(" --repeat,           Play playlist over and over again\n");

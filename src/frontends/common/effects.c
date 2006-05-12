@@ -29,14 +29,14 @@ static float headphones_rc_r[4];
 
 /* delay time defines the width of the head. 0.5 ms gives us 15 cm virtual distance
  * between sound arriving to either ear. */
-#define HEADPHONE2_DELAY_TIME 0.50e-3
-#define HEADPHONE2_DELAY_K 0.50
+#define HEADPHONE2_DELAY_TIME 0.49e-3
+#define HEADPHONE2_DELAY_K 0.15
 /* head shadow frequency cutoff */
-#define HEADPHONE2_SHADOW_FREQ 7500.0
+#define HEADPHONE2_SHADOW_FREQ 8000.0
 /* high shelve keeps frequencies below cutoff intact and attenuates
  * the rest in an uniform way. The effect is to make bass more "mono" than "stereo". */
-#define HEADPHONE2_SHELVE_FREQ 150.0
-#define HEADPHONE2_SHELVE_LEVEL -1.5
+#define HEADPHONE2_SHELVE_FREQ 100.0
+#define HEADPHONE2_SHELVE_LEVEL -2.0
 
 #define MAXIMUM_SAMPLING_RATE 96000
 #define HEADPHONE2_DELAY_MAX_LENGTH ((int)(MAXIMUM_SAMPLING_RATE*HEADPHONE2_DELAY_TIME+1))
@@ -359,14 +359,9 @@ static void headphones2(int16_t *sm, int frames)
 	rd = evaluate_biquad(rd, &headphone2_rc_r);
         ld = evaluate_biquad(ld, &headphone2_shelve_l);
         rd = evaluate_biquad(rd, &headphone2_shelve_r);
-        /* division by two is required for flat response to come out as mono */
-        ld /= 2;
-        rd /= 2;
         
-        /* you can view this as an act of panning that is dependant of the frequency
-         * response of the filters above */
-	sm[0] = sampleclip(sm[0] - ld + rd);
-	sm[1] = sampleclip(sm[1] - rd + ld);
+	sm[0] = sampleclip((sm[0] + rd)/2);
+	sm[1] = sampleclip((sm[1] + ld)/2);
 	sm += 2;
     }
 }
