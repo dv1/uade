@@ -16,17 +16,16 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <uadeipc.h>
-#include <eagleplayer.h>
-#include <uadeconfig.h>
-#include <uadecontrol.h>
-#include <uadeconstants.h>
-#include <strlrep.h>
-#include <uadeconf.h>
-#include <effects.h>
-#include <sysincludes.h>
-#include <songinfo.h>
-
+#include "uadeipc.h"
+#include "eagleplayer.h"
+#include "uadeconfig.h"
+#include "uadecontrol.h"
+#include "uadeconstants.h"
+#include "strlrep.h"
+#include "uadeconf.h"
+#include "effects.h"
+#include "sysincludes.h"
+#include "songinfo.h"
 #include "plugin.h"
 #include "subsongseek.h"
 #include "fileinfo.h"
@@ -41,7 +40,6 @@
 
 
 static int initialize_song(char *filename);
-static void set_defaults(void);
 static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
 static void uade_file_info(char *filename);
@@ -92,7 +90,6 @@ static pthread_t decode_thread;
 static struct uade_config config;
 static struct uade_config config_backup;
 static struct uade_effect effects;
-static struct uade_effect effects_backup;
 static char gui_filename[PATH_MAX];
 static char gui_formatname[256];
 static int gui_info_set;
@@ -104,6 +101,7 @@ static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
 static int out_bytes_valid; /* Lock before use */
 static int plugin_disabled;
+static char songconfname[PATH_MAX];
 static struct uade_ipc uadeipc;
 static pid_t uadepid;
 static struct uade_song *uadesong;
@@ -120,7 +118,7 @@ int uade_select_sub;          /* Lock before use */
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
 
 
-static void load_config(void)
+static void test_uade_conf(void)
 {
   struct stat st;
 
@@ -133,9 +131,13 @@ static void load_config(void)
 
   config_load_time = st.st_mtime;
 
-  set_defaults();
-
   uade_load_config(&config_backup, configname);
+}
+
+
+static void load_config(void)
+{
+  test_uade_conf();
 }
 
 
@@ -149,7 +151,7 @@ static void load_content_db(void)
     md5_load_time = curtime;
 
   if (md5name[0] == 0) {
-    char *home = getenv("HOME");
+    char *home = uade_open_create_home();
     if (home)
       snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
   }
@@ -170,13 +172,6 @@ static void load_content_db(void)
   snprintf(name, sizeof name, "%s/contentdb.conf", UADE_CONFIG_BASE_DIR);
   if (stat(name, &st) == 0)
     uade_read_content_db(name);
-}
-
-
-static void set_defaults(void)
-{
-  uade_config_set_defaults(&config_backup);
-  uade_effect_set_defaults(&effects_backup);
 }
 
 
@@ -274,48 +269,30 @@ InputPlugin *get_iplugin_info(void)
 /* xmms initializes uade by calling this function */
 static void uade_init(void)
 {
-  char *home = getenv("HOME");
-  struct stat st;
+  char *home;
   int config_loaded;
 
-  set_defaults();
+  config_load_time = time(NULL);
 
-  if (home) {
-    char name[PATH_MAX];
-    snprintf(name, sizeof name, "%s/.uade2", home);
-    if (stat(name, &st) != 0)
-      mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
-  }
+  config_loaded = uade_load_initial_config(configname, sizeof configname,
+					   &config_backup, NULL);
 
   load_content_db();
 
-  /* If config exists in home, ignore global uade.conf. */
-  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
-  if (stat(configname, &st) == 0)
-    goto loadsongconf;
+  uade_load_initial_song_conf(songconfname, sizeof songconfname,
+			      &config_backup, NULL);
 
-  /* No uade.conf in $HOME/.uade2/. */
-  snprintf(configname, sizeof configname, "%s/uade.conf", UADE_CONFIG_BASE_DIR);
-  if (stat(configname, &st) == 0)
-    goto loadsongconf;
+  home = uade_open_create_home();
 
-  fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
-  fprintf(stderr, "HOME/.uade2/uade.conf in the future.\n");
-  snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
-
- loadsongconf:
-
-  /* Load song.conf */
-  config_loaded = 0;
-
-  if (home) {
-    char tmpstr[PATH_MAX];
-    snprintf(tmpstr, sizeof tmpstr, "%s/.uade2/song.conf", home);
-    config_loaded = uade_read_song_conf(tmpstr);
+  if (home != NULL) {
+    /* If config exists in home, ignore global uade.conf. */
+    snprintf(configname, sizeof configname, "%s/.uade2/uade.conf", home);
   }
 
-  if (config_loaded == 0)
-    config_loaded = uade_read_song_conf(UADE_CONFIG_BASE_DIR "/song.conf");
+  if (config_loaded == 0) {
+    fprintf(stderr, "No config file found for UADE XMMS plugin. Will try to load config from\n");
+    fprintf(stderr, "$HOME/.uade2/uade.conf in the future.\n");
+  }
 }
 
 
@@ -344,7 +321,6 @@ static int initialize_song(char *filename)
   char scorename[PATH_MAX];
 
   config = config_backup;
-  effects = effects_backup;
 
   ep = uade_analyze_file_format(filename, &config);
 

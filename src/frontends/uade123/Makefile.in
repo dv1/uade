@@ -6,7 +6,7 @@ MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
 	playloop.o audio.o terminal.o uadecontrol.o uadeconf.o md5.o \
 	unixipc.o songinfo.o
-PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h
+PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -47,7 +47,7 @@ strlrep.o:	../../strlrep.c ../../include/strlrep.h
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uadeipc.h ../../include/uadeconfig.h ../../include/amigafilter.h ../common/amifilemagic.h ../common/uadecontrol.h $(PLAYERHEADERS)
+uade123.o:	uade123.c uade123.h ../../include/uadeipc.h ../../include/amigafilter.h ../common/amifilemagic.h ../common/uadecontrol.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 uadeconf.o:	../common/uadeconf.c $(PLAYERHEADERS)

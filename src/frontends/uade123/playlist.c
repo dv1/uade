@@ -79,6 +79,35 @@ int playlist_init(struct playlist *pl)
 }
 
 
+void playlist_iterator(struct playlist_iterator *pli, struct playlist *pl)
+{
+  assert(pl != NULL);
+
+  pli->index = 0;
+  pli->pl = pl;
+}
+
+
+char *playlist_iterator_get(struct playlist_iterator *pli)
+{
+  char *s;
+  struct chrarray *arr;
+  struct chrentry *e;
+
+  arr = &pli->pl->list;
+
+  if (pli->index >= arr->n_entries)
+    return NULL;
+
+  e = &arr->entries[pli->index];
+  s = &arr->data[e->off];
+
+  pli->index++;
+
+  return s;
+}
+
+
 /* enable == 0: disable random play
    enable == 1: enable random play
    enable == -1: toggle random play state between enabled and disabled

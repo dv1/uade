@@ -14,6 +14,9 @@
 #include <assert.h>
 #include <limits.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "strlrep.h"
 #include "uadeconf.h"
@@ -264,6 +267,8 @@ int uade_load_config(struct uade_config *uc, const char *filename)
   if ((f = fopen(filename, "r")) == NULL)
     return 0;
 
+  uade_config_set_defaults(uc);
+
   while (fgets(line, sizeof(line), f) != NULL) {
     linenumber++;
     if (line[strlen(line) - 1] == '\n')
@@ -290,6 +295,82 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 
   fclose(f);
   return 1;
+}
+
+
+int uade_load_initial_config(char *uadeconfname, size_t maxlen,
+			     struct uade_config *uc,
+			     struct uade_config *ucbase)
+{
+  int loaded;
+  char *home;
+
+  assert(maxlen > 0);
+  uadeconfname[0] = 0;
+
+  uade_config_set_defaults(uc);
+
+  loaded = 0;
+
+  /* First try to load from forced base dir (testing mode) */
+  if (ucbase != NULL && ucbase->basedir_set) {
+    snprintf(uadeconfname, maxlen, "%s/uade.conf", ucbase->basedir.name);
+    loaded = uade_load_config(uc, uadeconfname);
+  }
+
+  home = uade_open_create_home();
+
+  /* Second, try to load config from ~/.uade2/uade.conf */
+  if (loaded == 0 && home != NULL) {
+    snprintf(uadeconfname, maxlen, "%s/.uade2/uade.conf", home);
+    loaded = uade_load_config(uc, uadeconfname);
+  }
+
+  /* Third, try to load from install path */
+  if (loaded == 0) {
+    snprintf(uadeconfname, maxlen, "%s/uade.conf", uc->basedir.name);
+    loaded = uade_load_config(uc, uadeconfname);
+  }
+
+  return loaded;
+}
+
+
+int uade_load_initial_song_conf(char *songconfname, size_t maxlen,
+				struct uade_config *uc,
+				struct uade_config *ucbase)
+{
+  int loaded = 0;
+  char *home;
+
+  assert(maxlen > 0);
+  songconfname[0] = 0;
+
+  /* Used for testing */
+  if (ucbase != NULL && ucbase->basedir_set) {
+    snprintf(songconfname, maxlen, "%s/song.conf", ucbase->basedir.name);
+    loaded = uade_read_song_conf(songconfname);
+  }
+
+  /* Avoid unwanted home directory creation for test mode */
+  if (loaded)
+    return loaded;
+
+  home = uade_open_create_home();
+
+  /* Try to load from home dir */
+  if (loaded == 0 && home != NULL) {
+    snprintf(songconfname, maxlen, "%s/.uade2/song.conf", home);
+    loaded = uade_read_song_conf(songconfname);
+  }
+
+  /* No? Try install path */
+  if (loaded == 0) {
+    snprintf(songconfname, maxlen, "%s/song.conf", uc->basedir.name);
+    loaded = uade_read_song_conf(songconfname);
+  }
+
+  return loaded;
 }
 
 
@@ -325,6 +406,22 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(use_timeouts);
   MERGE_OPTION(use_ntsc);
   MERGE_OPTION(verbose);
+}
+
+
+char *uade_open_create_home(void)
+{
+  /* Create ~/.uade2 directory if it does not exist */
+  char *home = getenv("HOME");
+  if (home) {
+    char name[PATH_MAX];
+    struct stat st;
+    snprintf(name, sizeof name, "%s/.uade2", home);
+    if (stat(name, &st) != 0)
+      mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
+  }
+
+  return home;
 }
 
 
@@ -377,6 +474,8 @@ int uade_parse_subsongs(int **subsongs, char *option)
 void uade_set_effects(struct uade_effect *effects,
 		      const struct uade_config *uc)
 {
+  uade_effect_set_defaults(effects);
+
   if (uc->no_postprocessing)
     uade_effect_disable(effects, UADE_EFFECT_ALLOW);
 

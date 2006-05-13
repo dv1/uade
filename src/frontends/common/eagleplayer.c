@@ -78,95 +78,6 @@ static void uade_analyze_song(struct uade_song *us);
 static int uade_find_playtime(const char *md5);
 
 
-/* Compare function for bsearch() and qsort() to sort songs with respect
-   to their md5sums */
-static int escompare(const void *a, const void *b)
-{
-  return strcasecmp(((struct eaglesong *) a)->md5,
-		    ((struct eaglesong *) b)->md5);
-}
-
-
-static int contentcompare(const void *a, const void *b)
-{
-  return strcasecmp(((struct contentchecksum *) a)->md5,
-		    ((struct contentchecksum *) b)->md5);
-}
-
-
-/* replace must be zero if content db is unsorted */
-int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
-{
-  if (contentchecksums == NULL)
-    return 0;
-  /* Do not record song shorter than 5 secs */
-  if (playtime < 5000)
-    return 1;
-  if (strlen(md5) != 32)
-    return 0;
-
-  if (replaceandsort) {
-    struct contentchecksum key;
-    struct contentchecksum *n;
-    strlcpy(key.md5, md5, sizeof key.md5);
-    n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-    if (n != NULL) {
-      strlcpy(n->md5, md5, sizeof(n->md5));
-      if (n->playtime != playtime)
-	ccmodified = 1;
-      n->playtime = playtime;
-      return 1;
-    }
-  }
-  if (nccused == nccalloc) {
-    struct contentchecksum *n;
-    nccalloc *= 2;
-    n = realloc(contentchecksums, nccalloc * sizeof(struct contentchecksum));
-    if (n == NULL) {
-      fprintf(stderr, "uade: No memory for new md5s.\n");
-      return 0;
-    }
-    contentchecksums = n;
-  }
-  strlcpy(contentchecksums[nccused].md5, md5, sizeof(contentchecksums[nccused].md5));
-  contentchecksums[nccused].playtime = playtime;
-  nccused++;
-  ccmodified = 1;
-  if (replaceandsort)
-    qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-  return 1;
-}
-
-
-struct uade_song *uade_alloc_song(const char *filename)
-{
-  struct uade_song *us = NULL;
-
-  if ((us = calloc(1, sizeof *us)) == NULL)
-    goto error;
-
-  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
-  us->playtime = -1;
-
-  strlcpy(us->module_filename, filename, sizeof us->module_filename);
-
-  us->buf = atomic_read_file(&us->bufsize, filename);
-  if (us->buf == NULL)
-    goto error;
-
-  /* Get song specific flags and info based on the md5sum */
-  uade_analyze_song(us);
-  return us;
-
- error:
-  if (us != NULL) {
-    free(us->buf);
-    free(us);
-  }
-  return NULL;
-}
-
-
 static struct eagleplayer *analyze_file_format(int *content,
 					       const char *modulename,
 					       const char *basedir,
@@ -272,6 +183,65 @@ static struct eagleplayer *analyze_file_format(int *content,
     return candidate;
 
   return NULL;
+}
+
+
+/* Compare function for bsearch() and qsort() to sort songs with respect
+   to their md5sums */
+static int contentcompare(const void *a, const void *b)
+{
+  return strcasecmp(((struct contentchecksum *) a)->md5,
+		    ((struct contentchecksum *) b)->md5);
+}
+
+
+static int escompare(const void *a, const void *b)
+{
+  return strcasecmp(((struct eaglesong *) a)->md5,
+		    ((struct eaglesong *) b)->md5);
+}
+
+
+static void md5_from_buffer(char *dest, size_t destlen,
+			    uint8_t *buf, size_t bufsize)
+{
+  uint8_t md5[16];
+  int ret;
+  MD5_CTX ctx;
+  MD5Init(&ctx);
+  MD5Update(&ctx, buf, bufsize);
+  MD5Final(md5, &ctx);
+  ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  if (ret >= destlen) {
+    fprintf(stderr, "md5 buffer too short (%d/%zd)\n", ret, destlen);
+    exit(-1);
+  }
+}
+
+
+static int open_and_lock(const char *filename, int create)
+{
+  int fd, ret;
+  fd = open(filename, O_RDWR);
+  if (fd < 0) {
+    if (errno == ENOENT && create) {
+      fd = open(filename, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+      if (fd < 0)
+	return -1;
+    } else {
+      return -1;
+    }
+  }
+
+  ret = lockf(fd, F_LOCK, 0);
+  if (ret) {
+    fprintf(stderr, "uade: Unable to lock song.conf: %s (%s)\n",
+	    filename, strerror(errno));
+    atomic_close(fd);
+    return -1;
+  }
+
+  return fd;
 }
 
 
@@ -381,6 +351,149 @@ static int parse_attribute(struct uade_attribute **attributelist, int *flags,
 }
 
 
+/* Split line with respect to white space. */
+static char **split_line(size_t *nitems, size_t *lineno, FILE *f,
+			 const char *delimiters)
+{
+  char line[LINESIZE], templine[LINESIZE];
+  char **items = NULL;
+  size_t pos;
+  char *sp, *s;
+
+  *nitems = 0;
+
+  while (fgets(line, sizeof line, f) != NULL) {
+
+    if (lineno != NULL)
+      (*lineno)++;
+
+    /* Skip, if a comment line */
+    if (line[0] == '#')
+      continue;
+
+    /* strsep() modifies line that it touches, so we make a copy of it, and
+       then count the number of items on the line */
+    strlcpy(templine, line, sizeof(templine));
+    sp = templine;
+    while ((s = strsep(&sp, delimiters)) != NULL) {
+      if (*s == 0)
+	continue;
+      (*nitems)++;
+    }
+
+    if (*nitems > 0)
+      break;
+  }
+
+  if (*nitems == 0)
+    return NULL;
+
+  if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL) {
+    fprintf(stderr, "No memory for nws items.\n");
+    exit(-1);
+  }
+
+  sp = line;
+  pos = 0;
+  while ((s = strsep(&sp, delimiters)) != NULL) {
+    if (*s == 0)
+      continue;
+    if ((items[pos] = strdup(s)) == NULL) {
+      fprintf(stderr, "No memory for an nws item.\n");
+      exit(-1);
+    }
+    pos++;
+  }
+  items[pos] = NULL;
+  assert(pos == *nitems);
+
+  return items;
+}
+
+
+/* Compare function for bsearch() and qsort() to sort eagleplayers with
+   respect to name extension. */
+static int ufcompare(const void *a, const void *b)
+{
+  const struct eagleplayermap *ua = a;
+  const struct eagleplayermap *ub = b;
+  return strcasecmp(ua->extension, ub->extension);
+}
+
+
+/* replace must be zero if content db is unsorted */
+int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
+{
+  if (contentchecksums == NULL)
+    return 0;
+  /* Do not record song shorter than 5 secs */
+  if (playtime < 5000)
+    return 1;
+  if (strlen(md5) != 32)
+    return 0;
+
+  if (replaceandsort) {
+    struct contentchecksum key;
+    struct contentchecksum *n;
+    strlcpy(key.md5, md5, sizeof key.md5);
+    n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+    if (n != NULL) {
+      strlcpy(n->md5, md5, sizeof(n->md5));
+      if (n->playtime != playtime)
+	ccmodified = 1;
+      n->playtime = playtime;
+      return 1;
+    }
+  }
+  if (nccused == nccalloc) {
+    struct contentchecksum *n;
+    nccalloc *= 2;
+    n = realloc(contentchecksums, nccalloc * sizeof(struct contentchecksum));
+    if (n == NULL) {
+      fprintf(stderr, "uade: No memory for new md5s.\n");
+      return 0;
+    }
+    contentchecksums = n;
+  }
+  strlcpy(contentchecksums[nccused].md5, md5, sizeof(contentchecksums[nccused].md5));
+  contentchecksums[nccused].playtime = playtime;
+  nccused++;
+  ccmodified = 1;
+  if (replaceandsort)
+    qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+  return 1;
+}
+
+
+struct uade_song *uade_alloc_song(const char *filename)
+{
+  struct uade_song *us = NULL;
+
+  if ((us = calloc(1, sizeof *us)) == NULL)
+    goto error;
+
+  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
+  us->playtime = -1;
+
+  strlcpy(us->module_filename, filename, sizeof us->module_filename);
+
+  us->buf = atomic_read_file(&us->bufsize, filename);
+  if (us->buf == NULL)
+    goto error;
+
+  /* Get song specific flags and info based on the md5sum */
+  uade_analyze_song(us);
+  return us;
+
+ error:
+  if (us != NULL) {
+    free(us->buf);
+    free(us);
+  }
+  return NULL;
+}
+
+
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     struct uade_config *uc)
 {
@@ -460,83 +573,6 @@ struct eagleplayer *uade_get_eagleplayer(const char *extension,
     return NULL;
 
   return f->player;
-}
-
-
-/* Split line with respect to white space. */
-static char **split_line(size_t *nitems, size_t *lineno, FILE *f,
-			 const char *delimiters)
-{
-  char line[LINESIZE], templine[LINESIZE];
-  char **items = NULL;
-  size_t pos;
-  char *sp, *s;
-
-  *nitems = 0;
-
-  while (fgets(line, sizeof line, f) != NULL) {
-
-    if (lineno != NULL)
-      (*lineno)++;
-
-    /* Skip, if a comment line */
-    if (line[0] == '#')
-      continue;
-
-    /* strsep() modifies line that it touches, so we make a copy of it, and
-       then count the number of items on the line */
-    strlcpy(templine, line, sizeof(templine));
-    sp = templine;
-    while ((s = strsep(&sp, delimiters)) != NULL) {
-      if (*s == 0)
-	continue;
-      (*nitems)++;
-    }
-
-    if (*nitems > 0)
-      break;
-  }
-
-  if (*nitems == 0)
-    return NULL;
-
-  if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL) {
-    fprintf(stderr, "No memory for nws items.\n");
-    exit(-1);
-  }
-
-  sp = line;
-  pos = 0;
-  while ((s = strsep(&sp, delimiters)) != NULL) {
-    if (*s == 0)
-      continue;
-    if ((items[pos] = strdup(s)) == NULL) {
-      fprintf(stderr, "No memory for an nws item.\n");
-      exit(-1);
-    }
-    pos++;
-  }
-  items[pos] = NULL;
-  assert(pos == *nitems);
-
-  return items;
-}
-
-
-static void md5_from_buffer(char *dest, size_t destlen,
-			    uint8_t *buf, size_t bufsize)
-{
-  uint8_t md5[16];
-  int ret;
-  MD5_CTX ctx;
-  MD5Init(&ctx);
-  MD5Update(&ctx, buf, bufsize);
-  MD5Final(md5, &ctx);
-  ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
-  if (ret >= destlen) {
-    fprintf(stderr, "md5 buffer too short (%d/%zd)\n", ret, destlen);
-    exit(-1);
-  }
 }
 
 
@@ -742,14 +778,21 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
 
 int uade_read_song_conf(const char *filename)
 {
-  FILE *f;
+  FILE *f = NULL;
   struct eaglesong *s;
   size_t allocated;
   size_t lineno = 0;
   size_t i;
+  int fd;
 
-  if ((f = fopen(filename, "r")) == NULL)
-    return 0;
+  fd = open_and_lock(filename, 1);
+  /* open_and_lock() may fail without harm (it's actually supposed to fail
+     if the process does not have lock (write) permissions to the song.conf
+     file */
+
+  f = fopen(filename, "r");
+  if (f == NULL)
+    goto error;
 
   nsongs = 0;
   allocated = 16;
@@ -805,9 +848,20 @@ int uade_read_song_conf(const char *filename)
 
   fclose(f);
 
+  /* we may not have the file locked */
+  if (fd >= 0)
+    atomic_close(fd); /* lock is closed too */
+
   /* Sort MD5 sums for binary searching songs */
   qsort(songstore, nsongs, sizeof songstore[0], escompare);
   return 1;
+
+ error:
+  if (f)
+    fclose(f);
+  if (fd >= 0)
+    atomic_close(fd);
+  return 0;
 }
 
 
@@ -825,16 +879,6 @@ void uade_save_content_db(const char *filename)
     fprintf(f, "%s %u\n", contentchecksums[i].md5, (unsigned int) contentchecksums[i].playtime);
   fclose(f);
   fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
-}
-
-
-/* Compare function for bsearch() and qsort() to sort eagleplayers with
-   respect to name extension. */
-static int ufcompare(const void *a, const void *b)
-{
-  const struct eagleplayermap *ua = a;
-  const struct eagleplayermap *ub = b;
-  return strcasecmp(ua->extension, ub->extension);
 }
 
 
@@ -869,23 +913,7 @@ int uade_update_song_conf(const char *songconfin, const char *songconfout,
     return 0;
   }
 
-  fd = open(songconfout, O_RDWR);
-  if (fd < 0) {
-    if (errno == ENOENT) {
-      fd = open(songconfout, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-      if (fd < 0)
-	return 0;
-    } else {
-      return 0;
-    }
-  }
-
-  ret = lockf(fd, F_LOCK, 0);
-  if (ret) {
-    fprintf(stderr, "uade: Unable to to lock file: %s\n", strerror(errno));
-    atomic_close(fd);
-    return 0;
-  }
+  fd = open_and_lock(songconfout, 1);
 
   input = atomic_read_file(&inputsize, songconfin);
   if (input == NULL) {

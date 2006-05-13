@@ -77,7 +77,7 @@ static void load_content_db(struct uade_config *uc)
     md5_load_time = curtime;
 
   if (md5name[0] == 0) {
-    char *home = getenv("HOME");
+    char *home = uade_open_create_home();
     if (home)
       snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
   }
@@ -115,15 +115,12 @@ int main(int argc, char *argv[])
   char *endptr;
   int uadeconf_loaded, songconf_loaded;
   char songconfname[PATH_MAX] = "";
-  char uadeconfname[PATH_MAX] = "";
-  char *home;
-  struct stat st;
-  struct uade_effect effects, effects_backup;
+  char uadeconfname[PATH_MAX];
+  struct uade_effect effects;
   struct uade_config uc, uc_cmdline, uc_loaded;
   struct uade_ipc uadeipc;
   char songoptions[256] = "";
   int have_song_options = 0;
-  char homesongconfname[PATH_MAX];
   int plistdir;
 
   enum {
@@ -175,21 +172,11 @@ int main(int argc, char *argv[])
     {NULL,               0, NULL, 0}
   };
 
-  uade_config_set_defaults(&uc_loaded);
   uade_config_set_defaults(&uc_cmdline);
 
   if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "Can not initialize playlist.\n");
     exit(-1);
-  }
-
-  /* Create ~/.uade2 directory if it does not exist */
-  home = getenv("HOME");
-  if (home) {
-    char name[PATH_MAX];
-    snprintf(name, sizeof name, "%s/.uade2", home);
-    if (stat(name, &st) != 0)
-      mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
   }
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
@@ -358,20 +345,8 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* First try to load config from ~/.uade2/uade.conf */
-  uadeconf_loaded = 0;
-  if (uc_cmdline.basedir_set) {
-    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", uc_cmdline.basedir.name);
-    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
-  }
-  if (uadeconf_loaded == 0 && home != NULL) {
-    snprintf(uadeconfname, sizeof uadeconfname, "%s/.uade2/uade.conf", home);
-    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
-  }
-  if (uadeconf_loaded == 0) {
-    snprintf(uadeconfname, sizeof uadeconfname, "%s/uade.conf", uc_cmdline.basedir.name);
-    uadeconf_loaded = uade_load_config(&uc_loaded, uadeconfname);
-  }
+  uadeconf_loaded = uade_load_initial_config(uadeconfname, sizeof uadeconfname,
+					     &uc_loaded, &uc_cmdline);
 
   /* Merge loaded configurations and command line options */
   uc = uc_loaded;
@@ -383,28 +358,9 @@ int main(int argc, char *argv[])
     debug(uc.verbose, "Loaded configuration: %s\n", uadeconfname);
   }
 
-  songconf_loaded = 0;
-  if (uc_cmdline.basedir_set) {
-    snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc_cmdline.basedir.name);
-    songconf_loaded = uade_read_song_conf(songconfname);
-  }
-
-  /* Generate song.conf name in the home directory. Maybe needed later for
-     setting song.conf options. */
-  if (home != NULL)
-    snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf", home);
-
-  /* Try to load from home dir */
-  if (songconf_loaded == 0 && home != NULL) {
-    snprintf(songconfname, sizeof songconfname, "%s", homesongconfname);
-    songconf_loaded = uade_read_song_conf(songconfname);
-  }
-
-  /* No? Try install path */
-  if (songconf_loaded == 0) {
-    snprintf(songconfname, sizeof songconfname, "%s/song.conf", uc.basedir.name);
-    songconf_loaded = uade_read_song_conf(songconfname);
-  }
+  songconf_loaded = uade_load_initial_song_conf(songconfname,
+						sizeof songconfname,
+						&uc_loaded, &uc_cmdline);
 
   if (songconf_loaded == 0) {
     debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
@@ -415,29 +371,46 @@ int main(int argc, char *argv[])
   load_content_db(&uc);
 
   for (i = optind; i < argc; i++) {
-    if (!have_song_options) {
-      /* Play files */
-      playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
-      have_modules = 1;
-    } else {
-      /* Make song.conf settings */
-      if (home == NULL) {
-	fprintf(stderr, "No $HOME for song.conf :(\n");
-	exit(-1);
-      }
-      if (songconf_loaded == 0) {
-	strlcpy(songconfname, homesongconfname, sizeof songconfname);
-	songconf_loaded = 1;
-      }
-      if (uade_update_song_conf(songconfname, homesongconfname, argv[i], songoptions) == 0) {
+    /* Play files */
+    playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
+    have_modules = 1;
+  }
+
+  if (have_song_options) {
+    char homesongconfname[PATH_MAX];
+    struct playlist_iterator pli;
+    char *songfile;
+    char *home;
+
+    home = uade_open_create_home();
+    /* Make song.conf settings */
+    if (home == NULL) {
+      fprintf(stderr, "No $HOME for song.conf :(\n");
+      exit(-1);
+    }
+
+    snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf",
+	     home);
+
+    if (songconf_loaded == 0)
+      strlcpy(songconfname, homesongconfname, sizeof songconfname);
+
+    playlist_iterator(&pli, &uade_playlist);
+
+    while (1) {
+      songfile = playlist_iterator_get(&pli);
+      if (songfile == NULL)
+	break;
+
+      if (uade_update_song_conf(songconfname, homesongconfname,
+				songfile, songoptions) == 0) {
 	fprintf(stderr, "Could not update song.conf entry for %s\n", argv[i]);
 	break;
       }
     }
-  }
 
-  if (have_song_options)
     exit(0);
+  }
 
   if (uc.random_play)
     playlist_randomize(&uade_playlist);
@@ -491,8 +464,6 @@ int main(int argc, char *argv[])
   if (!audio_init(uc.frequency, uc.buffer_time))
     goto cleanup;
 
-  uade_effect_set_defaults(&effects_backup);
-
   plistdir = 0;
 
   while (1) {
@@ -511,8 +482,6 @@ int main(int argc, char *argv[])
       break;
 
     plistdir = 1;
-
-    effects = effects_backup;
 
     uc = uc_loaded;
 

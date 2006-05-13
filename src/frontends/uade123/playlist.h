@@ -14,10 +14,18 @@ struct playlist {
   struct chrarray list;
 };
 
+
+struct playlist_iterator {
+  size_t index;
+  struct playlist *pl;
+};
+
 int playlist_add(struct playlist *pl, const char *name, int recursive);
 int playlist_empty(struct playlist *pl);
 int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir);
 int playlist_init(struct playlist *pl);
+void playlist_iterator(struct playlist_iterator *pli, struct playlist *pl);
+char *playlist_iterator_get(struct playlist_iterator *pli);
 int playlist_random(struct playlist *pl, int enable);
 void playlist_randomize(struct playlist *pl);
 void playlist_repeat(struct playlist *pl);

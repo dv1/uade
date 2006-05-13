@@ -1,3 +1,16 @@
+2006-05-13  Heikki Orsila <heikki.orsila@iki.fi>
+	- Merged man page update from alankila, explaining filter and
+	  resampling features
+	- Merged headphones 2 effect patch from alankila, making it sample
+	  rate independent
+	- Added --version to uade123
+	- Cleaned up frontends with respect to configuration management.
+	  Initial configuration loading is made in uade_load_initial_config()
+	  in all frontends.
+	- Fixed song.conf locking
+	- Fixed recursive mode song.conf option setting. Try:
+	  uade123 -r --set=gain=2 songdir
+
 2006-05-12  Michael Doering <mld@users.sourceforge.net>
 	- Audacious modinfo GTK-2.8's assertion error fixed by "porting"
 	  the legacy gdk_font_load/gtk_text to gtk2's tag, viewport,
@@ -5,11 +18,6 @@
 	- Worked around gtk2's assumption any text has to be clean UTF-8
 	  which obviously will break when displaying binaryhexdumps or
 	  Amiga locale strings.
-	- Merged man page update from alankila, explaining filter and
-	  resampling features (shd)
-	- Merged headphones 2 effect patch from alankila, making it sample
-	  rate independent (shd)
-	- Added --version to uade123 (shd)
 
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
