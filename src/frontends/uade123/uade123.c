@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
     OPT_REPEAT,
     OPT_SET,
     OPT_STDERR,
+    OPT_VERSION
   };
 
   struct option long_options[] = {
@@ -170,6 +171,7 @@ int main(int argc, char *argv[])
     {"subsong-timeout",  1, NULL, 'w'},
     {"timeout",          1, NULL, 't'},
     {"verbose",          0, NULL, 'v'},
+    {"version",          0, NULL, OPT_VERSION},
     {NULL,               0, NULL, 0}
   };
 
@@ -317,6 +319,11 @@ int main(int argc, char *argv[])
 
     case OPT_STDERR:
       uade_terminal_file = stderr;
+      break;
+
+    case OPT_VERSION:
+      printf("uade123 %s\n", UADE_VERSION);
+      exit(0);
       break;
 
     case UC_FILTER_TYPE:

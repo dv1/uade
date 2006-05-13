@@ -8,7 +8,8 @@
 	- Merged man page update from alankila, explaining filter and
 	  resampling features (shd)
 	- Merged headphones 2 effect patch from alankila, making it sample
-	  rate independent and doing slight improvements (shd)
+	  rate independent (shd)
+	- Added --version to uade123 (shd)
 
 2006-05-11  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated documentation to reflect implementation.
