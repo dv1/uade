@@ -5,6 +5,7 @@
 #include <eagleplayer.h>
 #include <effects.h>
 
+void uade_add_ep_option(struct uade_ep_options *epoptions, const char *s);
 void uade_config_set_defaults(struct uade_config *uc);
 double uade_convert_to_double(const char *value, double def,
 			      double low, double high, const char *type);

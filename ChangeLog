@@ -1,3 +1,8 @@
+2006-06-15  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added "-x y" to set eagleplayer options more conveniently. It's
+	  now possible to do: uade123 -x type:pt11b mod.foo. -x can be
+	  used multiple times on the same command line.
+
 2006-05-15  Michael Doering <mld@users.sourceforge.net>
 	- PTK-Prowiz now uses the epopt config system. You can set options
           such as "vblank" and/or "type:" on a song base with the uade123

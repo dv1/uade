@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
     {"debug",            0, NULL, 'd'},
     {"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
     {"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
+    {"ep-option",        1, NULL, 'x'},
     {"filter",           2, NULL, UC_FILTER_TYPE},
     {"force-led",        1, NULL, UC_FORCE_LED},
     {"frequency",        1, NULL, UC_FREQUENCY},
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
          exit(-1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
     switch (ret) {
     case '@':
       do {
@@ -280,6 +281,9 @@ int main(int argc, char *argv[])
       break;
     case 'w':
       uade_set_config_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
+      break;
+    case 'x':
+      uade_set_config_option(&uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
       break;
     case 'y':
       uade_set_config_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
@@ -648,6 +652,7 @@ static void print_help(void)
   printf(" -v,  --verbose,     Turn on verbose mode\n");
   printf(" -w x, --subsong-timeout=x,  Set subsong timeout in seconds. -1 is infinite.\n");
   printf("                             Default is 512s\n");
+  printf(" -x y, --ep-option=y, Use eagleplayer option y. Option can be used many times.\n");
   printf(" -y x, --silence-timeout=x,  Set silence timeout in seconds. -1 is infinite.\n");
   printf("                         Default is 20s\n");
   printf(" -z, --shuffle,      Randomize playlist order before playing.\n");

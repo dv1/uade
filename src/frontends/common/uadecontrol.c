@@ -43,6 +43,25 @@ int uade_read_request(struct uade_ipc *ipc)
 }
 
 
+static int send_ep_options(struct uade_ep_options *eo, struct uade_ipc *ipc)
+{
+  if (eo->s > 0) {
+    size_t i = 0;
+    while (i < eo->s) {
+      char *s = &eo->o[i];
+      size_t l = strlen(s) + 1;
+      assert((i + l) <= eo->s);
+      if (uade_send_string(UADE_COMMAND_SET_PLAYER_OPTION, s, ipc)) {
+	fprintf(stderr, "Can not send eagleplayer option.\n");
+	return -1;
+      }
+      i += l;
+    }
+  }
+  return 0;
+}
+
+
 void uade_send_filter_command(struct uade_ipc *ipc,
 			      struct uade_config *uadeconf)
 {
@@ -63,8 +82,8 @@ void uade_send_filter_command(struct uade_ipc *ipc,
 }
 
 
-static void uade_send_resampling_command(struct uade_ipc *ipc,
-				  struct uade_config *uadeconf)
+static void send_resampling_command(struct uade_ipc *ipc,
+				    struct uade_config *uadeconf)
 {
   char *mode = uadeconf->resampler;
   if (mode != NULL) {
@@ -165,7 +184,7 @@ int uade_song_initialization(const char *scorename,
 
   uade_send_filter_command(ipc, uc);
 
-  uade_send_resampling_command(ipc, uc);
+  send_resampling_command(ipc, uc);
 
   if (uc->speed_hack) {
     if (uade_send_short_message(UADE_COMMAND_SPEED_HACK, ipc)) {
@@ -188,19 +207,9 @@ int uade_song_initialization(const char *scorename,
     }
   }
 
-  if (us->epoptionsize > 0) {
-    size_t i = 0;
-    while (i < us->epoptionsize) {
-      char *s = &us->epoptions[i];
-      size_t l = strlen(s) + 1;
-      assert((i + l) <= us->epoptionsize);
-      if (uade_send_string(UADE_COMMAND_SET_PLAYER_OPTION, s, ipc)) {
-	fprintf(stderr, "Can not send eagleplayer option.\n");
-	goto cleanup;
-      }
-      i += l;
-    }
-  }
+  if (send_ep_options(&us->ep_options, ipc) ||
+      send_ep_options(&uc->ep_options, ipc))
+    goto cleanup;
 
   return 0;
 

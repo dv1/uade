@@ -24,8 +24,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <strlrep.h>
-
+#include "strlrep.h"
 #include "eagleplayer.h"
 #include "amifilemagic.h"
 #include "md5.h"

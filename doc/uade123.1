@@ -241,6 +241,9 @@ Set subsong timeout to x seconds. -1 means infinite. Default is 512 seconds.
 .TP
 \fB\-v, \-\-verbose\fR
 Turn verbose mode on. This is useful for debugging strange situations.
+.TP
+\fB\-x, \-\-ep-option=\fRy
+Use eagleplayer option y. Example: uade123 -x type:pt11b mod.foo
 .TP 
 \fB\-y\fR x\fB, \-\-silence\-timeout=\fRx.
 Set silence timeout to x seconds. If x seconds of silence is detected the
@@ -519,7 +522,11 @@ received from the eagleplayer (as opposed to file name):
 .SH "EAGLEPLAYER OPTIONS"
 Eagleplayers can be given song specific or general options in song.conf
 and eagleplayer.conf. Use epopt=x to set one option. It can be used many
-times. Valid options for eagleplayers:
+times. Options can also be used adhoc so that they're not stored into
+song.conf by using -x option in uade123. When using -x option, "epopt="
+part can be dropped.
+.sp 1
+Valid options for eagleplayers:
 .sp 1
 PTK-Prowiz          epopt=vblank
                     epopt=type:<tracker>

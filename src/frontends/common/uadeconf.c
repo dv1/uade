@@ -44,7 +44,8 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "action_keys",      .l = 1,  .e = UC_ACTION_KEYS},
     {.str = "buffer_time",      .l = 1,  .e = UC_BUFFER_TIME},
     {.str = "disable_timeout",  .l = 1,  .e = UC_DISABLE_TIMEOUTS},
-    {.str = "enable_timeout",   .l = 1,  .e = UC_ENABLE_TIMEOUTS},
+    {.str = "enable_timeout",   .l = 2,  .e = UC_ENABLE_TIMEOUTS},
+    {.str = "ep_option",        .l = 2,  .e = UC_EAGLEPLAYER_OPTION},
     {.str = "filter_type",      .l = 2,  .e = UC_FILTER_TYPE},
     {.str = "force_led_off",    .l = 12, .e = UC_FORCE_LED_OFF},
     {.str = "force_led_on",     .l = 12, .e = UC_FORCE_LED_ON},
@@ -139,23 +140,16 @@ double uade_convert_to_double(const char *value, double def, double low,
 }
 
 
-static void add_ep_option(struct uade_song *us, const char *s)
+void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 {
-  size_t bufsize, l, i;
+  size_t freespace = sizeof(opts->o) - opts->s;
 
-  if (us == NULL)
-    return;
-
-  bufsize = sizeof us->epoptions;
-  l = strlen(s) + 1;
-  i = us->epoptionsize;
-
-  if (strlcpy(&us->epoptions[i], s, bufsize - i) >= (bufsize - i)) {
+  if (strlcpy(&opts->o[opts->s], s, freespace) >= freespace) {
     fprintf(stderr, "Warning: uade eagleplayer option overflow: %s\n", s);
     return;
   }
 
-  us->epoptionsize += l;
+  opts->s += strlen(s) + 1;
 }
 
 
@@ -205,7 +199,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
     case ES_EP_OPTION:
       if (uc->verbose)
 	fprintf(stderr, "Using eagleplayer option %s\n", a->s);
-      add_ep_option(us, a->s);
+      uade_add_ep_option(&us->ep_options, a->s);
       break;
     case ES_GAIN:
       uade_set_config_option(uc, UC_GAIN, a->s);
@@ -380,6 +374,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(action_keys);
   MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
+  MERGE_OPTION(ep_options);
   MERGE_OPTION(filter_type);
   MERGE_OPTION(frequency);
   MERGE_OPTION(gain);
@@ -539,6 +534,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case UC_ENABLE_TIMEOUTS:
     uc->use_timeouts = 1;
     uc->use_timeouts_set = 1;
+    break;
+  case UC_EAGLEPLAYER_OPTION:
+    uade_add_ep_option(&uc->ep_options, value);
+    uc->ep_options_set = 1;
     break;
   case UC_FILTER_TYPE:
     if (strcasecmp(value, "none") != 0) {

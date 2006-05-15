@@ -435,7 +435,22 @@ void uade_get_amiga_message(void)
     dststr = (char *) get_real_address(dst);
     uade_send_debug("score issued an info request: %s (maxlen %d)\n", srcstr, len);
     len = get_info_for_ep(dststr, srcstr, len);
-    uade_send_debug("reply to score: %s (total len %d)\n", dststr, len);
+    /* Send printable debug */
+    do {
+      size_t i;
+      size_t maxspace = sizeof space;
+      for (i = 0; i < len && i < maxspace; i++) {
+	space[i] = dststr[i];
+	if (space[i] == 0)
+	  space[i] = ' ';
+      }
+      if (i < maxspace) {
+	space[i] = 0;
+      } else {
+	space[maxspace - 1] = 0;
+      }
+      uade_send_debug("reply to score: %s (total len %d)\n", space, len);
+    } while (0);
     uade_put_long(0x20C, len);
     break;
 

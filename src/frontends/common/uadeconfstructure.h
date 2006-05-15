@@ -9,6 +9,7 @@ enum uade_option {
   UC_BUFFER_TIME,
   UC_DISABLE_TIMEOUTS,
   UC_ENABLE_TIMEOUTS,
+  UC_EAGLEPLAYER_OPTION,
   UC_FILTER_TYPE,
   UC_FORCE_LED_OFF,
   UC_FORCE_LED_ON,
@@ -43,6 +44,11 @@ struct uade_dir {
   char name[PATH_MAX];
 };
 
+struct uade_ep_options {
+  char o[256];
+  size_t s;
+};
+
 struct uade_config {
   int action_keys;
   int action_keys_set;
@@ -50,6 +56,8 @@ struct uade_config {
   int basedir_set;
   int buffer_time;
   int buffer_time_set;
+  struct uade_ep_options ep_options;
+  int ep_options_set;
   int filter_type;
   int filter_type_set;
   int frequency;
