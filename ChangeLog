@@ -1,3 +1,10 @@
+2006-05-15  Michael Doering <mld@users.sourceforge.net>
+	- PTK-Prowiz now uses the epopt config system. You can set options
+          such as "vblank" and/or "type:" on a song base with the uade123
+          "--set=xyz" command line parameter or edit uade.conf or song.conf
+          manually. For valid protracker types: check the uade123 man page.
+          Please test. I hope I didn't break anything.
+ 
 2006-05-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged man page update from alankila, explaining filter and
 	  resampling features
