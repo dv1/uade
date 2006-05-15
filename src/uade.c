@@ -139,6 +139,8 @@ static int get_info_for_ep(char *dst, char *src, int maxlen)
 	fprintf(stderr, "uadecore: too long options: %s maxlen = %d\n",
 		epoptions, maxlen);
       }
+    } else {
+      ret = 0;
     }
   } else {
     uade_send_debug("Unknown eagleplayer attribute queried: %s\n", src);
@@ -439,7 +441,13 @@ void uade_get_amiga_message(void)
     do {
       size_t i;
       size_t maxspace = sizeof space;
-      for (i = 0; i < len && i < maxspace; i++) {
+      if (len <= 0) {
+	maxspace = 1;
+      } else {
+	if (len < maxspace)
+	  maxspace = len;
+      }
+      for (i = 0; i < maxspace; i++) {
 	space[i] = dststr[i];
 	if (space[i] == 0)
 	  space[i] = ' ';
