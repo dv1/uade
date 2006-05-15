@@ -522,6 +522,19 @@ and eagleplayer.conf. Use epopt=x to set one option. It can be used many
 times. Valid options for eagleplayers:
 .sp 1
 PTK-Prowiz          epopt=vblank
+                    epopt=type:<tracker>
+                               <tracker> can be one of the following:
+                                  st20  (Soundtracker 2.0 - 2.3)
+                                  st24  (Soundtracker 2.4)
+                                  nt10  (Noisetracker 1.x)
+                                  nt20  (Noisetracker 2.x)
+                                  m&k.  (Noisetracker M&K.)
+                                  flt4  (Startrekker 4ch)
+                                  pt10c (Protracker 1.0c) 
+                                  pt11b (Protracker 1.1b - 2.1a)
+                                  pt23a (Protracker 2.3)
+                                  pt30b (Protracker 3.0b)
+ 
 .br
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
@@ -622,7 +635,10 @@ Play files under /path recursively in random order.
 .TP
 \fBuade123 \-f output.wav mod.foo\fR
 .br
-Synthesize mod.foo into a wav file.
+.TP
+\fBuade123 \--set=epopt=type:pt10 mod.foo\fR
+.br
+Set protracker compatibility to Protracker 1.0c for mod.foo.
 .SH "INFORMATION SOURCES"
 .TP
 .B Public web forum

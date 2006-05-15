@@ -9,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-05-09',0
+	dc.b '$VER: Protracker 3.0b player 2006-05-15',0
 	even
 
 PlayerTagArray
@@ -69,14 +69,11 @@ cfgfile:		dc.b	'ENV:EaglePlayer/EP-PTK-Prowiz.cfg',0
 			even
 cfgbuffer:		ds.b	256
 
-; Protracker types
-PTK30=0
-PTK23=1
-PTK21=2
-PTK10=3
-
-PTKHACK=9	; test between 2.3/effects and 3.0/volume handling 
-
+;--- Protracker types ---
+PTK30 = 0
+PTK23 = 1
+PTK21 = 2
+PTK10 = 3
 
 PAL=0
 NTSC=1
@@ -101,32 +98,20 @@ Chk:
 	move.w	#0,pt_seqadj
 	move.w	#36*2,pt_oldstk
 	move.w	#36*2,pt_oldstk2
-	
-	bsr.w	read_config_file
-
 	move.l	dtg_ChkData(a5),a0		; get song data
 	move.l	dtg_ChkSize(a5),d1
 	move.l	a0,song
 	move.l	d1,size
 
+	bsr.w	query_eopts			; set eagleoptions
+
+	; Check for Tracker clone and convert
 	jsr	Convertmod
 	tst.l	d0
 	beq.w	is_clone
 
-	move.l	song,a0
-	move.l	size,d1
-	bsr.w	mcheck_moduledata
-	cmp.b	#-1,d0
-	beq.b	Chk_fail
-	cmp.b	#mod_PTK,d0
-	beq.w	is_PTK
-	cmp.b	#mod_PTK_vblank,d0
-	beq.w	is_PTK_vblank
-	cmp.b	#mod_PTK_comp,d0
-	beq.w	is_PTK_comp
-	cmp.b	#mod_FTK,d0
-	beq.w	is_PTK_comp
-
+	; no Tracker clone
+	move.b	pt_tracker_family,d0
 	cmp.b	#mod_NTK_2,d0
 	beq.w	is_NTK2
 	cmp.b	#mod_NTK_1,d0
@@ -138,11 +123,18 @@ Chk:
 	beq.w	is_STK
 	cmp.b	#mod_DOC,d0
 	beq.w	is_STK15
-	cmp.b	#mod_MST,d0
-	beq.w	is_STK15
 
 	cmp.b	#mod_FLT4,d0
 	beq.w	is_FLT4
+
+	cmp.b	#mod_PTK_vblank,d0
+	beq.w	is_PTK_vblank
+	cmp.b	#mod_PTK,d0
+	beq.w	is_PTK
+	cmp.b	#mod_PTK_comp,d0
+	beq.w	is_PTK_comp
+	cmp.b	#mod_FTK,d0
+	beq.w	is_PTK_comp
 
 Chk_fail:	
 	st	pt_chkfail	
@@ -168,51 +160,124 @@ Chk_ok_MName:
 ;-------------------------------------------------------------------------
 ;reads the ptk config file
 ;
-read_config_file:
+query_eopts:
 	movem.l	d0-d7/a0-a6,-(sp)
-
+	move.b	#0,pt_tracker_family
+	
 	tst.l	uadebase
 	bne	.uadelib_open
 	jsr	open_uade_library
 .uadelib_open
 	jsr query_eagleopts		* get options from uade.conf
 
-	move.b	#0,pt_vblank		; 0 = CIA
-	tst.l	vblankdata
-	beq	.ptk23
-.VBI	addq.b	#1,pt_vblank		; 1 = VBI
-	
-.ptk23	tst.l	pt23adata
-	beq	.ptkdef
-	move.b	#PTK23,pt_ptk_type
+.ptktype
+	move.l	typedata,a0
+	tst.l	a0
 	beq.s	.end
 
-.ptkdef	tst.l	pthackdata
-	beq.s	.ptk30			; 3.0 Volume setting
-	 move.b	#PTK30,pt_ptk_type
-	 bra.s	.end
+	cmp.l	#"type",(a0)+
+	bne	.end
+	addq.l	#1,a0
 
-.ptk30	tst.l	pt30bdata
-	beq.s	.ptk10c
+
+.mod_STK15:			; DOC Soundtracker with 15 instruments
+	cmp.l	#"st20",(a0)
+	bne	.mod_NTK_1
+	move.b	#mod_DOC,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_NTK_1
+	cmp.l	#"nt10",(a0)
+	bne	.mod_NTK_2
+	move.b	#mod_NTK_1,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_NTK_2
+	cmp.l	#"nt20",(a0)
+	bne	.mod_NTK_AMP
+	move.b	#mod_NTK_2,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_NTK_AMP
+	cmp.l	#"m&k.",(a0)
+	bne	.mod_STK
+	move.b	#mod_NTK_AMP,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_STK
+	cmp.l	#"st24",(a0)
+	bne	.mod_FLT4
+	move.b	#mod_STK,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_FLT4
+	cmp.l	#"flt4",(a0)
+	bne	.mod_ptk
+	move.b	#mod_FLT4,pt_tracker_family
+	;jsr	uade_debug
+	bra.s	.end
+
+.mod_ptk
+	; check playtime anomalies
+	; of protracker mods.
+	move.b	#0,pt_vblank		; 0 = CIA
+	bsr.w	mcheck_moduledata	; check for vblank
+	move.b	d0,pt_tracker_family
+	tst.l	vblankdata
+	beq	.mod_comp
+.VBI	addq.b	#1,pt_vblank		; 1 = VBI
+
+.mod_comp	
+	move.b	d0,pt_tracker_family
+	cmp.l	#"comp",(a0)
+	bne	.ptk23
+	 move.b	#mod_PTK_comp,pt_tracker_family
 	 move.b	#PTK30,pt_ptk_type
 	 st	pt_ptk30_cme
+	 ;jsr	uade_debug
+	 bra.s	.end
+	
+.ptk23	cmp.l	#"pt23",(a0)
+	bne	.ptkdef
+	move.b	#PTK23,pt_ptk_type
+	;jsr	uade_debug
+	bra.s	.end
+
+.ptkdef	cmp.l	#"hack",(a0)
+	bne.s	.ptk30			; 3.0 Volume setting
+	 move.b	#PTK30,pt_ptk_type
+	 ;jsr	uade_debug
 	 bra.s	.end
 
-.ptk10c	tst.l	pt10cdata
-	beq.s	.ptk11b
+.ptk30	cmp.l	#"pt30",(a0)
+	bne.s	.ptk10c
+	 move.b	#PTK30,pt_ptk_type
+	 st	pt_ptk30_cme
+	 ;jsr	uade_debug
+	 bra.s	.end
+
+.ptk10c	cmp.l	#"pt10",(a0)
+	bne.s	.ptk11b
 	 move.b	#PTK10,pt_ptk_type
 	 move.b	#6,pt_vibshift
 	 move.w	#37*2,pt_oldstk		; apart from the different vibrato
 	 move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
+	 ;jsr	uade_debug
 	 bra.b 	.end			; for accessing the period table
 .ptk11b:
-	tst.l	pt11bdata
-	beq.s	.end
+	cmp.l	#"pt11",(a0)
+	bne.s	.end
 	 move.b	#PTK21,pt_ptk_type
 	 move.w	#37*2,pt_oldstk		; mixed value accesing the period
 	 move.w	#36*2,pt_oldstk2	; table...
-	
-.end	movem.l	(sp)+,d0-d7/a0-a6
+	 ;jsr	uade_debug
+.end
+	movem.l	(sp)+,d0-d7/a0-a6
     	rts
 
 
@@ -1732,6 +1797,8 @@ pt_chkfail		dc.b	-1
 pt_restart		dc.b	0
 
 pt_ntkporta		dc.b	0
+
+pt_tracker_family	dc.b	0
 
 pt_ptk_type		dc.b	PTK30	; default Type is PTK 3.0b
 

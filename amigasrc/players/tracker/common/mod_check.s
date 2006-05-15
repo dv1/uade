@@ -116,71 +116,16 @@ strcmp
 	movem.l	(a7)+,d1/a0-a1
 	moveq	#-1,d0
 	rts
-* following options are just examples. i didn't check what
-* prowiz/filemagic really use. you can adapt these to proper names and
-* values.
 
 eagleoptlist
-;		dc.l	ustname,ustdata	
-;		dc.l	stivname,stivdata
-;		dc.l	mod15name,mod15data
-;		dc.l	st25name,st25data
-;		dc.l	nt1xname,nt1xdata
-;		dc.l	nt2xname,nt2xdata
-;		dc.l	ntampname,ntampdata
-;		dc.l	flt4name,flt4data
-;		dc.l	adscname,adscdata
-;		dc.l	ptcompname,ptcompdata
-		dc.l	pt10cname,pt10cdata
-		dc.l	pt11bname,pt11bdata
-		dc.l	pt23aname,pt23adata
-		dc.l	pt30bname,pt30bdata
-		dc.l	pthackname,pthackdata
+		dc.l	typename,typedata
 		dc.l	vblankname,vblankdata
 		dc.l	0
 
-ustdata		dc.l	0
-stivdata	dc.l	0
-mod15data	dc.l	0
-st25data	dc.l	0
-nt1xdata	dc.l	0
-nt2xdata	dc.l	0
-ntampdata	dc.l	0
-flt4data	dc.l	0
-adscdata	dc.l	0
-ptcompdata	dc.l	0
-pt10cdata	dc.l	0
-pt11bdata	dc.l	0
-pt23adata	dc.l	0
-pt30bdata	dc.l	0
-pthackdata	dc.l	0
+typedata	dc.l	0
 vblankdata	dc.l	0
 
-		; --- mod15 ---
-ustname		dc.b	'ust',0
-stivname	dc.b	'stiv',0
-mod15name	dc.b	'st20',0
-
-		; --- mod32 ---
-st25name	dc.b	'st25',0
-
-nt1xname	dc.b	'nt10',0
-nt2xname	dc.b	'nt10',0
-ntampname	dc.b	'ntamp',0
-
-flt4name	dc.b	'flt4',0
-adscname	dc.b	'adsc',0
-
-ptcompname	dc.b	'ptcomp',0
-
-		; -- replay flavours ---
-pt10cname	dc.b	'pt10c',0
-pt11bname	dc.b	'pt11b',0
-pt23aname	dc.b	'pt23a',0
-pt30bname	dc.b	'pt30b',0
-pthackname	dc.b	'hack',0
-
-		;--- flags ---
+typename	dc.b	'type',0
 vblankname	dc.b	'vblank',0
 
 query		dc.b	'eagleoptions',0
@@ -189,202 +134,33 @@ response	dcb.b	256,0
 		even
 
 ******************************************************************************
-** general check mod routine (mldoering@gmx.net)
-**
-** mcheck_moduledata
-** input:
-**         a0 (long) - pointer to module
-**	   d1 (long) - filesize
-**
-** returns:
-**	   d0 (word) - result (-1 for check failed, other type of mod)
-**
-** -----
-** TODO: Real checks like modlen, patterndata, magic ids :) 
-**       Currently we accept anything if we are running under
-**       UADE, and refuse anything when we run under a real amiga
-******************************************************************************
 
-mcheck_moduledata:	; Current implemation is just a hack for uade only.
+mcheck_moduledata:	; Current implemation is a hack for uade only.
 			movem.l	d1-d7/a0-a6,-(a7)
+			move.l	song,a0
+			move.l	size,d1
 
 			move.w	#MyVarsEnd-MyVars-1,d0
 			lea.l	MyVars(pc),a1
 .cls_myvar:		clr.b	(a1)+
 			dbra	d0,.cls_myvar
 
-			move.l	#600,d0
-			bsr	mcheck_calc_modlen
-			cmp.b	#0,d0			;mod15 has to  have exact len
-			bne	.nomod15		;nope
-			bsr	mcheck_mod15
-			cmp.w	#-1,modtag
-			bne	.mcheck_passed
 
-.nomod15		move.l	#1084,d0
+			move.l	#1084,d0
 			bsr	mcheck_calc_modlen
-			cmp.b	#-1,d0			;mod32 ?
-			beq.s	.mcheck_end		; nope
 
-.mod32:			bsr mcheck_mod32
+.mod32:			bsr mcheck_which_mk
 			bra	.mcheck_passed
 
 
 .mcheck_passed:		move.l	modtag,d0
+			lea.l	modtag,a0
 .mcheck_end:		movem.l	(a7)+,d1-d7/a0-a6
 			rts
 
-;---- Mod32 Checks ----
-mod32_Magic:
-			dc.l	"M.K."
-					bra	mcheck_which_mk
-			dc.l	"M!K!"
-					bra	mcheck_is_ptk
-			dc.l	".M.K"
-					bra	mcheck_is_ptk
-			dc.l	"M&K!"
-					bra	mcheck_is_ntk_amp
-			dc.l	"FLT4"
-					bra	mcheck_which_FLT4
-			dc.l	"EXO4"
-					bra	mcheck_which_FLT4
-			dc.l	-1,-1,-1
-
-
-mcheck_mod32:
-			lea.l	mod32_Magic(pc),a1
-.magic_loop:		move.l	(a1)+,d0
-			cmp.l	#-1,d0
-			beq	mcheck_which_mk		; no M.K. found
-			cmp.l	$438(a0),d0
-			beq.s	.tag_found
-			add.l	#4,a1
-			bra	.magic_loop
-.tag_found:		jmp	(a1)
-
-mcheck_mod32_fail:
-			rts
-
-;-----------------------------------------------------------------------------
-; M.K. - file: TODO: Distinguish STK,NTK1,NTK2,PTK and FTK :)
-;
 mcheck_which_mk:
 			move.l	song,a0
-			bsr	ParseInstruments32	; returns -1 for failed check.
-			cmp.b	#-1,d0
-			beq	mcheck_mod32_fail
-
-			move.l	song,a0
 			bsr	ParseEffects
-
-
-			tst.b	repeat_in_bytes_used
-			beq	.is_generic_mk
-			move.l #mod_STK,modtag		; Soundtracker 2.5
-			rts
-
-.is_generic_mk:
-			moveq	#0,d1
-			move.b	$3b7(a0),d1
-
-			tst.b	extended_fx_used	; fx:  e1y > efy used?
-			bne	.probl_ptk
-			tst.b	finetune_used		; fx:  e1y > efy used?
-			beq	.no_specialfx
-
-.probl_ptk:
-			cmp.w	#$7f,d1
-			beq	mcheck_is_ptk
-			cmp.w	#$78,d1
-			beq	mcheck_is_ptk
-			bra mcheck_is_ptk_comp
-			
-.no_specialfx:
-			cmp.w	#$7f,d1
-			bne	.ntkbyte		;=0x7f
-			move.b	has_slen_sreplen_zero,d2
-			cmp.b	has_slen_sreplen_one,d2
-			bgt	.ntkbyte
-			move.b	no_slen_sreplen_zero,d2
-			cmp.b	no_slen_sreplen_one,d2
-			bgt	.ntkbyte
-			bra	mcheck_is_ptk
-
-.ntkbyte		cmp.w	#$7f,d1
-			bgt	mcheck_is_ptk_comp	;>0x7f
-
-			cmp.w	#0,d1
-			bne	.endif1
-			move.b	has_slen_sreplen_zero,d2
-			cmp.b	has_slen_sreplen_one,d2
-			ble	.endif1
-			move.b	no_slen_sreplen_zero,d2
-			cmp.b	no_slen_sreplen_one,d2
-			ble	.endif1
-
-			lea.l	pfx(pc),a1
-			cmp.w	#0,$10*2(a1)		; Filter fx used?
-			beq	mcheck_is_ptk_comp
-
-.endif1			lea.l	pfx(pc),a1
-			cmp.w	#0,$5*2(a1)		; Filter fx used?
-			bne	mcheck_is_ptk_comp
-			cmp.w	#0,$6*2(a1)		; Filter fx used?
-			bne	mcheck_is_ptk_comp
-			cmp.w	#0,$7*2(a1)		; Filter fx used?
-			bne	mcheck_is_ptk_comp
-			cmp.w	#0,$9*2(a1)		; Filter fx used?
-			bne	mcheck_is_ptk_comp
-
-.endif1a		cmp.w	#0,d1
-			beq	.endif2
-			moveq	#0,d2
-			move.b	$3b6(a0),d2
-			cmp.w	d1,d2
-			blt	.endif2
-			moveq	#0,d1
-			move.b	has_slen_sreplen_zero,d2
-			move.b	has_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			blt	.endif2
-			cmp.b	#1,no_slen_sreplen_zero
-			bne	.endif2
-			move.b	no_slen_sreplen_zero,d2
-			move.b	no_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			blt	.endif2
-			bra	mcheck_is_ntk_1
-
-.endif2			moveq	#0,d1
-			moveq	#0,d2			
-			move.b	has_slen_sreplen_zero,d2
-			move.b	has_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			blt	.endif3
-			move.b	no_slen_sreplen_zero,d2
-			move.b	no_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			blt	.endif3
-			bra	mcheck_is_ntk_2
-
-.endif3
-			lea.l	pfx(pc),a1
-			cmp.w	#0,$0e*2(a1)		; SetBPM fx used?
-			bne	.endif4
-			moveq	#0,d1
-			moveq	#0,d2		
-			move.b	has_slen_sreplen_zero,d2
-			move.b	has_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			blt	.endif4
-			move.b	no_slen_sreplen_zero,d2
-			move.b	no_slen_sreplen_one,d1
-			cmp.w	d2,d1
-			bgt	.endif4
-			bra	mcheck_is_ntk_1
-
-.endif4			bra	mcheck_is_ptk_comp
-
 mcheck_is_ptk:
 			; Check for vblank by playtime
 			; in Protracker modules 
@@ -402,7 +178,7 @@ mcheck_is_ptk:
 			move.l	4(a1),d0
 			cmp.l	#20,d0			; more than 20 minutes?
 			bgt	.mcheck_maybe_vblank
-			move.l #mod_PTK,modtag	
+			move.l #mod_PTK,modtag
 			rts
 .mcheck_maybe_vblank:
 			moveq.l	#0,d0
@@ -422,71 +198,8 @@ mcheck_is_ptk:
 			
 			cmp.l	d1,d0			; more than double?
 			bgt	.mcheck_end
-			move.l #mod_PTK,modtag	
+			move.l #mod_PTK,modtag
 .mcheck_end		rts
-
-mcheck_is_ptk_comp:	move.l #mod_PTK_comp,modtag
-			rts
-
-mcheck_is_ntk_1:	move.l #mod_NTK_1,modtag
-			rts
-
-mcheck_is_ntk_2:	move.l #mod_NTK_2,modtag
-			rts
-			
-;----------------------------------------------------------------------------
-; M&K!- Noisetracker file
-;
-mcheck_is_ntk_amp:
-			move.l #mod_NTK_AMP,modtag	
-			rts
-
-;----------------------------------------------------------------------------
-; FLT4- Noisetracker file
-;
-mcheck_which_flt4:
-.chkAMInstr:
-			move.l	song,a0
-			moveq	#$1f,d0
-			moveq	#0,d1
-.ChkAMLoop:
-			tst.w	$2a(a0)
-			bne.s	.ChkSample
-			tst.b	$2d(a0)
-			beq	.ChkSample
-			addq.w	#1,d1
-.ChkSample
-			add.l	#$1e,a0
-			dbra	d0,.ChkAMLoop
-			
-			move.l #mod_ADSC4,modtag			    
-			tst.w	d1
-			bne	mcheck_is_flt4
-			move.l #mod_FLT4,modtag			    			
-mcheck_is_flt4:		rts
-
-
-
-
-;******  Mod15 Checks *******************************************************
-mcheck_mod15:
-			moveq	#0,d0
-			move.b	$1d6(a0),d0 	; max pos = 0
-			tst.b	d0
-			beq.s	.no_mod15
-			
-			cmp.w	#$81,d0
-			bge.s	.no_mod15
-			
-			cmp.b	#1,$1f3(a0)
-			bne.s	.mod15
-
-
-.no_mod15		move.l #-1,modtag
-			rts
-
-.mod15:			move.l #mod_DOC,modtag
-			rts
 
 ;--------------------------------------------------------------------------
 ; Calculate Modlen
@@ -843,97 +556,6 @@ PTCalcTime	move.l	#6,.Speed
 .PattBreakPos	dc.l	0
 
 ;--------------------------------------------------------------------------
-; ParseInstruments
-; Arguments:
-;       a0.l = pointer to module data
-;
-; returns:
-;	d0 = status (-1 bad file, 0 = len ok)
-;
-
-ParseInstruments32:
-		movem.l	d1-d7/a0-a6,-(a7)
-		move.l	a0,a1
-		moveq	#0,d1
-		moveq	#30,d0
-.parseloop:
-		move.b	45(a1),d1
-		cmp.w	#64,d1			; volume > 64
-		bgt	.volume_fail
-
-		move.b	44(a1),d1
-		cmp.w	#15,d1			; fine_tune > 15
-		bgt	.finetune_fail
-		cmp.w	#0,d1
-		beq	.parse_no_finetune
-		st	finetune_used		; 0 <finetune <16
-
-.parse_no_finetune:
-		cmp.w	#0,42(a1)		; slen >0
-		beq	.no_doc_stk
-
-		move.l	#0,d2
-		move.l	#0,d3
-		move.w	46(a1),d2		; srep == 0
-		add.w	48(a1),d2		; srep+sreplen > slen
-		move.w	42(a1),d3
-		cmp.l	d3,d2
-		ble	.no_doc_stk
-		st	repeat_in_bytes_used
-.no_doc_stk:
-		move.l	#0,d2
-		move.w	46(a1),d2		; srep == 0
-		cmp.w	#0,d2
-		bne	.parse_next
-
-		cmp.w	#0,42(a1)		; slen >0
-		beq	.elseif_slen0
-
-		cmp.w	#1,48(a1)		; sreplen ==1
-		bne	.else_slen
-		addq.b	#1,has_slen_sreplen_one
-		bra	.parse_next
-.else_slen	cmp.w	#0,48(a1)		; sreplen== 0
-		bne	.parse_next
-		addq.b	#1,has_slen_sreplen_zero
-		bra	.parse_next
-
-.elseif_slen0	cmp.w	#0,48(a1)		; sreplen !=0
-		beq	.else2
-		addq.b	#1,no_slen_sreplen_one
-		bra	.endif1
-.else2		addq.b	#1,no_slen_sreplen_zero
-.endif1
-		cmp.b	#0,45(a1)		; volume >0
-		beq	.parse_next
-		addq.b	#1,no_slen_has_volume
-		
-.parse_next:	add.l	#30,a1
-		dbra	d0,.parseloop
-
-.parse_Ok	moveq	#0,d0
-		movem.l	(a7)+,d1-d7/a0-a6
-		rts
-
-.parse_fail	moveq	#-1,d0
-		movem.l	(a7)+,d1-d7/a0-a6
-		rts
-
-.finetune_fail
-		lea	finetune_err(pc),a0
-		bsr	uade_debug
-		bra	.parse_fail
-
-.volume_fail
-		lea	volume_err(pc),a0
-		bsr	uade_debug
-		bra	.parse_fail
-
-finetune_err:	dc.b	"Finetune out of range",10,0
-volume_err:	dc.b	"Volume out of range",10,0
-		even
-
-;--------------------------------------------------------------------------
 ; parse effects
 ;
 ; Input a0 = pointer to Module
@@ -1148,11 +770,6 @@ extended_fx_used	dc.b	0
 repeat_in_bytes_used	dc.b	0	
 finetune_used:		dc.b	0
 
-no_slen_sreplen_one:	dc.b	0
-no_slen_sreplen_zero:	dc.b	0
-no_slen_has_volume:	dc.b	0
-has_slen_sreplen_one:	dc.b	0
-has_slen_sreplen_zero:	dc.b	0
 ;--------
 MyVarsEnd:
 			even
