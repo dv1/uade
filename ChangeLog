@@ -4,6 +4,8 @@
           "--set=xyz" command line parameter or edit uade.conf or song.conf
           manually. For valid protracker types: check the uade123 man page.
           Please test. I hope I didn't break anything.
+	- Changed Protracker and compatible tag in amifilemagic. It seems
+	  it was too long for xmms/audacious and crashed. Odd.
  
 2006-05-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged man page update from alankila, explaining filter and

@@ -754,9 +754,9 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
     {.e = MOD_AUDIOSCULPTURE4, .str = "MOD_ADSC4"},
     {.e = MOD_AUDIOSCULPTURE8, .str = "MOD_ADSC8"},
     {.e = MOD_PROTRACKER, .str = "MOD"},
-    {.e = MOD_FASTTRACKER, .str = "MOD_PTKCOMP"},
+    {.e = MOD_FASTTRACKER, .str = "MOD_COMP"},
     {.e = MOD_NOISETRACKER, .str = "MOD_NTKAMP"},
-    {.e = MOD_PTK_COMPATIBLE, .str = "MOD_PTKCOMP"},
+    {.e = MOD_PTK_COMPATIBLE, .str = "MOD_COMP"},
     {.e = MOD_SOUNDTRACKER24, .str = "MOD_DOC"},
     {.str = NULL}
   };
