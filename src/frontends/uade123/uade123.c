@@ -523,14 +523,15 @@ int main(int argc, char *argv[])
       continue;
     }
 
+    /* The order is important:
+       1. set eagleplayer attributes
+       2. handle song attributes
+       3. merge command line options
+       4. set effects
+       5. check that the player exists */
+
     if (ep != NULL)
       uade_set_ep_attributes(&uc, us, ep);
-
-    /* The order is important:
-       1. handle song attributes
-       2. merge command line options
-       3. set effects
-       4. check that the player exists */
 
     if (uade_handle_song_attributes(&uc, playername, sizeof playername, us)) {
       debug(uc.verbose, "Song rejected based on attributes: %s\n",
