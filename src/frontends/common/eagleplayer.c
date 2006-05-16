@@ -83,7 +83,7 @@ static struct eagleplayer *analyze_file_format(int *content,
 					       int verbose)
 {
   struct stat st;
-  char extension[11];
+  char extension[16];
 
   FILE *f;
   size_t readed;
