@@ -23,11 +23,9 @@
 #include <limits.h>
 #include <libgen.h>
 
-//#define GTK_ENABLE_BROKEN
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <audacious/plugin.h>
-#include <audacious/configfile.h>
 #include <audacious/util.h>
 
 #include <strlrep.h>

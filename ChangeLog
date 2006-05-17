@@ -1,4 +1,8 @@
-2006-05-15  Michael Doering <mld@users.sourceforge.net>
+2006-05-17  Michael Doering <mld@users.sourceforge.net>
+	- Removed deprecated <audacious/configfile.h> from audacious
+	  plugin. Thanks to Joker for the report.
+
+2006-05-16  Michael Doering <mld@users.sourceforge.net>
 	- Raised length of extension[] in uade_analyze_file from 11 to 16,
 	  which caused the xmms and audacious plugin to segfault on
 	  very long prefixes (such as mod15_st-iv) in eagleplayer.conf.
