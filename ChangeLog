@@ -1,3 +1,8 @@
+2006-05-18  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added p5x and p6x file extensions for The Player 5.x/6.x to
+	  eagleplayer.conf (Stuart Caie requested it)
+	- Added "P50A" four letter magic detection to amifilemagic.c
+
 2006-05-17  Michael Doering <mld@users.sourceforge.net>
 	- Removed deprecated <audacious/configfile.h> from audacious
 	  plugin. Thanks to Joker for the report.

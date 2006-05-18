@@ -91,6 +91,7 @@ static const char *offset_0000_patterns[] = {
   "P40A", "P40A",		/* The Player 4.0a */
   "P40B", "P40B",		/* The Player 4.0b */
   "P41A", "P41A",		/* The Player 4.1a */
+  "P50A", "P50A",               /* The Player 5.0a */
   "P60A", "P60A",		/* The Player 6.0a */
   "P61A", "P61A",		/* The Player 6.1a */
   "SNT!", "PRU2",		/* Prorunner 2 */
