@@ -1,3 +1,10 @@
+2006-05-19  Heikki Orsil< heikki.orsila@iki.fi>
+	- Added Gryzors (Nicholas Franck <gryzor@club-internet.fr>)
+	  Protracker converter source code into CVS. See
+	  amigasrc/players/tracker/converter/README.txt for copyright and
+	  licensing information. Thanks to Stuart Caie for leading us
+	  to the distribution terms (we did have the source before :-)
+
 2006-05-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added p5x and p6x file extensions for The Player 5.x/6.x to
 	  eagleplayer.conf (Stuart Caie requested it)
