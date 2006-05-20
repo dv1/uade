@@ -1,4 +1,9 @@
-2006-05-19  Heikki Orsil< heikki.orsila@iki.fi>
+2006-05-20  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed default input file to be /dev/tty instead of stdin for
+	  uade123. Also, failing terminal setup (input file is not a tty)
+	  is not a fatal error.
+
+2006-05-19  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added Gryzors (Nicholas Franck <gryzor@club-internet.fr>)
 	  Protracker converter source code into CVS. See
 	  amigasrc/players/tracker/converter/README.txt for copyright and

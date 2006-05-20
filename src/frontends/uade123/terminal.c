@@ -4,15 +4,21 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/select.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "uade123.h"
 
 static struct termios old_terminal;
+static int terminal_is_set;
+static int terminal_fd;
 
 
 static void uade_restore_terminal(void)
 {
-  tcsetattr(0, TCSANOW, &old_terminal);
+  if (terminal_is_set)
+    tcsetattr(terminal_fd, TCSANOW, &old_terminal);
 }
 
 
@@ -21,11 +27,15 @@ void pause_terminal(void)
   char c;
   int ret;
   fd_set rfds;
+
+  if (!terminal_is_set)
+    return;
+
   tprintf("\nPaused. Press any key to continue...\n");
   while (uade_terminated == 0) {
     FD_ZERO(&rfds);
-    FD_SET(0, &rfds);
-    ret = select(1, &rfds, NULL, NULL, NULL);
+    FD_SET(terminal_fd, &rfds);
+    ret = select(terminal_fd + 1, &rfds, NULL, NULL, NULL);
     if (ret < 0) {
       if (errno == EINTR)
 	continue;
@@ -34,7 +44,7 @@ void pause_terminal(void)
     }
     if (ret == 0)
       continue;
-    ret = read(0, &c, 1);
+    ret = read(terminal_fd, &c, 1);
     if (ret < 0) {
       if (errno == EINTR || errno == EAGAIN)
 	continue;
@@ -51,12 +61,15 @@ int poll_terminal(void)
   char c = 0;
   int ret;
 
+  if (!terminal_is_set)
+    return 0;
+
   FD_ZERO(&rfds);
-  FD_SET(0, &rfds);
-  ret = select(1, &rfds, NULL, NULL, & (struct timeval) {.tv_sec = 0});
+  FD_SET(terminal_fd, &rfds);
+  ret = select(terminal_fd + 1, &rfds, NULL, NULL, & (struct timeval) {.tv_sec = 0});
 
   if (ret > 0) {
-    ret = read(0, &c, 1);
+    ret = read(terminal_fd, &c, 1);
     if (ret <= 0)
       c = 0;
   }
@@ -67,15 +80,28 @@ int poll_terminal(void)
 void setup_terminal(void)
 {
   struct termios tp;
-  if (tcgetattr(0, &old_terminal)) {
+  int fd;
+
+  terminal_is_set = 0;
+
+  fd = open("/dev/tty", O_RDONLY);
+  if (fd < 0) {
+    fprintf(stderr, "Can not use /dev/tty for control. Trying to use stdin.\n");
+    fd = 0;
+  }
+
+  if (tcgetattr(fd, &old_terminal)) {
     perror("uade123: can't setup interactive mode");
-    exit(-1);
+    return;
   }
   atexit(uade_restore_terminal);
   tp = old_terminal;
   tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
-  if (tcsetattr(0, TCSAFLUSH, &tp)) {
+  if (tcsetattr(fd, TCSAFLUSH, &tp)) {
     perror("uade123: can't setup interactive mode (tcsetattr())");
-    exit(-1);
+    return;
   }
+
+  terminal_fd = fd;
+  terminal_is_set = 1;
 }
