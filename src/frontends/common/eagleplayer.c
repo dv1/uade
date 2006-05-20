@@ -125,7 +125,7 @@ static struct eagleplayer *analyze_file_format(int *content,
     snprintf(formatsfile, sizeof(formatsfile), "%s/eagleplayer.conf", basedir);
     if ((playerstore = uade_read_eagleplayer_conf(formatsfile)) == NULL) {
       if (warnings)
-	fprintf(stderr, "Tried to load uadeformats file from %s, but failed\n", formatsfile);
+	fprintf(stderr, "Tried to load eagleplayer.conf from %s, but failed\n", formatsfile);
       warnings = 0;
       return NULL;
     }
@@ -145,7 +145,7 @@ static struct eagleplayer *analyze_file_format(int *content,
     }
 
     if (verbose)
-      fprintf(stderr, "Deduced file extension (%s) is not on the uadeformats list.\n", extension);
+      fprintf(stderr, "Deduced file extension (%s) is not on eagleplayer.conf.\n", extension);
   }
 
   /* magic wasn't able to deduce the format, so we'll try prefix and postfix
@@ -634,7 +634,8 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   size_t lineno = 0;
   struct eagleplayerstore *ps = NULL;
   size_t exti;
-  size_t i;
+  size_t i, j;
+  int epwarning;
 
   f = fopen(filename, "r");
   if (f == NULL)
@@ -744,15 +745,23 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
     eperror("No memory for extension map.");
 
   exti = 0;
+  epwarning = 0;
   for (i = 0; i < ps->nplayers; i++) {
-    size_t j;
-    if (exti >= ps->nextensions) {
-      fprintf(stderr, "pname %s\n", ps->players[i].playername);
-      fflush(stderr);
-    }
-    assert(exti < ps->nextensions);
     p = &ps->players[i];
+    if (p->nextensions == 0) {
+      if (epwarning == 0) {
+	fprintf(stderr, "uade warning: %s eagleplayer lacks prefixes in "
+		"eagleplayer.conf, which makes it unusable for any kind of "
+		"file type detection. If you don't want name based file type "
+		"detection for a particular format, use content_detection "
+		"option for the line in eagleplayer.conf.\n",
+		ps->players[i].playername);
+	epwarning = 1;
+      }
+      continue;
+    }
     for (j = 0; j < p->nextensions; j++) {
+      assert(exti < ps->nextensions);
       ps->map[exti].player = p;
       ps->map[exti].extension = p->extensions[j];
       exti++;

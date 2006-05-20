@@ -2,6 +2,15 @@
 	- Changed default input file to be /dev/tty instead of stdin for
 	  uade123. Also, failing terminal setup (input file is not a tty)
 	  is not a fatal error.
+	- Added a warning to eagleplayer.conf parsing for the situation
+	  that user has removed all prefixes from an eagleplayer. It makes
+	  all kind of detection (including content detection) unusable.
+	  If you don't want to detect a particular file type by name
+	  extensions, add "content_detection" option for the line in
+	  eagleplayer.conf. But note that there isn't content detection
+	  for all formats. For example, adding "content_detection" for
+	  Thomas Hermann player will make all Thomas Hermann songs
+	  unplayable because there is no content detection for it.
 
 2006-05-19  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added Gryzors (Nicholas Franck <gryzor@club-internet.fr>)
