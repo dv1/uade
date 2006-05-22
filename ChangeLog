@@ -1,3 +1,9 @@
+2006-05-22  Heikki Orsila <heikki.orsila@iki.fi>
+	- Changed --magic to --detect-format-by-content and changed
+	  corresponding "content_detection" directive in eagleplayer.conf and
+	  uade.conf to "detect_format_by_content". Changed --no-song-end to
+	  "--no-ep-end-detect".
+
 2006-05-20  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed default input file to be /dev/tty instead of stdin for
 	  uade123. Also, failing terminal setup (input file is not a tty)

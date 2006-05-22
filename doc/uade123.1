@@ -102,6 +102,10 @@ microseconds rather than milliseconds.
 \fB\-d, \-\-debug\fR
 Turn debug mode on. Experts only.
 .TP
+\fB\-\-detect\-format\-by\-content\fR
+Set file magic mode. The songs are only detected by file contents.
+File name based heuristics (prefixes and postfixes) are not used.
+.TP
 \fB\-\-disable\-timeouts\fR
 Disable timeouts. The frontend will never timeout a song.
 .TP
@@ -170,12 +174,9 @@ Turn action keys on (x = 1) or off (x = 0).
 \fB\-m\fR filename
 Set module filename.
 .TP
-\fB\-\-magic\fR
-Set file magic mode. The songs are only detected by contents rather than
-using name based heuristics.
-.TP
-\fB\-n, \-\-no\-song\-end\fR
-Play music ad infinitum by ignoring song end.
+\fB\-n, \-\-no\-ep\-end-detect\fR
+Play music ad infinitum by ignoring song end reported by the eagleplayer.
+Note that this does not affect timeouts.
 .TP
 \fB\-\-ntsc\fR
 Set NTSC mode. This can be buggy.
@@ -349,8 +350,8 @@ always_ends          A song will always end. This means that song end
 .br
 broken_song_end      Song end reported by the eagleplayer is ignored
 .br
-content_detection    A song can only be detected by contents, never
-                     by filename prefix or postfix
+detect_format_by_content  A song can only be detected by contents,
+                     never by filename prefix or postfix
 .br
 epopt=x              Append option x for eagleplayer. Valid options
                      are listed in section "EAGLEPLAYER OPTIONS".
@@ -436,6 +437,9 @@ The valid commands are:
 .br
     buffer_time x      Set audio buffer length to x milliseconds.
 .br
+    detect_format_by_content  Only detect files by content. Do not
+                       use file name based heuristics.
+.br
     disable_timeout    A song will never timeout.
 .br
     enable_timeout     A will timeout normally.
@@ -462,11 +466,10 @@ The valid commands are:
     ignore_player_check    Force eagleplayers to recognize any given
                            song.
 .br
-    magic_detection    Only detect files by content.
+    no_ep_end_detect   Disable eagleplayers ability to end song.
+                       See --no-ep-end-detect.
 .br
     no_filter          Same as "filter none".
-.br
-    no_song_end        Disable eagleplayers ability to end song.
 .br
     ntsc               Set NTSC mode. (might not work properly)
 .br

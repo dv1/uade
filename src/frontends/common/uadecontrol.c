@@ -175,7 +175,7 @@ int uade_song_initialization(const char *scorename,
     }
   }
 
-  if (uc->no_song_end) {
+  if (uc->no_ep_end) {
     if (uade_send_short_message(UADE_COMMAND_SONG_END_NOT_POSSIBLE, ipc) < 0) {
       fprintf(stderr, "Can not send 'song end not possible'.\n");
       goto cleanup;

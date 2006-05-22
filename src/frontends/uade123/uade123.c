@@ -135,6 +135,7 @@ int main(int argc, char *argv[])
     {"basedir",          1, NULL, OPT_BASEDIR},
     {"buffer-time",      1, NULL, UC_BUFFER_TIME},
     {"debug",            0, NULL, 'd'},
+    {"detect-format-by-content", 0, NULL, UC_CONTENT_DETECTION},
     {"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
     {"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
     {"ep-option",        1, NULL, 'x'},
@@ -151,8 +152,7 @@ int main(int argc, char *argv[])
     {"jump",             1, NULL, 'j'},
     {"keys",             1, NULL, 'k'},
     {"list",             1, NULL, '@'},
-    {"magic",            0, NULL, UC_MAGIC_DETECTION},
-    {"no-song-end",      0, NULL, 'n'},
+    {"no-ep-end-detect", 0, NULL, 'n'},
     {"ntsc",             0, NULL, UC_NTSC},
     {"one",              0, NULL, '1'},
     {"pal",              0, NULL, UC_PAL},
@@ -247,7 +247,7 @@ int main(int argc, char *argv[])
       have_modules = 1;
       break;
     case 'n':
-      uade_set_config_option(&uc_cmdline, UC_NO_SONG_END, NULL);
+      uade_set_config_option(&uc_cmdline, UC_NO_EP_END, NULL);
       break;
     case 'p':
       uade_set_config_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     case UC_PAL:
     case UC_DISABLE_TIMEOUTS:
     case UC_ENABLE_TIMEOUTS:
-    case UC_MAGIC_DETECTION:
+    case UC_CONTENT_DETECTION:
       uade_set_config_option(&uc_cmdline, ret, NULL);
       break;
 
@@ -608,6 +608,8 @@ static void print_help(void)
   printf(" -@ filename, --list=filename,  Read playlist of files from 'filename'\n");
   printf(" --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n");
   printf("                     value is determined by the libao.\n");
+  printf(" --detect-format-by-content, Detect modules strictly by file content.\n");
+  printf("                     Detection will ignore file name prefixes.\n");
   printf(" --disable-timeouts, Disable timeouts. This can be used for songs that are\n");
   printf("                     known to end. Useful for recording fixed time pieces.\n");
   printf("                     Some formats, such as protracker, disable timeouts\n");
@@ -633,8 +635,8 @@ static void print_help(void)
   printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
   printf("                     on terminal. \n");
   printf(" -m filename,        Set module name\n");
-  printf(" --magic,            Detect modules strictly by magic.\n");
-  printf(" -n, --no-song-end,  Ignore song end report. Just keep playing.\n");
+  printf(" -n, --no-ep-end-detect, Ignore song end reported by the eagleplayer. Just\n");
+  printf("                     keep playing. This does not affect timeouts. Check -w.\n");
   printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
   printf(" --pal,              Set PAL mode (default)\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");

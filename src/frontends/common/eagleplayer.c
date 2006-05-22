@@ -255,7 +255,7 @@ static int parse_attribute(struct uade_attribute **attributelist, int *flags,
     {.s = "a1200",           .e = ES_A1200},
     {.s = "always_ends",     .e = ES_ALWAYS_ENDS},
     {.s = "broken_song_end", .e = ES_BROKEN_SONG_END},
-    {.s = "content_detection", .e = ES_CONTENT_DETECTION},
+    {.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION},
     {.s = "led_off",         .e = ES_LED_OFF},
     {.s = "led_on",          .e = ES_LED_ON},
     {.s = "never_ends",      .e = ES_NEVER_ENDS},
@@ -507,7 +507,7 @@ struct eagleplayer *uade_analyze_file_format(const char *modulename,
   if (content)
     return ep;
 
-  if (uc->magic_detection && content == 0)
+  if (uc->content_detection && content == 0)
     return NULL;
 
   if ((ep->flags & ES_CONTENT_DETECTION) != 0)

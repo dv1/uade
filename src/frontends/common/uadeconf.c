@@ -43,6 +43,7 @@ static enum uade_option map_str_to_option(const char *key)
   struct optlist ol[] = {
     {.str = "action_keys",      .l = 1,  .e = UC_ACTION_KEYS},
     {.str = "buffer_time",      .l = 1,  .e = UC_BUFFER_TIME},
+    {.str = "detect_format_by_detection",  .l = 1,  .e = UC_CONTENT_DETECTION},
     {.str = "disable_timeout",  .l = 1,  .e = UC_DISABLE_TIMEOUTS},
     {.str = "enable_timeout",   .l = 2,  .e = UC_ENABLE_TIMEOUTS},
     {.str = "ep_option",        .l = 2,  .e = UC_EAGLEPLAYER_OPTION},
@@ -56,9 +57,8 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "headphones2",      .l = 11, .e = UC_HEADPHONES2},
     {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
     {.str = "interpolator",     .l = 2,  .e = UC_RESAMPLER},
-    {.str = "magic_detection",  .l = 1,  .e = UC_MAGIC_DETECTION},
+    {.str = "no_ep_end_detect", .l = 4,  .e = UC_NO_EP_END},
     {.str = "no_filter",        .l = 4,  .e = UC_NO_FILTER},
-    {.str = "no_song_end",      .l = 4,  .e = UC_NO_SONG_END},
     {.str = "ntsc",             .l = 2,  .e = UC_NTSC},
     {.str = "one_subsong",      .l = 1,  .e = UC_ONE_SUBSONG},
     {.str = "pal",              .l = 3,  .e = UC_PAL},
@@ -167,8 +167,8 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
     {.f = ES_A500,              .o = UC_FILTER_TYPE,       .v = "a500"},
     {.f = ES_A1200,             .o = UC_FILTER_TYPE,       .v = "a1200"},
     {.f = ES_ALWAYS_ENDS,       .o = UC_DISABLE_TIMEOUTS},
-    {.f = ES_BROKEN_SONG_END,   .o = UC_NO_SONG_END},
-    {.f = ES_CONTENT_DETECTION, .o = UC_MAGIC_DETECTION},
+    {.f = ES_BROKEN_SONG_END,   .o = UC_NO_EP_END},
+    {.f = ES_CONTENT_DETECTION, .o = UC_CONTENT_DETECTION},
     {.f = ES_LED_OFF,           .o = UC_FORCE_LED_OFF},
     {.f = ES_LED_ON,            .o = UC_FORCE_LED_ON},
     {.f = ES_NO_FILTER,         .o = UC_NO_FILTER},
@@ -374,6 +374,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(action_keys);
   MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
+  MERGE_OPTION(content_detection);
   MERGE_OPTION(ep_options);
   MERGE_OPTION(filter_type);
   MERGE_OPTION(frequency);
@@ -384,9 +385,9 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(ignore_player_check);
   MERGE_OPTION(led_forced);
   MERGE_OPTION(led_state);
+  MERGE_OPTION(no_ep_end);
   MERGE_OPTION(no_filter);
   MERGE_OPTION(no_postprocessing);
-  MERGE_OPTION(no_song_end);
   MERGE_OPTION(one_subsong);
   MERGE_OPTION(panning);
   MERGE_OPTION(panning_enable);
@@ -618,6 +619,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       }
     }
     break;
+  case UC_NO_EP_END:
+    uc->no_ep_end = 1;
+    uc->no_ep_end_set = 1;
+    break;
   case UC_NO_FILTER:
     uc->no_filter_set = 1;
     uc->no_filter = 1;
@@ -635,10 +640,6 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case  UC_NO_POSTPROCESSING:
     uc->no_postprocessing = 1;
     uc->no_postprocessing_set = 1;
-    break;
-  case UC_NO_SONG_END:
-    uc->no_song_end = 1;
-    uc->no_song_end_set = 1;
     break;
   case UC_NTSC:
     uc->use_ntsc_set = 1;
@@ -684,9 +685,9 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->speed_hack = 1;
     uc->speed_hack_set = 1;
     break;
-  case UC_MAGIC_DETECTION:
-    uc->magic_detection = 1;
-    uc->magic_detection_set = 1;
+  case UC_CONTENT_DETECTION:
+    uc->content_detection = 1;
+    uc->content_detection_set = 1;
     break;
   case UC_SUBSONG_TIMEOUT_VALUE:
     uade_set_subsong_timeout(uc, value);

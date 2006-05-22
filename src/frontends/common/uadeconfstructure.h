@@ -7,6 +7,7 @@ enum uade_option {
   UC_ACTION_KEYS = 0x1000,
   UC_BASE_DIR,
   UC_BUFFER_TIME,
+  UC_CONTENT_DETECTION,
   UC_DISABLE_TIMEOUTS,
   UC_ENABLE_TIMEOUTS,
   UC_EAGLEPLAYER_OPTION,
@@ -19,12 +20,11 @@ enum uade_option {
   UC_HEADPHONES,
   UC_HEADPHONES2,
   UC_IGNORE_PLAYER_CHECK,
-  UC_MAGIC_DETECTION,
   UC_NO_FILTER,
   UC_NO_HEADPHONES,
   UC_NO_PANNING,
   UC_NO_POSTPROCESSING,
-  UC_NO_SONG_END,
+  UC_NO_EP_END,
   UC_NTSC,
   UC_ONE_SUBSONG,
   UC_PAL,
@@ -56,6 +56,8 @@ struct uade_config {
   int basedir_set;
   int buffer_time;
   int buffer_time_set;
+  int content_detection;
+  int content_detection_set;
   struct uade_ep_options ep_options;
   int ep_options_set;
   int filter_type;
@@ -78,14 +80,12 @@ struct uade_config {
   int ignore_player_check_set;
   char *resampler;
   int resampler_set;
-  int magic_detection;
-  int magic_detection_set;
+  int no_ep_end;
+  int no_ep_end_set;
   int no_filter;
   int no_filter_set;
   int no_postprocessing;
   int no_postprocessing_set;
-  int no_song_end;
-  int no_song_end_set;
   int one_subsong;
   int one_subsong_set;
   float panning; /* should be removed */
