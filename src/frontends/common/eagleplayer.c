@@ -96,10 +96,9 @@ static struct eagleplayer *analyze_file_format(int *content,
 
   *content = 0;
 
-  if ((f = fopen(modulename, "rb")) == NULL) {
-    fprintf(stderr, "Can not open module: %s\n", modulename);
+  if ((f = fopen(modulename, "rb")) == NULL)
     return NULL;
-  }
+
   if (fstat(fileno(f), &st)) {
     fprintf(stderr, "Very weird stat error: %s (%s)\n", modulename, strerror(errno));
     exit(-1);
