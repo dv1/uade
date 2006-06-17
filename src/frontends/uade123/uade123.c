@@ -64,7 +64,7 @@ static void setup_sighandlers(void);
 ssize_t stat_file_size(const char *name);
 static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
-static void trivial_cleanup(void);
+static void cleanup(void);
 
 
 static void load_content_db(struct uade_config *uc)
@@ -98,6 +98,16 @@ static void load_content_db(struct uade_config *uc)
   snprintf(name, sizeof name, "%s/contentdb", uc->basedir.name);
   if (stat(name, &st) == 0)
     uade_read_content_db(name);
+}
+
+
+static void save_content_db(void)
+{
+  struct stat st;
+  if (md5name[0]) {
+    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
+      uade_save_content_db(md5name);
+  }
 }
 
 
@@ -581,11 +591,11 @@ int main(int argc, char *argv[])
   }
 
   debug(uc_cmdline.verbose || uc_loaded.verbose, "Killing child (%d).\n", uadepid);
-  trivial_cleanup();
+  cleanup();
   return 0;
 
  cleanup:
-  trivial_cleanup();
+  cleanup();
   return -1;
 }
 
@@ -755,8 +765,9 @@ int test_song_end_trigger(void)
 }
 
 
-static void trivial_cleanup(void)
+static void cleanup(void)
 {
+  save_content_db();
   if (uadepid) {
     kill(uadepid, SIGTERM);
     uadepid = 0;

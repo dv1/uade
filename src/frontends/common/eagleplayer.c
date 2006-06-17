@@ -587,6 +587,7 @@ int uade_read_content_db(const char *filename)
       return 0;
     }
   }
+
   if ((f = fopen(filename, "r")) == NULL) {
     fprintf(stderr, "uade: Can not find %s\n", filename);
     return 0;
@@ -878,10 +879,12 @@ void uade_save_content_db(const char *filename)
   size_t i;
   if (ccmodified == 0)
     return;
+
   if ((f = fopen(filename, "w")) == NULL) {
     fprintf(stderr, "uade: Can not write content db: %s\n", filename);
     return;
   }
+
   for (i = 0; i < nccused; i++)
     fprintf(f, "%s %u\n", contentchecksums[i].md5, (unsigned int) contentchecksums[i].playtime);
   fclose(f);

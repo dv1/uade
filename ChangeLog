@@ -1,3 +1,6 @@
+2006-06-18  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added play time database saving support into uade123.
+
 2006-05-22  Heikki Orsila <heikki.orsila@iki.fi>
 	- Changed --magic to --detect-format-by-content and changed
 	  corresponding "content_detection" directive in eagleplayer.conf and

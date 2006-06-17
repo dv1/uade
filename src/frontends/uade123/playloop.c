@@ -100,7 +100,10 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   int playbytes;
   char *reason;
   int64_t skip_bytes;
+
   int64_t total_bytes = 0;
+  int out_bytes_valid = 1;
+
   int64_t subsong_bytes = 0;
   int deciseconds;
   int jump_sub = 0;
@@ -108,7 +111,6 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   int plistdir = 1;
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
-
   const int bytes_per_second = UADE_BYTES_PER_FRAME * uc->frequency;
 
   uade_effect_reset_internals();
@@ -152,6 +154,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case '<':
 	  plistdir = -1;
 	  uade_song_end_trigger = 1;
+	  out_bytes_valid = 0;
 	  break;
 	case '.':
 	  if (skip_bytes == 0) {
@@ -162,6 +165,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case ' ':
 	case 'b':
 	  subsong_end = 1;
+	  out_bytes_valid = 0;
 	  break;
 	case 'c':
 	  pause_terminal();
@@ -195,6 +199,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case '\n':
 	case 'n':
 	  uade_song_end_trigger = 1;
+	  out_bytes_valid = 0;
 	  break;
 	case 'p':
 	  uade_effect_toggle(ue, UADE_EFFECT_ALLOW);
@@ -219,8 +224,10 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  us->cur_subsong--;
 	  subsong_end = 1;
 	  jump_sub = 1;
+	  out_bytes_valid = 0;
 	  break;
 	case 'z':
+	  out_bytes_valid = 0;
 	  if (us->cur_subsong == 0 ||
 	      (us->min_subsong >= 0 && us->cur_subsong == us->min_subsong)) {
 	    plistdir = -1;
@@ -250,6 +257,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	    us->cur_subsong = new_sub - 1;
 	    subsong_end = 1;
 	    jump_sub = 1;
+	    out_bytes_valid = 0;
 	  } else if (!isspace(ret)) {
 	    fprintf(stderr, "\n%c is not a valid command\n", ret);
 	  }
@@ -288,7 +296,6 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	}
       }
 
-      /* Check if control-c was pressed */
       if (uade_song_end_trigger) {
 	next_song = 1;
 	if (uade_send_short_message(UADE_COMMAND_REBOOT, ipc)) {
@@ -319,10 +326,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	}
 
 	us->out_bytes += playbytes;
-
-	/* FIX ME */
-	if (uc->timeout != -1)
-	  total_bytes += playbytes;
+	total_bytes += playbytes;
 
 	if (uc->subsong_timeout != -1)
 	  subsong_bytes += playbytes;
@@ -487,6 +491,11 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	return 0;
       }
     }
+  }
+
+  if (out_bytes_valid && us->md5[0] != 0) {
+    int play_time = (us->out_bytes * 1000) / bytes_per_second;
+    uade_add_playtime(us->md5, play_time, 1);
   }
 
   do {

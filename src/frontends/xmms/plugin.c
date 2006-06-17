@@ -810,12 +810,10 @@ static void uade_stop(void)
   uade_gui_close_subsong_win();
 
   if (uadesong != NULL) {
-    int play_time;
     /* If song ended volutarily, tell the play time for XMMS. */
     uade_lock();
-    play_time = uadesong->playtime;
     if (out_bytes_valid) {
-      play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
+      int play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
       if (uadesong->md5[0] != 0)
 	uade_add_playtime(uadesong->md5, play_time, 1);
 
