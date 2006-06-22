@@ -202,9 +202,7 @@ Play playlist over and over again.
 Set resampling method to
 .BR s .
 It can be
-.BR default
-(anti),
-.BR anti ,
+.BR default ,
 .BR sinc
 or
 .BR none .
@@ -487,7 +485,7 @@ The valid commands are:
                        only.
 .br
     resampler x        Set resampling method to x. It is either
-                       default (anti), anti, sinc or none.
+                       default, sinc or none.
 .br
     silence_timeout x  Set silence timeout value to x seconds.
 .br
@@ -563,16 +561,16 @@ section.
 UADE currently supports three resampling methods:
 .BR none
 that does not do any filtering;
-.BR anti
+.BR default
 that filters the output by averaging the last 80 samples together (also known
-as boxcar filter); and
+as boxcar filter). This is the recommended resampler; and
 .BR sinc
 that produces flat frequency response to about 19.5 kHz and attenuates
 completely soon thereafter.
 .sp 1
-The anti resampler causes some loss of treble, and some aliasing distortion,
-but is very fast. If the best sound quality is important, use the sinc
-method and sampling frequencies of 44,1 kHz and above.
+The default resampler is a very good choice because it is pretty accurate
+and very fast, but loses some treble and causes some aliasing distortion.
+For high frequencies (above 44,1 kHz), sinc might give the best sound quality.
 .SH "FILTERS"
 The Amiga output circuitry contained a low-pass filter on most models, and the
 lowpass filter connected to the power LED, known as "LED filter". On the

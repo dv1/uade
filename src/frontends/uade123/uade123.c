@@ -656,7 +656,7 @@ static void print_help(void)
   printf(" -P filename,        Set player name\n");
   printf(" -r, --recursive,    Recursive directory scan\n");
   printf(" --repeat,           Play playlist over and over again\n");
-  printf(" --resampler=x       Set resampling method to x, where x = default, anti, sinc\n");
+  printf(" --resampler=x       Set resampling method to x, where x = default, sinc\n");
   printf("                     or none.\n");
   printf(" -s x, --subsong=x,  Set subsong 'x'\n");
   printf(" --set=\"options\"     Set song.conf options for each given song.\n");
