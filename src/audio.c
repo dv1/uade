@@ -202,25 +202,53 @@ static void sample16si_anti_handler (void)
     sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
 }
 
+
+/* this interpolator performs BLEP mixing (bleps are shaped like integrated sinc
+ * functions) with a type of BLEP that matches the filtering configuration. */
 static void sample16si_sinc_handler (void)
 {
-    int i;
+    int i, n, o;
     int datas[4];
     
-    for (i = 0; i < 4; i += 1) {
-        int j, val=winsinc_integral[0], sum=0;
-        struct audio_channel_data *acd = &audio_channel[i];
+    if (sound_use_filter == FILTER_MODEL_A500)
+        n = 0;
+    else
+        n = 2;
 
-        /* this computes the sinc convolution for the stored samples in buffer */ 
-        for (j = 0; j < acd->sinc_queue_length; j += 1) {
-            int newval = winsinc_integral[acd->sinc_queue[j].age];
-            sum += (newval - val) * acd->sinc_queue[j].output;
-            val = newval;
-        }
-        datas[i] = sum >> 17;
+    if (gui_ledstate)
+        n += 1;
+    
+    for (i = 0; i < 4; i += 1) {
+        int j;
+        struct audio_channel_data *acd = &audio_channel[i];
+        /* The sum rings with harmonic components up to infinity... */
+	int sum = acd->output_state << 17;
+        /* ...but we cancel them through mixing in BLEPs instead */
+        for (j = 0; j < acd->sinc_queue_length; j += 1)
+            sum -= winsinc_integral[n][acd->sinc_queue[j].age] * acd->sinc_queue[j].output;
+        datas[i] = sum >> 16;
     }
 
-    sample_backend(datas[0] + datas[3], datas[1] + datas[2]);
+    o = datas[0] + datas[3];
+    if (unlikely(o > 32767 || o < -32768)) {
+      if (o > 32767) {
+	o = 32767;
+      } else {
+	o = -32768;
+        }
+    }
+    *(sndbufpt++) = o;
+    o = datas[1] + datas[2];
+    if (unlikely(o > 32767 || o < -32768)) {
+      if (o > 32767) {
+	o = 32767;
+      } else {
+	o = -32768;
+      }
+    }
+    *(sndbufpt++) = o;
+
+    check_sound_buffers();
 }
 
 
@@ -247,31 +275,31 @@ static void sinc_prehandler(unsigned long best_evtime)
     for (i = 0; i < 4; i++) {
 	acd = &audio_channel[i];
 	output = (acd->current_sample * acd->vol) & acd->adk_mask;
-	/* if the output state changes, put the new state into the pipeline.
-	 * the first term is to prevent queue overflow when player routines use
-	 * low period values like 16 that produce ultrasonic sounds. */
-	if (acd->sinc_queue[0].age > SINC_QUEUE_MAX_AGE/SINC_QUEUE_LENGTH+1
-	    && acd->sinc_queue[0].output != output) {
-	    acd->sinc_queue_length += 1;
-	    if (acd->sinc_queue_length > SINC_QUEUE_LENGTH) {
-		fprintf(stderr, "warning: sinc queue truncated. Last age: %d.\n", acd->sinc_queue[SINC_QUEUE_LENGTH-1].age);
-		acd->sinc_queue_length = SINC_QUEUE_LENGTH;
-	    }
-	    /* make room for new and add the new value */
-	    memmove(&acd->sinc_queue[1], &acd->sinc_queue[0],
-		    sizeof(acd->sinc_queue[0]) * (acd->sinc_queue_length - 1));
-	    acd->sinc_queue[0].age = 0;
-	    acd->sinc_queue[0].output = output;
-	}
+
 	/* age the sinc queue and truncate it when necessary */
-	for (j = 0; j < SINC_QUEUE_LENGTH; j += 1) {
+        for (j = 0; j < acd->sinc_queue_length; j += 1) {
 	    acd->sinc_queue[j].age += best_evtime;
-	    if (acd->sinc_queue[j].age > SINC_QUEUE_MAX_AGE-1) {
-		acd->sinc_queue[j].age = SINC_QUEUE_MAX_AGE-1;
-		acd->sinc_queue_length = j+1;
+            if (acd->sinc_queue[j].age >= SINC_QUEUE_MAX_AGE) {
+                acd->sinc_queue_length = j;
 		break;
 	    }
 	}
+                
+        /* if output state changes, record the state change and also
+         * write data into sinc queue for mixing in the BLEP */
+        if (acd->output_state != output) {
+            if (acd->sinc_queue_length > SINC_QUEUE_LENGTH - 1) {
+                fprintf(stderr, "warning: sinc queue truncated. Last age: %d.\n", acd->sinc_queue[SINC_QUEUE_LENGTH-1].age);
+                acd->sinc_queue_length = SINC_QUEUE_LENGTH - 1;
+            }
+            /* make room for new and add the new value */
+            memmove(&acd->sinc_queue[1], &acd->sinc_queue[0],
+                    sizeof(acd->sinc_queue[0]) * acd->sinc_queue_length);
+            acd->sinc_queue_length += 1;
+            acd->sinc_queue[0].age = best_evtime;
+            acd->sinc_queue[0].output = output - acd->output_state;
+            acd->output_state = output;
+        }
     }
 }
 
@@ -464,9 +492,8 @@ void audio_set_rate(int rate)
      * be the true filter cutoff values of Amiga 500 and Amiga 1200.
      * This is because these filters are composites. The true values are
      * 5 kHz (or 4.5 kHz possibly on some models) for A500 fixed lowpass filter
-     * and 1.7 kHz 12 db/oct Butterworth for the LED filter. We need to upsample 
-     * to have digital filters behave like analog ones over the entire audible
-     * frequency band. */
+     * and 1.7 kHz 12 db/oct Butterworth for the LED filter.
+     */
     a500e_filter1_a0 = rc_calculate_a0(rate, 6200);
     a500e_filter2_a0 = rc_calculate_a0(rate, 20000);
     filter_a0 = rc_calculate_a0(rate, 7000);

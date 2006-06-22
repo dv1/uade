@@ -1,6 +1,14 @@
 2006-06-22  Heikki Orsila <heikki.orsila@iki.fi>
 	- Separated accumulator and sinc resamplers into separate functions
 	  in src/audio.c.
+	- Removed "anti" name from resampler list. "anti" has been the
+	  "default" for a long time already.
+	- Change FIR convolution of sinc into bandlimited step synthesis.
+	  Filters are applied directly by the BLEPs. Warning, sinc and
+	  filtering are now integrated together so they can not be
+	  changed separately (breaking modular development idea). The
+	  default resampler does not suffer from this modularity problem
+	  and it is still the recommended resampler. (alankila)
 
 2006-06-18  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added play time database saving support into uade123.

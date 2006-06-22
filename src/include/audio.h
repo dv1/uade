@@ -9,9 +9,12 @@
 #ifndef _UADE_AUDIO_H_
 #define _UADE_AUDIO_H_
 
+#include "sinctable.h"
+
 #define AUDIO_DEBUG 0
-#define SINC_QUEUE_MAX_AGE 4096
-#define SINC_QUEUE_LENGTH 96
+/* Queue length 128 implies minimum emulated period of 16. I add a few extra
+ * entries so that CPU updates during minimum period can be played back. */
+#define SINC_QUEUE_LENGTH (SINC_QUEUE_MAX_AGE / 16 + 2)
 
 typedef struct {
     int age, output;
@@ -26,6 +29,7 @@ extern struct audio_channel_data {
     int state, wper, wlen;
     int current_sample;
     int sample_accum, sample_accum_time;
+    int output_state;
     sinc_queue_t sinc_queue[SINC_QUEUE_LENGTH];
     int sinc_queue_length;
     int vol;
