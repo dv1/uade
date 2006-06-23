@@ -1,3 +1,8 @@
+2006-06-23  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fix sinc resampler to support --filter=none (alankila)
+	- Optimize sinc_handler() inner-loop by avoiding unnecessary
+	  indexing (alankila)
+
 2006-06-22  Heikki Orsila <heikki.orsila@iki.fi>
 	- Separated accumulator and sinc resamplers into separate functions
 	  in src/audio.c.

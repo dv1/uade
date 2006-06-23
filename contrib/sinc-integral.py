@@ -106,10 +106,17 @@ def print_fir(table, format='gnuplot'):
         for _ in range(len(table)):
             print "%s %s" % (_, table[_])
     elif format == 'c':
+        col = 0
+        print "    {"
         for _ in range(len(table)):
-            print ("%6s," % table[_]),
-            if _ % 11 == 10:
+            col += len(str(table[_])) + 1
+            if col >= 80:
                 print
+                col = 0
+            sys.stdout.write("%s," % table[_])
+        if col != 0:
+            print
+        print "    },"
 
 def integrate(table):
     total = 0
@@ -162,12 +169,14 @@ def main(spectrum=True):
         amiga500_on = integrate(amiga500_on)
         amiga1200_off = integrate(amiga1200_off)
         amiga1200_on = integrate(amiga1200_on)
+        unfiltered = integrate(unfiltered)
     
     # quantize and scale
     amiga500_off = quantize(amiga500_off, bits=17, scale=(not spectrum))
     amiga500_on = quantize(amiga500_on, bits=17, scale=(not spectrum))
     amiga1200_off = quantize(amiga1200_off, bits=17, scale=(not spectrum))
     amiga1200_on = quantize(amiga1200_on, bits=17, scale=(not spectrum))
+    unfiltered = quantize(unfiltered, bits=17, scale=(not spectrum))
 
     if spectrum:
         spec = int(sys.argv[1])
@@ -190,16 +199,13 @@ def main(spectrum=True):
         print
         print '#include "sinctable.h"'
         print
-        print "const int winsinc_integral[4][%d] = {" % len(unfiltered)
-        print "   {"
+        print "/* tables are: a500 off, a500 on, a1200 off, a1200 on, vanilla. */"
+        print "const int winsinc_integral[5][%d] = {" % len(unfiltered)
         print_fir(amiga500_off, format='c')
-        print "    }, {"
         print_fir(amiga500_on, format='c')
-        print "    }, {"
         print_fir(amiga1200_off, format='c')
-        print "    }, {"
         print_fir(amiga1200_on, format='c')
-        print "    }"
+        print_fir(unfiltered, format='c')
         print "};"
 
 if __name__ == '__main__':

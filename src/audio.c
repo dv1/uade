@@ -208,15 +208,17 @@ static void sample16si_anti_handler (void)
 static void sample16si_sinc_handler (void)
 {
     int i, n, o;
+    int const *winsinc;
     int datas[4];
-    
-    if (sound_use_filter == FILTER_MODEL_A500)
-        n = 0;
-    else
-        n = 2;
 
-    if (gui_ledstate)
-        n += 1;
+    if (sound_use_filter) {
+	n = (sound_use_filter == FILTER_MODEL_A500) ? 0 : 2;
+        if (gui_ledstate)
+            n += 1;
+    } else {
+	n = 4;
+    }
+    winsinc = winsinc_integral[n];
     
     for (i = 0; i < 4; i += 1) {
         int j;
@@ -225,7 +227,7 @@ static void sample16si_sinc_handler (void)
 	int sum = acd->output_state << 17;
         /* ...but we cancel them through mixing in BLEPs instead */
         for (j = 0; j < acd->sinc_queue_length; j += 1)
-            sum -= winsinc_integral[n][acd->sinc_queue[j].age] * acd->sinc_queue[j].output;
+            sum -= winsinc[acd->sinc_queue[j].age] * acd->sinc_queue[j].output;
         datas[i] = sum >> 16;
     }
 
