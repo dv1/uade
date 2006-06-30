@@ -362,7 +362,7 @@ static void process_custom(char *credits, size_t credits_len,
     if (offset >= hunk_size)
       return;
 
-    if ((offset + strlen(hunk + offset) + 1) > ((size_t) hunk_size))
+    if ((offset + strlen((char *) hunk + offset) + 1) > ((size_t) hunk_size))
       return;
 
     snprintf(tmpstr, sizeof tmpstr, "\nVERSION:\n%s\n\n", hunk + offset);
@@ -396,7 +396,7 @@ static void process_custom(char *credits, size_t credits_len,
     case 0x8000445a:
       if (y >= ((unsigned int) hunk_size))
 	return;
-      if ((y + strlen(hunk + y) + 1) > ((unsigned int) hunk_size))
+      if ((y + strlen((char *) hunk + y) + 1) > ((size_t) hunk_size))
 	return;
       snprintf(tmpstr, sizeof tmpstr, "\nCREDITS:\n%s\n\n", hunk + y);
       strlcat(credits, tmpstr, credits_len);
