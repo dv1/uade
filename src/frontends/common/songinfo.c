@@ -319,7 +319,7 @@ static void process_custom(char *credits, size_t credits_len,
 			   unsigned char *buf, size_t len)
 {
   char tmpstr[1024];
-  char *hunk;
+  unsigned char *hunk;
   unsigned char *tag_table;
   int hunk_size;
   int table_size;
@@ -362,7 +362,7 @@ static void process_custom(char *credits, size_t credits_len,
     if (offset >= hunk_size)
       return;
 
-    if ((offset + strlen(hunk + offset) + 1) > ((unsigned int) hunk_size))
+    if ((offset + strlen(hunk + offset) + 1) > ((size_t) hunk_size))
       return;
 
     snprintf(tmpstr, sizeof tmpstr, "\nVERSION:\n%s\n\n", hunk + offset);
