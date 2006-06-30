@@ -910,9 +910,7 @@ int uade_update_song_conf(const char *songconfin, const char *songconfout,
   size_t filesize;
   int found = 0;
   size_t inputsize;
-  uint8_t *input;
-  uint8_t *inputptr;
-  uint8_t *outputptr;
+  char *input, *inputptr, *outputptr;
   size_t inputoffs;
   char newline[256];
   size_t i;
