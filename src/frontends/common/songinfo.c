@@ -136,7 +136,7 @@ static size_t find_tag(uint8_t *buf, size_t startoffset, size_t buflen,
 }
 
 
-static int string_checker(char *str, size_t off, size_t maxoff)
+static int string_checker(unsigned char *str, size_t off, size_t maxoff)
 {
   assert(maxoff > 0);
   while (off < maxoff) {
