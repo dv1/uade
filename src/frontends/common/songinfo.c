@@ -221,7 +221,7 @@ static void process_ahx_mod(char *credits, size_t credits_len,
   for (i = 0; i < buf[12]; i++) {
     if (!string_checker(buf, offset, len))
       break;
-    offset = offset + 1 + strlen(buf + offset);
+    offset = offset + 1 + strlen((char *) buf + offset);
     if (offset < len) {
       snprintf(tmpstr, 256,"\n           %s", buf + offset);
       strlcat(credits, tmpstr, credits_len);
@@ -339,8 +339,8 @@ static void process_custom(char *credits, size_t credits_len,
   if (i == -1 || (i + 12) >= len)
     return;
 
-  if (strncmp(buf + i + 4, "DELIRIUM", 8) != 0 &&
-      strncmp(buf + i + 4, "EPPLAYER", 8) != 0   ) {
+  if (strncmp((char *) buf + i + 4, "DELIRIUM", 8) != 0 &&
+      strncmp((char *) buf + i + 4, "EPPLAYER", 8) != 0   ) {
     return;
   }
   
