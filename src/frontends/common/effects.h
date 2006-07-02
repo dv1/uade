@@ -27,8 +27,8 @@ int uade_effect_is_enabled(struct uade_effect *ue, uade_effect_t effect);
 void uade_effect_set_sample_rate(struct uade_effect *ue, int rate);
 void uade_effect_toggle(struct uade_effect *ue, uade_effect_t effect);
 
-void uade_effect_normalise_load_gain(float gain);
-float uade_effect_normalise_save_gain(void);
+void uade_effect_normalise_unserialise(const char *buf);
+void uade_effect_normalise_serialise(char *buf, size_t len);
 
 /* effect-specific knobs */
 void uade_effect_set_defaults(struct uade_effect *ue);

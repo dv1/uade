@@ -298,25 +298,52 @@ static int normalise_compute_gain(int peak)
 /* We save gain from maximum known level. This is an one-way street,
    the gain can * only decrease with time. If the historic level is
    known and larger, we prefer it. */
-float uade_effect_normalise_save_gain(void) {
+void uade_effect_normalise_serialise(char *buf, size_t len)
+{
+    assert(len > 0);
+    
+    int peak = normalise_peak_level;
     if (normalise_historic_maximum_peak > normalise_peak_level)
-        return (float) 32768 / normalise_historic_maximum_peak;
-    if (normalise_peak_level == 0)
-        return 0;
-    return (float) 32768 / normalise_peak_level;
+        peak = normalise_historic_maximum_peak;
+
+    if (snprintf(buf, len, "v=1,p=%d", peak) >= len) {
+        fprintf(stderr, "normalise effect: buffer too short, gain would be truncated. This is a bug in UADE.\n");
+        exit(-1);
+    }
 }
 
 
 /* similarly, this should only be called if gain has a positive value,
  * but we try to recover from misuse. */
-void uade_effect_normalise_load_gain(float gain) {
-    if (gain < 1.0)
-        return;
-    /* clip gain to something not insane */
-    if (gain > NORMALISE_MAXIMUM_GAIN)
-        gain = NORMALISE_MAXIMUM_GAIN;
-    normalise_historic_maximum_peak = 32768 / gain + 0.5;
+void uade_effect_normalise_unserialise(const char *buf)
+{
+    int version, peak, readcount;
+
+    normalise_historic_maximum_peak = 0;
+    readcount = sscanf(buf, "v=%d,p=%d", &version, &peak);
+    
+    if (readcount == 0) {
+        fprintf(stderr, "normalise effect: gain string invalid: '%s'\n", buf);
+	exit(-1);
+    }
+
+    if (version != 1) {
+	fprintf(stderr, "normalise effect: unrecognized gain version: '%s'\n", buf);
+	exit(-1);
+    }
+    
+    if (readcount != 2) {
+	fprintf(stderr, "could not read peak value for version 1: '%s'\n", buf);
+	exit(-1);
+    }
+
+    if (peak >= 0 && peak <= 32768) {
+	normalise_historic_maximum_peak = peak;
+    } else {
+	fprintf(stderr, "normalise effect: invalid peak level: '%s'\n", buf);
+    }
 }
+
 
 static void normalise(int change_level, int16_t *sm, int frames)
 {
