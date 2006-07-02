@@ -339,7 +339,7 @@ static void normalise(int change_level, int16_t *sm, int frames)
      * occur on the first rendition of the song, if at all. */
     if (change_level) {
         int newlevel = normalise_compute_gain(normalise_peak_level);
-        fprintf(stderr, "level=%d peak=%d ", normalise_oldlevel, normalise_peak_level);
+	/* fprintf(stderr, "level=%d peak=%d ", normalise_oldlevel, normalise_peak_level); */
         for (i = 0; i < 2 * frames; i += 1) {
             /* same gain for the frame */
             if ((i & 1) == 0) {
