@@ -32,7 +32,6 @@
 
 
 #define LINESIZE (1024)
-#define WS_DELIMITERS " \t\n"
 #define OPTION_DELIMITER ","
 
 
@@ -431,7 +430,7 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
     char **items;
     size_t nitems;
 
-    if ((items = uade_split_line(&nitems, &lineno, f, WS_DELIMITERS)) == NULL)
+    if ((items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS)) == NULL)
       break;
 
     assert(nitems > 0);

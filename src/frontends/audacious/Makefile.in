@@ -9,7 +9,7 @@ CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) $(AUDACIOUSFLAGS) $(ARCHFLAGS) $(DEBUGF
 CLIBS = $(XMLIBS) -lm
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \
-	unixipc.o fileinfo.o songdb.o songinfo.o
+	unixipc.o fileinfo.o songdb.o songinfo.o vplist.o
 PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
 
 libuade2.so:	$(MODULES)
@@ -60,6 +60,9 @@ unixatomic.o:	../../unixatomic.c ../../include/unixatomic.h
 	$(CC) $(CFLAGS) -c $<
 
 unixipc.o:	../../unixipc.c ../../include/ipcsupport.h
+	$(CC) $(CFLAGS) -c $<
+
+vplist.o:	../common/vplist.c ../common/vplist.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:	

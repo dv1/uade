@@ -177,7 +177,7 @@ void uade_effect_reset_internals(void)
 
     normalise_peak_level = 0;
     normalise_historic_maximum_peak = 0;
-    normalise_oldlevel = normalise_compute_gain(0);
+    normalise_oldlevel = 1 << NORMALISE_RESOLUTION;
 }
 
 
@@ -288,6 +288,8 @@ static int normalise_compute_gain(int peak)
         /* if the peak is known, we use the recorded value but adapt if this
          * rendition comes out louder for some reason (for instance, updated
          * UADE) */
+        if (normalise_historic_maximum_peak < 32768 / NORMALISE_MAXIMUM_GAIN)
+            return NORMALISE_MAXIMUM_GAIN * (1 << NORMALISE_RESOLUTION);
         if (peak < normalise_historic_maximum_peak)
             return (32768 << NORMALISE_RESOLUTION) / normalise_historic_maximum_peak;
         else
@@ -311,7 +313,6 @@ void uade_effect_normalise_serialise(char *buf, size_t len)
         exit(-1);
     }
 }
-
 
 /* similarly, this should only be called if gain has a positive value,
  * but we try to recover from misuse. */

@@ -36,6 +36,9 @@
 #define ES_TIMEOUT           (1 << 25)
 
 
+#define UADE_WS_DELIMITERS " \t\n"
+
+
 struct eagleplayer {
   char *playername;
   size_t nextensions;

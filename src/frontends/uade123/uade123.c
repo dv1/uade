@@ -654,6 +654,7 @@ static void print_help(void)
   printf("                     keep playing. This does not affect timeouts. Check -w.\n");
   printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
   printf(" --pal,              Set PAL mode (default)\n");
+  printf(" --normalise,        Enable normalise postprocessing effect.\n");
   printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
   printf("                     1 is mono, and 2 is inverse stereo. The default is 0,7.\n");
   printf(" -P filename,        Set player name\n");
@@ -696,6 +697,7 @@ void print_action_keys(void)
   tprintf(" 'H'           Toggle headphones effect.\n");
   tprintf(" 'i'           Print module info.\n");
   tprintf(" 'I'           Print hex dump of head of module.\n");
+  tprintf(" 'N'           Toggle normalise effect.\n");
   tprintf(" RETURN, 'n'   Next song.\n");
   tprintf(" 'p'           Toggle postprocessing effects.\n");
   tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");

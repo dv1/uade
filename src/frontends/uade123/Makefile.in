@@ -5,7 +5,7 @@ CLIBS = {AOLIBS} {ARCHLIBS} -lm
 MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
 	playloop.o audio.o terminal.o uadecontrol.o uadeconf.o md5.o \
-	unixipc.o songdb.o songinfo.o
+	unixipc.o songdb.o songinfo.o vplist.o
 PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
 
 uade123:	$(MODULES)
@@ -69,4 +69,7 @@ unixipc.o:	../../unixipc.c ../../include/ipcsupport.h
 	$(CC) $(CFLAGS) -c $<
 
 unixwalkdir.o:	../common/unixwalkdir.c ../common/unixwalkdir.h
+	$(CC) $(CFLAGS) -c $<
+
+vplist.o:	../common/vplist.c ../common/vplist.h
 	$(CC) $(CFLAGS) -c $<
