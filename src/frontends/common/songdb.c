@@ -16,16 +16,11 @@
 #include "strlrep.h"
 
 
-#define WS_DELIMITERS " \t\n"
-
+#define NORM_ID "n="
+#define NORM_ID_LENGTH 2
 
 #define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
-
-struct contentchecksum {
-  uint32_t playtime; /* in milliseconds */
-  char md5[33];
-};
 
 
 struct eaglesong {
@@ -35,7 +30,13 @@ struct eaglesong {
 };
 
 
-static struct contentchecksum *contentchecksums;
+struct persub {
+  int sub;
+  char *normalisation;
+};
+
+
+static struct uade_content *contentchecksums;
 static size_t nccalloc;
 static size_t nccused;
 static int ccmodified;
@@ -45,12 +46,44 @@ static int nsongs;
 static struct eaglesong *songstore;
 
 
+static void add_sub(struct uade_content *n, char *normalisation)
+{
+  struct persub *s;
+  int sub;
+  char *endptr;
+
+  sub = strtol(normalisation, &endptr, 10);
+  if (*endptr != ',' || sub < 0) {
+    fprintf(stderr, "Invalid normalisation entry: %s\n", normalisation);
+    return;
+  }
+  endptr++;
+
+  s = malloc(sizeof(*s));
+  if (s == NULL) {
+    fprintf(stderr, "Can not allocate memory for normalisation entry\n");
+    exit(-1);
+  }
+  s->sub = sub;
+  s->normalisation = strdup(endptr);
+  if (s->normalisation == NULL) {
+    fprintf(stderr, "Can not allocate memory for normalisation string.\n");
+    exit(-1);
+  }
+
+  if (n->subs == NULL)
+    n->subs = vplist_create(1);
+
+  vplist_append(n->subs, s);
+}
+
+
 /* Compare function for bsearch() and qsort() to sort songs with respect
    to their md5sums */
 static int contentcompare(const void *a, const void *b)
 {
-  return strcasecmp(((struct contentchecksum *) a)->md5,
-		    ((struct contentchecksum *) b)->md5);
+  return strcasecmp(((struct uade_content *) a)->md5,
+		    ((struct uade_content *) b)->md5);
 }
 
 
@@ -61,47 +94,86 @@ static int escompare(const void *a, const void *b)
 }
 
 
-/* replace must be zero if content db is unsorted */
-int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort)
+static struct uade_content *get_content_checksum(const char *md5)
 {
-  if (contentchecksums == NULL)
-    return 0;
-  /* Do not record song shorter than 5 secs */
-  if (playtime < 5000)
-    return 1;
-  if (strlen(md5) != 32)
-    return 0;
+  struct uade_content key;
+  memset(&key, 0, sizeof key);
+  strlcpy(key.md5, md5, sizeof key.md5);
+  return bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+}
 
-  if (replaceandsort) {
-    struct contentchecksum key;
-    struct contentchecksum *n;
-    strlcpy(key.md5, md5, sizeof key.md5);
-    n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-    if (n != NULL) {
-      strlcpy(n->md5, md5, sizeof(n->md5));
-      if (n->playtime != playtime)
-	ccmodified = 1;
-      n->playtime = playtime;
-      return 1;
-    }
-  }
+
+struct uade_content *allocate_content_checksum(void)
+{
+  struct uade_content *n;
   if (nccused == nccalloc) {
-    struct contentchecksum *n;
     nccalloc *= 2;
-    n = realloc(contentchecksums, nccalloc * sizeof(struct contentchecksum));
+    n = realloc(contentchecksums, nccalloc * sizeof(struct uade_content));
     if (n == NULL) {
-      fprintf(stderr, "uade: No memory for new md5s.\n");
+      fprintf(stderr, "uade: No memory for new content checksums.\n");
       return 0;
     }
     contentchecksums = n;
   }
-  strlcpy(contentchecksums[nccused].md5, md5, sizeof(contentchecksums[nccused].md5));
-  contentchecksums[nccused].playtime = playtime;
-  nccused++;
+
   ccmodified = 1;
+
+  n = &contentchecksums[nccused++];
+  memset(n, 0, sizeof(*n));
+  return n;
+}
+
+
+static void sort_content_checksums(void)
+{
+  qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
+  ccmodified = 0;
+}
+
+
+static void update_playtime(struct uade_content *n, uint32_t playtime)
+{
+  if (n->playtime != playtime) {
+    ccmodified = 1;
+    n->playtime = playtime;
+  }
+}
+
+
+/* replace must be zero if content db is unsorted */
+struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime,
+				       int replaceandsort)
+{
+  struct uade_content *n;
+
+  /* If content db hasn't been read into memory already, it is not used */
+  if (contentchecksums == NULL)
+    return NULL;
+
+  /* Do not record song shorter than 3 secs */
+  if (playtime < 3000)
+    return NULL;
+
+  if (strlen(md5) != 32)
+    return NULL;
+
+  if (replaceandsort) {
+    n = get_content_checksum(md5);
+    if (n != NULL) {
+      update_playtime(n, playtime);
+      return n;
+    }
+  }
+
+  n = allocate_content_checksum();
+
+  strlcpy(n->md5, md5, sizeof(n->md5));
+  n->playtime = playtime;
+
   if (replaceandsort)
-    qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-  return 1;
+    sort_content_checksums();
+
+  return n;
 }
 
 
@@ -109,6 +181,7 @@ void uade_analyze_song_from_songdb(struct uade_song *us)
 {
   struct eaglesong key;
   struct eaglesong *es;
+  struct uade_content *content;
 
   uade_md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
 
@@ -125,26 +198,10 @@ void uade_analyze_song_from_songdb(struct uade_song *us)
     us->songattributes = es->attributes;
   }
 
-  us->playtime = uade_find_playtime(us->md5);
-  if (us->playtime <= 0)
-    us->playtime = -1;
-}
-
-
-int uade_find_playtime(const char *md5)
-{
-  struct contentchecksum key;
-  struct contentchecksum *n;
-  int playtime = 0;
-  if (nccused == 0)
-    return 0;
-  strlcpy(key.md5, md5, sizeof key.md5);
-  n = bsearch(&key, contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-  if (n != NULL)
-    playtime = n->playtime;
-  if (playtime < 0)
-    playtime = 0;
-  return playtime;
+  us->playtime = -1;
+  content = get_content_checksum(us->md5);
+  if (content != NULL && content->playtime > 0)
+    us->playtime = content->playtime;
 }
 
 
@@ -191,14 +248,36 @@ int uade_open_and_lock(const char *filename, int create)
 }
 
 
+static int skipws(char *line, int i)
+{
+  while (isspace(line[i]))
+    i++;
+  if (line[i] == 0)
+    return -1;
+  return i;
+}
+
+
+static int skipnws(char *line, int i)
+{
+  while (!isspace(line[i]) && line[i] != 0)
+    i++;
+  if (line[i] == 0)
+    return -1;
+  return i;
+}
+
+
 int uade_read_content_db(const char *filename)
 {
-  char line[256];
+  char line[1024];
   FILE *f;
+  size_t lineno = 0;
+
   nccused = 0;
   if (nccalloc == 0) {
     nccalloc = 16;
-    contentchecksums = malloc(nccalloc * sizeof(struct contentchecksum));
+    contentchecksums = malloc(nccalloc * sizeof(struct uade_content));
     if (contentchecksums == NULL) {
       fprintf(stderr, "uade: No memory for content checksums\n");
       return 0;
@@ -212,30 +291,74 @@ int uade_read_content_db(const char *filename)
 
   while (fgets(line, sizeof line, f)) {
     long playtime;
-    int i;
+    int i, nexti;
     char *eptr;
+    char str[1024];
+    char *md5;
+    struct uade_content *n;
+
+    lineno++;
+
     if (line[0] == '#')
       continue;
+
+    /* grab md5sum */
     for (i = 0; i < 32; i++) {
       if (line[i] == 0 || !isxdigit(line[i]))
 	break;
     }
     if (i != 32)
       continue;
-    if (line[32] != ' ')
+    if (!isspace(line[i]))
       continue;
-    line[32] = 0;
-    if (line[33] == '\n' || line[33] == 0)
+    line[i] = 0;
+    md5 = line;
+    i = skipws(line, i + 1);
+    if (i < 0)
       continue;
-    playtime = strtol(&line[33], &eptr, 10);
-    if (*eptr == '\n' || *eptr == 0) {
-      if (playtime > 0)
-	uade_add_playtime(line, playtime, 0);
+
+    /* grab play time in milliseconds */
+    nexti = skipnws(line, i);
+    if (nexti < 0)
+      continue;
+    line[nexti] = 0;
+    strlcpy(str, &line[i], sizeof str);
+    playtime = strtol(str, &eptr, 10);
+    if (*eptr != 0) {
+      fprintf(stderr, "Invalid number on contentdb line %zd: %s\n",
+	      lineno, str);
+      continue;
+    }
+
+    n = allocate_content_checksum();
+    strlcpy(n->md5, md5, sizeof n->md5);
+
+    if (playtime > 0)
+      update_playtime(n, playtime);
+
+    i = skipws(line, nexti + 1);
+
+    /* Get rest of the directives in a loop */
+    while (i >= 0) {
+      nexti = skipnws(line, i);
+      if (nexti < 0)
+	break;
+      line[nexti] = 0;
+
+      /* n=sub1,XXX */
+      if (strncmp(&line[i], NORM_ID, NORM_ID_LENGTH) == 0) {
+	i += NORM_ID_LENGTH;
+	add_sub(n, &line[i]);
+      } else {
+	fprintf(stderr, "Unknown contentdb directive on line %zd: %s\n",
+		lineno, &line[i]);
+      }
+      i = skipws(line, nexti + 1);
     }
   }
   fclose(f);
-  qsort(contentchecksums, nccused, sizeof contentchecksums[0], contentcompare);
-  ccmodified = 0;
+
+  sort_content_checksums();
 
   /* fprintf(stderr, "uade: Read content database with %zd entries\n", nccused); */
   return 1;
@@ -270,7 +393,7 @@ int uade_read_song_conf(const char *filename)
     char **items;
     size_t nitems;
 
-    if ((items = uade_split_line(&nitems, &lineno, f, WS_DELIMITERS)) == NULL)
+    if ((items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS)) == NULL)
       break;
 
     assert(nitems > 0);
@@ -335,6 +458,7 @@ void uade_save_content_db(const char *filename)
 {
   FILE *f;
   size_t i;
+
   if (ccmodified == 0)
     return;
 
@@ -343,8 +467,33 @@ void uade_save_content_db(const char *filename)
     return;
   }
 
-  for (i = 0; i < nccused; i++)
-    fprintf(f, "%s %u\n", contentchecksums[i].md5, (unsigned int) contentchecksums[i].playtime);
+  for (i = 0; i < nccused; i++) {
+    char str[1024];
+    size_t subi, nsubs;
+    size_t bindex, bleft;
+    struct uade_content *n = &contentchecksums[i];
+
+    str[0] = 0;
+    bindex = 0;
+    bleft = sizeof(str);
+
+    nsubs = vplist_len(n->subs);
+
+    for (subi = 0; subi < nsubs; subi++) {
+      struct persub *sub = vplist_get(n->subs, subi);
+      int ret;
+      ret = snprintf(&str[bindex], bleft, NORM_ID "%s ", sub->normalisation);
+      if (ret >= bleft) {
+	fprintf(stderr, "Too much subsong infos for %s\n", n->md5);
+	break;
+      }
+      bleft -= ret;
+      bindex += ret;
+    }
+
+    fprintf(f, "%s %u %s\n", n->md5, (unsigned int) n->playtime, str);
+  }
+
   fclose(f);
   fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
 }
