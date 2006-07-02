@@ -1,6 +1,8 @@
 2006-07-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged an initial version of volume normalization effect from
 	  alankila.
+	- Split song.conf and contentdb related functionality away from
+	  eagleplayer.c to songdb.c.
 
 2006-06-30  Heikki Orsila <heikki.orsila@iki.fi>
 	- Work-arounded signedness warnings with GCC4 in src/frontends/common/

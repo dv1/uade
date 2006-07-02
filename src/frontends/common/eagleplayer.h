@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <limits.h>
 
-#include <uadeconfstructure.h>
+#include "uadeconfstructure.h"
 
 
 #define ES_A500              (1 <<  0)
@@ -105,17 +105,16 @@ struct uade_song {
 };
 
 
-int uade_add_playtime(const char *md5, uint32_t playtime, int replaceandsort);
 struct uade_song *uade_alloc_song(const char *filename);
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     struct uade_config *uc);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
 					 struct eagleplayerstore *playerstore);
-int uade_read_content_db(const char *filename);
+int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
+			 char *item, size_t lineno);
 struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
-int uade_read_song_conf(const char *filename);
-void uade_save_content_db(const char *filename);
+char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
+		       const char *delimiters);
 void uade_unalloc_song(struct uade_song *us);
-int uade_update_song_conf(const char *songconfin, const char *songconfout,
-			  const char *songname, const char *options);
+
 #endif

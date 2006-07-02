@@ -5,7 +5,7 @@ CLIBS = {AOLIBS} {ARCHLIBS} -lm
 MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
 	playloop.o audio.o terminal.o uadecontrol.o uadeconf.o md5.o \
-	unixipc.o songinfo.o
+	unixipc.o songdb.o songinfo.o
 PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
 
 uade123:	$(MODULES)
@@ -23,7 +23,7 @@ audio.o:	audio.c audio.h
 chrarray.o:	chrarray.c chrarray.h
 	$(CC) $(CFLAGS) -c $<
 
-eagleplayer.o:	../common/eagleplayer.c $(PLAYERHEADERS) ../common/md5.h
+eagleplayer.o:	../common/eagleplayer.c $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	../common/effects.c ../common/effects.h
@@ -36,6 +36,9 @@ playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
 	$(CC) $(CFLAGS) -c $<
 
 playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../../include/uadeipc.h ../common/songinfo.h $(PLAYERHEADERS)
+	$(CC) $(CFLAGS) -c $<
+
+songdb.o:	../common/songdb.c ../common/songdb.h ../common/md5.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 songinfo.o:	../common/songinfo.c ../common/songinfo.h

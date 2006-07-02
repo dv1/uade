@@ -24,6 +24,7 @@
 #include "audio.h"
 #include "terminal.h"
 #include "playlist.h"
+#include "songdb.h"
 
 
 void print_song_info(struct uade_song *us, enum song_info_type t)

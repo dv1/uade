@@ -23,6 +23,7 @@
 #include "uadeconfig.h"
 #include "amigafilter.h"
 #include "uadeconstants.h"
+#include "songdb.h"
 
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);

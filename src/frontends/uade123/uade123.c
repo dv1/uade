@@ -25,13 +25,14 @@
 #define _GNU_SOURCE
 #include <getopt.h>
 
-#include <uadecontrol.h>
-#include <uadeipc.h>
-#include <strlrep.h>
-#include <uadeconfig.h>
-#include <eagleplayer.h>
-#include <uadeconf.h>
-#include <sysincludes.h>
+#include "uadecontrol.h"
+#include "uadeipc.h"
+#include "strlrep.h"
+#include "uadeconfig.h"
+#include "eagleplayer.h"
+#include "uadeconf.h"
+#include "sysincludes.h"
+#include "songdb.h"
 
 
 #include "uade123.h"

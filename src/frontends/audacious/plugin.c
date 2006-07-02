@@ -29,6 +29,7 @@
 #include "plugin.h"
 #include "subsongseek.h"
 #include "fileinfo.h"
+#include "songdb.h"
 
 #define PLUGIN_DEBUG 0
 

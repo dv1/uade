@@ -25,6 +25,7 @@
 #include "uadeconf.h"
 #include "effects.h"
 #include "sysincludes.h"
+#include "songdb.h"
 
 #include "plugin.h"
 #include "subsongseek.h"
