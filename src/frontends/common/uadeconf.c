@@ -61,6 +61,7 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "no_ep_end_detect", .l = 4,  .e = UC_NO_EP_END},
     {.str = "no_filter",        .l = 4,  .e = UC_NO_FILTER},
     {.str = "no_song_end",      .l = 4,  .e = UC_NO_EP_END},
+    {.str = "normalise",        .l = 1,  .e = UC_NORMALISE},
     {.str = "ntsc",             .l = 2,  .e = UC_NTSC},
     {.str = "one_subsong",      .l = 1,  .e = UC_ONE_SUBSONG},
     {.str = "pal",              .l = 3,  .e = UC_PAL},
@@ -390,6 +391,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(no_ep_end);
   MERGE_OPTION(no_filter);
   MERGE_OPTION(no_postprocessing);
+  MERGE_OPTION(normalise);
   MERGE_OPTION(one_subsong);
   MERGE_OPTION(panning);
   MERGE_OPTION(panning_enable);
@@ -487,6 +489,9 @@ void uade_set_effects(struct uade_effect *effects,
 
   if (uc->headphones2)
     uade_effect_enable(effects, UADE_EFFECT_HEADPHONES2);
+
+  if (uc->normalise)
+    uade_effect_enable(effects, UADE_EFFECT_NORMALISE);
 
   if (uc->panning_enable) {
     uade_effect_pan_set_amount(effects, uc->panning);
@@ -642,6 +647,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
   case  UC_NO_POSTPROCESSING:
     uc->no_postprocessing = 1;
     uc->no_postprocessing_set = 1;
+    break;
+  case  UC_NORMALISE:
+    uc->normalise = 1;
+    uc->normalise_set = 1;
     break;
   case UC_NTSC:
     uc->use_ntsc_set = 1;

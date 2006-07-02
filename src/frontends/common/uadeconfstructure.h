@@ -25,6 +25,7 @@ enum uade_option {
   UC_NO_PANNING,
   UC_NO_POSTPROCESSING,
   UC_NO_EP_END,
+  UC_NORMALISE,
   UC_NTSC,
   UC_ONE_SUBSONG,
   UC_PAL,
@@ -86,6 +87,8 @@ struct uade_config {
   int no_filter_set;
   int no_postprocessing;
   int no_postprocessing_set;
+  int normalise;
+  int normalise_set;
   int one_subsong;
   int one_subsong_set;
   float panning; /* should be removed */

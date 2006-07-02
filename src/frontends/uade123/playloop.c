@@ -201,6 +201,10 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  uade_song_end_trigger = 1;
 	  out_bytes_valid = 0;
 	  break;
+	case 'N':
+	  uade_effect_toggle(ue, UADE_EFFECT_NORMALISE);
+	  tprintf("\nNormalise effect %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_NORMALISE) ? "ON" : "OFF");
+	  break;
 	case 'p':
 	  uade_effect_toggle(ue, UADE_EFFECT_ALLOW);
 	  tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) ? "ON" : "OFF");

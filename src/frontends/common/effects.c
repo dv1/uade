@@ -42,6 +42,11 @@ static float headphones_rc_r[4];
 #define HEADPHONE2_DELAY_MAX_LENGTH ((int)(MAXIMUM_SAMPLING_RATE*HEADPHONE2_DELAY_TIME+1))
 #define DENORMAL_OFFSET 1E-10
 
+#define NORMALISE_RESOLUTION 10       /* in bits */
+#define NORMALISE_DEFAULT_GAIN 8.0
+#define NORMALISE_MAXIMUM_GAIN 8.0
+
+/* Headphone variables */
 typedef struct {
     float b0, b1, b2, a1, a2, x[2], y[2];   
 } biquad_t;
@@ -54,11 +59,17 @@ static biquad_t headphone2_shelve_r;
 static biquad_t headphone2_rc_l;
 static biquad_t headphone2_rc_r;
 
+/* Normalise variables */
+static int normalise_peak_level;
+static int normalise_historic_maximum_peak;
+static int normalise_oldlevel;
 
 static void gain(int gain_amount, int16_t *sm, int frames);
 static void pan(int pan_amount, int16_t *sm, int frames);
 static void headphones(int16_t *sm, int frames);
 static void headphones2(int16_t *sm, int frames);
+static void normalise(int change_level, int16_t *sm, int frames);
+static int normalise_compute_gain(int peak);
 
 
 static inline int sampleclip(int x)
@@ -163,6 +174,10 @@ void uade_effect_reset_internals(void)
     reset_biquad(&headphone2_shelve_r);
     reset_biquad(&headphone2_rc_l);
     reset_biquad(&headphone2_rc_r);
+
+    normalise_peak_level = 0;
+    normalise_historic_maximum_peak = 0;
+    normalise_oldlevel = normalise_compute_gain(0);
 }
 
 
@@ -195,6 +210,7 @@ int uade_effect_is_enabled(struct uade_effect *ue, uade_effect_t effect)
 void uade_effect_run(struct uade_effect *ue, int16_t *samples, int frames)
 {
     if (ue->enabled & (1 << UADE_EFFECT_ALLOW)) {
+	normalise(ue->enabled & (1 << UADE_EFFECT_NORMALISE), samples, frames);
 	if (ue->enabled & (1 << UADE_EFFECT_PAN))
 	    pan(ue->pan, samples, frames);
 	if (ue->enabled & (1 << UADE_EFFECT_HEADPHONES))
@@ -258,6 +274,84 @@ void uade_effect_pan_set_amount(struct uade_effect *ue, float amount)
     ue->pan = amount * 256.0 / 2.0;
 }
 
+
+static int normalise_compute_gain(int peak)
+{
+    if (normalise_historic_maximum_peak == 0) {
+        /* if the peak is not known, we cap gain in an attempt to avoid
+         * boosting silent intros too much. */
+        if (peak < 32768 / NORMALISE_DEFAULT_GAIN)
+            return NORMALISE_DEFAULT_GAIN * (1 << NORMALISE_RESOLUTION);
+        else
+            return (32768 << NORMALISE_RESOLUTION) / peak;
+    } else {
+        /* if the peak is known, we use the recorded value but adapt if this
+         * rendition comes out louder for some reason (for instance, updated
+         * UADE) */
+        if (peak < normalise_historic_maximum_peak)
+            return (32768 << NORMALISE_RESOLUTION) / normalise_historic_maximum_peak;
+        else
+            return (32768 << NORMALISE_RESOLUTION) / peak;
+    }
+}
+
+/* We save gain from maximum known level. This is an one-way street,
+   the gain can * only decrease with time. If the historic level is
+   known and larger, we prefer it. */
+float uade_effect_normalise_save_gain(void) {
+    if (normalise_historic_maximum_peak > normalise_peak_level)
+        return (float) 32768 / normalise_historic_maximum_peak;
+    if (normalise_peak_level == 0)
+        return 0;
+    return (float) 32768 / normalise_peak_level;
+}
+
+
+/* similarly, this should only be called if gain has a positive value,
+ * but we try to recover from misuse. */
+void uade_effect_normalise_load_gain(float gain) {
+    if (gain < 1.0)
+        return;
+    /* clip gain to something not insane */
+    if (gain > NORMALISE_MAXIMUM_GAIN)
+        gain = NORMALISE_MAXIMUM_GAIN;
+    normalise_historic_maximum_peak = 32768 / gain + 0.5;
+}
+
+static void normalise(int change_level, int16_t *sm, int frames)
+{
+    int i;
+
+    /* Negative side is mirrored. but positive side gains by 1.
+     * This is to make both semiwaves have same max. */
+    for (i = 0; i < 2 * frames; i += 1) {
+        int tmp = sm[i];
+	tmp = (tmp >= 0) ? tmp + 1 : -tmp;
+        if (tmp > normalise_peak_level)
+            normalise_peak_level = tmp;
+    }
+
+    /* Slight clipping may result in first playback while the system
+     * adjusts.  With a bit of "advance warning" of clipping about to
+     * occur, the level begins to adjust as soon as the buffer
+     * begins. Typical adjustment times are not large -- a few hundred
+     * samples are to be expected -- and the clipping should only
+     * occur on the first rendition of the song, if at all. */
+    if (change_level) {
+        int newlevel = normalise_compute_gain(normalise_peak_level);
+        fprintf(stderr, "level=%d peak=%d ", normalise_oldlevel, normalise_peak_level);
+        for (i = 0; i < 2 * frames; i += 1) {
+            /* same gain for the frame */
+            if ((i & 1) == 0) {
+                if (normalise_oldlevel < newlevel)
+                    normalise_oldlevel += 1;
+                if (normalise_oldlevel > newlevel)
+                    normalise_oldlevel -= 1;
+            }
+            sm[i] = sampleclip((sm[i] * normalise_oldlevel) >> NORMALISE_RESOLUTION);
+        }
+    }
+}
 
 static void gain(int gain_amount, int16_t *sm, int frames)
 {

@@ -9,6 +9,7 @@ typedef enum {
     UADE_EFFECT_HEADPHONES,
     UADE_EFFECT_HEADPHONES2,
     UADE_EFFECT_PAN,
+    UADE_EFFECT_NORMALISE,
 } uade_effect_t;
 
 struct uade_effect {
@@ -26,6 +27,8 @@ int uade_effect_is_enabled(struct uade_effect *ue, uade_effect_t effect);
 void uade_effect_set_sample_rate(struct uade_effect *ue, int rate);
 void uade_effect_toggle(struct uade_effect *ue, uade_effect_t effect);
 
+void uade_effect_normalise_load_gain(float gain);
+float uade_effect_normalise_save_gain(void);
 
 /* effect-specific knobs */
 void uade_effect_set_defaults(struct uade_effect *ue);

@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
     {"magic",            0, NULL, UC_CONTENT_DETECTION},
     {"no-ep-end-detect", 0, NULL, 'n'},
     {"no-song-end",      0, NULL, 'n'},
+    {"normalise",        0, NULL, UC_NORMALISE},
     {"ntsc",             0, NULL, UC_NTSC},
     {"one",              0, NULL, '1'},
     {"pal",              0, NULL, UC_PAL},
@@ -347,6 +348,7 @@ int main(int argc, char *argv[])
     case UC_SPEED_HACK:
     case UC_HEADPHONES:
     case UC_HEADPHONES2:
+    case UC_NORMALISE:
     case UC_NTSC:
     case UC_PAL:
     case UC_DISABLE_TIMEOUTS:
