@@ -232,19 +232,19 @@ void uade_analyze_song_from_songdb(struct uade_song *us)
   us->playtime = -1;
   content = get_content_checksum(us->md5);
   if (content != NULL) {
-    int sub;
-    size_t subi, nsubs;
-
     if (content->playtime > 0)
       us->playtime = content->playtime;
 
-    sub = MAX(us->cur_subsong, 0);
-
-    nsubs = vplist_len(content->subs);
-    for (subi = 0; subi < nsubs; subi++) {
-      struct persub *subinfo = vplist_get(content->subs, subi);
-      if (subinfo->sub == sub) {
-	us->normalisation = subinfo->normalisation;
+    if (content->subs != NULL) {
+      int sub;
+      size_t subi, nsubs;
+      sub = MAX(us->cur_subsong, 0);
+      nsubs = vplist_len(content->subs);
+      for (subi = 0; subi < nsubs; subi++) {
+	struct persub *subinfo = vplist_get(content->subs, subi);
+	if (subinfo->sub == sub) {
+	  us->normalisation = subinfo->normalisation;
+	}
       }
     }
   }
