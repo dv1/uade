@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     {"magic",            0, NULL, UC_CONTENT_DETECTION},
     {"no-ep-end-detect", 0, NULL, 'n'},
     {"no-song-end",      0, NULL, 'n'},
-    {"normalise",        0, NULL, UC_NORMALISE},
+    {"normalise",        2, NULL, UC_NORMALISE},
     {"ntsc",             0, NULL, UC_NTSC},
     {"one",              0, NULL, '1'},
     {"pal",              0, NULL, UC_PAL},
@@ -331,17 +331,11 @@ int main(int argc, char *argv[])
       exit(0);
       break;
 
-    case UC_FILTER_TYPE:
-      if (optarg != NULL) {
-	uade_set_config_option(&uc_cmdline, ret, optarg);
-      } else {
-	uade_set_config_option(&uc_cmdline, ret, NULL);
-      }
-      break;
-
     case UC_BUFFER_TIME:
+    case UC_FILTER_TYPE:
     case UC_FORCE_LED:
     case UC_FREQUENCY:
+    case UC_NORMALISE:
     case UC_RESAMPLER:
       uade_set_config_option(&uc_cmdline, ret, optarg);
       break;
@@ -354,7 +348,6 @@ int main(int argc, char *argv[])
     case UC_DISABLE_TIMEOUTS:
     case UC_ENABLE_TIMEOUTS:
     case UC_CONTENT_DETECTION:
-    case UC_NORMALISE:
       uade_set_config_option(&uc_cmdline, ret, NULL);
       break;
 

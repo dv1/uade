@@ -285,15 +285,18 @@ static int normalise_compute_gain(int peak)
         else
             return (32768 << NORMALISE_RESOLUTION) / peak;
     } else {
+        int largerpeak;
+        if (peak < normalise_historic_maximum_peak)
+            largerpeak = normalise_historic_maximum_peak;
+        else
+            largerpeak = peak;
         /* if the peak is known, we use the recorded value but adapt if this
          * rendition comes out louder for some reason (for instance, updated
          * UADE) */
-        if (normalise_historic_maximum_peak < 32768 / NORMALISE_MAXIMUM_GAIN)
+        if (largerpeak < 32768 / NORMALISE_MAXIMUM_GAIN)
             return NORMALISE_MAXIMUM_GAIN * (1 << NORMALISE_RESOLUTION);
-        if (peak < normalise_historic_maximum_peak)
-            return (32768 << NORMALISE_RESOLUTION) / normalise_historic_maximum_peak;
         else
-            return (32768 << NORMALISE_RESOLUTION) / peak;
+            return (32768 << NORMALISE_RESOLUTION) / largerpeak;
     }
 }
 
@@ -344,7 +347,7 @@ void uade_effect_normalise_unserialise(const char *buf)
     }
 
     if (peak >= 0.0 && peak <= 1.0) {
-        normalise_historic_maximum_peak = 32768 * peak;
+        normalise_oldlevel = normalise_historic_maximum_peak = 32768 * peak;
     } else {
 	fprintf(stderr, "normalise effect: invalid peak level: '%s'\n", buf);
     }
