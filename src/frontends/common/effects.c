@@ -323,6 +323,9 @@ void uade_effect_normalise_unserialise(const char *buf)
 
     normalise_historic_maximum_peak = 0;
 
+    if (buf == NULL)
+	return;
+
     readcount = sscanf(buf, "v=%d,p=%f", &version, &peak);
 
     if (readcount == 0) {

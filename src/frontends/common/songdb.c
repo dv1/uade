@@ -21,6 +21,9 @@
 
 #define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 
 struct eaglesong {
   int flags;
@@ -47,7 +50,7 @@ static struct eaglesong *songstore;
 
 static void add_sub(struct uade_content *n, char *normalisation)
 {
-  struct persub *s;
+  struct persub *subinfo;
   int sub;
   char *endptr;
 
@@ -58,14 +61,14 @@ static void add_sub(struct uade_content *n, char *normalisation)
   }
   endptr++;
 
-  s = malloc(sizeof(*s));
-  if (s == NULL) {
+  subinfo = malloc(sizeof(*subinfo));
+  if (subinfo == NULL) {
     fprintf(stderr, "Can not allocate memory for normalisation entry\n");
     exit(-1);
   }
-  s->sub = sub;
-  s->normalisation = strdup(endptr);
-  if (s->normalisation == NULL) {
+  subinfo->sub = sub;
+  subinfo->normalisation = strdup(endptr);
+  if (subinfo->normalisation == NULL) {
     fprintf(stderr, "Can not allocate memory for normalisation string.\n");
     exit(-1);
   }
@@ -73,7 +76,7 @@ static void add_sub(struct uade_content *n, char *normalisation)
   if (n->subs == NULL)
     n->subs = vplist_create(1);
 
-  vplist_append(n->subs, s);
+  vplist_append(n->subs, subinfo);
 }
 
 
@@ -176,6 +179,35 @@ struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime,
 }
 
 
+struct uade_song *uade_alloc_song(const char *filename)
+{
+  struct uade_song *us = NULL;
+
+  if ((us = calloc(1, sizeof *us)) == NULL)
+    goto error;
+
+  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
+  us->playtime = -1;
+
+  strlcpy(us->module_filename, filename, sizeof us->module_filename);
+
+  us->buf = atomic_read_file(&us->bufsize, filename);
+  if (us->buf == NULL)
+    goto error;
+
+  /* Get song specific flags and info based on the md5sum */
+  uade_analyze_song_from_songdb(us);
+  return us;
+
+ error:
+  if (us != NULL) {
+    free(us->buf);
+    free(us);
+  }
+  return NULL;
+}
+
+
 void uade_analyze_song_from_songdb(struct uade_song *us)
 {
   struct eaglesong key;
@@ -199,8 +231,23 @@ void uade_analyze_song_from_songdb(struct uade_song *us)
 
   us->playtime = -1;
   content = get_content_checksum(us->md5);
-  if (content != NULL && content->playtime > 0)
-    us->playtime = content->playtime;
+  if (content != NULL) {
+    int sub;
+    size_t subi, nsubs;
+
+    if (content->playtime > 0)
+      us->playtime = content->playtime;
+
+    sub = MAX(us->cur_subsong, 0);
+
+    nsubs = vplist_len(content->subs);
+    for (subi = 0; subi < nsubs; subi++) {
+      struct persub *subinfo = vplist_get(content->subs, subi);
+      if (subinfo->sub == sub) {
+	us->normalisation = subinfo->normalisation;
+      }
+    }
+  }
 }
 
 
@@ -495,6 +542,14 @@ void uade_save_content_db(const char *filename)
 
   fclose(f);
   fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
+}
+
+
+void uade_unalloc_song(struct uade_song *us)
+{
+  free(us->buf);
+  us->buf = NULL;
+  free(us);
 }
 
 

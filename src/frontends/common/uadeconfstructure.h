@@ -89,6 +89,8 @@ struct uade_config {
   int no_postprocessing_set;
   int normalise;
   int normalise_set;
+  char *normalise_parameter; /* no normalise_parameter_set entry, use manual
+				merging code */
   int one_subsong;
   int one_subsong_set;
   float panning; /* should be removed */

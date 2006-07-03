@@ -334,35 +334,6 @@ static int ufcompare(const void *a, const void *b)
 }
 
 
-struct uade_song *uade_alloc_song(const char *filename)
-{
-  struct uade_song *us = NULL;
-
-  if ((us = calloc(1, sizeof *us)) == NULL)
-    goto error;
-
-  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
-  us->playtime = -1;
-
-  strlcpy(us->module_filename, filename, sizeof us->module_filename);
-
-  us->buf = atomic_read_file(&us->bufsize, filename);
-  if (us->buf == NULL)
-    goto error;
-
-  /* Get song specific flags and info based on the md5sum */
-  uade_analyze_song_from_songdb(us);
-  return us;
-
- error:
-  if (us != NULL) {
-    free(us->buf);
-    free(us);
-  }
-  return NULL;
-}
-
-
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     struct uade_config *uc)
 {
@@ -558,12 +529,4 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   if (f != NULL)
     fclose(f);
   return NULL;
-}
-
-
-void uade_unalloc_song(struct uade_song *us)
-{
-  free(us->buf);
-  us->buf = NULL;
-  free(us);
 }

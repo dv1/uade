@@ -80,13 +80,6 @@ struct uade_attribute {
 };
 
 struct uade_song {
-  int flags;
-  int nsubsongs;
-  uint8_t *subsongs;
-  struct uade_attribute *songattributes;
-
-  struct uade_ep_options ep_options;
-
   char md5[33];
 
   char module_filename[PATH_MAX];
@@ -95,8 +88,6 @@ struct uade_song {
   char modulename[256]; /* From score */
   char formatname[256];
 
-  int playtime;
-
   uint8_t *buf;
   size_t bufsize;
 
@@ -104,11 +95,18 @@ struct uade_song {
   int max_subsong;
   int cur_subsong;
 
+  int playtime;
+  int flags;
+  int nsubsongs;
+  uint8_t *subsongs;
+  struct uade_attribute *songattributes;
+  struct uade_ep_options ep_options;
+  char *normalisation;
+
   int64_t out_bytes;
 };
 
 
-struct uade_song *uade_alloc_song(const char *filename);
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     struct uade_config *uc);
 struct eagleplayer *uade_get_eagleplayer(const char *extension, 
@@ -118,6 +116,5 @@ int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
 char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
 		       const char *delimiters);
-void uade_unalloc_song(struct uade_song *us);
 
 #endif

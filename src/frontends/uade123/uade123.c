@@ -349,12 +349,12 @@ int main(int argc, char *argv[])
     case UC_SPEED_HACK:
     case UC_HEADPHONES:
     case UC_HEADPHONES2:
-    case UC_NORMALISE:
     case UC_NTSC:
     case UC_PAL:
     case UC_DISABLE_TIMEOUTS:
     case UC_ENABLE_TIMEOUTS:
     case UC_CONTENT_DETECTION:
+    case UC_NORMALISE:
       uade_set_config_option(&uc_cmdline, ret, NULL);
       break;
 
