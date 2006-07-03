@@ -318,11 +318,13 @@ void uade_effect_normalise_serialise(char *buf, size_t len)
  * but we try to recover from misuse. */
 void uade_effect_normalise_unserialise(const char *buf)
 {
-    int version, peak, readcount;
+    int version, readcount;
+    float peak;
 
     normalise_historic_maximum_peak = 0;
-    readcount = sscanf(buf, "v=%d,p=%d", &version, &peak);
-    
+
+    readcount = sscanf(buf, "v=%d,p=%f", &version, &peak);
+
     if (readcount == 0) {
         fprintf(stderr, "normalise effect: gain string invalid: '%s'\n", buf);
 	exit(-1);
@@ -338,8 +340,8 @@ void uade_effect_normalise_unserialise(const char *buf)
 	exit(-1);
     }
 
-    if (peak >= 0 && peak <= 32768) {
-	normalise_historic_maximum_peak = peak;
+    if (peak >= 0.0 && peak <= 1.0) {
+        normalise_historic_maximum_peak = 32768 * peak;
     } else {
 	fprintf(stderr, "normalise effect: invalid peak level: '%s'\n", buf);
     }
