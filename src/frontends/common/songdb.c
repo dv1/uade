@@ -73,9 +73,6 @@ static void add_sub(struct uade_content *n, char *normalisation)
     exit(-1);
   }
 
-  if (n->subs == NULL)
-    n->subs = vplist_create(1);
-
   vplist_append(n->subs, subinfo);
 }
 
@@ -108,8 +105,9 @@ static struct uade_content *get_content_checksum(const char *md5)
 struct uade_content *allocate_content_checksum(void)
 {
   struct uade_content *n;
+
   if (nccused == nccalloc) {
-    nccalloc *= 2;
+    nccalloc = MAX(nccalloc * 2, 16);
     n = realloc(contentchecksums, nccalloc * sizeof(struct uade_content));
     if (n == NULL) {
       fprintf(stderr, "uade: No memory for new content checksums.\n");
@@ -121,7 +119,10 @@ struct uade_content *allocate_content_checksum(void)
   ccmodified = 1;
 
   n = &contentchecksums[nccused++];
+
   memset(n, 0, sizeof(*n));
+  n->subs = vplist_create(1);
+
   return n;
 }
 
@@ -232,19 +233,18 @@ void uade_analyze_song_from_songdb(struct uade_song *us)
   us->playtime = -1;
   content = get_content_checksum(us->md5);
   if (content != NULL) {
+    int sub;
+    size_t subi, nsubs;
+
     if (content->playtime > 0)
       us->playtime = content->playtime;
 
-    if (content->subs != NULL) {
-      int sub;
-      size_t subi, nsubs;
-      sub = MAX(us->cur_subsong, 0);
-      nsubs = vplist_len(content->subs);
-      for (subi = 0; subi < nsubs; subi++) {
-	struct persub *subinfo = vplist_get(content->subs, subi);
-	if (subinfo->sub == sub) {
-	  us->normalisation = subinfo->normalisation;
-	}
+    sub = MAX(us->cur_subsong, 0);
+    nsubs = vplist_len(content->subs);
+    for (subi = 0; subi < nsubs; subi++) {
+      struct persub *subinfo = vplist_get(content->subs, subi);
+      if (subinfo->sub == sub) {
+	us->normalisation = subinfo->normalisation;
       }
     }
   }
@@ -321,15 +321,7 @@ int uade_read_content_db(const char *filename)
   size_t lineno = 0;
 
   nccused = 0;
-  if (nccalloc == 0) {
-    nccalloc = 16;
-    contentchecksums = malloc(nccalloc * sizeof(struct uade_content));
-    if (contentchecksums == NULL) {
-      fprintf(stderr, "uade: No memory for content checksums\n");
-      return 0;
-    }
-  }
-
+ 
   if ((f = fopen(filename, "r")) == NULL) {
     fprintf(stderr, "uade: Can not find %s\n", filename);
     return 0;
@@ -520,6 +512,7 @@ void uade_save_content_db(const char *filename)
     struct uade_content *n = &contentchecksums[i];
 
     str[0] = 0;
+
     bindex = 0;
     bleft = sizeof(str);
 

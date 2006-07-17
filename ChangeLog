@@ -1,3 +1,9 @@
+2006-07-17  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed a segfault bug in songdb caused by recent changes to add
+	  subsong volume normalisation info to contentdb. Segfaults were
+	  catched in several places due to uninitialized vplist in
+	  struct uade_content.
+
 2006-07-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merged an initial version of volume normalization effect from
 	  alankila.
