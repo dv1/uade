@@ -1,3 +1,9 @@
+2006-07-27  Heikki Orsila <heikki.orsila@iki.fi>
+	- Removed -fno-strength-reduce from src/Makefile.in. Some old
+	  GCC 2.x versions had bugged strength reduce, but it shouldn't
+	  matter anymore. Maybe the compiler will produce better code
+	  without this :)
+
 2006-07-17  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a segfault bug in songdb caused by recent changes to add
 	  subsong volume normalisation info to contentdb. Segfaults were
