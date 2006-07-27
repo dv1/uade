@@ -4,12 +4,14 @@ ARCHFLAGS = {ARCHFLAGS}
 ARCHLIBS = {ARCHLIBS}
 DEBUGFLAGS = {DEBUGFLAGS}
 
-CFLAGS = -fomit-frame-pointer -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -fno-exceptions -fno-strength-reduce -DREGPARAM= -D__inline__=inline -O2 $(DEBUGFLAGS) $(ARCHFLAGS)
+COMMONGCCOPTS = -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -fno-exceptions -O2
+
+TARGETCFLAGS = -fomit-frame-pointer -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -DREGPARAM= -D__inline__=inline $(COMMONGCCOPTS) $(DEBUGFLAGS) $(ARCHFLAGS)
 LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
 
 # Native flags are used to build tools that generate new code that is then
 # compiled with the target compiler.
-NATIVECFLAGS = -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -fno-exceptions -fno-strength-reduce -O2 $(DEBUGFLAGS)
+NATIVECFLAGS = $(COMMONGCCOPTS) $(DEBUGFLAGS)
 
 .SUFFIXES: .a .o .c .h .S
 
@@ -68,48 +70,48 @@ cpudefs.c:	build68k table68k
 # Then target builds
 
 cpustbl.o: cpuemu.c
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ cpustbl.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ cpustbl.c
 
 cpuemu1.o: cpuemu.c
-	$(CC) -DPART_1 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_1 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu2.o: cpuemu.c
-	$(CC) -DPART_2 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_2 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu3.o: cpuemu.c
-	$(CC) -DPART_3 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_3 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu4.o: cpuemu.c
-	$(CC) -DPART_4 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_4 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu5.o: cpuemu.c
-	$(CC) -DPART_5 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_5 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu6.o: cpuemu.c
-	$(CC) -DPART_6 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_6 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu7.o: cpuemu.c
-	$(CC) -DPART_7 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -o $@ $<
+	$(CC) -DPART_7 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -o $@ $<
 
 cpuemu8.o: cpuemu.c
-	$(CC) -DPART_8 $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) -Wno-sign-compare -o $@ $<
+	$(CC) -DPART_8 $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  -Wno-sign-compare -o $@ $<
 
 custom.o:	include/audio.h
 
 .rc.res:
 	$(WRC) $(INCLUDES) $<
 .m.o:
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $<
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  $<
 .c.o:
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $< -o $@
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  $< -o $@
 .c.s:
-	$(CC) $(INCLUDES) -S $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $< -o $@
+	$(CC) $(INCLUDES) -S $(INCDIRS) $(TARGETCFLAGS)  $< -o $@
 .c.i:
-	$(CC) $(INCLUDES) -E $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $< > $@
+	$(CC) $(INCLUDES) -E $(INCDIRS) $(TARGETCFLAGS)  $< > $@
 .S.o:
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $< -o $@
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  $< -o $@
 .s.o:
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) $< -o $@
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  $< -o $@
 
 # Saves recompiling...
 touch:	
@@ -123,7 +125,7 @@ uademain.o:	include/uae.h
 cia.o: include/events.h
 custom.o: include/events.h
 newcpu.o: newcpu.c include/uade.h include/events.h include/uadeipc.h
-	$(CC) $(INCLUDES) -c $(INCDIRS) $(CFLAGS) $(X_CFLAGS) newcpu.c
+	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  newcpu.c
 
 sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
 audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h include/sinctable.h {SOUNDHEADER}

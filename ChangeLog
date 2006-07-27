@@ -2,7 +2,7 @@
 	- Removed -fno-strength-reduce from src/Makefile.in. Some old
 	  GCC 2.x versions had bugged strength reduce, but it shouldn't
 	  matter anymore. Maybe the compiler will produce better code
-	  without this :)
+	  without this. AHX.cruisin showed approx 3% speedup :)
 
 2006-07-17  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed a segfault bug in songdb caused by recent changes to add
