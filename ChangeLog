@@ -1,3 +1,58 @@
+2006-08-27  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.03 (Microsoft punishment)
+	- Added song.conf support to set song specific attributes for 
+	  playback, such as ntsc, blank, filtering etc. See the man
+	  page. An example, one may add following line to ~/.uade2/song.conf
+	  to make fred.hybris_light always timeout on 200 seconds:
+	    md5=60f3bb11cc1bacaf77d7c16d13361844 broken_song_end timeout=200 comment FRED.Hybris_Light
+	  This need not be added manually, one can just issue:
+	    uade123 --set=broken_song_end --set=timeout=200 FRED.Hybris_Light
+	  and afterwards uade will always play the song correctly.
+	  Similarly, one can fix volume gain for some songs:
+	    uade123 --set=gain=2 foo
+	  To reset all options for a given song, do:
+	    uade123 --set= foo
+	- Fixed PAL audio synthesis frequency (inaudible)
+	- --interpolator=x is now --resampler=x because the function of
+	  interpolators was actually resampling.
+	- Only A500 and A1200 filters are now supported and A500 is the
+	  default.
+	- Added Play time database support for uade123
+	- Compatibility fixes
+	- Lots of bug fixes
+	- Improvements in uade123 UI (press i or I for info on song)
+	- Improved file magic support for some formats (P61A, Fuzzac, ...)
+	- Hacky NTSC mode support available now. Use --ntsc or ntsc
+	  directive in uade123. Also works per-song with song.conf.
+	  One can now make specific songs be played in NTSC mode by
+	  programming song.conf with proper values. One can issue:
+	    uade123 --set=ntsc dw.FooBar
+	  or put a line to ~/.uade2/song.conf:
+	    md5=225bbb405433c7c05fe10b99b8e088ff ntsc comment dw.AlfredChicken
+	- One can force protracker replayer to use VBlank timing with many
+	  ways, see the man page on section EAGLEPLAYER OPTIONS. For example,
+	  do:
+	    uade123 -x vblank mod.FooBar
+	- Enhancements in PTK-Prowiz. Protracker version is now selectable
+	  between 3.0b, 2.3a and 1.0c. See the man page section EAGLEPLAYERS
+	  OPTIONS. This option is not yet guaranteed to be 100% but may
+	  fix some immediate problems with some songs.. These settings
+	  may also be recorded to song.conf so that one only has to give
+	  these parameters once. Example:
+	    uade123 -x type:pt10c mod.TheClassicProtrackerVersionedSong
+	  btw. uade is probably the first mod player for non-amigas that
+	  has a direct version support for protrackers.
+	- Improved some players
+	- Titles in audacious and xmms plugins on the playlist are now
+	  programmable with uade.conf. The default is
+	    song_title %F %X [%P]
+	  This displays filename, subsong (if more than one) and player.
+	  See SONG TITLE SPECIFICATION section in the man page. There's a
+	  small help in the uade.conf too.
+	- Significant code refactorizations
+	- Fixed a memory leak issue (see Change log on 2006-04-15)
+	- Added Dirk Bialluch format support by Don Adan/Wanted Team
+
 2006-07-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Removed -fno-strength-reduce from src/Makefile.in. Some old
 	  GCC 2.x versions had bugged strength reduce, but it shouldn't
