@@ -1,5 +1,6 @@
 To be solved:
-
+2006-08-29: Prowiz seems to forget to convert the first two lines of pattern
+            23 of p61.traffic1 (mld)
 2006-04-24: uadesong structure provided for file info window is not
 	    necessarily the same as currently played song (shd)
 2006-04-03: song.conf is not re-read in xmms plugin (shd)

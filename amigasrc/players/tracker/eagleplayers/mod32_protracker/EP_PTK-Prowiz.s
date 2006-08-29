@@ -353,6 +353,9 @@ is_NTK:
 is_Clone:
 	move.l	pt_pckddata,a0
 	move.l	pt_pckdsize,d0	
+
+	;move.l	#"CONV",(a0)		; Debug Prowiz
+
 	move.l	a0,song
 	move.l	d0,size
 	move.l	FormName,a1
