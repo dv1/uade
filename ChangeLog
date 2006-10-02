@@ -1,3 +1,7 @@
+2006-10-02  Heikki Orsila <heikki.orsila@iki.fi>
+	- Updated INSTALL.readme to include more dependencies (pkg-config
+	  and sed) and tips for Mac OS X compiling (workarounds)
+
 2006-08-27  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.03 (Microsoft punishment)
 	- Added song.conf support to set song specific attributes for 
