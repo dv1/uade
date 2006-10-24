@@ -485,6 +485,7 @@ echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
 echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/$UADECORENAME\"" >> "$conffile"
 test -c /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
+test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
 if test "$useuadecore" = "yes" ; then
     uadecorerule="uadecore"

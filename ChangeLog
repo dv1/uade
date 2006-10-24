@@ -1,3 +1,6 @@
+2006-10-24  Heikki Orsila <heikki.orsila@iki.fi>
+	- No locking with Cygwin -> uade is dangerous with songdb.
+
 2006-10-02  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated INSTALL.readme to include more dependencies (pkg-config
 	  and sed) and tips for Mac OS X compiling (workarounds)

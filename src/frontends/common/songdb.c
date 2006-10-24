@@ -14,6 +14,7 @@
 #include "md5.h"
 #include "unixatomic.h"
 #include "strlrep.h"
+#include "uadeconfig.h"
 
 
 #define NORM_ID "n="
@@ -282,6 +283,7 @@ int uade_open_and_lock(const char *filename, int create)
     }
   }
 
+#ifndef UADE_HAVE_CYGWIN
   ret = lockf(fd, F_LOCK, 0);
   if (ret) {
     fprintf(stderr, "uade: Unable to lock song.conf: %s (%s)\n",
@@ -289,6 +291,7 @@ int uade_open_and_lock(const char *filename, int create)
     atomic_close(fd);
     return -1;
   }
+#endif
 
   return fd;
 }
