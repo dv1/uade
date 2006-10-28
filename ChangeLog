@@ -1,3 +1,8 @@
+2006-10-28  Antti S. Lankila <alankila@bel.fi>
+	- Due to me misunderstanding the Kaiser window beta parameter,
+	  the BLEP tables for sinc synthesis were set to attenuate aliasing
+	  only for 40 dB instead of the target 80 dB.
+
 2006-10-24  Heikki Orsila <heikki.orsila@iki.fi>
 	- No locking with Cygwin -> uade is dangerous with songdb.
 

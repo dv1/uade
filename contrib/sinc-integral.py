@@ -6,7 +6,7 @@ from scipy import array, exp
 from scipy.signal import firwin
 from scipy.fftpack import fft, ifft
 
-def fir_minphase(table, pad_size=4):
+def fir_minphase(table, pad_size=8):
     table = list(table)
     # table should be a real-valued table of FIR coefficients
     convolution_size = len(table)
@@ -59,20 +59,47 @@ def make_rc_lopass(sample_rate, freq):
     term = 1 + 1/omega;
     return BiquadFilter(1/term, 0.0, 0.0, -1.0 + 1/term, 0.0);
 
-def make_butterworth(fs, fc):
-    omega = 2 * math.pi * fc / fs;
-    c = 1 + 2 * math.cos(math.pi / 4) * omega + omega ** 2
-    a0 = a2 = omega ** 2 / c
-    a1 = 2 * a0
-    b1 = 2 * (omega ** 2 - 1) / c
-    b2 = (1 - 2 * math.cos(math.pi / 4) * omega + omega ** 2) / c
-    return BiquadFilter(a0, a1, a2, b1, b2)
+def make_butterworth(fs, fc, res_db=0):
+    # 2nd-order Butterworth s-domain coefficients are:
+    #
+    # b0 = 1.0  b1 = 0        b2 = 0
+    # a0 = 1    a1 = sqrt(2)  a2 = 1
+    #
+    # by tweaking the a1 parameter, some resonance can be produced.
+
+    res = 10.0 ** (-res_db / 10.0 / 2)
+    ar = z_transform(1, 0, 0, 1, math.sqrt(2) * res, 1, fc, fs)
+    return BiquadFilter(*ar)
+
+# observe: a and b are reversed here. To be absolutely clear:
+# a is the nominator and b is the denominator. :-/
+def z_transform(a0, a1, a2, b0, b1, b2, fc, fs):
+    # prewarp s-domain coefficients
+    wp = 2.0 * fs * math.tan(math.pi * fc / fs)
+    a2 /= wp * wp
+    a1 /= wp
+    b2 /= wp * wp
+    b1 /= wp
+    
+    # compute bilinear transform and return it
+    bd = 4 * b2 * fs * fs + 2 * b1 * fs + b0
+    return [
+        (4 * a2 * fs ** 2 + 2 * a1 * fs + a0) / bd,
+        (2 * a0 - 8 * a2 * fs ** 2)           / bd,
+        (4 * a2 * fs ** 2 - 2 * a1 * fs + a0) / bd,
+        (2 * b0 - 8 * b2 * fs ** 2)           / bd,
+        (4 * b2 * fs ** 2 - 2 * b1 * fs + b0) / bd,
+    ]
 
 def quantize(x, bits, scale=False):
     x = list(x)
     fact = 2 ** bits
 
-    # this adjusts range precisely between -65536 and 0 so that our bleps look right
+    # this adjusts range precisely between -65536 and 0 so that our bleps look right.
+    # we should only do this if the table is integrated; in fact this code probably
+    # belonged to the integration function.
+    correction_factor = 1.0
+    if scale:
     correction_factor = x[-1] - x[0]
 
     for _ in range(len(x)):
@@ -91,12 +118,8 @@ def quantize(x, bits, scale=False):
 def lin2db(lin):
     return 20 * (math.log(lin) / math.log(10))
 
-def print_spectrum(table, sample_rate, full=False):
-    fact = 2
-    if full:
-        fact = 1
-
-    for _ in range(len(table) / fact):
+def print_spectrum(table, sample_rate):
+    for _ in range(len(table) / 2):
         mag = lin2db(abs(table[_]))
         pha = math.atan2(table[_].real, table[_].imag)
         print "%s %s %s" % (float(_) / len(table) * sample_rate, mag, pha)
@@ -142,26 +165,45 @@ def run_filter(flt, table):
     for _ in range(len(table)):
         newtable.append(flt.filter(table[_]))
 
-    return newtable
+    return newtable, abs(table[-1] - flt.filter(table[-1]))
 
 AMIGA_PAL_CLOCK = 3546895
-def main(spectrum=True):
+def main():
     spectrum = len(sys.argv) > 1
 
-    unfiltered = firwin(2048, 21000.0 / AMIGA_PAL_CLOCK * 2, window=('kaiser', 4.0))
+    # Because Amiga only has 84 dB SNR, the noise floor is low enough with -90 dB.
+    # A500 model uses slightly lower-quality kaiser window to obtain slightly
+    # steeper stopband attenuation. The fixed filters attenuates the sidelobes by
+    # 12 dB, compensating for the worse performance of the kaiser window.
+
+    # 21 kHz stopband is not fully attenuated by 22 kHz. If the sampling frequency
+    # is 44.1 kHz, all frequencies above 22 kHz will alias over 20 kHz, thus inaudible.
+    # The output should be aliasingless for 48 kHz sampling frequency.
+    unfiltered_a500  = firwin(2048, 21000.0 / AMIGA_PAL_CLOCK * 2, window=('kaiser', 8.0))
+    unfiltered_a1200 = firwin(2048, 21000.0 / AMIGA_PAL_CLOCK * 2, window=('kaiser', 9.0))
     # move filtering effects to start to allow IIRs more time to settle
-    unfiltered = fir_minphase(unfiltered)
+    unfiltered_a500  = fir_minphase(unfiltered_a500)
+    unfiltered_a1200 = fir_minphase(unfiltered_a1200)
 
     # make digital models for the filters on Amiga 500 and 1200.
-    filter_fixed6khz = make_rc_lopass(AMIGA_PAL_CLOCK, 4900.0)
+    filter_fixed5khz = make_rc_lopass(AMIGA_PAL_CLOCK, 4900.0)
+    # the leakage filter seems to reduce treble in both models a bit
+    # the A500 filter seems to be well modelled only with a 4.9 kHz
+    # filter although the component values would suggest 5 kHz filter.
     filter_leakage = make_rc_lopass(AMIGA_PAL_CLOCK, 32000.0)
-    filter_led = make_butterworth(AMIGA_PAL_CLOCK, 1600.0)
+    filter_led = make_butterworth(AMIGA_PAL_CLOCK, 3275.0, res_db=-0.70)
 
+    # apply fixed filter to A500
+    amiga500_off, error500_off = run_filter(filter_fixed5khz, unfiltered_a500)
     # produce the filtered outputs
-    amiga500_off = run_filter(filter_fixed6khz, unfiltered)
-    amiga1200_off = run_filter(filter_leakage, unfiltered)
-    amiga500_on = run_filter(filter_led, amiga500_off)
-    amiga1200_on = run_filter(filter_led, unfiltered)
+    amiga1200_off, error1200_off = run_filter(filter_leakage, unfiltered_a1200)
+
+    # produce LED filters
+    amiga500_on,  error500_on  = run_filter(filter_led, amiga500_off)
+    amiga1200_on, error1200_on = run_filter(filter_led, amiga1200_off)
+
+    # these values tell the error from truncating the run_filter() result at end.
+    # print "error term magnitudes: %s" % map(lin2db, (error500_off, error500_on, error1200_off, error1200_on))
 
     if not spectrum:
         # integrate to produce blep
@@ -169,19 +211,19 @@ def main(spectrum=True):
         amiga500_on = integrate(amiga500_on)
         amiga1200_off = integrate(amiga1200_off)
         amiga1200_on = integrate(amiga1200_on)
-        unfiltered = integrate(unfiltered)
+        unfiltered_a1200 = integrate(unfiltered_a1200)
     
     # quantize and scale
     amiga500_off = quantize(amiga500_off, bits=17, scale=(not spectrum))
     amiga500_on = quantize(amiga500_on, bits=17, scale=(not spectrum))
     amiga1200_off = quantize(amiga1200_off, bits=17, scale=(not spectrum))
     amiga1200_on = quantize(amiga1200_on, bits=17, scale=(not spectrum))
-    unfiltered = quantize(unfiltered, bits=17, scale=(not spectrum))
+    unfiltered_a1200 = quantize(unfiltered_a1200, bits=17, scale=(not spectrum))
 
     if spectrum:
         spec = int(sys.argv[1])
         if spec == -1:
-            table = unfiltered
+            table = unfiltered_a1200
         if spec == 0:
             table = amiga500_off
         if spec == 1:
@@ -191,6 +233,8 @@ def main(spectrum=True):
         if spec == 3:
             table = amiga1200_on
 
+        table = list(table);
+        table += [0] * (16384 - len(table))
         print_spectrum(fft(table), sample_rate=AMIGA_PAL_CLOCK)
     else:
         print " /*"
@@ -200,12 +244,12 @@ def main(spectrum=True):
         print '#include "sinctable.h"'
         print
         print "/* tables are: a500 off, a500 on, a1200 off, a1200 on, vanilla. */"
-        print "const int winsinc_integral[5][%d] = {" % len(unfiltered)
+        print "const int winsinc_integral[5][%d] = {" % len(unfiltered_a1200)
         print_fir(amiga500_off, format='c')
         print_fir(amiga500_on, format='c')
         print_fir(amiga1200_off, format='c')
         print_fir(amiga1200_on, format='c')
-        print_fir(unfiltered, format='c')
+        print_fir(unfiltered_a1200, format='c')
         print "};"
 
 if __name__ == '__main__':
