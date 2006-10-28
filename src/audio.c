@@ -475,7 +475,6 @@ void audio_set_filter(int filter_type, int filter_force)
   }
   sound_use_filter = filter_type;
 
-  gui_ledstate &= ~1;
   if (filter_force & 2) {
     gui_ledstate_forced = filter_force & 3;
     gui_ledstate = gui_ledstate_forced & 1;
