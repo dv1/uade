@@ -665,6 +665,9 @@ static void print_help(void)
   printf(" -w x, --subsong-timeout=x,  Set subsong timeout in seconds. -1 is infinite.\n");
   printf("                             Default is 512s\n");
   printf(" -x y, --ep-option=y, Use eagleplayer option y. Option can be used many times.\n");
+  printf("                      Example: uade123 -x type:nt10 mod.foobar, will play\n");
+  printf("                      mod.foobar as a Noisetracker 1.0 module. See eagleplayer\n");
+  printf("                      options from the man page.\n");
   printf(" -y x, --silence-timeout=x,  Set silence timeout in seconds. -1 is infinite.\n");
   printf("                         Default is 20s\n");
   printf(" -z, --shuffle,      Randomize playlist order before playing.\n");

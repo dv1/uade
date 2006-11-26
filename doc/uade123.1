@@ -242,7 +242,8 @@ Set subsong timeout to x seconds. -1 means infinite. Default is 512 seconds.
 Turn verbose mode on. This is useful for debugging strange situations.
 .TP
 \fB\-x, \-\-ep-option=\fRy
-Use eagleplayer option y. Example: uade123 -x type:pt11b mod.foo
+Use eagleplayer option y. For example, to force a module to be played as a
+Protracker 1.1b module, execute: uade123 -x type:pt11b mod.foobar
 .TP 
 \fB\-y\fR x\fB, \-\-silence\-timeout=\fRx.
 Set silence timeout to x seconds. If x seconds of silence is detected the
@@ -523,9 +524,10 @@ received from the eagleplayer (as opposed to file name):
 .SH "EAGLEPLAYER OPTIONS"
 Eagleplayers can be given song specific or general options in song.conf
 and eagleplayer.conf. Use epopt=x to set one option. It can be used many
-times. Options can also be used adhoc so that they're not stored into
-song.conf by using -x option in uade123. When using -x option, "epopt="
-part can be dropped.
+times. You can also issue eagleplayer options from the command line
+(so that they are not stored into song.conf) by using -x option:
+"uade123 -x type:nt10 mod.foobar" will play mod.foobar as a Noisetracker
+1.0 module. With -x option "epopt=" prefix must be dropped.
 .sp 1
 Valid options for eagleplayers:
 .sp 1
@@ -646,7 +648,7 @@ Play files under /path recursively in random order.
 .TP
 \fBuade123 \--set=epopt=type:pt10 mod.foo\fR
 .br
-Set protracker compatibility to Protracker 1.0c for mod.foo.
+Set protracker compatibility to Protracker 1.0c for mod.foo. See also -x.
 .SH "INFORMATION SOURCES"
 .TP
 .B Public web forum
