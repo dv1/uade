@@ -1,3 +1,6 @@
+2006-11-26  Heikki Orsila <heikki.orsila@iki.fi>
+	- Updated instructions about -x option in uade123 and its man page.
+
 2006-10-28  Antti S. Lankila <alankila@bel.fi>
 	- Due to me misunderstanding the Kaiser window beta parameter,
 	  the BLEP tables for sinc synthesis were set to attenuate aliasing
