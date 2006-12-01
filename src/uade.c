@@ -86,22 +86,21 @@ struct uade_ipc uadeipc;
 
 int uade_audio_skip;
 int uade_audio_output;
-int uade_debug = 0;
-int uade_read_size = 0;
+int uade_debug;
+int uade_read_size;
 int uade_reboot;
-int uade_time_critical = 0;
+int uade_time_critical;
 
-
-static int disable_modulechange = 0;
+static int disable_modulechange;
 static int old_ledstate;
 static int uade_big_endian;
-static int uade_dmawait = 0;
-static int uade_execdebugboolean = 0;
-static int uade_highmem = 0x200000;
+static int uade_dmawait;
+static int uade_execdebugboolean;
+static int uade_highmem;
 static char uade_player_dir[UADE_PATH_MAX];
 static struct uade_song song;
-static int uade_speed_hack = 0;
-static int voltestboolean = 0;
+static int uade_speed_hack;
+static int voltestboolean;
 
 static char epoptions[256];
 static size_t epoptionsize;
@@ -764,9 +763,11 @@ void uade_reset(void)
      played from the same initial state of emulator we clear the memory
      from 0x400 to 'uade_highmem' each time a new song is played */
   uade_highmem = 0;
-  while (uade_highmem < 0x200000) {
-    if (!valid_address(0, uade_highmem + 0x10000))
+  while (uade_highmem < 0x800000) {
+    if (!valid_address(0, uade_highmem + 0x10000)) {
+      printf("%d\n", uade_highmem);
       break;
+    }
     uade_highmem += 0x10000;
   }
   if (uade_highmem < 0x80000) {

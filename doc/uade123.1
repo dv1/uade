@@ -630,7 +630,12 @@ PREFIX/share/uade2/uade.conf or $(HOME)/.uade2/uade.conf
 Main configuration file
 .TP
 PREFIX/share/uade2/uaerc
-Configuration file for UAE.
+Configuration file for UAE. You can edit this file, for example, to increase
+emulated Amiga's memory. The variable named chipmem_size (4 by default)
+controls the memory allocation. The allocated memory size is determined by
+formula chipmem_size * 512 KiB, and thus, there is 2 MiB of memory available
+for modules by default. This variable can be set up to 16, which would mean
+8 MiB of memory for modules.
 .TP
 PREFIX/share/doc/uade-*
 UADE documentation

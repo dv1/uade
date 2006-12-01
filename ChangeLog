@@ -1,3 +1,11 @@
+2006-12-01  Heikki Orsila <heikki.orsila@iki.fi>
+	- Memory size of Amiga can now be increased over 2 MiB by editing
+	  the uaerc file (e.g. ~/.uade2/uaerc). The variable named chipmem_size
+	  should be edited. Allocated memory for the amiga is determined by
+	     chipmem_size * 512 KiB
+	  By default, chipmem_size = 4 -> 2 MiB of memory. This variable can
+	  be set up to 16 (8 MiB of memory).
+
 2006-11-26  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated instructions about -x option in uade123 and its man page.
 
