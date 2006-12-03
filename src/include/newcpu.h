@@ -121,11 +121,19 @@ static __inline__ uae_u32 get_iword_prefetch (uae_s32 o)
 }
 static __inline__ uae_u32 get_ilong_prefetch (uae_s32 o)
 {
+    union {
+        uae_u32 *u32;
+        uae_u16 *u16;
+    } prefetch_u;
+
     if (o > 3 || o < 0)
 	return do_get_mem_long((uae_u32 *)(regs.pc_p + o));
     if (o == 0)
 	return do_get_mem_long(&regs.prefetch);
-    return (do_get_mem_word (((uae_u16 *)&regs.prefetch) + 1) << 16) | do_get_mem_word ((uae_u16 *)(regs.pc_p + 4));
+
+    prefetch_u.u32 = &regs.prefetch;
+
+    return (do_get_mem_word (prefetch_u.u16 + 1) << 16) | do_get_mem_word ((uae_u16 *)(regs.pc_p + 4));
 }
 
 #define m68k_incpc(o) (regs.pc_p += (o))

@@ -1,3 +1,7 @@
+2006-12-03  Antti S. Laknila <alankila@bel.fi>
+	- Fixed a strict aliasing warning that occured with GCC 4.1 in
+	  newcpu.h
+
 2006-12-01  Heikki Orsila <heikki.orsila@iki.fi>
 	- Memory size of Amiga can now be increased over 2 MiB by editing
 	  the uaerc file (e.g. ~/.uade2/uaerc). The variable named chipmem_size
