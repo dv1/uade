@@ -764,10 +764,8 @@ void uade_reset(void)
      from 0x400 to 'uade_highmem' each time a new song is played */
   uade_highmem = 0;
   while (uade_highmem < 0x800000) {
-    if (!valid_address(0, uade_highmem + 0x10000)) {
-      printf("%d\n", uade_highmem);
+    if (!valid_address(0, uade_highmem + 0x10000))
       break;
-    }
     uade_highmem += 0x10000;
   }
   if (uade_highmem < 0x80000) {
