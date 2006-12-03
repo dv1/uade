@@ -216,9 +216,18 @@ Set filename of sound core. Experts only. Useful for debugging sound core
 related problems. Picking score file from earlier releases may help revealing
 the problem source.
 .TP
-\fB\-\-set=\fR"options"
-Set song.conf options for given songs. Songs are not played in this mode,
-only song.conf is updated. Example: uade123 --set="gain=2" foo.
+\fB\-\-set=\fR"option1 option2 ..."
+Set song.conf options for given songs. uade123 will not play anything if
+--set is used. --set makes uade123 remember song specific options for
+future playback. For example, this option is useful for working around
+bugs in ripped songs (and even uade ;-).
+Example: Set volume gain to 2 for mod.foo:
+.sp 1
+uade123 --set="gain=2" mod.foo.
+.sp 1
+Another example: Force mod.uptim8 to be played as a Startrekker 4 song:
+.sp 1
+uade123 --set="player=PTK-Prowiz epopt=type:flt4" mod.uptim8
 .TP 
 \fB\-\-speed\-hack\fR
 Enable speedhack. Emulate all instructions to be executed
