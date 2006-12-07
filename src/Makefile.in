@@ -33,7 +33,7 @@ uadecore:	$(OBJS)
 	$(CC) $(ARCHFLAGS) $(LIBRARIES) $(MATHLIB) -o $@ $(OBJS)
 
 clean:
-	-rm -f $(OBJS) *.o uade
+	-rm -f $(OBJS) *.o uadecore
 	-rm -f gencpu cpudefs.c
 	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
 
