@@ -361,13 +361,18 @@ if test -n "$sharedir"; then
 fi
 
 cd compat
-echo "#include <string.h>" > ../src/include/strlrep.h
-echo "" > ../src/strlrep.c
+rm -f strltest
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
-if test "$?" != "0" ; then
+if test -e "strltest" ; then
+    echo "#include <string.h>" > ../src/include/strlrep.h
+    echo "" > ../src/strlrep.c
+else
     cp strlrep.c ../src/
     cp strlrep.h ../src/include/
 fi
+cd ..
+
+cd compat
 rm -f ../src/include/stdint.h
 cat > stdinttest.c <<EOF
 #include <stdint.h>
