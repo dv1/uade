@@ -1,3 +1,7 @@
+2006-12-22  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added Jochen Hippel ST player from Don Adan / Wanted Team. It
+	  recognizes HST.* files.
+
 2006-12-07  Antti S. Lankila <alankila@bel.fi>
 	- Remove uadecore with make clean
 
