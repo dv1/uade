@@ -1,3 +1,8 @@
+2007-01-11  Antti S. Lankila <alankila@bel.fi>
+	- Correct some ancient mistakes in uade123.1, regarding filter
+	  operation. For instance the LED filter center frequency was
+	  reported halved due to an earlier mistake in graph drawing
+
 2006-12-22  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added Jochen Hippel ST player from Don Adan / Wanted Team. It
 	  recognizes HST.* files
