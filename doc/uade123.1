@@ -563,9 +563,10 @@ possible to generate a 1,75 MHz output signal. However, maximum DMA based
 sample rate, which is approximately 28876 Hz, is limited by chip memory
 access slots. These frequencies are not well supported with current
 computer equipment, and synthesizing samples at 3,5 MHz would be very slow.
-Therefore UADE samples Paula's output at 3.5 MHz and then resamples it
-for playback at 44.1 kHz, or roughly 1/80th of the sample rate of Paula.
-This output frequency is configurable, see
+Regardless, in principle UADE "samples" Paula's output at 3,5 MHz and then
+immediately resamples it to playback frequency, which is usually 44,1 kHz or
+1/80th of the sample rate of Paula. This output frequency is configurable,
+see
 .BR uade.conf
 section.
 .sp 1
@@ -581,9 +582,8 @@ low-pass filtering the audio with a sinc function.
 .sp 1
 The default resampler is a very good choice because it is pretty accurate
 and very fast, but loses some treble and causes some aliasing distortion.
-For high frequencies (above 44,1 kHz), sinc might give the best sound quality.
-In fact, sinc does not work well for any synthesis frequency less than 44.1
-kHz because the cutoff filter is fixed at 21 kHz.
+For high frequencies (above 44,1 kHz), sinc becomes an option and is probably
+the best choice.
 .SH "FILTERS"
 The Amiga output circuitry contains a fixed low-pass filter on most models,
 and a dynamic lowpass filter connected to the power LED (known as the
@@ -595,36 +595,41 @@ added on the audio output. Finally, for Amiga 1200, the static filter was
 removed altogether, and only the LED filter remains.
 .sp 1
 These low-pass filters were most likely added in order to make Amiga's
-pulse-based audio sound softer, and make lower sampling frequencies useful
-for audio playback. By removing some of the treble, the hard edges of a
-pulse waveform become rounder and the waveform undulates more smoothly,
-mimicking most instrument sounds more accurately.
+pulse-based audio sound softer, and to make lower sampling frequencies
+useful for audio playback: by removing some of the treble, the hard
+edges of a pulse waveform become rounder and the waveform undulates
+more smoothly, mimicking many instrument sounds more accurately at lower
+sampling rates. The downside of fixed filtering is that the smoothing
+occurs with all the higher sampling rates, too.
 .sp 1
-However, with the introduction of Amiga 1200 and its AGA graphics modes,
-it became possible to read more than 28876 samples per second from chip
-memory, and we guess that the lowpass filter was removed alltogether in
-favour for accurate treble response for these high-end graphics modes.
+However, with the introduction of Amiga 1200 and its AGA graphics modes
+and spacious chip memory, it became possible to read more than 28876
+samples per second from chip memory, and we guess that the fixed lowpass
+filter was removed entirely in favour for accurate treble response.
 .sp 1
 The filter emulation is based on hi-fi measurements made on two particular
-Amiga computers, Amiga 500 and Amiga 1200. The Amiga 500 output path
-contains a fixed 6 dB/oct lowpass RC filter circuit with cutoff at 5000 Hz.
+Amiga computers, Amiga 500 and Amiga 1200. The Amiga 500 output path was
+found to contain a 6 dB/oct lowpass RC filter circuit with cutoff at 5000 Hz.
 (Some early Amiga 500 revisions may have had 4500 Hz tuning for this filter.)
-The LED filter is known to be a 12 dB/oct Butterworth lowpass filter with
+The LED filter was found to be a 12 dB/oct Butterworth lowpass filter with
 cutoff value at approximately 3300 Hz. The details of the Amiga 1000 filter
-arrangements are not known.
+arrangements are not known, because nobody has been able to provide any
+samples.
 .sp 1
-Straightforward emulation of analog filters is usually not possible without
-some upsampling. Therefore the filters in "anti" mode are currently realised
-with several hand-fitted first order IIR filters that approximate the
-correct frequency response for the expected synthesis frequencies of
-44,1 kHz and 48 kHz.
+Accurate digital simulation of analog filters is usually not possible
+without some upsampling. When "default" method is used, the samples are
+generated at the playback frequency, and the post-processing step that
+applies filtering is composed with a series of hand-fitted first-order
+IIR filters that together approximate the correct frequency response
+for the expected synthesis frequencies of 44,1 kHz or 48 kHz.
 .sp 1
 The sinc resampling method, in turn, emulates the filters directly
-at Paula's 3.5 MHz sampling frequency by folding the filters directly
+at Paula's 3,5 MHz sampling frequency by folding the filters directly
 into the shape of the fundamental synthesis unit, the BLEP. In the sinc
-mode, the filters are realised by fitting digital models for
+mode, the filters are realised by fitting the digital models for
 (slightly modified) butterworth and RC filters with the parameters
-mentioned above.
+mentioned above. Therefore sinc can be used on all frequencies above
+44.1 kHz without quality loss (or increase, for that matter).
 .SH "UAERC"
 You can edit PREFIX/share/uaerc to edit Amiga emulation related
 variable.
