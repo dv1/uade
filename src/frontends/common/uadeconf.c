@@ -31,6 +31,7 @@ static int uade_set_subsong_timeout(struct uade_config *uc, const char *value);
 static int uade_set_timeout(struct uade_config *uc, const char *value);
 
 
+/* Map an uade.conf option to an enum */
 static enum uade_option map_str_to_option(const char *key)
 {
   size_t i;
@@ -41,6 +42,8 @@ static enum uade_option map_str_to_option(const char *key)
     enum uade_option e;
   };
 
+  /* List of uade.conf options. The list includes option name, minimum
+     string match length for the option name and its enum code. */
   struct optlist ol[] = {
     {.str = "action_keys",      .l = 1,  .e = UC_ACTION_KEYS},
     {.str = "buffer_time",      .l = 1,  .e = UC_BUFFER_TIME},
@@ -167,22 +170,26 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
     int o;
     char *v;
   };
+
+  /* List of eagleplayer.conf and song.conf options that are mapped directly
+     to a counterpart in uade.conf options */
   struct atcon optlist[] = {
-    {.f = ES_A500,              .o = UC_FILTER_TYPE,       .v = "a500"},
-    {.f = ES_A1200,             .o = UC_FILTER_TYPE,       .v = "a1200"},
-    {.f = ES_ALWAYS_ENDS,       .o = UC_DISABLE_TIMEOUTS},
-    {.f = ES_BROKEN_SONG_END,   .o = UC_NO_EP_END},
-    {.f = ES_CONTENT_DETECTION, .o = UC_CONTENT_DETECTION},
-    {.f = ES_LED_OFF,           .o = UC_FORCE_LED_OFF},
-    {.f = ES_LED_ON,            .o = UC_FORCE_LED_ON},
-    {.f = ES_NO_FILTER,         .o = UC_NO_FILTER},
-    {.f = ES_NO_HEADPHONES,     .o = UC_NO_HEADPHONES},
-    {.f = ES_NO_PANNING,        .o = UC_NO_PANNING},
-    {.f = ES_NO_POSTPROCESSING, .o = UC_NO_POSTPROCESSING},
-    {.f = ES_NTSC,              .o = UC_NTSC},
-    {.f = ES_ONE_SUBSONG,       .o = UC_ONE_SUBSONG},
-    {.f = ES_PAL,               .o = UC_PAL},
-    {.f = ES_SPEED_HACK,        .o = UC_SPEED_HACK},
+    {.f = ES_A1200,               .o = UC_FILTER_TYPE,       .v = "a1200"},
+    {.f = ES_A500,                .o = UC_FILTER_TYPE,       .v = "a500"},
+    {.f = ES_ALWAYS_ENDS,         .o = UC_DISABLE_TIMEOUTS},
+    {.f = ES_BROKEN_SONG_END,     .o = UC_NO_EP_END},
+    {.f = ES_CONTENT_DETECTION,   .o = UC_CONTENT_DETECTION},
+    {.f = ES_IGNORE_PLAYER_CHECK, .o = UC_IGNORE_PLAYER_CHECK},
+    {.f = ES_LED_OFF,             .o = UC_FORCE_LED_OFF},
+    {.f = ES_LED_ON,              .o = UC_FORCE_LED_ON},
+    {.f = ES_NO_FILTER,           .o = UC_NO_FILTER},
+    {.f = ES_NO_HEADPHONES,       .o = UC_NO_HEADPHONES},
+    {.f = ES_NO_PANNING,          .o = UC_NO_PANNING},
+    {.f = ES_NO_POSTPROCESSING,   .o = UC_NO_POSTPROCESSING},
+    {.f = ES_NTSC,                .o = UC_NTSC},
+    {.f = ES_ONE_SUBSONG,         .o = UC_ONE_SUBSONG},
+    {.f = ES_PAL,                 .o = UC_PAL},
+    {.f = ES_SPEED_HACK,          .o = UC_SPEED_HACK},
     {.f = 0}
   };
   size_t i;

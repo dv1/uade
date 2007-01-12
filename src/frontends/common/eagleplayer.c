@@ -1,6 +1,6 @@
 /* UADE
  *
- * Copyright 2005 Heikki Orsila <heikki.orsila@iki.fi>
+ * Copyright 2005-2007 Heikki Orsila <heikki.orsila@iki.fi>
  *
  * Loads contents of 'eagleplayer.conf' and 'song.conf'. The file formats are
  * specified in doc/uade123.1.
@@ -49,6 +49,7 @@ static struct eagleplayerstore *playerstore;
 
 
 static int ufcompare(const void *a, const void *b);
+static struct eagleplayerstore *read_eagleplayer_conf(const char *filename);
 
 
 static struct eagleplayer *analyze_file_format(int *content,
@@ -96,12 +97,14 @@ static struct eagleplayer *analyze_file_format(int *content,
   if (playerstore == NULL) {
     char formatsfile[PATH_MAX];
     snprintf(formatsfile, sizeof(formatsfile), "%s/eagleplayer.conf", basedir);
-    if ((playerstore = uade_read_eagleplayer_conf(formatsfile)) == NULL) {
+    if ((playerstore = read_eagleplayer_conf(formatsfile)) == NULL) {
       if (warnings)
 	fprintf(stderr, "Tried to load eagleplayer.conf from %s, but failed\n", formatsfile);
       warnings = 0;
       return NULL;
     }
+    if (verbose)
+      fprintf(stderr, "Loaded eagleplayer.conf: %s\n", formatsfile);
   }
 
   /* if filemagic found a match, we'll use player plugins associated with
@@ -170,6 +173,7 @@ int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
     {.s = "always_ends",     .e = ES_ALWAYS_ENDS},
     {.s = "broken_song_end", .e = ES_BROKEN_SONG_END},
     {.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION},
+    {.s = "ignore_player_check", .e = ES_IGNORE_PLAYER_CHECK},
     {.s = "led_off",         .e = ES_LED_OFF},
     {.s = "led_on",          .e = ES_LED_ON},
     {.s = "never_ends",      .e = ES_NEVER_ENDS},
@@ -374,7 +378,7 @@ struct eagleplayer *uade_get_eagleplayer(const char *extension,
 
 
 /* Read eagleplayer.conf. */
-struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
+static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 {
   FILE *f;
   struct eagleplayer *p;
@@ -519,6 +523,8 @@ struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename)
   assert(exti == ps->nextensions);
 
   qsort(ps->map, ps->nextensions, sizeof(ps->map[0]), ufcompare);
+
+
 
   return ps;
 

@@ -1,3 +1,10 @@
+2007-01-12  Heikki Orsila <heikki.orsila@iki.fi>
+	- Added "ignore_player_check" option for eagleplayer.conf and
+	  song.conf. It is useful with bad eagleplayers and rips. This
+	  feature was requested for use with CustomMade player and therefore
+	  this option will also be made default for that player. See the
+	  new eagleplayer.conf.
+
 2007-01-11  Antti S. Lankila <alankila@bel.fi>
 	- Correct some ancient mistakes in uade123.1, regarding filter
 	  operation. For instance the LED filter center frequency was

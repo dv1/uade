@@ -7,33 +7,35 @@
 
 #include "uadeconfstructure.h"
 
-
-#define ES_A500              (1 <<  0)
-#define ES_A1200             (1 <<  1)
-#define ES_ALWAYS_ENDS       (1 <<  2)
-#define ES_BROKEN_SONG_END   (1 <<  3)
-#define ES_CONTENT_DETECTION (1 <<  4)
-#define ES_EP_OPTION         (1 <<  5)
-#define ES_GAIN              (1 <<  6)
-#define ES_RESAMPLER         (1 <<  7)
-#define ES_LED_OFF           (1 <<  8)
-#define ES_LED_ON            (1 <<  9)
-#define ES_NEVER_ENDS        (1 << 10)
-#define ES_NO_FILTER         (1 << 11)
-#define ES_NO_HEADPHONES     (1 << 12)
-#define ES_NO_PANNING        (1 << 13)
-#define ES_NO_POSTPROCESSING (1 << 14)
-#define ES_NTSC              (1 << 15)
-#define ES_ONE_SUBSONG       (1 << 16)
-#define ES_PAL               (1 << 17)
-#define ES_PANNING           (1 << 18)
-#define ES_PLAYER            (1 << 19)
-#define ES_REJECT            (1 << 20)
-#define ES_SILENCE_TIMEOUT   (1 << 21)
-#define ES_SPEED_HACK        (1 << 22)
-#define ES_SUBSONGS          (1 << 23)
-#define ES_SUBSONG_TIMEOUT   (1 << 24)
-#define ES_TIMEOUT           (1 << 25)
+/* We maintain alphabetical order even if that forces us to renumber bits
+   when a new option is added */
+#define ES_A1200               (1 <<  0)
+#define ES_A500                (1 <<  1)
+#define ES_ALWAYS_ENDS         (1 <<  2)
+#define ES_BROKEN_SONG_END     (1 <<  3)
+#define ES_CONTENT_DETECTION   (1 <<  4)
+#define ES_EP_OPTION           (1 <<  5)
+#define ES_GAIN                (1 <<  6)
+#define ES_IGNORE_PLAYER_CHECK (1 <<  7)
+#define ES_LED_OFF             (1 <<  8)
+#define ES_LED_ON              (1 <<  9)
+#define ES_NEVER_ENDS          (1 << 10)
+#define ES_NO_FILTER           (1 << 11)
+#define ES_NO_HEADPHONES       (1 << 12)
+#define ES_NO_PANNING          (1 << 13)
+#define ES_NO_POSTPROCESSING   (1 << 14)
+#define ES_NTSC                (1 << 15)
+#define ES_ONE_SUBSONG         (1 << 16)
+#define ES_PAL                 (1 << 17)
+#define ES_PANNING             (1 << 18)
+#define ES_PLAYER              (1 << 19)
+#define ES_REJECT              (1 << 20)
+#define ES_RESAMPLER           (1 << 21)
+#define ES_SILENCE_TIMEOUT     (1 << 22)
+#define ES_SPEED_HACK          (1 << 23)
+#define ES_SUBSONGS            (1 << 24)
+#define ES_SUBSONG_TIMEOUT     (1 << 25)
+#define ES_TIMEOUT             (1 << 26)
 
 
 #define UADE_WS_DELIMITERS " \t\n"
@@ -113,7 +115,6 @@ struct eagleplayer *uade_get_eagleplayer(const char *extension,
 					 struct eagleplayerstore *playerstore);
 int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 			 char *item, size_t lineno);
-struct eagleplayerstore *uade_read_eagleplayer_conf(const char *filename);
 char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
 		       const char *delimiters);
 
