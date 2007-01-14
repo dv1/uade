@@ -1,3 +1,21 @@
+2007-01-14  Heikki Orsila <heikki.orsila@iki.fi>
+	* PREPARING A RELEASE
+	- Added Jochen Hippel ST player (hst.* files)
+	- Updated Mark Cookset replayer with a new version from Don Adan of
+	  Wanted Team
+	- It's now possible to command an eagleplayer listed in
+	  eagleplayer.conf to ignore file type check. This is useful
+	  with the CustomMade replayer as it rejects some valid song files.
+	  See the change log entry from 2007-01-02 and the man page
+	  about song.conf and eagleplayer.conf.
+	- Cygwin work-around (locking on song contents db is broken). Does
+	  NOT affect unixes.
+	- Amiga memory size can now be configured properly from ~/.uade2/uaerc.
+	  This is useful with big sound files (rare).
+	- Man page updates about filters
+	- GCC 4.x clean ups
+	- Updated installation instructions
+
 2007-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added "ignore_player_check" option for eagleplayer.conf and
 	  song.conf. It is useful with bad eagleplayers and rips. This
