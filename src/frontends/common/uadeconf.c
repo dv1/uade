@@ -59,6 +59,7 @@ static enum uade_option map_str_to_option(const char *key)
     {.str = "gain",             .l = 1,  .e = UC_GAIN},
     {.str = "headphones",       .l = 11, .e = UC_HEADPHONES},
     {.str = "headphones2",      .l = 11, .e = UC_HEADPHONES2},
+    {.str = "headphone",        .l = 11, .e = UC_HEADPHONES},
     {.str = "ignore_player_check", .l = 2, .e = UC_IGNORE_PLAYER_CHECK},
     {.str = "interpolator",     .l = 2,  .e = UC_RESAMPLER},
     {.str = "magic_detection",  .l = 1,  .e = UC_CONTENT_DETECTION},
