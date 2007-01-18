@@ -21,6 +21,7 @@
 	  uade.conf was obsoleted at 2006-05-13, the new option name
 	  became "headphones". The backward compatibility is retained
 	  again and thus "headphone" option will work to some future.
+	- Fixed several missing cvs sticky bits (-kb) in players/ dir
 
 2007-01-15  Michael Doering <mld@users.sourceforge.net>
 	- Made "detect_format_by_content" parameter for modfiles default.
