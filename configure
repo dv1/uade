@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=2.03
+VERSION=2.04
 IPC_PROTOCOL_VERSION=1
 
 if test -n "$CC"; then
