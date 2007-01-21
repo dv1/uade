@@ -1,6 +1,7 @@
-2007-01-xx  Heikki Orsila <heikki.orsila@iki.fi>
-	* PREPARING A RELEASE
+2007-01-21  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.04 (Defective by Design .org)
 	- Added Jochen Hippel ST player (hst.* files)
+	- Added Quartet player from Don Adan / Wanted Team (qpa.* files)
 	- Updated Mark Cookset replayer with a new version from Don Adan of
 	  Wanted Team
 	- It's now possible to command an eagleplayer listed in
@@ -12,8 +13,11 @@
 	  NOT affect unixes.
 	- Amiga memory size can now be configured properly from ~/.uade2/uaerc.
 	  This is useful with big sound files (rare).
+	- Fixed the sinc filter, it had a bug that made it less accurate
 	- Man page updates about filters
 	- GCC 4.x clean ups
+	- Small bug fixes. The default uade.conf had a deprecated option
+	  in comments. It was removed.
 	- Updated installation instructions
 
 2007-01-18  Heikki Orsila <heikki.orsila@iki.fi>
