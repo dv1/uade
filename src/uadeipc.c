@@ -16,7 +16,7 @@
 
 #include <uadeipc.h>
 #include <strlrep.h>
-#include <ipcsupport.h>
+#include <ossupport.h>
 #include <sysincludes.h>
 
 

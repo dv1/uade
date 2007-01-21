@@ -25,7 +25,7 @@ OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
        missing.o sd-sound.o md-support.o cfgfile.o fpp.o debug.o \
        readcpu.o cpudefs.o $(CPUEMUOBJS) \
        uade.o strlrep.o uadeipc.o unixatomic.o ossupport.o \
-       ipcsupport.o uademain.o sinctable.o
+       uademain.o sinctable.o
 
 all:	uadecore
 
@@ -139,7 +139,5 @@ uade.o: include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h
 uadeipc.o:	include/uadeipc.h
 
 ossupport.o:	include/uade.h ossupport.c {OSSUPPORTMODULES}
-
-ipcsupport.o:	include/uade.h ipcsupport.c include/ipcsupport.h {IPCSUPPORTMODULES}
 
 unixatomic.o:	include/sysincludes.h include/unixatomic.h

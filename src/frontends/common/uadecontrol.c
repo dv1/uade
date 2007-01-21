@@ -15,10 +15,10 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/socket.h>
 
 #include "uadecontrol.h"
-#include "uadeipc.h"
-#include "unixatomic.h"
+#include "ossupport.h"
 #include "sysincludes.h"
 #include "uadeconstants.h"
 
@@ -221,62 +221,13 @@ int uade_song_initialization(const char *scorename,
 void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
 		const char *configname)
 {
-  int forwardfds[2];
-  int backwardfds[2];
-
-  if (pipe(forwardfds) != 0 || pipe(backwardfds) != 0) {
-    fprintf(stderr, "Can not create pipes: %s\n", strerror(errno));
-    exit(-1);
-  }
- 
-  *uadepid = fork();
-  if (*uadepid < 0) {
-    fprintf(stderr, "Fork failed: %s\n", strerror(errno));
-    exit(-1);
-  }
-  if (*uadepid == 0) {
-    int fd;
-    char instr[32], outstr[32];
-    int maxfds;
-
-    if ((maxfds = sysconf(_SC_OPEN_MAX)) < 0) {
-      maxfds = 1024;
-      fprintf(stderr, "Getting max fds failed. Using %d.\n", maxfds);
-    }
-
-    /* close everything else but stdin, stdout, stderr, and in/out fds */
-    for (fd = 3; fd < maxfds; fd++) {
-      if (fd != forwardfds[0] && fd != backwardfds[1])
-	atomic_close(fd);
-    }
-    /* give in/out fds as command line parameters to the uade process */
-    snprintf(instr, sizeof(instr), "fd://%d", forwardfds[0]);
-    snprintf(outstr, sizeof(outstr), "fd://%d", backwardfds[1]);
-    execlp(uadename, uadename, "-i", instr, "-o", outstr, (char *) NULL);
-    fprintf(stderr, "Execlp failed: %s\n", strerror(errno));
-    abort();
-  }
-
-  /* close fd that uade reads from and writes to */
-  if (atomic_close(forwardfds[0]) < 0 || atomic_close(backwardfds[1]) < 0) {
-    fprintf(stderr, "Could not close uade fds: %s\n", strerror(errno));
-    kill (*uadepid, SIGTERM);
-    *uadepid = 0;
-    exit(-1);
-  }
-
-  do {
-    char input[64], output[64];
-    snprintf(output, sizeof output, "fd://%d", forwardfds[1]);
-    snprintf(input, sizeof input, "fd://%d", backwardfds[0]);
-    uade_set_peer(ipc, 1, input, output);
-  } while (0);
+  uade_arch_spawn(ipc, uadepid, uadename);
 
   if (uade_send_string(UADE_COMMAND_CONFIG, configname, ipc)) {
     fprintf(stderr, "Can not send config name: %s\n", strerror(errno));
     kill(*uadepid, SIGTERM);
     *uadepid = 0;
-    exit(-1);
+    abort();
   }
 }
 

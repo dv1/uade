@@ -1,4 +1,11 @@
 2007-01-21  Heikki Orsila <heikki.orsila@iki.fi>
+	- Merge unixipc.c and unixsupport.c. Modularise uadecore spawn into
+	  unixsupport.c.
+	- Move from pipe based IPC communication to UNIX socket based
+	  communication. This solves a scheduling problem for some 2.6.x Linux
+	  kernels.
+
+2007-01-21  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.04 (Defective by Design .org)
 	- Added Jochen Hippel ST player (hst.* files)
 	- Added Quartet player from Don Adan / Wanted Team (qpa.* files)
