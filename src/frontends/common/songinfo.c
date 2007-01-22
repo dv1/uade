@@ -504,7 +504,7 @@ static int process_module(char *credits, size_t credits_len, char *filename)
 	     (strcasecmp(pre, "MOD_FLT8") == 0) ||
 	     (strcasecmp(pre, "MOD_ADSC4") == 0) ||
 	     (strcasecmp(pre, "MOD_ADSC8") == 0) ||
-	     (strcasecmp(pre, "MOD_PTKCOMP") == 0) ||
+	     (strcasecmp(pre, "MOD_COMP") == 0) ||
 	     (strcasecmp(pre, "MOD_NTKAMP") == 0) ||
   	     (strcasecmp(pre, "PPK") == 0) ||
 	     (strcasecmp(pre, "MOD_PC") == 0) ||

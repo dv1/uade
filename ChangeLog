@@ -1,3 +1,6 @@
+2007-01-22  Michael Doering <mld@users.sourceforge.net>
+	- Fixed songinfo for mods detected as Protracker compatible
+
 2007-01-21  Heikki Orsila <heikki.orsila@iki.fi>
 	- Merge unixipc.c and unixsupport.c. Modularise uadecore spawn into
 	  unixsupport.c.
@@ -38,7 +41,7 @@
 	- Made "detect_format_by_content" parameter for modfiles default.
 	  This way only true Amiga 4ch mod files now get played.
 	- Added Quartet player from Don Adan / Wanted Team. It recognizes
-	  QBA.* files.
+	  QPA.* files.
 
 2007-01-12  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added "ignore_player_check" option for eagleplayer.conf and
