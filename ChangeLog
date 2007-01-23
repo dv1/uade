@@ -1,3 +1,8 @@
+2007-01-24  Heikki Orsila <heikki.orsila@iki.fi>
+	- Fixed compilation for platforms that lack memmem(), such as Mac.
+	  The compilation bug was introduced at 2007-01-21 when unixipc
+	  and unixsupport were merged.
+
 2007-01-22  Michael Doering <mld@users.sourceforge.net>
 	- Fixed songinfo for mods detected as Protracker compatible
 
