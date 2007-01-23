@@ -453,6 +453,7 @@ cd compat
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o memmemtest memmemtest.c 2>/dev/null
 if test "$?" != "0" ; then
     cat memmemrep.h >> ../src/include/ossupport.h
+    cat memmemrep.c >> ../src/ossupport.c
     echo "Using memmem() replacement."
 fi
 
