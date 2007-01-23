@@ -30,7 +30,7 @@ OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
 all:	uadecore
 
 uadecore:	$(OBJS)
-	$(CC) $(ARCHFLAGS) $(LIBRARIES) $(MATHLIB) -o $@ $(OBJS)
+	$(CC) $(ARCHFLAGS) -o $@ $(OBJS) $(LIBRARIES)
 
 clean:
 	-rm -f $(OBJS) *.o uadecore
@@ -40,10 +40,10 @@ clean:
 # First native builds
 
 build68k: build68k.o
-	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o build68k build68k.o
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o $@ build68k.o
 
 gencpu:	gencpu.o nativereadcpu.o nativecpudefs.o nativemissing.o
-	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o gencpu gencpu.o nativereadcpu.o nativecpudefs.o nativemissing.o
+	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -o $@ gencpu.o nativereadcpu.o nativecpudefs.o nativemissing.o
 
 build68k.o:	build68k.c include/readcpu.h
 	$(NATIVECC) $(NATIVECFLAGS) $(INCLUDES) -c $<

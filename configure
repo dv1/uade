@@ -235,7 +235,7 @@ if test -n "$OS" && test "$OS" = "MorphOS"; then
 elif test -n "$OS" && test "$OS" = "AmigaOS"; then
     echo
     echo "Configuring for AmigaOS 4."
-    ARCHFLAGS="$ARCHFLAGS"
+    ARCHFLAGS="$ARCHFLAGS -lnet -lauto"
     usexmms="no"
     useaudacious="no"
 elif test -n "$OS" && test "$OS" = "Darwin"; then
