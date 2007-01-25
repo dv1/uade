@@ -1,3 +1,10 @@
+2007-01-25  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.05 (It came from the Paula)
+	- This release workarounds scheduler features of some 2.6.x Linux
+	  kernels. IPC method was changed to use sockets instead of pipes,
+	  which significantly reduces buffer underruns. This is really the
+	  only change affecting scheduling! Weird.
+
 2007-01-24  Heikki Orsila <heikki.orsila@iki.fi>
 	- Fixed compilation for platforms that lack memmem(), such as Mac.
 	  The compilation bug was introduced at 2007-01-21 when unixipc
