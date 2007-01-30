@@ -538,14 +538,14 @@ void uade_mod_info(char *credits, int creditslen)
 	gtk_container_add(GTK_CONTAINER(modinfowin), modinfo_base_vbox);
 
 	uadeplay_scrolledwindow = gtk_scrolled_window_new(NULL, NULL);
-	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 240);
+	gtk_widget_set_usize(uadeplay_scrolledwindow, 600, 256);
 
 	gtk_container_add(GTK_CONTAINER(modinfo_base_vbox),
 			  uadeplay_scrolledwindow);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW
 				       (uadeplay_scrolledwindow),
-				       GTK_POLICY_NEVER,
-				       GTK_POLICY_ALWAYS);
+				       GTK_POLICY_AUTOMATIC,
+				       GTK_POLICY_AUTOMATIC);
 
 	uadeplay_textview = gtk_text_view_new();
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(uadeplay_textview), FALSE);
@@ -558,8 +558,8 @@ void uade_mod_info(char *credits, int creditslen)
 
 	gtk_text_buffer_get_iter_at_offset(GTK_TEXT_BUFFER(uadeplay_textbuffer), &textIter,0);
 	gtk_text_buffer_create_tag (uadeplay_textbuffer, "monospaced", 
-				    "family", "monospace",
-				     "wrap_mode", GTK_WRAP_WORD,
+				    "family", "Monospace",
+				     "wrap_mode", GTK_WRAP_NONE,
 				     NULL);
 
 	gtk_text_buffer_insert_with_tags_by_name(uadeplay_textbuffer,

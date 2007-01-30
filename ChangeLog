@@ -1,3 +1,7 @@
+2007-01-30  Michael Doering <mld@users.sourceforge.net>
+	- Changed Scrollbar policy for audacious modinfo to avoid
+          ugly line breaking in hexmode
+
 2007-01-25  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.05 (It came from the Paula)
 	- This release workarounds scheduler features of some 2.6.x Linux
