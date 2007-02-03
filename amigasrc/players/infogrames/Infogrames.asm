@@ -1,3 +1,4 @@
+;               T
 
 dtg_AudioAlloc	EQU	$4C
 DTP_Check2	EQU	$8000445C
@@ -139,6 +140,54 @@ CheckFormat	MOVE.L	A5,(Delibase)	;check that file is infogrames format
 lbC0001B8	MOVEQ	#-1,D0
 	RTS
 
+timerlist
+* gobliins 2
+	dc.l	$752ab846,2850,$24ff
+	dc.l	$c0691337,3634,$24ff
+	dc.l	$e19fe7a1,4211,$24ff
+	dc.l	$0b0f2eba,3305,$24ff
+* end list
+	dc.l	0,0,0
+
+masklist	dc.l	0,$ff000000,$ffff0000,$ffffff00
+
+determine_timer_value
+	movem.l	d0-a6,-(a7)
+	move.l	delibase,a5
+
+	* set default timer value
+	MOVE.W	#$1A00,(dtg_Timer,A5)
+
+	* compute sum32
+	MOVE.L	(dtg_ChkData,A5),A0
+	MOVE.L	(dtg_ChkSize,A5),D1
+	moveq	#0,d0
+sum32loop	cmp.l	#4,d1
+	blt.b	lessthan4
+	add.l	(a0)+,d0
+	subq.l	#4,d1
+	bra.b	sum32loop
+lessthan4	lsl	#2,d1
+	move.l	masklist(pc,d1),d1
+	and.l	(a0),d1
+	add.l	d1,d0
+
+	* look up sum32/filesize in timerlist
+	move.l	dtg_ChkSize(a5),d1
+	lea	timerlist,a0
+timerlistloop	move.l	(a0)+,d2	* sum32
+	move.l	(a0)+,d3	* file size
+	beq.b	outoftimercheck
+	move.l	(a0)+,d4	* timer value
+	cmp.l	d0,d2
+	bne.b	timerlistloop
+	cmp.l	d1,d3
+	bne.b	timerlistloop
+	move	d4,dtg_Timer(a5)
+outoftimercheck
+	movem.l	(a7)+,d0-a6
+	rts
+
 InitPlayer	MOVE.L	(DumFilePtr,PC),A0
 	MOVE.L	A0,(DumFilePtr2)
 	MOVE.W	(A0),D0
@@ -168,7 +217,7 @@ PlayBoolean	dc.w	0
 ; InitSound is buggy. It doesn't read subsong number from delibase to initialise subsong
 InitSound	MOVEM.L	D1-D7/A0-A6,-(SP)
 	CLR.W	(PlayBoolean)
-	MOVE.W	#$1A00,(dtg_Timer,A5)	;set interrupt frequency
+	bsr	determine_timer_value
 	MOVE.L	(DumFilePtr2,PC),-(SP)
 	MOVE.W	(Subsong,PC),-(SP)
 	BSR.W	lbC0003DE
@@ -458,11 +507,9 @@ lbC0005C4	MOVEM.L	D0-D3/A0/A1,-(SP)
 	MOVE.L	D3,(A1,D1.W)	;set sample pointer
 	MOVE.W	(12,A0,D0.W),(4,A1,D1.W)	;set sample length
 	MOVE.W	D2,($DFF096)	;kill channel audio dma
-	MOVE.W	#$AA,D3
 	BSR.W	Wait_Audio_DMA_Hardware_To_Reset
 	OR.W	#$8200,D2	;Audio DMA enable mask
 	MOVE.W	D2,($DFF096)	;Enable Audio DMA with new values
-	MOVE.W	#$64,D3
 	BSR.W	Wait_Audio_DMA_Hardware_To_Reset
 	MOVE.L	(4,A0,D0.W),D3
 	ADD.L	A0,D3
