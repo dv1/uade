@@ -1,3 +1,10 @@
+2007-02-03  Heikki Orsila <heikki.orsila@iki.fi>
+	- Disassembled Andy Silvas Infogrames replayer, added a work-around
+	  list for Gobliins 2 songs to fix tempo. Thanks to Sven Hesse of
+	  ScummVM project for letting us know of the tempo problem.
+	  The next thing to do is go through all Infogrames games with UAE
+	  and record the tempo value for each song? Any volunteers?-)
+
 2007-01-30  Michael Doering <mld@users.sourceforge.net>
 	- Changed Scrollbar policy for audacious modinfo to avoid
           ugly line breaking in hexmode
