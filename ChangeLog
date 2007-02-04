@@ -1,6 +1,12 @@
 2007-02-04  Michael Doering <mld@users.sourceforge.net>
-	- Added sanity chedck to query eagleopts in PTK-Prowiz (needed for score fix)
-
+	- Added sanity chedck to query eagleopts in PTK-Prowiz (needed for
+	  score fix)
+	- Added a new uade.library method: UadeNewGetInfo(). It is now used
+	  with Infogrames replayer (see
+	  amigasrc/players/infogrames/Infogrames.asm). It will be used with
+	  PTK-Prowiz soon. Documentation for UadeNewGetInfo() can be read
+	  from amigasrc/score/score.s, see function "uade_new_get_info".
+	
 2007-02-03  Heikki Orsila <heikki.orsila@iki.fi>
 	- Disassembled Andy Silvas Infogrames replayer, added a work-around
 	  list for Gobliins 2 songs to fix tempo. Thanks to Sven Hesse of
