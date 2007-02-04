@@ -1,5 +1,8 @@
 ;               T
 
+_LVOOpenLibrary	equ	-552
+EP_OPTION_SIZE	equ	256
+
 dtg_AudioAlloc	EQU	$4C
 DTP_Check2	EQU	$8000445C
 DTP_InitSound	EQU	$80004465
@@ -146,18 +149,45 @@ timerlist
 	dc.l	$c0691337,3634,$24ff
 	dc.l	$e19fe7a1,4211,$24ff
 	dc.l	$0b0f2eba,3305,$24ff
+* gobliins 3
+	dc.l	$abdff091,3433,$24ff
+	dc.l	$c55b87e3,2605,$24ff
+	dc.l	$f8ac972a,2180,$24ff
+* horror zombies
+	dc.l	$bff9c6c1,3234,$1b66
 * end list
 	dc.l	0,0,0
 
-masklist	dc.l	0,$ff000000,$ffff0000,$ffffff00
+uadebase	dc.l	0
+uadename	dc.b	'uade.library',0
+timervaluename	dc.b	'timer',0
+timervaluereceived	dc.b	0
+	even
+
+epoptarray	dc.l	2,timervaluename,timervaluereceived,timervalue
+timervalue	dc.l	0
 
 determine_timer_value
 	movem.l	d0-a6,-(a7)
-	move.l	delibase,a5
+	move.l	Delibase,a5
 
 	* set default timer value
 	MOVE.W	#$1A00,(dtg_Timer,A5)
 
+	move.l	uadebase,d0
+	beq.b	usetimerlist
+	move.l	d0,a6
+	lea	epoptarray,a0
+	jsr	-24(a6)
+	tst.l	d0
+	beq.b	usetimerlist
+	tst.b	timervaluereceived
+	beq.b	usetimerlist
+	move.l	timervalue,d0
+	move	d0,dtg_Timer(a5)
+	bra	outoftimercheck
+
+usetimerlist
 	* compute sum32
 	MOVE.L	(dtg_ChkData,A5),A0
 	MOVE.L	(dtg_ChkSize,A5),D1
@@ -188,6 +218,8 @@ outoftimercheck
 	movem.l	(a7)+,d0-a6
 	rts
 
+masklist	dc.l	0,$ff000000,$ffff0000,$ffffff00
+
 InitPlayer	MOVE.L	(DumFilePtr,PC),A0
 	MOVE.L	A0,(DumFilePtr2)
 	MOVE.W	(A0),D0
@@ -199,6 +231,13 @@ InitPlayer	MOVE.L	(DumFilePtr,PC),A0
 	JSR	(A1)
 	ADDQ.L	#4,A0
 	MOVE.L	A0,(SampleDataPtr)
+
+	lea	uadename,a1
+	moveq	#0,d0
+	move.l	4.w,a6
+	jsr	_LVOOpenLibrary(a6)
+	move.l	d0,uadebase
+
 	MOVE.L	(dtg_AudioAlloc,A5),A0	;allocate audio channels
 	JSR	(A0)
 	TST.L	D0
@@ -1035,5 +1074,8 @@ lbW000D1A	dc.w	$6ACC
 	dcb.w	10,$202
 	dcb.w	2,$4040
 	dc.w	$2000
+
+	section	bss,bss
+epoptions	ds.b	EP_OPTION_SIZE
 
 	end

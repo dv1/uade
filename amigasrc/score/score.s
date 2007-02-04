@@ -53,7 +53,10 @@ TRAP_VECTOR_6	equ	$98	* bin trap
 UadeTimeCritical	equ	-6
 UadePutString		equ	-12
 UadeGetInfo		equ	-18
+UadeNewGetInfo		equ	-24
 
+EP_OPT_SIZE		equ	256
+	
 * $100	mod address
 * $104	mod length
 * $108	player address
@@ -231,6 +234,9 @@ dosdfdf	subq.l	#6,a0
 	lea	uade_get_info(pc),a0
 	move	jmpcom(pc),UadeGetInfo(a6)
 	move.l	a0,UadeGetInfo+2(a6)
+	lea	uade_new_get_info(pc),a0
+	move	jmpcom(pc),UadeNewGetInfo(a6)
+	move.l	a0,UadeNewGetInfo+2(a6)
 
 	move.l	4.w,a6
 	lea	rtsprog(pc),a1
@@ -888,12 +894,11 @@ endstringmsgloop	trap	#5
 	pull	all
 	rts
 
-strlen	pushr	a0
-	moveq	#-1,d0
-strlen_loop	addq.l	#1,d0
-	tst.b	(a0)+
-	bne.b	strlen_loop
-	pullr	a0
+strlen	moveq	#-1,d0
+.strlenloop
+	addq.l	#1,d0
+	tst.b	(a0,d0.w)
+	bne.b	.strlenloop
 	rts
 
 set_message_traps
@@ -1084,6 +1089,28 @@ strcmp_notsame	pull	a0-a1
 	moveq	#-1,d0
 	rts
 
+* a0 src1, a1 src2, d0 max length to compare
+* returns d0: zero => same, non-zero => not same (not usable for sorting)
+strncmp	movem.l	d1/a0-a1,-(a7)
+	move.l	d0,d1
+	beq.b	.strncmp_notsame
+.strncmp_loop
+	move.b	(a0)+,d0
+	cmp.b	(a1)+,d0
+	bne.b	.strncmp_notsame
+	subq.l	#1,d1
+	beq.b	.strncmp_same
+	tst.b	d0
+	bne.b	.strncmp_loop
+.strncmp_same
+	movem.l	(a7)+,d1/a0-a1
+	moveq	#0,d0
+	rts
+.strncmp_notsame
+	movem.l	(a7)+,d1/a0-a1
+	moveq	#-1,d0
+	rts
+
 * a0 src a1 dst d0 max bytes
 strlcpy	subq	#1,d0
 	bmi.b	endstrlcpyloop
@@ -1098,6 +1125,31 @@ endstrlcpyloop	rts
 strendptr	tst.b	(a0)+
 	bne.b	strendptr
 	subq.l	#1,a0
+	rts
+
+
+hex2int	moveq	#0,d0
+	push	d1/a0
+hexloop	move.b	(a0)+,d1
+	beq.b	endhexloop
+	lsl	#4,d0
+	cmp.b	#$61,d1
+	blt.b	notsmall
+	sub.b	#$61-10,d1
+	and	#$f,d1
+	or	d1,d0
+	bra.b	hexloop
+notsmall	cmp.b	#$41,d1
+	blt.b	notbig
+	sub.b	#$41-10,d1
+	and	#$f,d1
+	or	d1,d0
+	bra.b	hexloop
+notbig	sub.b	#$30,d1
+	and	#$f,d1
+	or	d1,d0
+	bra.b	hexloop
+endhexloop	pull	d1/a0
 	rts
 
 
@@ -2633,11 +2685,132 @@ uade_get_info
 	move.l	a2,a0
 	moveq	#16,d0
 	bsr	put_message
-	move.l	12(a2),d0
+	move.l	msgptr(pc),a0
+	move.l	12(a0),d0
 	pull	d1-d7/a0-a6
 	rts
 
+* a0 = option array for returned values
+* array format:
+* dc.l	opttype,optname,optreceived,optvalue
+* opttype = 0 (end of list), 1 (string), 2 hexadecimal value (at most 32 bits),
+*           3 (flag)
+*
+* optname is a pointer to the name of the value
+*
+* optreceived is a pointer to a byte that indicates whether or not that
+* option was found. 0 means not found, otherwise found.
+*
+* optvalue is a pointer to a place where the value should be stored.
+* if option type is "flag", optvalue is not needed, because optreceived
+* already indicates if that flag was received. "hexadecimal value" is
+* returned as a 32 bit integer despite the length of hexadecimal string
+* given by the user.
+uade_new_get_info
+	push	d1-d7/a0-a6
+	move.l	a0,a6			* option array for eagleplayer
+	lea	uade_gi_msg(pc),a2
+	lea	ep_opt_request(pc),a0
+	move.l	a0,4(a2)
+	lea	uadelibmsg(pc),a1
+	move.l	a1,8(a2)
+	move.l	#EP_OPT_SIZE,d0
+	move.l	d0,12(a2)
+	move.l	a2,a0
+	moveq	#16,d0
+	bsr	put_message
+	move.l	msgptr(pc),a0
+	move.l	12(a0),d0
+	tst.l	d0
+	ble.b	no_info
+
+	move.l	d0,d2
+
+	lea	uadelibmsg(pc),a3
+get_ep_info_loop
+	move.l	a6,a2
+get_ep_info_loop2
+	move.l	(a2)+,d7	* opt type
+	beq.b	end_get_ep_info_loop2
+
+	; the eagleoption in eagleoptlist can be shorter than the
+	; actual given option given from uade. this happens when
+	; eagleoption gets a value, like ciatempo=150. to handle
+	; this, eagleopt list would only contain "ciatempo" and
+	; the following code only compares strlen("ciatempo")
+	; amount of bytes from the data given from uade.
+	move.l	(a2)+,a0	* opt name
+	bsr	strlen
+
+	move.l	(a2)+,a4	* opt received
+	
+	move.l	(a2)+,a5	* opt value
+
+	; We now have eagleopt length in d0 and the eagle option name
+	; pointer is still in a0 (strlen preservers registers).
+	; Do a limited string comparison against the eagleoption
+	; and data given from uade
+	move.l	a3,a1		; uade lib message
+	bsr	strncmp
+	bne.b	get_ep_info_loop2
+
+	; woah! equal! celebrate it by spamming the user:
+	move.l	a3,a0
+	bsr	put_string
+
+	; string options may not be longer than 31 characters (32 bytes with
+	; null byte)
+	move.l	a3,a0
+	bsr	strlen
+	cmp.l	#31,d0
+	bgt	invalid_ep_opt
+
+	;  mark option as received
+	st	(a4)
+
+	cmp	#1,d7
+	bne.b	ep_opt_not_a_string
+	move.l	a3,a0
+	move.l	a5,a1
+	moveq	#32,d0
+	bsr	strlcpy
+	bra.b	end_get_ep_info_loop2
+ep_opt_not_a_string
+	cmp	#2,d7
+	bne.b	end_get_ep_info_loop2
+	; skip "foo=" string for a hexadecimal value, where foo is an option
+	; name
+	move.l	-12(a2),a0	;  get option name
+	bsr	strlen
+	addq.l	#1,d0		;  add one more to skip '='
+	lea	(a3,d0),a0
+	bsr	hex2int
+	move.l	d0,(a5)
+
+end_get_ep_info_loop2
+	; get next option from response, or quit if no more eagleoptions.
+	move.l	a3,a0
+	bsr	strlen
+	addq.l	#1,d0
+	add.l	d0,a3
+	sub.l	d0,d2
+	bpl.b	get_ep_info_loop
+
+	pull	d1-d7/a0-a6
+	moveq	#1,d0
+	rts
+no_info	pull	d1-d7/a0-a6
+	moveq	#0,d0
+	rts
+
+invalid_ep_opt
+	lea	invalid_ep_opt_msg(pc),a0
+	bsr	put_string
+	bra	end_get_ep_info_loop2
+
 uade_gi_msg	dc.l	UADE_GET_INFO,0,0,0
+ep_opt_request	dc.b	'eagleoptions',0
+invalid_ep_opt_msg	dc.b	'invalid ep option received',0
 
 ciareswarnmsg	dc.b	'exec.library/OpenDevice: unknown resource',0
 ciaawarnmsg	dc.b	'warning: ciaa resource opened',0
@@ -3502,8 +3675,6 @@ np_chanset	dcb.b	32,0
 
 amplifier_init_func	dc.l	0
 
-generalmsg	dcb.b	256,0
-
 eaglesafetybase	dcb.b	$200,0	* see ENPP_SizeOf
 eaglebase	dcb.b	$200,0
 
@@ -3562,7 +3733,8 @@ debug_info	debuginfo	'uade debug info', debug_info
 dos_lib_base	dcb.b	$200,0
 
 * uade.library
-	dcb.b	$10,0
+uadelibmsg	dcb.b	EP_OPT_SIZE,0
+		dcb.b	24,0
 uade_lib_base
 
 * intuition.library
