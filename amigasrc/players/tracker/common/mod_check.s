@@ -29,8 +29,9 @@ query_eagleopts:
 	lea	response(pc),a1
 	move.l	#256,d0
 	jsr	-18(a6)
+	tst.l	d0
+	ble.b	.no_uade_options
 	move.l	d0,d2
-
 	lea	response(pc),a3
 .loopah	lea	eagleoptlist,a2
 .loopah2

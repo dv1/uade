@@ -9,7 +9,7 @@
 
 	PLAYERHEADER PlayerTagArray
 
-	dc.b '$VER: Protracker 3.0b player 2006-05-15',0
+	dc.b '$VER: Protracker 3.0b player 2007-02-04',0
 	even
 
 PlayerTagArray
