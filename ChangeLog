@@ -1,5 +1,8 @@
+2007-02-05  Michael Doering <mld@users.sourceforge.net>
+	- Committed shd's uade_new_get_info patch to PTK-Prowiz
+
 2007-02-04  Michael Doering <mld@users.sourceforge.net>
-	- Added sanity chedck to query eagleopts in PTK-Prowiz (needed for
+	- Added sanity check to query eagleopts in PTK-Prowiz (needed for
 	  score fix)
 	- Added a new uade.library method: UadeNewGetInfo(). It is now used
 	  with Infogrames replayer (see
