@@ -171,10 +171,9 @@ query_eopts:
 	jsr query_eagleopts		* get options from uade.conf
 
 .ptktype
-	move.l	typedata,a0
-	tst.l	a0
-	beq.s	.end
-
+	tst.b	typenamereceived
+	beq	.end
+	lea	typestr,a0
 	cmp.l	#"type",(a0)+
 	bne	.end
 	addq.l	#1,a0
@@ -185,42 +184,42 @@ query_eopts:
 	bne	.mod_NTK_1
 	move.b	#mod_DOC,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_NTK_1
 	cmp.l	#"nt10",(a0)
 	bne	.mod_NTK_2
 	move.b	#mod_NTK_1,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_NTK_2
 	cmp.l	#"nt20",(a0)
 	bne	.mod_NTK_AMP
 	move.b	#mod_NTK_2,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_NTK_AMP
 	cmp.l	#"m&k.",(a0)
 	bne	.mod_STK
 	move.b	#mod_NTK_AMP,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_STK
 	cmp.l	#"st24",(a0)
 	bne	.mod_FLT4
 	move.b	#mod_STK,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_FLT4
 	cmp.l	#"flt4",(a0)
 	bne	.mod_ptk
 	move.b	#mod_FLT4,pt_tracker_family
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .mod_ptk
 	; check playtime anomalies
@@ -228,7 +227,7 @@ query_eopts:
 	move.b	#0,pt_vblank		; 0 = CIA
 	bsr.w	mcheck_moduledata	; check for vblank
 	move.b	d0,pt_tracker_family
-	tst.l	vblankdata
+	tst.b	vblankflag
 	beq	.mod_comp
 .VBI	addq.b	#1,pt_vblank		; 1 = VBI
 
@@ -240,26 +239,26 @@ query_eopts:
 	 move.b	#PTK30,pt_ptk_type
 	 st	pt_ptk30_cme
 	 ;jsr	uade_debug
-	 bra.s	.end
+	 bra.w	.end
 	
 .ptk23	cmp.l	#"pt23",(a0)
 	bne	.ptkdef
 	move.b	#PTK23,pt_ptk_type
 	;jsr	uade_debug
-	bra.s	.end
+	bra.w	.end
 
 .ptkdef	cmp.l	#"hack",(a0)
 	bne.s	.ptk30			; 3.0 Volume setting
 	 move.b	#PTK30,pt_ptk_type
 	 ;jsr	uade_debug
-	 bra.s	.end
+	 bra.w	.end
 
 .ptk30	cmp.l	#"pt30",(a0)
 	bne.s	.ptk10c
 	 move.b	#PTK30,pt_ptk_type
 	 st	pt_ptk30_cme
 	 ;jsr	uade_debug
-	 bra.s	.end
+	 bra.w	.end
 
 .ptk10c	cmp.l	#"pt10",(a0)
 	bne.s	.ptk11b
@@ -268,7 +267,7 @@ query_eopts:
 	 move.w	#37*2,pt_oldstk		; apart from the different vibrato
 	 move.w	#36*2,pt_oldstk2	; pt10c uses a mixed up value
 	 ;jsr	uade_debug
-	 bra.b 	.end			; for accessing the period table
+	 bra.w 	.end			; for accessing the period table
 .ptk11b:
 	cmp.l	#"pt11",(a0)
 	bne.s	.end

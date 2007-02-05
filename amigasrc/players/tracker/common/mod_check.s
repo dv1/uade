@@ -21,68 +21,13 @@ mod_FTK=43
 
 query_eagleopts:
 	tst.l	uadebase
-	beq.b	.no_uade_options
-
+	beq.w	.no_uade_options
 
 	move.l	uadebase,a6
-	lea	query(pc),a0
-	lea	response(pc),a1
-	move.l	#256,d0
-	jsr	-18(a6)
+	lea	eagleoptlist,a0
+	jsr	-24(a6)
 	tst.l	d0
-	ble.b	.no_uade_options
-	move.l	d0,d2
-	lea	response(pc),a3
-.loopah	lea	eagleoptlist,a2
-.loopah2
-	move.l	(a2)+,d0
-	beq.b	.eloop
-
-	move.l	(a2)+,a4
-
-	; the eagleoption in eagleoptlist can be shorter than the
-	; actual given option given from uade. this happens when
-	; eagleoption gets a value, like ciatempo=150. to handle
-	; this, eagleopt list would only contain "ciatempo" and
-	; the following code only compares strlen("ciatempo")
-	; amount of bytes from the data given from uade.
-
-	move.l	d0,a0
-	bsr	strlen
-
-	; we now have eagleopt length in d0 and the eagleoption
-	; pointer is still in a0 (strlen preservers registers)
-
-	; now do a limited string comparison against the eagleoption
-	; and data given from uade
-	
-	move.l	a3,a1
-	bsr	strcmp
-	bne.b	.loopah2
-
-	; woah! equal! celebrate it by spamming the user:
-	move.l	a3,a0
-	jsr	uade_debug
-
-	; copy a pointer of the eagleoption to the associated
-	; data variable. boolean variables can later be checked by
-	; testing with tst.l datavariable, but since we provide a
-	; pointer here, other uses are possible too, like passing
-	; numerical/string values.
-	
-	move.l	a3,(a4)
-
-.eloop
-	; get next option from response, or quit if no more eagleoptions.
-	move.l	a3,a0
-	bsr	strlen
-	addq.l	#1,d0
-	add.l	d0,a3
-	sub.l	d0,d2
-	bpl.b	.loopah
-
-	moveq	#0,d0
-	rts
+	beq.w	.no_uade_options
 
 .no_uade_options
 	moveq	#-1,d0
@@ -118,20 +63,15 @@ strcmp
 	moveq	#-1,d0
 	rts
 
-eagleoptlist
-		dc.l	typename,typedata
-		dc.l	vblankname,vblankdata
+eagleoptlist	dc.l	1,typename,typenamereceived,typestr	* string
+		dc.l	3,vblankname,vblankflag,-1		* flag
 		dc.l	0
 
-typedata	dc.l	0
-vblankdata	dc.l	0
-
+typestr		dcb.b	32,0
 typename	dc.b	'type',0
 vblankname	dc.b	'vblank',0
-
-query		dc.b	'eagleoptions',0
-response	dcb.b	256,0
-
+vblankflag	dc.b	0
+typenamereceived	dc.b	0
 		even
 
 ******************************************************************************
