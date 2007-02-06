@@ -18,7 +18,6 @@ mod_ADSC4=41
 mod_ADSC8=42
 mod_FTK=43
 
-	even
 query_eagleopts:
 	tst.l	uadebase
 	beq.w	.no_uade_options
@@ -31,36 +30,6 @@ query_eagleopts:
 	rts
 
 .no_uade_options
-	moveq	#-1,d0
-	rts
-
-strlen	moveq	#-1,d0
-.strlenloop
-	addq.l	#1,d0
-	tst.b	(a0,d0.w)
-	bne.b	.strlenloop
-	rts
-
-* a0 src1, a1 src2, d0 max length to compare
-* returns d0: zero => same, non-zero => not same (not usable for sorting)
-strcmp
-	movem.l	d1/a0-a1,-(a7)
-	move.l	d0,d1
-	beq.b	.stnrcmp_notsame
-.strncmp_loop
-	move.b	(a0)+,d0
-	cmp.b	(a1)+,d0
-	bne.b	.stnrcmp_notsame
-	subq.l	#1,d1
-	beq.b	.strncmp_same
-	tst.b	d0
-	bne.b	.strncmp_loop
-.strncmp_same
-	movem.l	(a7)+,d1/a0-a1
-	moveq	#0,d0
-	rts
-.stnrcmp_notsame
-	movem.l	(a7)+,d1/a0-a1
 	moveq	#-1,d0
 	rts
 
@@ -715,4 +684,3 @@ finetune_used:		dc.b	0
 ;--------
 MyVarsEnd:
 			even
-

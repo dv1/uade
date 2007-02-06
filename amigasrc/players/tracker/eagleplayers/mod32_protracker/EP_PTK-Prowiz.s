@@ -415,12 +415,9 @@ EndPlay
 	jsr	(a0)
 	rts
 
-	even
 	incdir	"amiga:work/players/tracker/common/"
 	include "mod_check.s"
-	even
 	include "ep_misc.s"
-	even
 
 *-----------------------------------------------------------------------*
 ;
