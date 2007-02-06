@@ -18,7 +18,7 @@ mod_ADSC4=41
 mod_ADSC8=42
 mod_FTK=43
 
-
+	even
 query_eagleopts:
 	tst.l	uadebase
 	beq.w	.no_uade_options
@@ -26,8 +26,9 @@ query_eagleopts:
 	move.l	uadebase,a6
 	lea	eagleoptlist,a0
 	jsr	-24(a6)
-	tst.l	d0
 	beq.w	.no_uade_options
+	moveq	#0,d0
+	rts
 
 .no_uade_options
 	moveq	#-1,d0
