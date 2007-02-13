@@ -155,6 +155,11 @@ timerlist
 	dc.l	$f8ac972a,2180,$24ff
 * horror zombies
 	dc.l	$bff9c6c1,3234,$1b66
+* ween
+	dc.l	$cd059f22,3160,$24ff	* Ween.dum
+	dc.l	$0990733e,2614,$24ff	* mus2.dum
+	dc.l	$eb38a5f3,2183,$24ff	* mus2b.dum
+	dc.l	$b3e5589e,2179,$24ff	* mus2c.dum
 * end list
 	dc.l	0,0,0
 
