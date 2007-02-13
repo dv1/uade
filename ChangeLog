@@ -2,7 +2,7 @@
 	- Updated Inforgrames player to use tempo 0x24ff for Ween songs.
 	  Thanks to DrMcCoy of SCUMM VM project.
 
-2007-02-08  Michael Doering <mld@users.sourceforge.net>
+2007-02-13  Michael Doering <mld@users.sourceforge.net>
 	- Fix for German LC_Numeric="," parameters in uadeconfig.c.
 	  Thanks for Steffen Wulf for reporting.
 	- Bumped Version to 2.05. :-)
