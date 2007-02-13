@@ -136,6 +136,7 @@ double uade_convert_to_double(const char *value, double def, double low,
 			      double high, const char *type)
 {
   char *endptr, *newvalue = NULL;
+  char newseparator;
   double v;
 
   if (value == NULL)
@@ -143,14 +144,15 @@ double uade_convert_to_double(const char *value, double def, double low,
 
   v = strtod(value, &endptr);
 
-  /* If ',' was used as a decimal separator, replace ',' with '.' and
-     reconvert */
-  if (*endptr == ',') {
+  /* Decimal separator conversion, if needed */
+  if (*endptr == ',' || *endptr == '.') {
     newvalue = strdup(value);
     if (newvalue == NULL)
       uade_error("Out of memory\n");
 
-    newvalue[(intptr_t) endptr - (intptr_t) value] = '.';
+    newseparator = (*endptr == ',') ? '.' : ',';
+
+    newvalue[(intptr_t) endptr - (intptr_t) value] = newseparator;
 
     v = strtod(newvalue, &endptr);
   }

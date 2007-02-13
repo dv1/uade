@@ -1,6 +1,9 @@
 2007-02-13  Heikki Orsila <heikki.orsila@iki.fi>
 	- Updated Inforgrames player to use tempo 0x24ff for Ween songs.
 	  Thanks to DrMcCoy of SCUMM VM project.
+	- Reverted Michael's 2007-02-13 patch regarding LC_Numeric and
+	  strtod(). Fixed the problem manually by converting x,y values into
+	  x.y format and vice versa.
 
 2007-02-13  Michael Doering <mld@users.sourceforge.net>
 	- Fix for German LC_Numeric="," parameters in uadeconfig.c.
