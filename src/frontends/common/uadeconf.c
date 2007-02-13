@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <locale.h>
 
 #include "strlrep.h"
 #include "uadeconf.h"
@@ -25,6 +24,7 @@
 #include "amigafilter.h"
 #include "uadeconstants.h"
 #include "songdb.h"
+#include "uadeutils.h"
 
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
@@ -135,29 +135,32 @@ void uade_config_set_defaults(struct uade_config *uc)
 double uade_convert_to_double(const char *value, double def, double low,
 			      double high, const char *type)
 {
-  char *endptr;
+  char *endptr, *newvalue = NULL;
   double v;
-  char *old_locale, *saved_locale;
 
-  if (value == NULL) {
+  if (value == NULL)
     return def;
-  }
-  /* Here we change the locale to "C", in case audacious doesn't" */
-  old_locale = setlocale (LC_NUMERIC, NULL);
-  saved_locale = strdup (old_locale);
-  if (old_locale == NULL){
-    fprintf (stderr,"Out of memory while changing locale");
-    return def;}
-
-  setlocale (LC_NUMERIC, "C");
 
   v = strtod(value, &endptr);
+
+  /* If ',' was used as a decimal separator, replace ',' with '.' and
+     reconvert */
+  if (*endptr == ',') {
+    newvalue = strdup(value);
+    if (newvalue == NULL)
+      uade_error("Out of memory\n");
+
+    newvalue[(intptr_t) endptr - (intptr_t) value] = '.';
+
+    v = strtod(newvalue, &endptr);
+  }
+
   if (*endptr != 0 || v < low || v > high) {
     fprintf(stderr, "Invalid %s value: %s\n", type, value);
     v = def;
   }
-  setlocale (LC_ALL, saved_locale);
-  free (saved_locale);
+
+  free(newvalue);
   return v;
 }
 
@@ -747,7 +750,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     break;
   default:
     fprintf(stderr, "Unknown option enum: %d\n", opt);
-    exit(-1);
+    exit(1);
   }
 }
 

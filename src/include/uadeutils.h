@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#define uade_error(fmt, args...) do { \
+    fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); \
+    abort(); \
+  } while (0)
+
 static inline uint16_t read_be_u16(void *s)
 {
   uint16_t x;
