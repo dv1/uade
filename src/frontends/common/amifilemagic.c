@@ -83,7 +83,7 @@ static const char *offset_0000_patterns[] = {
   "MMDC", "MMDC",		/* Med packer */
   "MSOB", "MSO",		/* Medley */
   "MODU", "NTP",		/* Novotrade */
-  "COSO", "SOC",		/* Hippel Coso */
+/* HIPPEL-ST CONFLICT: "COSO", "SOC",*/		/* Hippel Coso */
   "BeEp", "JAM",		/* Jamcracker */
   "ALL ", "DM1",		/* Deltamusic 1 */
   "YMST", "YM",			/* MYST ST-YM */

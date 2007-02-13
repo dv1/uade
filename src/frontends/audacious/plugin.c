@@ -123,6 +123,7 @@ static void test_uade_conf(void)
 {
   struct stat st;
 
+
   if (stat(configname, &st))
     return;
 

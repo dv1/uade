@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <locale.h>
 
 #include "strlrep.h"
 #include "uadeconf.h"
@@ -136,14 +137,27 @@ double uade_convert_to_double(const char *value, double def, double low,
 {
   char *endptr;
   double v;
+  char *old_locale, *saved_locale;
+
   if (value == NULL) {
     return def;
   }
+  /* Here we change the locale to "C", in case audacious doesn't" */
+  old_locale = setlocale (LC_NUMERIC, NULL);
+  saved_locale = strdup (old_locale);
+  if (old_locale == NULL){
+    fprintf (stderr,"Out of memory while changing locale");
+    return def;}
+
+  setlocale (LC_NUMERIC, "C");
+
   v = strtod(value, &endptr);
   if (*endptr != 0 || v < low || v > high) {
     fprintf(stderr, "Invalid %s value: %s\n", type, value);
     v = def;
   }
+  setlocale (LC_ALL, saved_locale);
+  free (saved_locale);
   return v;
 }
 

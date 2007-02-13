@@ -1,12 +1,22 @@
 2007-02-08  Michael Doering <mld@users.sourceforge.net>
+	- Fix for German LC_Numeric="," parameters in uadeconfig.c.
+	  Thanks for Steffen Wulf for reporting.
+	- Bumped Version to 2.05. :-)
+
+2007-02-08  Michael Doering <mld@users.sourceforge.net>
 	- Added new Quartet ST player from Don Adan / Wanted Team
           (qts.* files). Great work as ever Don!
+	- Disabled Hippel COSO check in amifilemagic.c to avoid a conflict
+          between Amiga and Atari ST Coso Files.
+	  TODO: The file heuristics for Coso in amifilemagic.c has to be fixed,
+          the checkroutine of the Amiga Hippel-Coso replayer isn't HIP-ST Coso
+          aware either.
 
 2007-02-06  Michael Doering <mld@users.sourceforge.net>
-	- Small correction of shd's patch in PTK-Prowiz commited
+	- Small correction of shd's patch in PTK-Prowiz commited.
 
 2007-02-05  Michael Doering <mld@users.sourceforge.net>
-	- Committed shd's uade_new_get_info patch to PTK-Prowiz
+	- Applied shd's uade_new_get_info patch to PTK-Prowiz.
 
 2007-02-04  Michael Doering <mld@users.sourceforge.net>
 	- Added sanity check to query eagleopts in PTK-Prowiz (needed for
