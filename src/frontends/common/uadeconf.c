@@ -586,17 +586,26 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uade_add_ep_option(&uc->ep_options, value);
     uc->ep_options_set = 1;
     break;
+
   case UC_FILTER_TYPE:
-    if (strcasecmp(value, "none") != 0) {
-      uade_set_filter_type(uc, value);
-      uc->filter_type_set = 1;
-      uc->no_filter_set = 1;
-      uc->no_filter = 0;
+
+    uc->no_filter_set = 1;
+
+    if (value != NULL) {
+      if (strcasecmp(value, "none") != 0) {
+	/* Filter != NONE */
+	uade_set_filter_type(uc, value);
+	uc->filter_type_set = 1;
+	uc->no_filter = 0;
+      } else {
+	/* Filter == NONE */
+	uc->no_filter = 1;
+      }
     } else {
-      uc->no_filter_set = 1;
-      uc->no_filter = 1;
+      uc->no_filter = 0;
     }
     break;
+
   case UC_FORCE_LED:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
