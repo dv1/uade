@@ -45,30 +45,23 @@ static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
 static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
+static void uade_init(void);
+static int uade_is_our_file(char *filename);
+static void uade_info_string(void);
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static int uade_get_time(InputPlayback *playback);
-#else
-static int uade_get_time(void);
-#endif
-
-static void uade_init(void);
-static int uade_is_our_file(char *filename);
-
-
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static void uade_pause(InputPlayback *playback, short paused);
 static void uade_play_file(InputPlayback *playback);
 static void uade_seek(InputPlayback *playback, int time);
 static void uade_stop(InputPlayback *playback);
-static void uade_info_string(void);
 #else
+static int uade_get_time(void);
 static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
 static void uade_stop(void);
 #endif
-
 
 
 /* GLOBAL VARIABLE DECLARATIONS */
@@ -389,7 +382,7 @@ static int initialize_song(char *filename)
 static void *play_loop(void *arg)
 {
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  InputPlayback *playback=arg;
+  InputPlayback *playback = arg;
 #endif
   
   enum uade_control_state state = UADE_S_STATE;
@@ -724,7 +717,11 @@ static void uade_play_file(InputPlayback *playback)
 static void uade_play_file(char *filename)
 #endif
 {
+
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   char *filename = playback->filename;
+#endif
+
   char tempname[PATH_MAX];
   char *t;
 
@@ -826,8 +823,14 @@ static void uade_play_file(char *filename)
   abort_playing = 1;
 }
 
-//static void uade_stop(void)
+
+
+
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static void uade_stop(InputPlayback *playback)
+#else
+static void uade_stop(void)
+#endif
 {
   /* Signal other subsystems to proceed to finished state as soon as possible
    */
@@ -878,7 +881,6 @@ static void uade_pause(InputPlayback *playback, short paused)
 #else
 static void uade_pause(short paused)
 #endif
-
 {
   uade_lock();
   uade_is_paused = paused;
@@ -892,8 +894,11 @@ static void uade_pause(short paused)
 
 
 /* XMMS calls this function when song is seeked */
-//static void uade_seek(int time)
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static void uade_seek(InputPlayback *playback, int time)
+#else
+static void uade_seek(int time)
+#endif
 {
   uade_gui_seek_subsong(time);
 }
@@ -902,8 +907,11 @@ static void uade_seek(InputPlayback *playback, int time)
 /* XMMS calls this function periodically to determine current playing time.
    We use this function to report song name and title after play_file(),
    and to tell XMMS to end playing if song ends for any reason. */
-//static int uade_get_time(void)
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static int uade_get_time(InputPlayback *playback)
+#else
+static int uade_get_time(void)
+#endif
 {
   if (abort_playing || last_beat_played)
     return -1;
