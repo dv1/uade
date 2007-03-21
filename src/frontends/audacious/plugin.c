@@ -80,6 +80,8 @@ static InputPlugin uade_ip = {
   .file_info_box = uade_file_info,
 };
 
+static InputPlugin *playhandle = &uade_ip;
+
 static const AFormat sample_format = FMT_S16_NE;
 
 /* Definition of trigger type:
@@ -382,7 +384,7 @@ static int initialize_song(char *filename)
 static void *play_loop(void *arg)
 {
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  InputPlayback *playback = arg;
+  InputPlayback *playhandle = arg;
 #endif
   
   enum uade_control_state state = UADE_S_STATE;
@@ -416,21 +418,15 @@ static void *play_loop(void *arg)
       uade_lock();
       if (uade_seek_forward) {
 	skip_bytes += uade_seek_forward * (UADE_BYTES_PER_FRAME * config.frequency);
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	playback->output->flush(playback->output->written_time() + uade_seek_forward * 1000);
-#else
-	uade_ip.output->flush(uade_ip.output->written_time() + uade_seek_forward * 1000);
-#endif
+	playhandle->output->flush(playhandle->output->written_time() + uade_seek_forward * 1000);
 	uade_seek_forward = 0;
       }
       if (uade_select_sub != -1) {
 	uadesong->cur_subsong = uade_select_sub;
 	uade_change_subsong(uadesong->cur_subsong, &uadeipc);
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	playback->output->flush(0);
-#else
-	uade_ip.output->flush(0);
-#endif
+
+	playhandle->output->flush(0);
+
 	uade_select_sub = -1;
 	subsong_end = 0;
 	subsong_bytes = 0;
@@ -447,17 +443,12 @@ static void *play_loop(void *arg)
 	    song_end_trigger = 1;
 	  } else {
 	    uade_change_subsong(uadesong->cur_subsong, &uadeipc);
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	    while (playback->output->buffer_playing())
-#else
-	    while (uade_ip.output->buffer_playing())
-#endif
+
+	    while (playhandle->output->buffer_playing())
 	      xmms_usleep(10000);
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	    playback->output->flush(0);
-#else
-	    uade_ip.output->flush(0);
-#endif
+
+	    playhandle->output->flush(0);
+
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 
@@ -474,12 +465,9 @@ static void *play_loop(void *arg)
       if (song_end_trigger) {
 	/* We must drain the audio fast if abort_playing happens (e.g.
 	   the user changes song when we are here waiting the sound device) */
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	while (playback->output->buffer_playing() && abort_playing == 0)
-#else
-	while (uade_ip.output->buffer_playing() && abort_playing == 0)
-#endif
+	while (playhandle->output->buffer_playing() && abort_playing == 0)
 	  xmms_usleep(10000);
+
 	break;
       }
 
@@ -534,11 +522,8 @@ static void *play_loop(void *arg)
 	}
 
 	uade_effect_run(&effects, (int16_t *) um->data, play_bytes / framesize);
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-	produce_audio(playback->output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
-#else
-	produce_audio(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
-#endif
+	produce_audio(playhandle->output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
+
 	if (config.timeout != -1 && config.use_timeouts) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
@@ -712,14 +697,14 @@ static int test_silence(void *buf, size_t size)
 
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static void uade_play_file(InputPlayback *playback)
+static void uade_play_file(InputPlayback *playhandle)
 #else
 static void uade_play_file(char *filename)
 #endif
 {
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  char *filename = playback->filename;
+  char *filename = playhandle->filename;
 #endif
 
   char tempname[PATH_MAX];
@@ -761,11 +746,7 @@ static void uade_play_file(char *filename)
     uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname);
   }
 
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  if (!playback->output->open_audio(sample_format, config_backup.frequency, UADE_CHANNELS)) {
-#else
-  if (!uade_ip.output->open_audio(sample_format, config_backup.frequency, UADE_CHANNELS)) {
-#endif
+  if (!playhandle->output->open_audio(sample_format, config_backup.frequency, UADE_CHANNELS)) {
     abort_playing = 1;
     return;
   }
@@ -798,7 +779,7 @@ static void uade_play_file(char *filename)
     goto err;
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  if (pthread_create(&decode_thread, NULL, play_loop, playback)) {
+  if (pthread_create(&decode_thread, NULL, play_loop, playhandle)) {
 #else
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
 #endif
@@ -815,11 +796,8 @@ static void uade_play_file(char *filename)
 
  err:
   /* close audio that was opened */
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  playback->output->close_audio();
-#else
-  uade_ip.output->close_audio();
-#endif
+  playhandle->output->close_audio();
+
   abort_playing = 1;
 }
 
@@ -827,7 +805,7 @@ static void uade_play_file(char *filename)
 
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static void uade_stop(InputPlayback *playback)
+static void uade_stop(InputPlayback *playhandle)
 #else
 static void uade_stop(void)
 #endif
@@ -867,17 +845,13 @@ static void uade_stop(void)
     uade_unlock();
   }
 
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  playback->output->close_audio();
-#else
-  uade_ip.output->close_audio();
-#endif
+  playhandle->output->close_audio();
 }
 
 
 /* XMMS calls this function when pausing or unpausing */
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static void uade_pause(InputPlayback *playback, short paused)
+static void uade_pause(InputPlayback *playhandle, short paused)
 #else
 static void uade_pause(short paused)
 #endif
@@ -885,17 +859,14 @@ static void uade_pause(short paused)
   uade_lock();
   uade_is_paused = paused;
   uade_unlock();
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-  playback->output->pause(paused);
-#else
-  uade_ip.output->pause(paused);
-#endif
+
+  playhandle->output->pause(paused);
 }
 
 
 /* XMMS calls this function when song is seeked */
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static void uade_seek(InputPlayback *playback, int time)
+static void uade_seek(InputPlayback *playhandle, int time)
 #else
 static void uade_seek(int time)
 #endif
@@ -908,7 +879,7 @@ static void uade_seek(int time)
    We use this function to report song name and title after play_file(),
    and to tell XMMS to end playing if song ends for any reason. */
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static int uade_get_time(InputPlayback *playback)
+static int uade_get_time(InputPlayback *playhandle)
 #else
 static int uade_get_time(void)
 #endif
@@ -926,11 +897,7 @@ static int uade_get_time(void)
     file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
   }
 
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-    return playback->output->output_time();
-#else
-    return uade_ip.output->output_time();
-#endif
+    return playhandle->output->output_time();
 }
 
 
@@ -966,6 +933,6 @@ static void uade_info_string(void)
   if (uade_generate_song_title(info, sizeof info, uadesong, &config))
     strlcpy(info, gui_filename, sizeof info);
 
-  uade_ip.set_info(info, playtime, (UADE_BYTES_PER_FRAME * config.frequency),
-		   config.frequency, UADE_CHANNELS);
+  playhandle->set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
+		       config.frequency, UADE_CHANNELS);
 }
