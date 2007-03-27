@@ -340,7 +340,7 @@ else
 	xmmsplugindir="$HOME/.xmms/Plugins/Input"
     fi
     if test "$useaudacious" = "yes" ; then
-        if `$PKG_CONFIG --max-version=1.2.2  audacious` = 0; then
+        if $PKG_CONFIG --max-version=1.2.2 audacious ; then
 	  audaciousplugindir="$HOME/.audacious/Plugins/Input"
 	else
 	  audaciousplugindir="$HOME/.local/share/audacious/Plugins"	
