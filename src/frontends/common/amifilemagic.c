@@ -614,7 +614,8 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
       max_pattern=(buf[600 - 130 + 2 + i] > max_pattern) ? buf[600 - 130 + 2 + i] : max_pattern;
     }
-    if (max_pattern > 63) return 0;		/* pattern number can only be  0 <-> 63 for mod15*/
+    if (max_pattern > 63)
+      return 0;   /* pattern number can only be  0 <-> 63 for mod15 */
   } else {
     return 0;
   }
@@ -630,11 +631,13 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     if (vol > 64 && buf[44+i*30] != 0) return 0; /* vol and finetune */
 
     if (slen == 0) {
-      if  (vol == 0 )
-        {  noof_slen_zero_vol_zero++;} 
-      if  (sreplen == 0 ) {
+
+      if (vol == 0)
+	noof_slen_zero_vol_zero++;
+
+      if (sreplen == 0 )
 	noof_slen_zero_sreplen_zero++;
-      }
+
     } else {
       if ((srep+sreplen) > slen)
 	srep_bigger_slen++;
@@ -670,21 +673,23 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 
    /* Check for fx used between 0x3 <-> 0xb */
   for (j = 0x5; j < 0xa; j++) {
-    if (pfx[j] != 0)
+    if (pfx[j] != 0) {
       return 4; /* Most likely one of those weird ST II-IV mods*/ 
+    }
   }
-
 
   for (j = 0x0c; j < 0x11; j++) {
     if (pfx[j] != 0) {
 
-      if (pfx[0x0d] != 0 && pfxarg[0x0d] != 0)
+      if (pfx[0x0d] != 0 && pfxarg[0x0d] != 0) {
 	return 4 ; /* ST II-IV */
+      }
 
       if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!= 0 ) {
 	return 1;	/* DOC ST */
       } else {
-	if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
+	if (pfxarg[1] > 0xe || pfxarg[2] > 0xe)
+	  return 1;	/*DOC ST */
 	return 3;	/* Master ST */
       }
     }
@@ -699,16 +704,17 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     return 2; /* nope UST like fx */
 
   /* the rest of the files has no fx. so check instruments */
-  if (st_xy!=0 && noof_slen_zero_vol_zero== 0 &&
-      noof_slen_zero_sreplen_zero == 0 && buf[0x1d7]==120)
+  if (st_xy!=0 && noof_slen_zero_vol_zero == 0 &&
+      noof_slen_zero_sreplen_zero == 0 && buf[0x1d7] == 120) {
     return 3;
+  }
 
   /* no fx, no loops... let's simply guess :)*/
   if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
       ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
     return 2;
 
-  return 3; // anything is played as normal soundtracker
+  return 3; /* anything is played as normal soundtracker */
 }
 
 
