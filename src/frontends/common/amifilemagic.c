@@ -593,7 +593,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   int noof_slen_zero_vol_zero = 0;
   int srep_bigger_slen = 0;
   int srep_bigger_ffff = 0;
-  int st_xy=0;
+  int st_xy = 0;
   
   int max_pattern = 1;
   int pfx[32];
@@ -602,13 +602,14 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   /* sanity checks */
   if (bufsize < 0x1f3)
     return 0;			/* file too small */
+
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
   if (modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH) == -1)
     return 0; /* modlentest failed */
 
- /* check for 15 instruments */
+  /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x81 && buf[0x1f3] !=1) {
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
       max_pattern=(buf[600 - 130 + 2 + i] > max_pattern) ? buf[600 - 130 + 2 + i] : max_pattern;
@@ -618,47 +619,48 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     return 0;
   }
 
- /* parse instruments */
-    for (i = 0; i < 15; i++) {
-      vol = buf[45 + i * 30];
-      slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
-      srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
-      sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
-      //fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol);
+  /* parse instruments */
+  for (i = 0; i < 15; i++) {
+    vol = buf[45 + i * 30];
+    slen = ((buf[42 + i * 30] << 8) + buf[43 + i * 30]) * 2;
+    srep = ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
+    sreplen = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2;
+    /* fprintf (stderr, "%d, slen: %d, %d (srep %d, sreplen %d), vol: %d\n",i, slen, srep+sreplen,srep, sreplen, vol); */
 
-      if (vol > 64 && buf[44+i*30] != 0) return 0; /* vol and finetune */
+    if (vol > 64 && buf[44+i*30] != 0) return 0; /* vol and finetune */
 
-      if (slen == 0) {
-       if  (vol == 0 )
+    if (slen == 0) {
+      if  (vol == 0 )
         {  noof_slen_zero_vol_zero++;} 
-       if  (sreplen == 0 ) {
-          noof_slen_zero_sreplen_zero++;
-	  }
-        } else {
-            if ((srep+sreplen) > slen)
-	    srep_bigger_slen++;
-       }
+      if  (sreplen == 0 ) {
+	noof_slen_zero_sreplen_zero++;
+      }
+    } else {
+      if ((srep+sreplen) > slen)
+	srep_bigger_slen++;
+    }
        	
-	/* slen < 9999 */
-	slen = (buf[42 + i * 30] << 8) + buf[43 + i * 30];
-	if (slen <= 9999) {
-	  /* repeat offset + repeat size*2 < word size */
-	  srep = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2 +
-	      ((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
-	  if (srep > 0xffff) srep_bigger_ffff++;
-        }
-
-	if  (buf[25+i*30] ==':' && buf [22+i*30] == '-' &&
-	   ((buf[20+i*30] =='S' && buf [21+i*30] == 'T') ||
-	    (buf[20+i*30] =='s' && buf [21+i*30] == 't'))) st_xy++;
+    /* slen < 9999 */
+    slen = (buf[42 + i * 30] << 8) + buf[43 + i * 30];
+    if (slen <= 9999) {
+      /* repeat offset + repeat size*2 < word size */
+      srep = ((buf[48 + i * 30] << 8) + buf[49 + i * 30]) * 2 +
+	((buf[46 + i * 30] << 8) + buf[47 + i * 30]);
+      if (srep > 0xffff) srep_bigger_ffff++;
     }
 
-/* parse pattern data -> fill pfx[] with number of times fx being used*/
-    memset (pfx,0,sizeof (pfx));
-    memset (pfxarg,0,sizeof (pfxarg));
-    modparsing(buf, bufsize, S15_HEADER_LENGTH, max_pattern, pfx, pfxarg);
+    if  (buf[25+i*30] ==':' && buf [22+i*30] == '-' &&
+	 ((buf[20+i*30] =='S' && buf [21+i*30] == 'T') ||
+	  (buf[20+i*30] =='s' && buf [21+i*30] == 't'))) st_xy++;
+  }
 
-/* and now for let's see if we can spot the mod */
+  /* parse pattern data -> fill pfx[] with number of times fx being used*/
+  memset (pfx, 0, sizeof (pfx));
+  memset (pfxarg, 0, sizeof (pfxarg));
+
+  modparsing(buf, bufsize, S15_HEADER_LENGTH, max_pattern, pfx, pfxarg);
+
+  /* and now for let's see if we can spot the mod */
 
 /* FX used:					  */
 /* Ultimate ST:			0,1,2		  */
@@ -666,58 +668,47 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* DOC-Soundtracker V2.2:	0,1,2,a,b,c,d,e,f */
 /* Soundtracker I-VI		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
 
-
-/* Check for fx used between 0x3 <-> 0xb */
-   for (j=0x5; j<0xa; j++ )
-     {
-      if (pfx[j] !=0)
-       { 
-       return 4; /* Most likely one of those weird ST II-IV mods*/ 
-       }
-     }
+   /* Check for fx used between 0x3 <-> 0xb */
+  for (j = 0x5; j < 0xa; j++) {
+    if (pfx[j] != 0)
+      return 4; /* Most likely one of those weird ST II-IV mods*/ 
+  }
 
 
-     for (j=0x0c; j<0x11; j++)
-    	 {
-    	    if (pfx[j] != 0)
-    		{
-		 if (pfx[0x0d] != 0 && pfxarg[0x0d] !=0 ) return 4 ; /* ST II-IV */
-		 if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!= 0 ) {
-    			return 1;	/* DOC ST */
-    		 } else {
-    			if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
-			return 3;	/* Master ST */
-    		 }
-    	    }
-    	}
+  for (j = 0x0c; j < 0x11; j++) {
+    if (pfx[j] != 0) {
 
+      if (pfx[0x0d] != 0 && pfxarg[0x0d] != 0)
+	return 4 ; /* ST II-IV */
 
-   
-/* pitchbend out of range ? */
-
-    if ((pfxarg[1] > 0 && pfxarg[1] <0x1f) ||
-         (pfxarg[2] > 0 && pfxarg [2] <0x1f) ||
-	  pfx [0] >2) return 1; // ST style Arpeggio, Pitchbends ???
-
-    if (pfx[1] >0  || pfx[2] >0 ) return 2; // nope UST like fx
-
-
-/* the rest of the files has no fx. so check instruments */
-
-    if (st_xy!=0 && noof_slen_zero_vol_zero== 0 &&
-        noof_slen_zero_sreplen_zero == 0 && buf[0x1d7]==120)
-	return 3;
-
-
-/* no fx, no loops... let's simply guess :)*/
-
-    if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
-        ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
-    {
-     return 2;
+      if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!= 0 ) {
+	return 1;	/* DOC ST */
+      } else {
+	if (pfxarg[1] > 0xe || pfxarg[2] > 0xe) return 1;	/*DOC ST */
+	return 3;	/* Master ST */
+      }
     }
+  }
 
-return 3; // anything is played as normal soundtracker
+  /* pitchbend out of range ? */
+  if ((pfxarg[1] > 0 && pfxarg[1] <0x1f) ||
+      (pfxarg[2] > 0 && pfxarg [2] <0x1f) ||
+      pfx [0] >2) return 1; // ST style Arpeggio, Pitchbends ???
+  
+  if (pfx[1] > 0 || pfx[2] > 0)
+    return 2; /* nope UST like fx */
+
+  /* the rest of the files has no fx. so check instruments */
+  if (st_xy!=0 && noof_slen_zero_vol_zero== 0 &&
+      noof_slen_zero_sreplen_zero == 0 && buf[0x1d7]==120)
+    return 3;
+
+  /* no fx, no loops... let's simply guess :)*/
+  if (srep_bigger_slen == 0 && srep_bigger_ffff == 0 &&
+      ((st_xy != 0 && buf[0x1d7] != 120 ) || st_xy==0))
+    return 2;
+
+  return 3; // anything is played as normal soundtracker
 }
 
 
