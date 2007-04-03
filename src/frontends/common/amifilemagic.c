@@ -671,25 +671,28 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* DOC-Soundtracker V2.2:	0,1,2,a,b,c,d,e,f */
 /* Soundtracker I-VI		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
 
-   /* Check for fx used between 0x3 <-> 0xb */
+  /* WORKAROUND: do not recognize fc1.3 songs as soundtracker */
+  if (memcmp(buf, "SMOD", 4) == 0)
+    return 0;
+
+  /* Check for fx used between 0x3 <-> 0xb for some weird ST II-IV mods */ 
   for (j = 0x5; j < 0xa; j++) {
-    if (pfx[j] != 0) {
-      return 4; /* Most likely one of those weird ST II-IV mods*/ 
-    }
+    if (pfx[j] != 0)
+      return 4; /* ST II-IV */
   }
 
   for (j = 0x0c; j < 0x11; j++) {
     if (pfx[j] != 0) {
 
-      if (pfx[0x0d] != 0 && pfxarg[0x0d] != 0) {
-	return 4 ; /* ST II-IV */
-      }
+      if (pfx[0x0d] != 0 && pfxarg[0x0d] != 0)
+	return 4; /* ST II-IV */
 
       if (pfx[0x0b] != 0 || pfx[0x0d] != 0 || pfx[0x0a]!= 0 ) {
 	return 1;	/* DOC ST */
       } else {
 	if (pfxarg[1] > 0xe || pfxarg[2] > 0xe)
-	  return 1;	/*DOC ST */
+	  return 1;	/* DOC ST */
+
 	return 3;	/* Master ST */
       }
     }
