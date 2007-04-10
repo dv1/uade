@@ -319,7 +319,7 @@ static int uade_is_our_file(char *filename)
   char *decoded = NULL;
 
   if (strncmp(filename, "uade://", 7) == 0)
-    return TRUE;
+    return 1;
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   if (strncmp(filename, "file:/", 6) == 0) {
