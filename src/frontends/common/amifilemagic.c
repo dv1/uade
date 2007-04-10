@@ -599,6 +599,8 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   int pfx[32];
   int pfxarg[32];
 
+  size_t calculated_size;
+
   /* sanity checks */
   if (bufsize < 0x1f3)
     return 0;			/* file too small */
@@ -606,8 +608,13 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   if (bufsize < 2648+4 || realfilesize <2648+4) /* size 1 pattern + 1x 4 bytes Instrument :) */
     return 0;
 
-  if (modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH) == -1)
+  calculated_size = modlentest(buf, bufsize, realfilesize, S15_HEADER_LENGTH);
+  if (calculated_size == -1)
     return 0; /* modlentest failed */
+
+  if (calculated_size != realfilesize) {
+      return 0 ;
+    }
 
   /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x81 && buf[0x1f3] !=1) {
@@ -671,9 +678,6 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
 /* DOC-Soundtracker V2.2:	0,1,2,a,b,c,d,e,f */
 /* Soundtracker I-VI		0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f*/
 
-  /* WORKAROUND: do not recognize fc1.3 songs as soundtracker */
-  if (memcmp(buf, "SMOD", 4) == 0)
-    return 0;
 
   /* Check for fx used between 0x3 <-> 0xb for some weird ST II-IV mods */ 
   for (j = 0x5; j < 0xa; j++) {
