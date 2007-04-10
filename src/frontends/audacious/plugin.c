@@ -80,7 +80,7 @@ static InputPlugin uade_ip = {
   .file_info_box = uade_file_info,
 };
 
-#ifndef __AUDACIOUS_INPUT_PLUGIN_API__
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static InputPlugin *playhandle = &uade_ip;
 #endif
 
@@ -805,7 +805,11 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   if (pthread_create(&decode_thread, NULL, play_loop, playhandle)) {
+#else
+  if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
+#endif
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     uade_unalloc_song(uadesong);
     uade_lock();
