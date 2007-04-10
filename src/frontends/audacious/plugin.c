@@ -80,7 +80,9 @@ static InputPlugin uade_ip = {
   .file_info_box = uade_file_info,
 };
 
+#ifndef __AUDACIOUS_INPUT_PLUGIN_API__
 static InputPlugin *playhandle = &uade_ip;
+#endif
 
 static const AFormat sample_format = FMT_S16_NE;
 
@@ -314,13 +316,25 @@ static void uade_init(void)
 static int uade_is_our_file(char *filename)
 {
   struct eagleplayer *ep;
+  char *decoded = NULL;
 
   if (strncmp(filename, "uade://", 7) == 0)
     return TRUE;
 
-  ep = uade_analyze_file_format(filename, &config_backup);
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
+  if (strncmp(filename, "file:/", 6) == 0) {
+    decoded = xmms_urldecode_path((char *) filename);
+    filename = decoded;
+  }
+#endif
 
-  return (ep != NULL) ? TRUE : FALSE;
+  if (filename != NULL)
+    ep = uade_analyze_file_format(filename, &config_backup);
+
+  if (decoded != NULL)
+    free (decoded);
+
+  return ep != NULL;
 }
 
 
@@ -386,7 +400,7 @@ static void *play_loop(void *arg)
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   InputPlayback *playhandle = arg;
 #endif
-  
+
   enum uade_control_state state = UADE_S_STATE;
   int ret;
   int left = 0;
@@ -707,6 +721,8 @@ static void uade_play_file(char *filename)
   char *filename = playhandle->filename;
 #endif
 
+  char *decoded = NULL;
+
   char tempname[PATH_MAX];
   char *t;
 
@@ -727,10 +743,21 @@ static void uade_play_file(char *filename)
   if (strncmp(filename, "uade://", 7) == 0)
     filename += 7;
 
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
+  if (strncmp(filename, "file:/", 6) == 0) {
+    decoded = xmms_urldecode_path((char *) filename);
+    if (decoded != NULL)
+      filename = decoded;
+  }
+#endif
+
+  /* We must make a copy of the name for basename, it is not guaranteed
+     to preserve the original string intact */
   strlcpy(tempname, filename, sizeof tempname);
   t = basename(tempname);
   if (t == NULL)
-    t = filename;
+    t = filename; /* out of memory */
+
   strlcpy(gui_filename, t, sizeof gui_filename);
   gui_info_set = 0;
 
@@ -778,11 +805,7 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   if (pthread_create(&decode_thread, NULL, play_loop, playhandle)) {
-#else
-  if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
-#endif
     fprintf(stderr, "uade: can't create play_loop() thread\n");
     uade_unalloc_song(uadesong);
     uade_lock();
@@ -791,10 +814,15 @@ static void uade_play_file(char *filename)
     goto err;
   }
 
+  free(decoded);
+
   uade_thread_running = 1;
   return;
 
  err:
+
+  free(decoded);
+
   /* close audio that was opened */
   playhandle->output->close_audio();
 
