@@ -788,14 +788,6 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
   }
 
   modtype = mod15check(buf, bufsize, realfilesize);
-  if (modtype != 0) {
-    for (t = 0; mod15types[t].str != NULL; t++) {
-      if (modtype == mod15types[t].e) {
-	strcpy(pre, mod15types[t].str);
-	return;
-      }
-    }
-  }
 
   /* 0x438 == S31_HEADER_LENGTH - 4 */
   if (((buf[0x438] >= '1' && buf[0x438] <= '3')
@@ -1073,6 +1065,14 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
 	     buf[8] == 'S' && buf[9] == 'Q' && buf[10] == 'S' && buf[11] == 'H') {
     fprintf(stderr, "uade: The file is SQSH packed. Please depack first.\n");
     strcpy(pre, "packed");
+
+ } else if (modtype != 0) {
+    for (t = 0; mod15types[t].str != NULL; t++) {
+      if (modtype == mod15types[t].e) {
+	strcpy(pre, mod15types[t].str);
+	return;
+      }
+    }
 
     /* Custom file check */
   } else if (buf[0] == 0x00 && buf[1] == 0x00 && buf[2] == 0x03
