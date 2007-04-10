@@ -315,7 +315,7 @@ static void uade_init(void)
    plugin. */
 static int uade_is_our_file(char *filename)
 {
-  struct eagleplayer *ep;
+  struct eagleplayer *ep = NULL;
   char *decoded = NULL;
 
   if (strncmp(filename, "uade://", 7) == 0)
