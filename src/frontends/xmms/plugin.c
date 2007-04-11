@@ -561,14 +561,14 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
-	strlcpy(gui_formatname, um->data, sizeof gui_formatname);
-	strlcpy(uadesong->formatname, um->data, sizeof uadesong->formatname);
+	strlcpy(gui_formatname, (char *) um->data, sizeof gui_formatname);
+	strlcpy(uadesong->formatname, (char *) um->data, sizeof uadesong->formatname);
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
-	strlcpy(gui_modulename, um->data, sizeof gui_modulename);
-	strlcpy(uadesong->modulename, um->data, sizeof uadesong->modulename);
+	strlcpy(gui_modulename, (char *) um->data, sizeof gui_modulename);
+	strlcpy(uadesong->modulename, (char *) um->data, sizeof uadesong->modulename);
 	break;
 
       case UADE_REPLY_MSG:
@@ -578,8 +578,8 @@ static void *play_loop(void *arg)
 
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
-	strlcpy(gui_playername, um->data, sizeof gui_playername);
-	strlcpy(uadesong->playername, um->data, sizeof uadesong->playername);
+	strlcpy(gui_playername, (char *) um->data, sizeof gui_playername);
+	strlcpy(uadesong->playername, (char *) um->data, sizeof uadesong->playername);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -598,7 +598,7 @@ static void *play_loop(void *arg)
 	  song_end_trigger = 1;
 	}
 	i = 0;
-	reason = &((uint8_t *) um->data)[8];
+	reason = (char *) &um->data[8];
 	while (reason[i] && i < (um->size - 8))
 	  i++;
 	if (reason[i] != 0 || (i != (um->size - 9))) {
