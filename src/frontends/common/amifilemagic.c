@@ -616,6 +616,13 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
       return 0 ;
     }
 
+  if (calculated_size > realfilesize) {
+      fprintf(stderr, "uade: file is truncated and won't get played.\n");
+      return 0 ;
+    }
+
+
+
   /* check for 15 instruments */
   if (buf[0x1d6] != 0x00 && buf[0x1d6] < 0x81 && buf[0x1f3] !=1) {
     for (i = 0; i < 128; i++) {	/* pattern list table: 128 posbl. entries */
