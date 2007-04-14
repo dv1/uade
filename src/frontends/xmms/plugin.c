@@ -159,8 +159,8 @@ static void load_content_db(void)
       snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
   }
 
+  /* User database has priority over global database, so we read it first */
   if (md5name[0]) {
-    /* Try home directory first */
     if (stat(md5name, &st) == 0) {
       if (uade_read_content_db(md5name))
 	return;
@@ -816,7 +816,7 @@ static void uade_stop(void)
     if (out_bytes_valid) {
       int play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
       if (uadesong->md5[0] != 0)
-	uade_add_playtime(uadesong->md5, play_time, 1);
+	uade_add_playtime(uadesong->md5, play_time);
 
       uadesong->playtime = play_time;
       uadesong->cur_subsong = uadesong->max_subsong;

@@ -83,6 +83,7 @@ static void load_content_db(struct uade_config *uc)
       snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
   }
 
+  /* First try to read users database */
   if (md5name[0]) {
     /* Try home directory first */
     if (stat(md5name, &st) == 0) {
@@ -96,6 +97,8 @@ static void load_content_db(struct uade_config *uc)
     }
   }
 
+  /* Second try to read global database, this does not override any data
+     from user database */
   snprintf(name, sizeof name, "%s/contentdb", uc->basedir.name);
   if (stat(name, &st) == 0)
     uade_read_content_db(name);
@@ -105,9 +108,12 @@ static void load_content_db(struct uade_config *uc)
 static void save_content_db(void)
 {
   struct stat st;
-  if (md5name[0]) {
-    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
-      uade_save_content_db(md5name);
+  if (md5name[0] && stat(md5name, &st) == 0) {
+
+    if (md5_load_time < st.st_mtime)
+      uade_read_content_db(md5name);
+
+    uade_save_content_db(md5name);
   }
 }
 
@@ -769,10 +775,12 @@ int test_song_end_trigger(void)
 static void cleanup(void)
 {
   save_content_db();
+
   if (uadepid) {
     kill(uadepid, SIGTERM);
     uadepid = 0;
   }
+
   audio_close();
 }
 

@@ -499,8 +499,8 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   }
 
   if (out_bytes_valid && us->md5[0] != 0) {
-    int play_time = (us->out_bytes * 1000) / bytes_per_second;
-    uade_add_playtime(us->md5, play_time, 1);
+    uint32_t playtime = (us->out_bytes * 1000) / bytes_per_second;
+    uade_add_playtime(us->md5, playtime);
   }
 
   do {

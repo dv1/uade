@@ -12,8 +12,7 @@ struct uade_content {
 };
 
 
-struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime,
-				       int replaceandsort);
+struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime);
 struct uade_song *uade_alloc_song(const char *filename);
 void uade_analyze_song_from_songdb(struct uade_song *us);
 void uade_md5_from_buffer(char *dest, size_t destlen,
