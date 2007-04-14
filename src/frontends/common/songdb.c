@@ -565,6 +565,7 @@ void uade_save_content_db(const char *filename)
   f = fdopen(fd, "w");
   if (f == NULL) {
     fprintf(stderr, "uade: Can not create a FILE structure for content db: %s\n", filename);
+    close(fd);
     return;
   }
 
