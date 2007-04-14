@@ -47,17 +47,16 @@ static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static void uade_init(void);
 static int uade_is_our_file(char *filename);
+static void uade_info_string(void);
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
 static int uade_get_time(InputPlayback *playhandle);
-static void uade_info_string(InputPlayback *ph);
 static void uade_pause(InputPlayback *playhandle, short paused);
 static void uade_play_file(InputPlayback *playhandle);
 static void uade_seek(InputPlayback *playhandle, int time);
 static void uade_stop(InputPlayback *playhandle);
 #else
 static int uade_get_time(void);
-static void uade_info_string(InputPlugin *ph);
 static void uade_pause(short paused);
 static void uade_play_file(char *filename);
 static void uade_seek(int time);
@@ -447,7 +446,7 @@ static void *play_loop(void *arg)
 	subsong_bytes = 0;
 	uadesong->out_bytes = 0;
 	out_bytes_valid = 0;
-	uade_info_string(playhandle);
+	uade_info_string();
       }
       if (subsong_end && song_end_trigger == 0) {
 	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
@@ -471,7 +470,7 @@ static void *play_loop(void *arg)
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
 	    uade_lock();
 
-	    uade_info_string(playhandle);
+	    uade_info_string();
 	  }
 	}
       }
@@ -863,7 +862,7 @@ static void uade_stop(void)
 
       uadesong->playtime = play_time;
       uadesong->cur_subsong = uadesong->max_subsong;
-      uade_info_string(playhandle);
+      uade_info_string();
     }
 
     /* We must free uadesong after playthread has finished and additional
@@ -919,7 +918,7 @@ static int uade_get_time(void)
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
-      uade_info_string(playhandle);
+      uade_info_string();
     }
     uade_unlock();
     gui_info_set = 1;
@@ -947,11 +946,7 @@ static void uade_get_song_info(char *filename, char **title, int *length)
   *length = -1;
 }
 
-#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
-static void uade_info_string(InputPlayback *ph)
-#else
-static void uade_info_string(InputPlugin *ph)
-#endif
+static void uade_info_string(void)
 {
   char info[256];
   int playtime = uadesong->playtime;
@@ -966,6 +961,6 @@ static void uade_info_string(InputPlugin *ph)
   if (uade_generate_song_title(info, sizeof info, uadesong, &config))
     strlcpy(info, gui_filename, sizeof info);
 
-  ph->set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
+  uade_ip.set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
 	       config.frequency, UADE_CHANNELS);
 }

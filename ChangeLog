@@ -1,3 +1,9 @@
+2007-03-27  Michael Doering <mld@users.sourceforge.net>
+	- Support for full Drag and Drop/Local URL Support in Audacious 1.3
+	  plugin. (shd, mld)
+	- Fixed misdetection and modlen calculation bug of Soundtracker IV
+	  mods. (shd/mld)
+
 2007-04-09  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.06 (7 YEARS BIRTHDAY PARTY AT PAULAS!)
 	- UADE project is now exactly 7 years old \o/ PARTY!
@@ -15,7 +21,6 @@
 	- Quartet PSG replayer (SQT.* files) from Don Adan / Wanted Team
 	- Many small changes, cleanups etc
 
-2007-03-27  Michael Doering <mld@users.sourceforge.net>
 	- Fixed user installation of Audacious 1.3 plugin...
 
 2007-03-19  Michael Doering <mld@users.sourceforge.net>
