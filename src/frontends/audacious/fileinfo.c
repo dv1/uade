@@ -82,9 +82,17 @@ void uade_gui_file_info(char *filename, char *gui_player_filename,
 
     GtkWidget *fileinfo_button_box;
     GtkWidget *ok_button;
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
+    char * decoded = NULL;
 
+    if (strncmp(filename, "file:/",6) == 0) {
+      decoded = xmms_urldecode_path((char *) filename);
+      filename = decoded;
+    }
+#endif
     strlcpy(module_filename, filename, sizeof module_filename);
     strlcpy(player_filename, gui_player_filename, sizeof player_filename);
+
 
     if (fileinfowin == NULL) {
 	fileinfo_tooltips = gtk_tooltips_new();
@@ -399,6 +407,11 @@ void uade_gui_file_info(char *filename, char *gui_player_filename,
     } else {
 	gdk_window_raise(fileinfowin->window);
     }
+
+#ifdef __AUDACIOUS_INPUT_PLUGIN_API__
+    if (decoded != NULL)
+       free (decoded);
+#endif
 }
 
 void file_info_update(char *gui_module_filename, char *gui_player_filename,
