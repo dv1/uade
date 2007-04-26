@@ -30,8 +30,6 @@ static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 void uade_change_subsong(struct uade_effect *ue, struct uade_config *uc,
 			 struct uade_song *us, struct uade_ipc *ipc)
 {
-  us->out_bytes = 0;
-
   uade_lookup_volume_normalisation(ue, uc, us);
   subsong_control(us->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, ipc);
 }

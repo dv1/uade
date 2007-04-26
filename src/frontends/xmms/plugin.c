@@ -417,7 +417,11 @@ static void *play_loop(void *arg)
 	uade_select_sub = -1;
 	subsong_end = 0;
 	subsong_bytes = 0;
+
+	/* we do this to avoid timeout, and to not record playtime */
+	uadesong->out_bytes = 0;
 	out_bytes_valid = 0;
+
 	uade_info_string();
       }
 
