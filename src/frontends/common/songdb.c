@@ -11,6 +11,7 @@
 #include <errno.h>
 
 #include "songdb.h"
+#include "uadeconf.h"
 #include "md5.h"
 #include "unixatomic.h"
 #include "strlrep.h"
@@ -47,6 +48,10 @@ static int cccorrupted;
 
 static int nsongs;
 static struct eaglesong *songstore;
+
+
+static int escompare(const void *a, const void *b);
+static struct uade_content *get_content_length(const char *md5);
 
 
 static void add_sub(struct uade_content *n, char *normalisation)
@@ -142,6 +147,23 @@ static struct uade_content *create_content_checksum(const char *md5,
 }
 
 
+static void md5_from_buffer(char *dest, size_t destlen,
+			    uint8_t *buf, size_t bufsize)
+{
+  uint8_t md5[16];
+  int ret;
+  MD5_CTX ctx;
+  MD5Init(&ctx);
+  MD5Update(&ctx, buf, bufsize);
+  MD5Final(md5, &ctx);
+  ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
+  if (ret >= destlen || ret != 32) {
+    fprintf(stderr, "md5 buffer error (%d/%zd)\n", ret, destlen);
+    exit(1);
+  }
+}
+
+
 static void update_playtime(struct uade_content *n, uint32_t playtime)
 {
   if (n->playtime != playtime) {
@@ -190,15 +212,42 @@ struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime)
 }
 
 
+void uade_lookup_volume_normalisation(struct uade_effect *ue,
+				      struct uade_config *uc,
+				      struct uade_song *us)
+{
+  size_t i, nsubs;
+  struct uade_content *content = get_content_length(us->md5);
+
+  if (content != NULL) {
+
+    nsubs = vplist_len(content->subs);
+
+    for (i = 0; i < nsubs; i++) {
+
+      struct persub *subinfo = vplist_get(content->subs, i);
+
+      if (subinfo->sub == us->cur_subsong) {
+	uade_set_config_option(uc, UC_NORMALISE, subinfo->normalisation);
+	uade_effect_normalise_unserialise(uc->normalise_parameter);
+	uade_effect_enable(ue, UADE_EFFECT_NORMALISE);
+	break;
+      }
+    }
+  }
+}
+
+
 struct uade_song *uade_alloc_song(const char *filename)
 {
-  struct uade_song *us = NULL;
+  struct uade_song *us;
+  struct eaglesong key;
+  struct eaglesong *es;
+  struct uade_content *content;
 
-  if ((us = calloc(1, sizeof *us)) == NULL)
+  us = calloc(1, sizeof *us);
+  if (us == NULL)
     goto error;
-
-  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
-  us->playtime = -1;
 
   strlcpy(us->module_filename, filename, sizeof us->module_filename);
 
@@ -206,8 +255,28 @@ struct uade_song *uade_alloc_song(const char *filename)
   if (us->buf == NULL)
     goto error;
 
-  /* Get song specific flags and info based on the md5sum */
-  uade_analyze_song_from_songdb(us);
+  /* Compute an md5sum of the song */
+  md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
+
+  /* Lookup md5 from the songdb */
+  strlcpy(key.md5, us->md5, sizeof key.md5);
+  es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
+
+  if (es != NULL) {
+    /* Found -> copy flags and attributes from database */
+    us->flags |= es->flags;
+    us->songattributes = es->attributes;
+  }
+
+  us->min_subsong = us->max_subsong = us->cur_subsong = -1;
+
+  us->playtime = -1;
+
+  content = get_content_length(us->md5);
+
+  if (content != NULL && content->playtime > 0)
+      us->playtime = content->playtime;
+
   return us;
 
  error:
@@ -216,65 +285,6 @@ struct uade_song *uade_alloc_song(const char *filename)
     free(us);
   }
   return NULL;
-}
-
-
-void uade_analyze_song_from_songdb(struct uade_song *us)
-{
-  struct eaglesong key;
-  struct eaglesong *es;
-  struct uade_content *content;
-
-  uade_md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
-
-  if (strlen(us->md5) != ((sizeof key.md5) - 1)) {
-    fprintf(stderr, "Invalid md5sum: %s\n", us->md5);
-    exit(-1);
-  }
-
-  strlcpy(key.md5, us->md5, sizeof key.md5);
-
-  es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
-  if (es != NULL) {
-    us->flags |= es->flags;
-    us->songattributes = es->attributes;
-  }
-
-  us->playtime = -1;
-  content = get_content_length(us->md5);
-  if (content != NULL) {
-    int sub;
-    size_t subi, nsubs;
-
-    if (content->playtime > 0)
-      us->playtime = content->playtime;
-
-    sub = MAX(us->cur_subsong, 0);
-    nsubs = vplist_len(content->subs);
-    for (subi = 0; subi < nsubs; subi++) {
-      struct persub *subinfo = vplist_get(content->subs, subi);
-      if (subinfo->sub == sub) {
-	us->normalisation = subinfo->normalisation;
-      }
-    }
-  }
-}
-
-
-void uade_md5_from_buffer(char *dest, size_t destlen,
-			  uint8_t *buf, size_t bufsize)
-{
-  uint8_t md5[16];
-  int ret;
-  MD5_CTX ctx;
-  MD5Init(&ctx);
-  MD5Update(&ctx, buf, bufsize);
-  MD5Final(md5, &ctx);
-  ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",md5[0],md5[1],md5[2],md5[3],md5[4],md5[5],md5[6],md5[7],md5[8],md5[9],md5[10],md5[11],md5[12],md5[13],md5[14],md5[15]);
-  if (ret >= destlen) {
-    fprintf(stderr, "md5 buffer too short (%d/%zd)\n", ret, destlen);
-    exit(-1);
-  }
 }
 
 
@@ -655,7 +665,7 @@ int uade_update_song_conf(const char *songconfin, const char *songconfout,
   if (mem == NULL)
     goto error;
 
-  uade_md5_from_buffer(md5, sizeof md5, mem, filesize);
+  md5_from_buffer(md5, sizeof md5, mem, filesize);
 
   inputptr = outputptr = input;
   inputoffs = 0;

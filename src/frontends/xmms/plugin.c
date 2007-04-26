@@ -410,25 +410,33 @@ static void *play_loop(void *arg)
       }
       if (uade_select_sub != -1) {
 	uadesong->cur_subsong = uade_select_sub;
-	uade_change_subsong(uadesong->cur_subsong, &uadeipc);
+
+	uade_change_subsong(&effects, &config, uadesong, &uadeipc);
+
 	uade_ip.output->flush(0);
 	uade_select_sub = -1;
 	subsong_end = 0;
 	subsong_bytes = 0;
-	uadesong->out_bytes = 0;
 	out_bytes_valid = 0;
 	uade_info_string();
       }
+
       if (subsong_end && song_end_trigger == 0) {
+
 	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
 	  song_end_trigger = 1;
+
 	} else {
+
 	  uadesong->cur_subsong++;
+
 	  if (uadesong->cur_subsong > uadesong->max_subsong) {
 	    song_end_trigger = 1;
 	  } else {
 	    int x = 0;
-	    uade_change_subsong(uadesong->cur_subsong, &uadeipc);
+
+	    uade_change_subsong(&effects, &config, uadesong, &uadeipc);
+
 	    while (uade_ip.output->buffer_playing()) {
 	      /* Sleep at most 5 secs */
 	      if (x >= 500) {

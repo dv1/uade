@@ -284,16 +284,21 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
       }
 
       if (subsong_end && uade_song_end_trigger == 0) {
+
 	if (jump_sub || (uc->one_subsong == 0 && us->cur_subsong != -1 && us->max_subsong != -1)) {
+
 	  us->cur_subsong++;
+
 	  jump_sub = 0;
+
 	  if (us->cur_subsong > us->max_subsong) {
 	    uade_song_end_trigger = 1;
 	  } else {
 	    subsong_end = 0;
 	    subsong_bytes = 0;
-	    us->out_bytes = 0;
-	    uade_change_subsong(us->cur_subsong, ipc);
+
+	    uade_change_subsong(ue, uc, us, ipc);
+
 	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	  }
 	} else {
@@ -469,11 +474,14 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  fprintf(stderr, "\nsubsong info: too short a message\n");
 	  exit(-1);
 	}
+
 	u32ptr = (uint32_t *) um->data;
 	us->min_subsong = ntohl(u32ptr[0]);
 	us->max_subsong = ntohl(u32ptr[1]);
 	us->cur_subsong = ntohl(u32ptr[2]);
+
 	debug(uc->verbose, "\nsubsong: %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
+
 	if (!(-1 <= us->min_subsong && us->min_subsong <= us->cur_subsong && us->cur_subsong <= us->max_subsong)) {
 	  int tempmin = us->min_subsong, tempmax = us->max_subsong;
 	  fprintf(stderr, "\nThe player is broken. Subsong info does not match.\n");
@@ -484,9 +492,14 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  else if (us->cur_subsong < us->min_subsong)
 	    us->min_subsong = us->cur_subsong;
 	}
+
 	if ((us->max_subsong - us->min_subsong) != 0)
 	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + us->max_subsong - us->min_subsong, us->min_subsong, us->max_subsong);
+
+	uade_lookup_volume_normalisation(ue, uc, us);
+
 	have_subsong_info = 1;
+
 	if (uade_info_mode)
 	  tprintf("subsong_info: %d %d %d (cur, min, max)\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	break;

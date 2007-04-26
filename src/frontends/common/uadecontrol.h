@@ -3,6 +3,7 @@
 
 #include <uadeipc.h>
 #include <uadeconf.h>
+#include <effects.h>
 
 #include <sys/types.h>
 
@@ -12,7 +13,8 @@ enum {
   UADECORE_CANT_PLAY
 };
 
-void uade_change_subsong(int subsong, struct uade_ipc *ipc);
+void uade_change_subsong(struct uade_effect *ue, struct uade_config *uc,
+			 struct uade_song *us, struct uade_ipc *ipc);
 int uade_read_request(struct uade_ipc *ipc);
 void uade_send_filter_command(struct uade_ipc *ipc,
 			      struct uade_config *uadeconf);
