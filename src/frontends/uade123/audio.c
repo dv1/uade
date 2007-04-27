@@ -14,8 +14,14 @@ static ao_device *libao_device = NULL;
 
 void audio_close(void)
 {
-  if (libao_device)
+  if (libao_device) {
+
+    /* Work-around libao/alsa, sleep 10ms to drain audio stream. */
+    if (uade_output_file_name[0] == 0)
+      usleep(10000);
+
     ao_close(libao_device);
+  }
 }
 
 
