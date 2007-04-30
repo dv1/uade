@@ -1,3 +1,21 @@
+2007-04-30  Heikki Orsila <heikki.orsila@iki.fi>
+	* UADE 2.07 (Walpurgis night)
+	- Added Special FX ST replayer from Don Adan
+	- Added a new version of Special FX replayer from Don Adan
+	- Work-arounded libao/alsa so that it drains the audio device for
+	  the last few milliseconds of sample data for the last played song.
+	  Thanks to Cthulhu for pointing out the problem.
+	- Many fixes in song length database code
+	  # Fixed a bug that only the last played subsong time was recorded
+	    into the song db
+	  # Fixed a file-locking race condition in song db
+	  # Fixed a song db corruption bug
+	  # Cleaned song db code
+	- Support for full Drag and Drop/Local URL Support in Audacious 1.3
+	  plugin
+	- Fixed misdetection and modlen calculation bug of Soundtracker IV
+	  mods
+
 2007-04-29  Heikki Orsila <heikki.orsila@iki.fi>
 	- Added Special FX ST replayer from Don Adan
 	- Added a new version of Special FX replayer from Don Adan
