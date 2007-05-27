@@ -1,6 +1,22 @@
+2007-05-27  Heikki Orsila <heikki.orsila@iki.fi>
+	- Commit messages into version repository should from now on include
+	  a short tag (1-4 tags) explaining the nature of the commit.
+	  The tags are:
+	  * [ADAP] - adaptive maintenance: the commit makes software to work
+	    better with the surrounding environment (compilers, libraries,
+	    path names ...)
+	  * [CORR] - corrective maintenance: fix a defect in the program
+	  * [PERF] - perfective maintenance: used when adding a feature or
+	    improving an existing feature
+	  * [PREV] - preventive maintenance: used when refactoring,
+	    cleaning or asserting the code, or adding self-tests
+
+	  See http://www.site.uottawa.ca:4321/oose/index.html#maintenance
+	
+	- Fixed Audacious plugin to work for Audacious 1.4/2.x [ADAP] [CORR]
+
 2007-05-03  Michael Doering <mld@users.sourceforge.net>
 	- Added a new version of Synthdream replayer from Don Adan
-
 
 2007-04-30  Heikki Orsila <heikki.orsila@iki.fi>
 	* UADE 2.07 (Walpurgis night)
