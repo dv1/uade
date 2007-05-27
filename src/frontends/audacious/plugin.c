@@ -84,6 +84,11 @@ static InputPlugin uade_ip = {
 static InputPlugin *playhandle = &uade_ip;
 #endif
 
+#if __AUDACIOUS_PLUGIN_API__ >= 2
+InputPlugin *uade_iplist[] = { &uade_ip, NULL };
+DECLARE_PLUGIN(uade, NULL, NULL, uade_iplist, NULL, NULL, NULL, NULL);
+#endif
+
 static const AFormat sample_format = FMT_S16_NE;
 
 /* Definition of trigger type:
@@ -275,10 +280,12 @@ void uade_unlock(void)
 
 
 /* this function is first called by xmms. returns pointer to plugin table */
+#if __AUDACIOUS_PLUGIN_API__ < 2
 InputPlugin *get_iplugin_info(void)
 {
   return &uade_ip;
 }
+#endif
 
 
 /* xmms initializes uade by calling this function */
