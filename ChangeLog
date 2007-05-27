@@ -13,7 +13,8 @@
 
 	  See http://www.site.uottawa.ca:4321/oose/index.html#maintenance
 	
-	- Fixed Audacious plugin to work for Audacious 1.4/2.x [ADAP] [CORR]
+	- Fixed Audacious plugin to work for Audacious 1.4/2.x
+	  Christian Birchinger <joker@netswarm.net> [ADAP] [CORR]
 
 2007-05-03  Michael Doering <mld@users.sourceforge.net>
 	- Added a new version of Synthdream replayer from Don Adan
