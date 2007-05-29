@@ -1,3 +1,8 @@
+2007-05-28  Heikki Orsila <heikki.orsila@iki.fi>
+	- The development has been moved to a Git repository. Please issue
+	  "git-clone git://zakalwe.fi/uade uade.git" to checkout the latest
+	  version from the repository.
+
 2007-05-27  Heikki Orsila <heikki.orsila@iki.fi>
 	- Commit messages into version repository should from now on include
 	  a short tag (1-4 tags) explaining the nature of the commit.
