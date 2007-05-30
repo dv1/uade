@@ -21,12 +21,9 @@
     <tr>
       <td>Here you can find the sources to <a href="./uade.html">uade</a>
 and links to
-several binary packages for download. We suggest you use latest
-pre-versions,
-because they are usually better than latest non-pre-versions.
-If you made a binary package
-for your platform and want it to be included here, <a
- href="mailto:heikki.orsila@iki.fi">contact us</a>. <br>
+several binary packages for download. We suggest you use the latest
+version from our version control server.
+<br>
 &nbsp;
       <table style="width: 100%;" bgcolor="#000000" border="0"
  cellpadding="5">
@@ -103,20 +100,25 @@ for your platform and want it to be included here, <a
         <tbody>
           <tr bgcolor="#0a5f89">
             <td>
-            <div style="margin-bottom: 0in;"><b><font color="#ffffff">Public
-CVS :</font></b></div>
+            <div style="margin-bottom: 0in;"><b><font color="#ffffff">
+Git version control server</font></b></div>
             </td>
           </tr>
           <tr bgcolor="#e7e7e7">
             <td style="vertical-align: top;">
-            <h4>Public CVS server: </h4>
-To sync UADE 2.xx sources from the CVS server, login by:<br>
+            <h4>Version control server: </h4>
+To sync UADE sources, use <a href="http://git.or.cz">Git</a>:<br>
+            <br>
+            <code>git-clone git://zakalwe.fi/uade uade.git</code><br>
+	    <br>
+	    The old CVS server is not modified anymore, but it is still
+	    available. The whole version history was imported to the Git
+	    repository, so there is no need for the CVS repository.
+	    To get the CVS repo, do: <br>
+	    <br>
             <code>cvs -d
-:pserver:uadecvs@zakalwe.fi:/home/cvs/uade-cvsroot
-login</code><br>
-<br>
-and then checkout:<br>
-<code>cvs -d :pserver:uadecvs@zakalwe.fi:/home/cvs/uade-cvsroot -q co uade
+:pserver:uadecvs@zakalwe.fi:/home/cvs/uade-cvsroot login</code><br>
+<code>cvs -d :pserver:uadecvs@zakalwe.fi:/home/cvs/uade-cvsroot -q -z9 co uade
 </code><br>
             <br>
             <span style="font-style: italic;">The password for uadecvs
