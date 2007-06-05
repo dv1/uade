@@ -416,7 +416,7 @@ ipc_protocol_version=$IPC_PROTOCOL_VERSION
 Name: UADE (Unix Amiga Delitracker Emulator)
 Description: A music player for Amiga music formats
 Version: $VERSION
-Requirements: $pkgrequirements
+Requires: $pkgrequirements
 EOF
 fi
 
