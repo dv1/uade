@@ -185,7 +185,7 @@ if test "$usexmms" = "auto" -o "$usexmms" = "yes" ; then
     else
 	if test "$usexmms" = "yes" ; then
 	    echo "Sorry, compiling XMMS plugin is impossible."
-	    exit -1
+	    exit 1
 	fi
 	usexmms="no"
 	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
@@ -203,7 +203,7 @@ if test "$useaudacious" = "auto" -o "$useaudacious" = "yes" ; then
     else
 	if test "$useaudacious" = "yes" ; then
 	    echo "Sorry, compiling Audacious plugin is impossible."
-	    exit -1
+	    exit 1
 	fi
 	useaudacious="no"
 	echo "Couldn't find pkg-config audacious -> not compiling plugin!"
@@ -363,6 +363,12 @@ if test -z "$includedir" ; then
 fi
 if test -n "$sharedir"; then
     uadedatadir="$sharedir"
+fi
+
+$TARGETCC -v 2>/dev/null >/dev/null
+if test "$?" != "0"; then
+    echo $TARGETCC not found, please install a C compiler
+    exit 1
 fi
 
 cd compat
