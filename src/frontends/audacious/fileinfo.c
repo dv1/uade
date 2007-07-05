@@ -86,7 +86,7 @@ void uade_gui_file_info(char *filename, char *gui_player_filename,
     char * decoded = NULL;
 
     if (strncmp(filename, "file:/",6) == 0) {
-      decoded = xmms_urldecode_path((char *) filename);
+      decoded = g_filename_from_uri((char *) filename, NULL, NULL);
       filename = decoded;
     }
 #endif

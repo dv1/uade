@@ -330,7 +330,7 @@ static int uade_is_our_file(char *filename)
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   if (strncmp(filename, "file:/", 6) == 0) {
-    decoded = xmms_urldecode_path((char *) filename);
+    decoded = g_filename_from_uri((char *) filename, NULL, NULL);
     filename = decoded;
   }
 #endif
@@ -763,7 +763,7 @@ static void uade_play_file(char *filename)
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
   if (strncmp(filename, "file:/", 6) == 0) {
-    decoded = xmms_urldecode_path((char *) filename);
+    decoded = g_filename_from_uri((char *) filename, NULL, NULL);
     if (decoded != NULL)
       filename = decoded;
   }
