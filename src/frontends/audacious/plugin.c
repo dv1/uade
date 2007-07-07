@@ -118,7 +118,7 @@ static char gui_playername[256];
 static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
 static char md5name[PATH_MAX];
-static int out_bytes_valid; /* Lock before use */
+static int record_playtime; /* Lock before use */
 static int plugin_disabled;
 static char songconfname[PATH_MAX];
 static struct uade_ipc uadeipc;
@@ -431,7 +431,7 @@ static void *play_loop(void *arg)
 
       if (abort_playing) {
 	uade_lock();
-	out_bytes_valid = 0;
+	record_playtime = 0;
 	uade_unlock();
 	break;
       }
@@ -455,7 +455,7 @@ static void *play_loop(void *arg)
 
 	/* we do this to avoid timeout, and to not record playtime */
 	uadesong->out_bytes = 0;
-	out_bytes_valid = 0;
+	record_playtime = 0;
 
 	uade_info_string();
       }
@@ -559,8 +559,10 @@ static void *play_loop(void *arg)
 	if (config.timeout != -1 && config.use_timeouts) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
-	    if (uadesong->out_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.timeout)
+	    if (uadesong->out_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.timeout) {
 	      song_end_trigger = 1;
+	      record_playtime = 0;
+	    }
 	    uade_unlock();
 	  }
 	}
@@ -569,6 +571,7 @@ static void *play_loop(void *arg)
 	  if (subsong_end == 0 && song_end_trigger == 0) {
 	    if (subsong_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.subsong_timeout) {
 	      subsong_end = 1;
+	      record_playtime = 0;
 	    }
 	  }
 	}
@@ -750,7 +753,7 @@ static void uade_play_file(char *filename)
 
   abort_playing = 0;
   last_beat_played = 0;
-  out_bytes_valid = 1;
+  record_playtime = 1;
 
   uade_is_paused = 0;
   uade_select_sub = -1;
@@ -873,7 +876,7 @@ static void uade_stop(void)
     /* If song ended voluntarily, tell the play time for XMMS. */
     uade_lock();
     play_time = uadesong->playtime;
-    if (out_bytes_valid) {
+    if (record_playtime) {
       play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
       if (uadesong->md5[0] != 0)
         uade_add_playtime(uadesong->md5, play_time);
@@ -980,5 +983,5 @@ static void uade_info_string(void)
     strlcpy(info, gui_filename, sizeof info);
 
   uade_ip.set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
-	       config.frequency, UADE_CHANNELS);
+		   config.frequency, UADE_CHANNELS);
 }

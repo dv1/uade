@@ -102,7 +102,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   char *reason;
   int64_t skip_bytes;
 
-  int out_bytes_valid = 1;
+  int record_playtime = 1;
 
   int64_t subsong_bytes = 0;
   int deciseconds;
@@ -154,7 +154,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case '<':
 	  plistdir = -1;
 	  uade_song_end_trigger = 1;
-	  out_bytes_valid = 0;
+	  record_playtime = 0;
 	  break;
 	case '.':
 	  if (skip_bytes == 0) {
@@ -165,7 +165,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case ' ':
 	case 'b':
 	  subsong_end = 1;
-	  out_bytes_valid = 0;
+	  record_playtime = 0;
 	  break;
 	case 'c':
 	  pause_terminal();
@@ -199,7 +199,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case '\n':
 	case 'n':
 	  uade_song_end_trigger = 1;
-	  out_bytes_valid = 0;
+	  record_playtime = 0;
 	  break;
 	case 'N':
 	  uade_effect_toggle(ue, UADE_EFFECT_NORMALISE);
@@ -228,10 +228,10 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  us->cur_subsong--;
 	  subsong_end = 1;
 	  jump_sub = 1;
-	  out_bytes_valid = 0;
+	  record_playtime = 0;
 	  break;
 	case 'z':
-	  out_bytes_valid = 0;
+	  record_playtime = 0;
 	  if (us->cur_subsong == 0 ||
 	      (us->min_subsong >= 0 && us->cur_subsong == us->min_subsong)) {
 	    plistdir = -1;
@@ -262,7 +262,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	    subsong_end = 1;
 	    jump_sub = 1;
 	    us->out_bytes = 0; /* to prevent timeout */
-	    out_bytes_valid = 0; /* to not record playtime */
+	    record_playtime = 0; /* to not record playtime */
 	  } else if (!isspace(ret)) {
 	    fprintf(stderr, "\n%c is not a valid command\n", ret);
 	  }
@@ -362,6 +362,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	    if (us->out_bytes / bytes_per_second >= uc->timeout) {
 	      fprintf(stderr, "\nSong end (timeout %ds)\n", uc->timeout);
 	      uade_song_end_trigger = 1;
+	      record_playtime = 0;
 	    }
 	  }
 	}
@@ -371,6 +372,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	    if (subsong_bytes / bytes_per_second >= uc->subsong_timeout) {
 	      fprintf(stderr, "\nSong end (subsong timeout %ds)\n", uc->subsong_timeout);
 	      subsong_end = 1;
+	      record_playtime = 0;
 	    }
 	  }
 	}
@@ -508,7 +510,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
     }
   }
 
-  if (out_bytes_valid && us->md5[0] != 0) {
+  if (record_playtime && us->md5[0] != 0) {
     uint32_t playtime = (us->out_bytes * 1000) / bytes_per_second;
     uade_add_playtime(us->md5, playtime);
   }

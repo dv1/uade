@@ -32,25 +32,31 @@ void pause_terminal(void)
     return;
 
   tprintf("\nPaused. Press any key to continue...\n");
+
   while (uade_terminated == 0) {
     FD_ZERO(&rfds);
     FD_SET(terminal_fd, &rfds);
+
     ret = select(terminal_fd + 1, &rfds, NULL, NULL, NULL);
     if (ret < 0) {
       if (errno == EINTR)
 	continue;
       perror("\nuade123: poll error");
-      exit(-1);
+      exit(1);
     }
+
     if (ret == 0)
       continue;
+
     ret = read(terminal_fd, &c, 1);
     if (ret < 0) {
       if (errno == EINTR || errno == EAGAIN)
 	continue;
     }
+
     break;
   }
+
   tprintf("\n");
 }
 
@@ -73,6 +79,7 @@ int poll_terminal(void)
     if (ret <= 0)
       c = 0;
   }
+
   return c;
 }
 
@@ -95,6 +102,7 @@ void setup_terminal(void)
     return;
   }
   atexit(uade_restore_terminal);
+
   tp = old_terminal;
   tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
   if (tcsetattr(fd, TCSAFLUSH, &tp)) {
