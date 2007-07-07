@@ -1,4 +1,7 @@
 To be solved:
+2007-07-07: Don't save play length if timeout catched the song (shd)
+2007-07-07: mod_packer/prorunner/pru2/Benefactor/pru2.ingame-2 subson 3 never
+	    ends (shd)
 2006-08-29: Prowiz seems to forget to convert the first two lines of pattern
             23 of p61.traffic1 (mld)
 2006-04-24: uadesong structure provided for file info window is not
