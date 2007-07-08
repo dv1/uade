@@ -56,7 +56,7 @@ int uade_song_end_trigger;
 static int debug_mode;
 static char md5name[PATH_MAX];
 static time_t md5_load_time;
-static pid_t uadepid;
+static pid_t uadepid = -1;
 static char uadename[PATH_MAX];
 
 
@@ -197,12 +197,12 @@ int main(int argc, char *argv[])
 
   if (!playlist_init(&uade_playlist)) {
     fprintf(stderr, "Can not initialize playlist.\n");
-    exit(-1);
+    exit(1);
   }
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
 	fprintf(stderr, "Too long a string for option %c.\n", ret); \
-         exit(-1); \
+         exit(1); \
       }
 
   while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
 	FILE *listfile = fopen(optarg, "r");
 	if (listfile == NULL) {
 	  fprintf(stderr, "Can not open list file: %s\n", optarg);
-	  exit(-1);
+	  exit(1);
 	}
 	while ((fgets(tmpstr, sizeof(tmpstr), listfile)) != NULL) {
 	  if (tmpstr[0] == '#')
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
       uade_jump_pos = strtod(optarg, &endptr);
       if (*endptr != 0 || uade_jump_pos < 0.0) {
 	fprintf(stderr, "Invalid jump position: %s\n", optarg);
-	exit(-1);
+	exit(1);
       }
       break;
     case 'k':
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
       subsong = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || subsong < 0 || subsong > 255) {
 	fprintf(stderr, "Invalid subsong string: %s\n", optarg);
-	exit(-1);
+	exit(1);
       }
       break;
     case 'S':
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
       break;
     case '?':
     case ':':
-      exit(-1);
+      exit(1);
 
     case OPT_BASEDIR:
       uade_set_config_option(&uc_cmdline, UC_BASE_DIR, optarg);
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
 
     default:
       fprintf(stderr, "Impossible option.\n");
-      exit(-1);
+      exit(1);
     }
   }
 
@@ -404,7 +404,7 @@ int main(int argc, char *argv[])
     /* Make song.conf settings */
     if (home == NULL) {
       fprintf(stderr, "No $HOME for song.conf :(\n");
-      exit(-1);
+      exit(1);
     }
 
     snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf",
@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
     DIR *bd;
     if ((bd = opendir(uc.basedir.name)) == NULL) {
       fprintf(stderr, "Could not access dir %s: %s\n", uc.basedir.name, strerror(errno));
-      exit(-1);
+      exit(1);
     }
     closedir(bd);
 
@@ -463,15 +463,15 @@ int main(int argc, char *argv[])
 
     if (access(configname, R_OK)) {
       fprintf(stderr, "Could not read %s: %s\n", configname, strerror(errno));
-      exit(-1);
+      exit(1);
     }
     if (access(scorename, R_OK)) {
       fprintf(stderr, "Could not read %s: %s\n", scorename, strerror(errno));
-      exit(-1);
+      exit(1);
     }
     if (access(uadename, X_OK)) {
       fprintf(stderr, "Could not execute %s: %s\n", uadename, strerror(errno));
-      exit(-1);
+      exit(1);
     }
   } while (0);
 
@@ -578,7 +578,7 @@ int main(int argc, char *argv[])
 	continue;
       }
       fprintf(stderr, "Unknown error from uade_song_initialization()\n");
-      exit(-1);
+      exit(1);
     }
 
     if (subsong >= 0)
@@ -714,28 +714,22 @@ void print_action_keys(void)
 static void setup_sighandlers(void)
 {
   struct sigaction act;
+
   memset(&act, 0, sizeof act);
   act.sa_handler = trivial_sigint;
-  while (1) {
-    if ((sigaction(SIGINT, &act, NULL)) < 0) {
-      if (errno == EINTR)
-	continue;
-      fprintf(stderr, "can not install signal handler SIGINT: %s\n", strerror(errno));
-      exit(-1);
-    }
-    break;
+
+  if ((sigaction(SIGINT, &act, NULL)) < 0) {
+    fprintf(stderr, "can not install signal handler SIGINT: %s\n", strerror(errno));
+    exit(1);
   }
+
   memset(&act, 0, sizeof act);
   act.sa_handler = trivial_sigchld;
   act.sa_flags = SA_NOCLDSTOP;
-  while (1) {
-    if ((sigaction(SIGCHLD, &act, NULL)) < 0) {
-      if (errno == EINTR)
-	continue;
-      fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));
-      exit(-1);
-    }
-    break;
+
+  if ((sigaction(SIGCHLD, &act, NULL)) < 0) {
+    fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));
+    exit(1);
   }
 }
 
@@ -743,32 +737,41 @@ static void setup_sighandlers(void)
 ssize_t stat_file_size(const char *name)
 {
   struct stat st;
+
   if (stat(name, &st))
     return -1;
+
   return st.st_size;
 }
 
 
-/* test song_end_trigger by taking care of mutual exclusion with SIGINT */
+/* test song_end_trigger by taking care of mutual exclusion with signal
+   handlers */
 int test_song_end_trigger(void)
 {
   int ret;
   sigset_t set;
+
+  /* Block SIGINT while handling uade_song_end_trigger */
   if (sigemptyset(&set))
     goto sigerr;
   if (sigaddset(&set, SIGINT))
     goto sigerr;
   if (sigprocmask(SIG_BLOCK, &set, NULL))
     goto sigerr;
+
   ret = uade_song_end_trigger;
   uade_song_end_trigger = 0;
+
+  /* Unblock SIGINT */
   if (sigprocmask(SIG_UNBLOCK, &set, NULL))
     goto sigerr;
+
   return ret;
 
  sigerr:
   fprintf(stderr, "signal hell\n");
-  exit(-1);
+  exit(1);
 }
 
 
@@ -776,9 +779,9 @@ static void cleanup(void)
 {
   save_content_db();
 
-  if (uadepid) {
+  if (uadepid != -1) {
     kill(uadepid, SIGTERM);
-    uadepid = 0;
+    uadepid = -1;
   }
 
   audio_close();
@@ -787,17 +790,10 @@ static void cleanup(void)
 
 static void trivial_sigchld(int sig)
 {
-  pid_t process;
   int status;
-  int successful;
-  process = waitpid(-1, &status, WNOHANG);
-  if (process == 0)
-    return;
-  if (uadepid == 0)
-    return;
-  if (process == uadepid) {
-    successful = (WEXITSTATUS(status) == 0);
-    uadepid = 0;
+
+  if (waitpid(-1, &status, WNOHANG) == uadepid) {
+    uadepid = -1;
     uade_terminated = 1;
   }
 }
@@ -813,19 +809,22 @@ static void trivial_sigint(int sig)
     uade_debug_trigger = 1;
     return;
   }
+
   uade_song_end_trigger = 1;
 
   /* counts number of milliseconds between ctrl-c pushes, and terminates the
      prog if they are less than 100 msecs apart. */ 
-  if (gettimeofday(&tv, 0)) {
+  if (gettimeofday(&tv, NULL)) {
     fprintf(stderr, "Gettimeofday() does not work.\n");
     return;
   }
+
   msecs = 0;
   if (otv.tv_sec) {
     msecs = (tv.tv_sec - otv.tv_sec) * 1000 + (tv.tv_usec - otv.tv_usec) / 1000;
     if (msecs < 100)
-      exit(-1);
+      exit(1);
   }
+
   otv = tv;
 }
