@@ -342,9 +342,8 @@ static int initialize_song(char *filename)
     snprintf(playername, sizeof playername, "%s/players/%s", config.basedir.name, ep->playername);
   }
 
-  assert(uadesong == NULL);
-
-  if ((uadesong = uade_alloc_song(filename)) == NULL)
+  uadesong = uade_alloc_song(filename);
+  if (uadesong == NULL)
     return FALSE;
 
   uade_set_ep_attributes(&config, uadesong, ep);
@@ -389,6 +388,10 @@ static void *play_loop(void *arg)
   int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
   int song_end_trigger = 0;
   int64_t skip_bytes = 0;
+
+  uade_lock();
+  record_playtime = 1;
+  uade_unlock();
 
   while (1) {
     if (state == UADE_S_STATE) {
@@ -730,11 +733,13 @@ static void uade_play_file(char *filename)
 
   abort_playing = 0;
   last_beat_played = 0;
-  record_playtime = 1;
+  record_playtime = 0;
 
   uade_is_paused = 0;
   uade_select_sub = -1;
   uade_seek_forward = 0;
+
+  assert(uadesong == NULL);
 
   uade_unlock();
 
@@ -794,7 +799,6 @@ static void uade_play_file(char *filename)
 
   if (pthread_create(&decode_thread, NULL, play_loop, NULL)) {
     fprintf(stderr, "uade: can't create play_loop() thread\n");
-    uade_unalloc_song(uadesong);
     goto err;
   }
 
@@ -807,6 +811,8 @@ static void uade_play_file(char *filename)
   abort_playing = 1;
 
   uade_lock();
+  if (uadesong)
+    uade_unalloc_song(uadesong);
   uadesong = NULL;
   uade_unlock();
 }
@@ -876,11 +882,15 @@ static int uade_get_time(void)
     return -1;
 
   if (gui_info_set == 0 && uadesong->max_subsong != -1) {
+
     uade_lock();
+
     if (uadesong->max_subsong != -1)
       uade_info_string();
-    uade_unlock();
+
     gui_info_set = 1;
+    uade_unlock();
+
     file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
   }
 

@@ -374,8 +374,8 @@ static int initialize_song(char *filename)
     snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
   }
 
-  assert(uadesong == NULL);
-  if ((uadesong = uade_alloc_song(filename)) == NULL)
+  uadesong = uade_alloc_song(filename);
+  if (uadesong == NULL)
     return FALSE;
 
   uade_set_ep_attributes(&config, uadesong, ep);
@@ -392,8 +392,8 @@ static int initialize_song(char *filename)
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
       plugin_disabled = 1;
     }
-    uade_unalloc_song(uadesong);
     uade_lock();
+    uade_unalloc_song(uadesong);
     uadesong = NULL;
     uade_unlock();
     return FALSE;
@@ -423,6 +423,10 @@ static void *play_loop(void *arg)
   int framesize = UADE_CHANNELS * UADE_BYTES_PER_SAMPLE;
   int song_end_trigger = 0;
   int64_t skip_bytes = 0;
+
+  uade_lock();
+  record_playtime = 1;
+  uade_unlock();
 
   while (1) {
     if (state == UADE_S_STATE) {
@@ -753,11 +757,13 @@ static void uade_play_file(char *filename)
 
   abort_playing = 0;
   last_beat_played = 0;
-  record_playtime = 1;
+  record_playtime = 0;
 
   uade_is_paused = 0;
   uade_select_sub = -1;
   uade_seek_forward = 0;
+
+  assert(uadesong == NULL);
 
   uade_unlock();
 
@@ -826,23 +832,30 @@ static void uade_play_file(char *filename)
   if (initialize_song(filename) == FALSE)
     goto err;
 
+#if __AUDACIOUS_PLUGIN_API__ >= 3
+  decode_thread = pthread_self();
+  uade_thread_running = 1;
+  play_loop(playhandle);
+#else
   if (pthread_create(&decode_thread, NULL, play_loop, playhandle)) {
-    fprintf(stderr, "uade: can't create play_loop() thread\n");
-    uade_unalloc_song(uadesong);
-    uade_lock();
-    uadesong = NULL;
-    uade_unlock();
+    fprintf(stderr, "uade: can't create play_loop() thread. Please report!\n");
     goto err;
   }
+  uade_thread_running = 1;
+#endif
 
   free(decoded);
-
-  uade_thread_running = 1;
   return;
 
  err:
 
   free(decoded);
+
+  uade_lock();
+  if (uadesong != NULL)
+    uade_unalloc_song(uadesong);
+  uadesong = NULL;
+  uade_unlock();
 
   /* close audio that was opened */
   playhandle->output->close_audio();
@@ -871,13 +884,14 @@ static void uade_stop(void)
 
   uade_gui_close_subsong_win();
 
+  uade_lock();
+
   if (uadesong != NULL) {
-    int play_time;
-    /* If song ended voluntarily, tell the play time for XMMS. */
-    uade_lock();
-    play_time = uadesong->playtime;
+
     if (record_playtime) {
-      play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
+      /* Song ended voluntarily -> tell the play time for Audacious, and
+	 record it into song length db */
+      int play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
       if (uadesong->md5[0] != 0)
         uade_add_playtime(uadesong->md5, play_time);
 
@@ -890,9 +904,9 @@ static void uade_stop(void)
        GUI windows have been closed. */
     uade_unalloc_song(uadesong);
     uadesong = NULL;
-
-    uade_unlock();
   }
+
+  uade_unlock();
 
   playhandle->output->close_audio();
 }
@@ -936,17 +950,22 @@ static int uade_get_time(void)
   if (abort_playing || last_beat_played)
     return -1;
 
-  if (gui_info_set == 0 && uadesong->max_subsong != -1) {
+  /* uade_get_time can be called before play_file initializes uadesong
+     structure, so we must return 0 as time */
+  if (!uade_thread_running)
+    return 0;
+
+  if (!gui_info_set && uadesong->max_subsong != -1) {
     uade_lock();
     if (uadesong->max_subsong != -1) {
       uade_info_string();
     }
-    uade_unlock();
     gui_info_set = 1;
+    uade_unlock();
     file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
   }
 
-    return playhandle->output->output_time();
+  return playhandle->output->output_time();
 }
 
 
