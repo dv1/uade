@@ -474,6 +474,13 @@ if test "$?" != "0" ; then
     echo "Using memmem() replacement."
 fi
 
+if test "$user" = "yes" ; then
+    echo
+    echo "You may want to create symlink: ln -s $bindir/uade123 $HOME/bin/"
+    echo "and add $HOME/bin to the user path."
+    echo
+fi
+
 csfile="../src/include/compilersupport.h"
 echo "#ifndef _UADE_COMPILER_SUPPORT_H_" > "$csfile"
 echo "#define _UADE_COMPILER_SUPPORT_H_" >> "$csfile"
