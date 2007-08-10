@@ -559,7 +559,7 @@ int main(int argc, char *argv[])
     uade_set_effects(&effects, &uc);
 
     if ((filesize = stat_file_size(playername)) < 0) {
-      fprintf(stderr, "Can not stat player: %s (%s)\n", playername, strerror(errno));
+      fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));
       uade_unalloc_song(us);
       continue;
     }
