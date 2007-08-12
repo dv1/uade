@@ -835,6 +835,7 @@ static void uade_play_file(char *filename)
 #if __AUDACIOUS_PLUGIN_API__ >= 3
   decode_thread = pthread_self();
   uade_thread_running = 1;
+  playhandle->set_pb_ready(playhandle);
   play_loop(playhandle);
 #else
   if (pthread_create(&decode_thread, NULL, play_loop, playhandle)) {
