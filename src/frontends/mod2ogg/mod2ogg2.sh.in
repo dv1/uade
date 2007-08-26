@@ -11,8 +11,7 @@
 #  / /___/ /_/ / / / / |/ /  __/ /  / /_/  __/ /    
 #  \____/\____/_/ /_/|___/\___/_/   \__/\___/_/     
 #
-VERSION="V 2.1"
-RELEASEDATE="08 Feb 2006"
+VERSION="{VERSION}"
 #
 # A simple way to encode a module to a sampled audio file format
 #
@@ -255,8 +254,7 @@ usage ()
 
 print_version ()
 {
-    echo "Module Converter $VERSION"
-    echo "$RELEASEDATE Giulio Canevari"
+    echo "Module Converter $VERSION by Giulio Canevari"
 }
 
 check_programs ()

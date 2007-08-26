@@ -475,10 +475,12 @@ if test "$?" != "0" ; then
 fi
 
 if test "$user" = "yes" ; then
-    echo
-    echo "You may want to create symlink: ln -s $bindir/uade123 $HOME/bin/"
-    echo "and add $HOME/bin to the user path."
-    echo
+    if test ! -e "$HOME/bin/uade123" ; then
+	echo
+	echo "You may want to create symlink: ln -s $bindir/uade123 $HOME/bin/"
+	echo "and add $HOME/bin to the user path."
+	echo
+    fi
 fi
 
 csfile="../src/include/compilersupport.h"
@@ -564,7 +566,7 @@ sed -e "s|{MAKE}|$MAKE|g" \
     -e "s|{PKGCONFIGDIR}|$pkgconfigdir|g" \
     Makefile.in > Makefile
 
-for file in src/Makefile.in src/frontends/*/Makefile.in ; do
+for file in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mod2ogg2.sh.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
 	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
@@ -582,5 +584,9 @@ for file in src/Makefile.in src/frontends/*/Makefile.in ; do
 	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
 	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
+	-e "s|{VERSION}|$VERSION|g" \
 	"$file" > "$dst"
 done
+
+# Make mod2ogg script executable
+chmod u+x src/frontends/mod2ogg/mod2ogg2.sh
