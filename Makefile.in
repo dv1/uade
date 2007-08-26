@@ -88,6 +88,7 @@ install:
 	chmod -R og+rX "$(DATADIR)"
 	$(MAKE) installagain
 	$(MAKE) feinstall
+	install src/frontends/mod2ogg/mod2ogg2.sh "$(BINDIR)/"
 
 installagain:	$(UADECOREINSTALL)
 	@true
