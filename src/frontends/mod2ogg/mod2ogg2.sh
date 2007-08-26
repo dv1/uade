@@ -98,7 +98,7 @@ fi
 uade_convert ()
 {
     create_wavetmp
-	create_infotmp
+    create_infotmp
     
     if [ "$MULTI" = false ]; then
         "$UADECOMMAND" $UADEOPTIONS "$MODULE" -f "$TF" 2>"$TMPINFO"
@@ -108,7 +108,7 @@ uade_convert ()
         "$UADECOMMAND" $UADEOPTIONS "$MODULE" --subsong $SUBSONGNUMBER  -f "$TF" 2>"$TMPINFO"
     fi
     
-	check_silence
+    check_silence
 	
     if [ "$FADEOUT" = true ]; then
         effect_fade_out
@@ -119,11 +119,11 @@ uade_convert ()
     fi
     
 	if [ "$FADEOUT" = "true" ] || [ "$FADE" = "true" ] || [ "$EFFECT" != "" ]; then
-		create_soxtmp
+	    create_soxtmp
 	    sox_convert
-		rm -f "$TF"
+	    rm -f "$TF"
 	else
-		WAVE="$TF"
+	    WAVE="$TF"
 	fi
     
     if [ -z "$NORMALIZE" ]; then
@@ -131,15 +131,14 @@ uade_convert ()
     fi
 	
     if [ "$NORMALIZE" = true ]; then
-		if [ -z `which normalize 2>/dev/null` ]; then
-    		TEMPNORMALIZED=$TMP/output-`basename "$WAVE"`
-			NORMALIZEFACTOR=`sox "$WAVE" -e stat -v 2>&1`
-			sox -V -v "$NORMALIZEFACTOR" "$WAVE" "$TEMPNORMALIZED"
-			mv -f "$TEMPNORMALIZED" "$WAVE"
+	if [ -z `which normalize 2>/dev/null` ]; then
+	    TEMPNORMALIZED=$TMP/output-`basename "$WAVE"`
+	    NORMALIZEFACTOR=`sox "$WAVE" -e stat -v 2>&1`
+	    sox -V -v "$NORMALIZEFACTOR" "$WAVE" "$TEMPNORMALIZED"
+	    mv -f "$TEMPNORMALIZED" "$WAVE"
     	else
-			normalize "$WAVE"
+	    normalize "$WAVE"
     	fi
-        
     fi
 }
 
@@ -197,14 +196,14 @@ encode_file ()
 
 sox_convert ()
 {
-	sox  "$TF" "$WAVE" $EFFECT $FADEEFFECT
+    sox "$TF" "$WAVE" $EFFECT $FADEEFFECT
 }
 
 delete_old_tmp ()
 {
-	if [ "$( ls $TMP/ModuleConverter-* 2>/dev/null )" != "" ]; then
-		rm -f $TMP/ModuleConverter-*
-	fi
+    if [ "$( ls $TMP/ModuleConverter-* 2>/dev/null )" != "" ]; then
+	rm -f $TMP/ModuleConverter-*
+    fi
 }
 
 usage ()
@@ -342,20 +341,19 @@ effect_fade_in ()
 
 check_silence ()
 {
-	SILENCE=""
-	SILENCE=$( cat $TMPINFO | grep 'silence detected' |awk '{print $3 }' |sed s/\(// )
+    SILENCE=$( cat $TMPINFO | grep 'silence detected' |awk '{print $3 }' |sed s/\(// )
 	
-	rm -f $TMPINFO
+    rm -f $TMPINFO
 
-	if [ -n "$SILENCE" ]; then
-		get_raw_length
-		calculate_cut_time
-		create_soxtmp
-		sox  "$TF" "$WAVE" fade t 0 $CUTTIME 0
-		rm -f "$TF"
-		TF="$WAVE"
-		WAVE=""
-	fi
+    if [ -n "$SILENCE" ]; then
+	get_raw_length
+	calculate_cut_time
+	create_soxtmp
+	sox  "$TF" "$WAVE" fade t 0 $CUTTIME 0
+	rm -f "$TF"
+	TF="$WAVE"
+	WAVE=""
+    fi
 }
 
 calculate_cut_time ()
@@ -441,7 +439,7 @@ get_module_info ()
         "$UADECOMMAND" -g "$MODULE" >"$TMPINFO" 2>/dev/null
     fi
     
-	cat $TMPINFO
+    cat $TMPINFO
 	
     MINSUBSONG=`cat $TMPINFO |grep 'subsong_info:' |awk '{print $3}'`
     MAXSUBSONG=`cat $TMPINFO |grep 'subsong_info:' |awk '{print $4}'`
@@ -514,7 +512,7 @@ check_tmp
 delete_old_tmp
 
 while [ "$1" != "" ] ; do
-	case $1 in
+    case $1 in
         --help|-h)
             usage
             exit 0
@@ -587,8 +585,7 @@ while [ "$1" != "" ] ; do
             ENCQUALITY="$1"
             check_enc_quality
         ;;
-        *)
-        
+	*)
             if [ -e "$1" ]; then
 
                 if [ -z "$MODE" ]; then
@@ -606,17 +603,15 @@ while [ "$1" != "" ] ; do
                     encode_file
                 else
                     MULTI="true"
-                    for SUBSONGNUMBER in `seq "$MINSUBSONG" "$MAXSUBSONG" `
-                        do
-                            uade_convert
-                            encode_file
+                    for SUBSONGNUMBER in `seq "$MINSUBSONG" "$MAXSUBSONG"` ; do
+			uade_convert
+			encode_file
                     done
                 fi
-            
             else
                 echo $i : File not found!
             fi
-        ;;
+	;;
     esac
     shift
 done
