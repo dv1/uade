@@ -415,7 +415,7 @@ fi
 
 pkgconfigdir="$prefix/lib/pkgconfig"
 rm -f uade.pc
-if test "$PKG_CONFIG" != "" ; then
+if test -n "$PKG_CONFIG" ; then
     installuadepcrule=""
     if test "$useuade123" = "no" ; then
 	pkgrequirements=""
