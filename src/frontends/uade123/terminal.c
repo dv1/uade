@@ -9,6 +9,8 @@
 #include <fcntl.h>
 
 #include "uade123.h"
+#include "terminal.h"
+
 
 static struct termios old_terminal;
 static int terminal_is_set;
