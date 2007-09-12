@@ -348,9 +348,9 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
 		      int verbose)
 {
   /* mod patterns at file offset 0x438 */
-  char *mod_patterns[] = { "M.K.", ".M.K", 0 };
+  char *mod_patterns[] = { "M.K.", ".M.K", NULL};
   /* startrekker patterns at file offset 0x438 */
-  char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", 0 };
+  char *startrekker_patterns[] = { "FLT4", "FLT8", "EXO4", "EXO8", NULL};
 
   int max_pattern = 0;
   int i, j, t, ret;
