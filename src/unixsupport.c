@@ -151,7 +151,7 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
 
   if (strlcpy(copy, aname, sizeof(copy)) >= sizeof(copy)) {
     fprintf(stderr, "uade: error: amiga tried to open a very long filename\nplease REPORT THIS!\n");
-    return 0;
+    return NULL;
   }
   ptr = copy;
   /* fprintf(stderr, "uade: opening %s\n", ptr); */
@@ -165,11 +165,11 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
       snprintf(dirname, sizeof(dirname), "%s/S/", playerdir);
     } else {
       fprintf(stderr, "uade: open_amiga_file: unknown amiga volume (%s)\n", aname);
-      return 0;
+      return NULL;
     }
     if (!(dir = opendir(dirname))) {
       fprintf(stderr, "uade: can't open dir (%s) (volume parsing)\n", dirname);
-      return 0;
+      return NULL;
     }
     closedir(dir);
     /* fprintf(stderr, "uade: opening from dir %s\n", dirname); */
@@ -197,16 +197,16 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
       /* found matching entry */
       if (strlcat(dirname, real, sizeof(dirname)) >= sizeof(dirname)) {
 	fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, real);
-	return 0;
+	return NULL;
       }
       if (strlcat(dirname, "/", sizeof(dirname)) >= sizeof(dirname)) {
 	fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, "/");
-	return 0;
+	return NULL;
       }
     } else {
       /* didn't find entry */
       /* fprintf (stderr, "uade: %s not found from (%s) (dir scanning)\n", fake, dirname); */
-      return 0;
+      return NULL;
     }
     ptr = separator + 1;
   }
@@ -214,7 +214,7 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
 
   if (!(dir = opendir(dirname))) {
     fprintf(stderr, "can't open dir (%s) (after dir scanning)\n", dirname);
-    return 0;
+    return NULL;
   }
   closedir(dir);
 
@@ -222,12 +222,12 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
     /* found matching entry */
     if (strlcat(dirname, real, sizeof(dirname)) >= sizeof(dirname)) {
       fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, real);
-      return 0;
+      return NULL;
     }
   } else {
     /* didn't find entry */
     /* fprintf (stderr, "uade: %s not found from %s\n", ptr, dirname); */
-    return 0;
+    return NULL;
   }
   if (!(file = fopen(dirname, "r"))) {
     fprintf (stderr, "uade: couldn't open file (%s) induced by (%s)\n", dirname, aname);

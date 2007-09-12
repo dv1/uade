@@ -50,8 +50,8 @@ unsigned int ciaapra, ciabpra;
 unsigned int gui_ledstate;
 int gui_ledstate_forced = 0;
 
-int ciaatod_read;
-int ciabtod_read;
+static int ciaatod_read;
+static int ciabtod_read;
 
 static unsigned long ciaala,ciaalb,ciabla,ciablb;
 static int ciaatodon, ciabtodon;
@@ -253,7 +253,7 @@ void CIA_hsync_handler(void)
 
 }
 
-void CIA_vsync_handler()
+void CIA_vsync_handler(void)
 {
     if (ciaatodon)
 	ciaatod++;
@@ -668,17 +668,17 @@ addrbank cia_bank = {
     default_xlate, default_check
 };
 
-uae_u32 REGPARAM2 cia_lget (uaecptr addr)
+static uae_u32 REGPARAM2 cia_lget (uaecptr addr)
 {
     return cia_bget(addr+3);
 }
 
-uae_u32 REGPARAM2 cia_wget (uaecptr addr)
+static uae_u32 REGPARAM2 cia_wget (uaecptr addr)
 {
     return cia_bget(addr+1);
 }
 
-uae_u32 REGPARAM2 cia_bget (uaecptr addr)
+static uae_u32 REGPARAM2 cia_bget (uaecptr addr)
 {
     if ((addr & 0x3001) == 0x2001)
 	return ReadCIAA((addr & 0xF00) >> 8);
@@ -687,17 +687,17 @@ uae_u32 REGPARAM2 cia_bget (uaecptr addr)
     return 0;
 }
 
-void REGPARAM2 cia_lput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 cia_lput (uaecptr addr, uae_u32 value)
 {
     cia_bput(addr+3,value); /* FIXME ? */
 }
 
-void REGPARAM2 cia_wput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 cia_wput (uaecptr addr, uae_u32 value)
 {
     cia_bput(addr+1,value);
 }
 
-void REGPARAM2 cia_bput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 cia_bput (uaecptr addr, uae_u32 value)
 {
     if ((addr & 0x3001) == 0x2001)
 	WriteCIAA((addr & 0xF00) >> 8,value);
@@ -720,19 +720,19 @@ addrbank clock_bank = {
     default_xlate, default_check
 };
 
-uae_u32 REGPARAM2 clock_lget (uaecptr addr)
+static uae_u32 REGPARAM2 clock_lget (uaecptr addr)
 {
     return clock_bget(addr+3);
 }
 
-uae_u32 REGPARAM2 clock_wget (uaecptr addr)
+static uae_u32 REGPARAM2 clock_wget (uaecptr addr)
 {
     return clock_bget(addr+1);
 }
 
-uae_u32 REGPARAM2 clock_bget (uaecptr addr)
+static uae_u32 REGPARAM2 clock_bget (uaecptr addr)
 {
-    time_t t=time(0);
+    time_t t = time(NULL);
     struct tm *ct;
     ct=localtime(&t);
     switch (addr & 0x3f)
@@ -758,17 +758,17 @@ uae_u32 REGPARAM2 clock_bget (uaecptr addr)
     return 0;
 }
 
-void REGPARAM2 clock_lput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 clock_lput (uaecptr addr, uae_u32 value)
 {
     /* No way */
 }
 
-void REGPARAM2 clock_wput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 clock_wput (uaecptr addr, uae_u32 value)
 {
     /* No way */
 }
 
-void REGPARAM2 clock_bput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 clock_bput (uaecptr addr, uae_u32 value)
 {
     switch (addr & 0x3f)
     {

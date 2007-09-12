@@ -78,27 +78,27 @@ static struct cfg_lines opttable[] =
 };
 
 static const char *csmode[] = { "ocs", "ecs_agnus", "ecs_denise", "ecs", "aga" };
-static const char *linemode1[] = { "none", "double", "scanlines", 0 };
-static const char *linemode2[] = { "n", "d", "s", 0 };
-static const char *speedmode[] = { "max", "real", 0 };
+static const char *linemode1[] = { "none", "double", "scanlines", NULL};
+static const char *linemode2[] = { "n", "d", "s", NULL};
+static const char *speedmode[] = { "max", "real", NULL};
 static const char *cpumode[] = { "68000", "68000", "68010", "68010",
-				 "68ec020", "68020", "68ec020/68881", "68020/68881", 0 };
-static const char *portmode[] = { "joy0", "joy1", "mouse", "kbd1", "kbd2", "kbd3", 0 };
-static const char *colormode1[] = { "8bit", "15bit", "16bit", "8bit_dither", "4bit_dither", "32bit", 0 };
-static const char *colormode2[] = { "8", "15", "16", "8d", "4d", "32", 0 };
-static const char *soundmode[] = { "none", "interrupts", "normal", "exact", 0 };
-static const char *centermode1[] = { "none", "simple", "smart", 0 };
-static const char *centermode2[] = { "false", "true", "smart", 0 };
-static const char *stereomode1[] = { "mono", "stereo", 0 };
-static const char *stereomode2[] = { "m", "s", 0 };
-static const char *stereomode3[] = { "1", "2", 0 };
+				 "68ec020", "68020", "68ec020/68881", "68020/68881", NULL};
+static const char *portmode[] = { "joy0", "joy1", "mouse", "kbd1", "kbd2", "kbd3", NULL};
+static const char *colormode1[] = { "8bit", "15bit", "16bit", "8bit_dither", "4bit_dither", "32bit", NULL};
+static const char *colormode2[] = { "8", "15", "16", "8d", "4d", "32", NULL};
+static const char *soundmode[] = { "none", "interrupts", "normal", "exact", NULL};
+static const char *centermode1[] = { "none", "simple", "smart", NULL};
+static const char *centermode2[] = { "false", "true", "smart", NULL};
+static const char *stereomode1[] = { "mono", "stereo", NULL};
+static const char *stereomode2[] = { "m", "s", NULL};
+static const char *stereomode3[] = { "1", "2", NULL};
 
 #define UNEXPANDED "$(FILE_PATH)"
 
 static int match_string (const char *table[], const char *str)
 {
     int i;
-    for (i = 0; table[i] != 0; i++)
+    for (i = 0; table[i] != NULL; i++)
 	if (strcasecmp (table[i], str) == 0)
 	    return i;
     return -1;
@@ -290,7 +290,7 @@ static int getintval (char **p, int *result, int delim)
     char *endptr;
     char *p2 = strchr (*p, delim);
 
-    if (p2 == 0)
+    if (p2 == NULL)
 	return 0;
 
     *p2++ = '\0';
@@ -309,7 +309,7 @@ static int getintval (char **p, int *result, int delim)
 int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 {
     int tmpval;
-    char *section = 0;
+    char *section = NULL;
     char *tmpp;
 
     for (tmpp = option; *tmpp != '\0'; tmpp++)
@@ -426,7 +426,7 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	char *aname, *root;
 	char *tmpp = strchr (value, ',');
 	char *str;
-	if (tmpp == 0)
+	if (tmpp == NULL)
 	    goto invalid_fs;
 
 	*tmpp++ = '\0';
@@ -445,7 +445,7 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 	value = tmpp;
 	if (strcmp (option, "filesystem") == 0) {
 	    tmpp = strchr (value, ':');
-	    if (tmpp == 0)
+	    if (tmpp == NULL)
 		goto invalid_fs;
 	    *tmpp++ = '\0';
 	    aname = value;
@@ -457,7 +457,7 @@ int cfgfile_parse_option (struct uae_prefs *p, char *option, char *value)
 		|| ! getintval (&value, &bs, ','))
 		goto invalid_fs;
 	    root = value;
-	    aname = 0;
+	    aname = NULL;
 	}
 	str = cfgfile_subst_path (UNEXPANDED, p->path_hardfile, root);
 	free (str);
@@ -534,7 +534,7 @@ int cfgfile_load (struct uae_prefs *p, const char *filename)
     if (! fh)
 	return 0;
 
-    while (fgets (line, 256, fh) != 0) {
+    while (fgets (line, 256, fh) != NULL) {
 	line[strcspn (line, "\t \r\n")] = '\0';
 	if (strlen (line) > 0)
 	    cfgfile_parse_line (p, line);
