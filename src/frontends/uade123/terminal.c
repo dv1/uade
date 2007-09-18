@@ -101,6 +101,10 @@ void setup_terminal(void)
     perror("uade123: can't setup interactive mode");
     return;
   }
+
+  terminal_fd = fd;
+  terminal_is_set = 1;
+
   atexit(uade_restore_terminal);
 
   tp = old_terminal;
@@ -109,7 +113,4 @@ void setup_terminal(void)
     perror("uade123: can't setup interactive mode (tcsetattr())");
     return;
   }
-
-  terminal_fd = fd;
-  terminal_is_set = 1;
 }
