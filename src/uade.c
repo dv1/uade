@@ -351,7 +351,7 @@ void uade_get_amiga_message(void)
     if ((file = uade_open_amiga_file((char *) nameptr, uade_player_dir))) {
       dst = uade_get_u32(0x208);
       len = uade_safe_load(dst, file, uade_highmem - dst);
-      fclose(file); file = 0;
+      fclose(file); file = NULL;
       uade_put_long(0x20C, len);
       uade_send_debug("load success: %s ptr 0x%x size 0x%x", nameptr, dst, len);
     } else {
@@ -1006,29 +1006,39 @@ static int uade_get_u32(int addr)
 
 static int uade_safe_load(int dst, FILE *file, int maxlen)
 {
-  const int bufsize = 4096;
-  char buf[bufsize];
+
+#define UADE_SAFE_BUFSIZE 4096
+
+  char buf[UADE_SAFE_BUFSIZE];
   int nbytes, len, off;
-  len = bufsize;
+
+  len = UADE_SAFE_BUFSIZE;
   off = 0;
+
   if (maxlen <= 0)
     return 0;
+
   while (maxlen > 0) {
-    if (maxlen < bufsize)
+
+    if (maxlen < UADE_SAFE_BUFSIZE)
       len = maxlen;
+
     nbytes = fread(buf, 1, len, file);
     if (!nbytes)
       break;
+
     if (!valid_address(dst + off, nbytes)) {
       fprintf(stderr, "uadecore: Invalid load range [%x,%x).\n", dst + off, dst + off + nbytes);
       break;
     }
+
     memcpy(get_real_address(dst + off), buf, nbytes);
     off += nbytes;
     maxlen -= nbytes;
   }
+
   /* find out how much would have been read even if maxlen was violated */
-  while ((nbytes = fread(buf, 1, bufsize, file)))
+  while ((nbytes = fread(buf, 1, UADE_SAFE_BUFSIZE, file)))
     off += nbytes;
 
   return off;

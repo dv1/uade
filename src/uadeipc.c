@@ -91,7 +91,8 @@ int uade_parse_two_u32s_message(uint32_t *u1, uint32_t *u2,
 }
 
 
-int uade_receive_message(struct uade_msg *um, size_t maxbytes, struct uade_ipc *ipc)
+int uade_receive_message(struct uade_msg *um, size_t maxbytes,
+			 struct uade_ipc *ipc)
 {
   size_t fullsize;
 
@@ -155,8 +156,7 @@ int uade_receive_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc)
 int uade_receive_string(char *s, enum uade_msgtype com,
 			size_t maxlen, struct uade_ipc *ipc)
 {
-  const size_t COMLEN = 4096;
-  uint8_t commandbuf[COMLEN];
+  uint8_t commandbuf[UADE_MAX_MESSAGE_SIZE];
   struct uade_msg *um = (struct uade_msg *) commandbuf;
   int ret;
 
@@ -167,7 +167,7 @@ int uade_receive_string(char *s, enum uade_msgtype com,
     return -1;
   }
 
-  ret = uade_receive_message(um, COMLEN, ipc);
+  ret = uade_receive_message(um, UADE_MAX_MESSAGE_SIZE, ipc);
   if (ret <= 0)
     return ret;
   if (um->msgtype != com)

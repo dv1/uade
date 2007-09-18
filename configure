@@ -514,6 +514,26 @@ test -c /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
+
+function handle_sparse {
+    if test -z "$2" ; then
+	echo "configure error: No directory given for handle_sparse()"
+	exit 1
+    fi
+
+    if test "$1" = "yes" ; then
+	rm -f "$2/nosparse"
+    else
+	touch "$2/nosparse"
+    fi
+}
+
+handle_sparse "$useuadecore" src
+handle_sparse "$useaudacious" src/frontends/audacious
+handle_sparse "$useuade123" src/frontends/uade123
+handle_sparse "$usexmms" src/frontends/xmms
+
+
 if test "$useuadecore" = "yes" ; then
     uadecorerule="uadecore"
     uadecoreinstallrule="uadecoreinstall"
@@ -521,6 +541,7 @@ else
     uadecorerule=""
     uadecoreinstallrule=""
 fi
+
 if test "$useuade123" = "yes" ; then
     uade123rule="uade123"
     uade123installrule="uade123install"
@@ -528,6 +549,7 @@ else
     uade123rule=""
     uade123installrule=""
 fi
+
 if test "$usexmms" = "yes" ; then
     xmmspluginrule="xmmsplugin"
     xmmsplugininstallrule="xmmsplugininstall"

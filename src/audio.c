@@ -28,7 +28,7 @@
 #include "sinctable.h"
 
 struct audio_channel_data audio_channel[4];
-void (*sample_handler) (void);
+static void (*sample_handler) (void);
 static void (*sample_prehandler) (unsigned long best_evtime);
 
 /* Average time in bus cycles to output a new sample */
@@ -121,10 +121,15 @@ static int filter(int input, struct filter_state *fs)
 
 static void check_sound_buffers (void)
 {
+    intptr_t bytes;
+
     if (uade_reboot)
 	return;
+
     assert(uade_read_size > 0);
-    intptr_t bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
+
+    bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
+
     if (uade_audio_output) {
 	if (bytes == uade_read_size) {
 	    uade_check_sound_buffers(uade_read_size);
@@ -452,11 +457,13 @@ void audio_reset (void)
  * The a1 term is 1.0 - b0. The center frequency marks the -3 dB point. */
 static float rc_calculate_a0(int sample_rate, int cutoff_freq)
 {
+    float omega;
+
     /* The BLT correction formula below blows up if the cutoff is above nyquist. */
     if (cutoff_freq >= sample_rate / 2)
         return 1.0;
 
-    float omega = 2 * M_PI * cutoff_freq / sample_rate;
+    omega = 2 * M_PI * cutoff_freq / sample_rate;
     /* Compensate for the bilinear transformation. This allows us to specify the
      * stop frequency more exactly, but the filter becomes less steep further
      * from stopband. */

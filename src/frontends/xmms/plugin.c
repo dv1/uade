@@ -191,7 +191,7 @@ static void uade_cleanup(void)
 }
 
 
-void uade_file_info(char *filename)
+static void uade_file_info(char *filename)
 {
   int adder = 0;
 
@@ -478,7 +478,7 @@ static void *play_loop(void *arg)
 
       if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
 	fprintf(stderr, "Can not send token.\n");
-	return 0;
+	return NULL;
       }
       state = UADE_R_STATE;
 
@@ -662,12 +662,12 @@ static void *play_loop(void *arg)
 
   if (uade_send_short_message(UADE_COMMAND_REBOOT, &uadeipc)) {
     fprintf(stderr, "Can not send reboot.\n");
-    return 0;
+    return NULL;
   }
 
   if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "Can not send token.\n");
-    return 0;
+    return NULL;
   }
 
   do {
@@ -825,7 +825,7 @@ static void uade_stop(void)
 
   /* Wait for playing thread to finish */
   if (uade_thread_running) {
-    pthread_join(decode_thread, 0);
+    pthread_join(decode_thread, NULL);
     uade_thread_running = 0;
   }
 

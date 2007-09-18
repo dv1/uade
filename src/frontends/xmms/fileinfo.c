@@ -59,7 +59,7 @@ static void uade_mod_info(int modinfo_mode);
 static void uade_mod_info_hex(void);
 static void uade_mod_info_module(void);
 
-static void uade_player_info();
+static void uade_player_info(void);
 
 /* File Info Window */
 
@@ -462,7 +462,7 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename,
     }
 }
 
-void uade_player_info(void)
+static void uade_player_info(void)
 {
     char credits[16384];
     GtkWidget *playerinfo_button_box;
@@ -549,17 +549,17 @@ void uade_player_info(void)
     }
 }
 
-void uade_mod_info_hex(void)
+static void uade_mod_info_hex(void)
 {
     uade_mod_info(UADE_HEX_DUMP_INFO);
 }
 
-void uade_mod_info_module(void)
+static void uade_mod_info_module(void)
 {
     uade_mod_info(UADE_MODULE_INFO);
 }
 
-void uade_mod_info(int modinfo_mode)
+static void uade_mod_info(int modinfo_mode)
 {
     char credits[16384];
     GtkWidget *modinfo_button_box;

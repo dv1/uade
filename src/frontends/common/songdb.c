@@ -288,7 +288,7 @@ struct uade_song *uade_alloc_song(const char *filename)
 }
 
 
-int uade_open_and_lock(const char *filename, int create)
+static int uade_open_and_lock(const char *filename, int create)
 {
   int fd, ret;
   fd = open(filename, O_RDWR);

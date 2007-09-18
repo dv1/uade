@@ -27,7 +27,7 @@
 #include "songdb.h"
 
 
-void print_song_info(struct uade_song *us, enum song_info_type t)
+static void print_song_info(struct uade_song *us, enum song_info_type t)
 {
   const size_t infosize = 16384;
   char *info = malloc(infosize);
@@ -113,6 +113,8 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
   const int bytes_per_second = UADE_BYTES_PER_FRAME * uc->frequency;
 
+  enum uade_control_state state = UADE_S_STATE;
+
   uade_effect_reset_internals();
 
   /* Skip bytes must be a multiple of audio frame size */
@@ -120,8 +122,6 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   skip_bytes = (skip_bytes / framesize) * framesize;
 
   test_song_end_trigger(); /* clear a pending SIGINT */
-
-  enum uade_control_state state = UADE_S_STATE;
 
   while (next_song == 0) {
 

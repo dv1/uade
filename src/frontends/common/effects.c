@@ -305,9 +305,10 @@ static int normalise_compute_gain(int peak)
    known and larger, we prefer it. */
 void uade_effect_normalise_serialise(char *buf, size_t len)
 {
-    assert(len > 0);
-    
     int peak = normalise_peak_level;
+
+    assert(len > 0);
+
     if (normalise_historic_maximum_peak > normalise_peak_level)
         peak = normalise_historic_maximum_peak;
 
