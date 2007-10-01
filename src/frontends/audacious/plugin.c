@@ -85,7 +85,7 @@ static InputPlugin *playhandle = &uade_ip;
 #endif
 
 #if __AUDACIOUS_PLUGIN_API__ >= 2
-InputPlugin *uade_iplist[] = { &uade_ip, NULL };
+static InputPlugin *uade_iplist[] = {&uade_ip, NULL};
 DECLARE_PLUGIN(uade, NULL, NULL, uade_iplist, NULL, NULL, NULL, NULL);
 #endif
 
@@ -137,10 +137,19 @@ int uade_select_sub;          /* Lock before use */
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
 
 
+static void uade_usleep(void)
+{
+#if __AUDACIOUS_PLUGIN_API__ >= 6
+  g_usleep(10000);
+#else
+  xmms_usleep(10000);
+#endif
+}
+
+
 static void test_uade_conf(void)
 {
   struct stat st;
-
 
   if (stat(configname, &st))
     return;
@@ -208,7 +217,7 @@ static void uade_cleanup(void)
 }
 
 
-void uade_file_info(char *filename)
+static void uade_file_info(char *filename)
 {
   int adder = 0;
 
@@ -481,11 +490,7 @@ static void *play_loop(void *arg)
 	    uade_change_subsong(&effects, &config, uadesong, &uadeipc);
 
 	    while (playhandle->output->buffer_playing())
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-	      g_usleep(10000);
-#else
-	      xmms_usleep(10000);
-#endif
+	      uade_usleep();
 
 	    playhandle->output->flush(0);
 
@@ -506,11 +511,7 @@ static void *play_loop(void *arg)
 	/* We must drain the audio fast if abort_playing happens (e.g.
 	   the user changes song when we are here waiting the sound device) */
 	while (playhandle->output->buffer_playing() && abort_playing == 0)
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-	  g_usleep(10000);
-#else
-	  xmms_usleep(10000);
-#endif
+	  uade_usleep();
 
 	break;
       }
@@ -519,7 +520,7 @@ static void *play_loop(void *arg)
 
       if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
 	fprintf(stderr, "Can not send token.\n");
-	return 0;
+	return NULL;
       }
       state = UADE_R_STATE;
 
@@ -683,12 +684,12 @@ static void *play_loop(void *arg)
 
   if (uade_send_short_message(UADE_COMMAND_REBOOT, &uadeipc)) {
     fprintf(stderr, "Can not send reboot.\n");
-    return 0;
+    return NULL;
   }
 
   if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "Can not send token.\n");
-    return 0;
+    return NULL;
   }
 
   do {
@@ -887,7 +888,7 @@ static void uade_stop(void)
 
   /* Wait for playing thread to finish */
   if (uade_thread_running) {
-    pthread_join(decode_thread, 0);
+    pthread_join(decode_thread, NULL);
     uade_thread_running = 0;
   }
 

@@ -55,8 +55,7 @@ static GtkWidget *fileinfo_subsong_txt;
 static void uade_mod_info(char *credits, int creditslen);
 static void uade_mod_info_hex(void);
 static void uade_mod_info_module(void);
-
-static void uade_player_info();
+static void uade_player_info(void);
 
 /* File Info Window */
 
@@ -472,7 +471,7 @@ void file_info_update(char *gui_module_filename, char *gui_player_filename,
     }
 }
 
-void uade_player_info(void)
+static void uade_player_info(void)
 {
     char credits[16384];
 	if ((uade_song_info(credits, sizeof credits, player_filename, UADE_HEX_DUMP_INFO))) {
@@ -481,7 +480,7 @@ void uade_player_info(void)
         uade_mod_info(credits, sizeof credits);
 }
 
-void uade_mod_info_hex(void)
+static void uade_mod_info_hex(void)
 {
     char credits[16384];
     if (uade_song_info(credits, sizeof credits, module_filename, UADE_HEX_DUMP_INFO))
@@ -491,7 +490,7 @@ void uade_mod_info_hex(void)
     uade_mod_info(credits, sizeof credits);
 }
 
-void uade_mod_info_module(void)
+static void uade_mod_info_module(void)
 {
     char credits[16384];
     if (uade_song_info(credits, sizeof credits, module_filename, UADE_MODULE_INFO))
@@ -500,7 +499,7 @@ void uade_mod_info_module(void)
     uade_mod_info(credits, sizeof credits);
 }
 
-void uade_mod_info(char *credits, int creditslen)
+static void uade_mod_info(char *credits, int creditslen)
 {
     GtkWidget *modinfo_button_box;
     GtkWidget *close_button;
