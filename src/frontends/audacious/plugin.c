@@ -481,7 +481,11 @@ static void *play_loop(void *arg)
 	    uade_change_subsong(&effects, &config, uadesong, &uadeipc);
 
 	    while (playhandle->output->buffer_playing())
+#if __AUDACIOUS_PLUGIN_API__ >= 6
+	      g_usleep(10000);
+#else
 	      xmms_usleep(10000);
+#endif
 
 	    playhandle->output->flush(0);
 
@@ -502,7 +506,11 @@ static void *play_loop(void *arg)
 	/* We must drain the audio fast if abort_playing happens (e.g.
 	   the user changes song when we are here waiting the sound device) */
 	while (playhandle->output->buffer_playing() && abort_playing == 0)
+#if __AUDACIOUS_PLUGIN_API__ >= 6
+	  g_usleep(10000);
+#else
 	  xmms_usleep(10000);
+#endif
 
 	break;
       }
