@@ -389,7 +389,8 @@ static int initialize_song(char *filename)
 
   uade_set_ep_attributes(&config, uadesong, ep);
 
-  uade_handle_song_attributes(&config, playername, sizeof playername, uadesong);
+  uade_set_song_attributes(&config, playername, sizeof playername, uadesong);
+
   uade_set_effects(&effects, &config);
 
   strlcpy(gui_player_filename, playername, sizeof gui_player_filename);

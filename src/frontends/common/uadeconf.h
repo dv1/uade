@@ -9,10 +9,6 @@ void uade_add_ep_option(struct uade_ep_options *epoptions, const char *s);
 void uade_config_set_defaults(struct uade_config *uc);
 double uade_convert_to_double(const char *value, double def,
 			      double low, double high, const char *type);
-int uade_handle_song_attributes(struct uade_config *uc,
-				char *playername,
-				size_t playernamelen,
-				struct uade_song *us);
 int uade_load_config(struct uade_config *uc, const char *filename);
 int uade_load_initial_config(char *uadeconfname, size_t maxlen,
 			     struct uade_config *uc,
@@ -28,6 +24,10 @@ void uade_set_effects(struct uade_effect *effects,
 		      const struct uade_config *uc);
 void uade_set_ep_attributes(struct uade_config *uc, struct uade_song *us,
 			    struct eagleplayer *ep);
+int uade_set_song_attributes(struct uade_config *uc,
+			     char *playername,
+			     size_t playernamelen,
+			     struct uade_song *us);
 void uade_set_filter_type(struct uade_config *uc, const char *value);
 
 #endif

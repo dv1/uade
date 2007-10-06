@@ -219,28 +219,35 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
       uade_set_config_option(uc, optlist[i].o, optlist[i].v);
   }
 
-  if (flags & ES_REJECT)
-    return -1;
   if (flags & ES_NEVER_ENDS)
     fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
 
+  if (flags & ES_REJECT)
+    return -1;
+
   a = attributelist;
+
   while (a != NULL) {
+
     switch (a->type) {
     case ES_EP_OPTION:
       if (uc->verbose)
 	fprintf(stderr, "Using eagleplayer option %s\n", a->s);
       uade_add_ep_option(&us->ep_options, a->s);
       break;
+
     case ES_GAIN:
       uade_set_config_option(uc, UC_GAIN, a->s);
       break;
+
     case ES_RESAMPLER:
       uade_set_config_option(uc, UC_RESAMPLER, a->s);
       break;
+
     case ES_PANNING:
       uade_set_config_option(uc, UC_PANNING_VALUE, a->s);
       break;
+
     case ES_PLAYER:
       if (playername) {
 	snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
@@ -248,32 +255,39 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 	fprintf(stderr, "Error: attribute handling was given playername == NULL.\n");
       }
       break;
+
     case ES_SILENCE_TIMEOUT:
       uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
       break;
+
     case ES_SUBSONGS:
       fprintf(stderr, "Subsongs not implemented.\n");
       break;
+
     case ES_SUBSONG_TIMEOUT:
       uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
       break;
+
     case ES_TIMEOUT:
       uade_set_config_option(uc, UC_TIMEOUT_VALUE, a->s);
       break;
+
     default:
       fprintf(stderr, "Unknown song attribute integer: 0x%x\n", a->type);
       break;
     }
+
     a = a->next;
   }
+
   return 0;
 }
 
 
-int uade_handle_song_attributes(struct uade_config *uc,
-				char *playername,
-				size_t playernamelen,
-				struct uade_song *us)
+int uade_set_song_attributes(struct uade_config *uc,
+			     char *playername,
+			     size_t playernamelen,
+			     struct uade_song *us)
 {
   if (us->normalisation)
     uade_set_config_option(uc, UC_NORMALISE, us->normalisation);
@@ -405,6 +419,7 @@ int uade_load_initial_song_conf(char *songconfname, size_t maxlen,
 void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 {
   #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
+
   MERGE_OPTION(action_keys);
   MERGE_OPTION(basedir);
   MERGE_OPTION(buffer_time);
@@ -422,6 +437,8 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(no_ep_end);
   MERGE_OPTION(no_filter);
   MERGE_OPTION(no_postprocessing);
+
+  /* Special merge -> don't use MERGE_OPTION macro */
   if (ucs->normalise_set) {
     if (ucs->normalise) {
       ucd->normalise = 1;
@@ -429,6 +446,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 	ucd->normalise_parameter = ucs->normalise_parameter;
     }
   }
+
   MERGE_OPTION(one_subsong);
   MERGE_OPTION(panning);
   MERGE_OPTION(panning_enable);
@@ -560,6 +578,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       }
     }
     break;
+
   case UC_BASE_DIR:
     if (value != NULL) {
       strlcpy(uc->basedir.name, value, sizeof uc->basedir.name);
@@ -568,6 +587,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       fprintf(stderr, "uade: Passed NULL to UC_BASE_DIR.\n");
     }
     break;
+
   case UC_BUFFER_TIME:
     if (value != NULL) {
       uc->buffer_time_set = 1;
@@ -580,14 +600,17 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       fprintf(stderr, "uade: Passed NULL to UC_BUFFER_TIME.\n");
     }
     break;
+
   case UC_DISABLE_TIMEOUTS:
     uc->use_timeouts = 0;
     uc->use_timeouts_set = 1;
     break;
+
   case UC_ENABLE_TIMEOUTS:
     uc->use_timeouts = 1;
     uc->use_timeouts_set = 1;
     break;
+
   case UC_EAGLEPLAYER_OPTION:
     if (value != NULL) {
       uade_add_ep_option(&uc->ep_options, value);
@@ -598,7 +621,6 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     break;
 
   case UC_FILTER_TYPE:
-
     uc->no_filter = 0;
     uc->no_filter_set = 1;
 
@@ -631,18 +653,21 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     break;
+
   case UC_FORCE_LED_OFF:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 0;
     uc->led_state_set = 1;
     break;
+
   case UC_FORCE_LED_ON:
     uc->led_forced_set = 1;
     uc->led_forced = 1;
     uc->led_state = 1;
     uc->led_state_set = 1;
     break;
+
   case UC_FREQUENCY:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_FREQUENCY value is NULL\n");
@@ -661,6 +686,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->frequency = x;
     uc->frequency_set = 1;
     break;
+
   case UC_GAIN:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_GAIN value is NULL\n");
@@ -671,18 +697,22 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->gain_set = 1;
     uc->gain = uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
     break;
+
   case UC_HEADPHONES:
     uc->headphones_set = 1;
     uc->headphones = 1;
     break;
+
   case UC_HEADPHONES2:
     uc->headphones2_set = 1;
     uc->headphones2 = 1;
     break;
+
   case UC_IGNORE_PLAYER_CHECK:
     uc->ignore_player_check_set = 1;
     uc->ignore_player_check = 1;
     break;
+
   case UC_RESAMPLER:
     if (value == NULL) {
       fprintf(stderr, "uade.conf: No resampler given.\n");
@@ -695,28 +725,34 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       fprintf(stderr, "uade.conf: no memory for resampler.\n");
     }
     break;
+
   case UC_NO_EP_END:
     uc->no_ep_end = 1;
     uc->no_ep_end_set = 1;
     break;
+
   case UC_NO_FILTER:
     uc->no_filter_set = 1;
     uc->no_filter = 1;
     break;
+
   case UC_NO_HEADPHONES:
     uc->headphones_set = 1;
     uc->headphones = 0;
     uc->headphones2_set = 1;
     uc->headphones2 = 0;
     break;
+
   case UC_NO_PANNING:
     uc->panning_enable_set = 1;
     uc->panning_enable = 0;
     break;
+
   case  UC_NO_POSTPROCESSING:
     uc->no_postprocessing = 1;
     uc->no_postprocessing_set = 1;
     break;
+
   case  UC_NORMALISE:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_NORMALISE is NULL\n");
@@ -726,18 +762,22 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->normalise_set = 1;
     uc->normalise_parameter = (char *) value;
     break;
+
   case UC_NTSC:
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 1;
     break;
+
   case UC_ONE_SUBSONG:
     uc->one_subsong_set = 1;
     uc->one_subsong = 1;
     break;
+
   case UC_PAL:
     uc->use_ntsc_set = 1;
     uc->use_ntsc = 0;
     break;
+
   case UC_PANNING_VALUE:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_PANNING_VALUE is NULL\n");
@@ -748,14 +788,17 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     uc->panning_set = 1;
     uc->panning = uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
     break;
+
   case UC_RANDOM_PLAY:
     uc->random_play_set = 1;
     uc->random_play = 1;
     break;
+
   case UC_RECURSIVE_MODE:
     uc->recursive_mode_set = 1;
     uc->recursive_mode = 1;
     break;
+
   case UC_SILENCE_TIMEOUT_VALUE:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_SILENCE_TIMEOUT_VALUE is NULL\n");
@@ -763,6 +806,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     }
     uade_set_silence_timeout(uc, value);
     break;
+
   case UC_SONG_TITLE:
     if (value == NULL) {
       fprintf(stderr, "uade: No song_title format given.\n");
@@ -774,14 +818,17 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       uc->song_title_set = 1;
     }
     break;
+
   case UC_SPEED_HACK:
     uc->speed_hack = 1;
     uc->speed_hack_set = 1;
     break;
+
   case UC_CONTENT_DETECTION:
     uc->content_detection = 1;
     uc->content_detection_set = 1;
     break;
+
   case UC_SUBSONG_TIMEOUT_VALUE:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_SUBSONG_TIMEOUT_VALUE is NULL\n");
@@ -789,6 +836,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     }
     uade_set_subsong_timeout(uc, value);
     break;
+
   case UC_TIMEOUT_VALUE:
     if (value == NULL) {
       fprintf(stderr, "uade: UC_TIMEOUT_VALUE is NULL\n");
@@ -796,12 +844,14 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
     }
     uade_set_timeout(uc, value);
     break;
+
   case UC_VERBOSE:
     uc->verbose = 1;
     uc->verbose_set = 1;
     break;
+
   default:
-    fprintf(stderr, "Unknown option enum: %d\n", opt);
+    fprintf(stderr, "uade_set_config_option(): unknown enum: %d\n", opt);
     exit(1);
   }
 }

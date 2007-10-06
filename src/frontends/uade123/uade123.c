@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
   char songconfname[PATH_MAX] = "";
   char uadeconfname[PATH_MAX];
   struct uade_effect effects;
-  struct uade_config uc, uc_cmdline, uc_loaded;
+  struct uade_config uc, uc_cmdline, uc_main;
   struct uade_ipc uadeipc;
   char songoptions[256] = "";
   int have_song_options = 0;
@@ -346,14 +346,14 @@ int main(int argc, char *argv[])
       uade_set_config_option(&uc_cmdline, ret, optarg);
       break;
 
-    case UC_SPEED_HACK:
+    case UC_CONTENT_DETECTION:
+    case UC_DISABLE_TIMEOUTS:
+    case UC_ENABLE_TIMEOUTS:
     case UC_HEADPHONES:
     case UC_HEADPHONES2:
     case UC_NTSC:
     case UC_PAL:
-    case UC_DISABLE_TIMEOUTS:
-    case UC_ENABLE_TIMEOUTS:
-    case UC_CONTENT_DETECTION:
+    case UC_SPEED_HACK:
       uade_set_config_option(&uc_cmdline, ret, NULL);
       break;
 
@@ -364,10 +364,10 @@ int main(int argc, char *argv[])
   }
 
   uadeconf_loaded = uade_load_initial_config(uadeconfname, sizeof uadeconfname,
-					     &uc_loaded, &uc_cmdline);
+					     &uc_main, &uc_cmdline);
 
   /* Merge loaded configurations and command line options */
-  uc = uc_loaded;
+  uc = uc_main;
   uade_merge_configs(&uc, &uc_cmdline);
 
   if (uadeconf_loaded == 0) {
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 
   songconf_loaded = uade_load_initial_song_conf(songconfname,
 						sizeof songconfname,
-						&uc_loaded, &uc_cmdline);
+						&uc_main, &uc_cmdline);
 
   if (songconf_loaded == 0) {
     debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
@@ -501,7 +501,7 @@ int main(int argc, char *argv[])
 
     plistdir = 1;
 
-    uc = uc_loaded;
+    uc = uc_main;
 
     if (uc_cmdline.verbose)
       uc.verbose = 1;
@@ -525,11 +525,12 @@ int main(int argc, char *argv[])
       }
     }
 
-    if (playername[0] == 0) {
-      fprintf(stderr, "Empty playername.\n");
+    if (strlen(playername) == 0) {
+      fprintf(stderr, "Error: an empty player name given\n");
       goto cleanup;
     }
 
+    /* If no modulename given, try the playername as it can be a custom song */
     strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
 
     if ((us = uade_alloc_song(songname)) == NULL) {
@@ -537,17 +538,17 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    /* The order is important:
-       1. set eagleplayer attributes
-       2. handle song attributes
-       3. merge command line options
-       4. set effects
-       5. check that the player exists */
+    /* The order of parameter processing is important:
+     * 0. set uade.conf options (done before this)
+     * 1. set eagleplayer attributes
+     * 2. set song attributes
+     * 3. set command line options
+     */
 
     if (ep != NULL)
       uade_set_ep_attributes(&uc, us, ep);
 
-    if (uade_handle_song_attributes(&uc, playername, sizeof playername, us)) {
+    if (uade_set_song_attributes(&uc, playername, sizeof playername, us)) {
       debug(uc.verbose, "Song rejected based on attributes: %s\n",
 	    us->module_filename);
       uade_unalloc_song(us);
@@ -555,6 +556,8 @@ int main(int argc, char *argv[])
     }
 
     uade_merge_configs(&uc, &uc_cmdline);
+
+    /* Now we have the final configuration in "uc". */
 
     uade_set_effects(&effects, &uc);
 
@@ -592,13 +595,13 @@ int main(int argc, char *argv[])
       goto cleanup;
   }
 
-  debug(uc_cmdline.verbose || uc_loaded.verbose, "Killing child (%d).\n", uadepid);
+  debug(uc_cmdline.verbose || uc_main.verbose, "Killing child (%d).\n", uadepid);
   cleanup();
   return 0;
 
  cleanup:
   cleanup();
-  return -1;
+  return 1;
 }
 
 

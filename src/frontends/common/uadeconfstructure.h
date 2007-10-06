@@ -36,7 +36,6 @@ enum uade_option {
   UC_SILENCE_TIMEOUT_VALUE,
   UC_SONG_TITLE,
   UC_SPEED_HACK,
-  UC_STRICT_TIMEOUTS,
   UC_SUBSONG_TIMEOUT_VALUE,
   UC_TIMEOUT_VALUE,
   UC_VERBOSE
@@ -147,9 +146,6 @@ struct uade_config {
 
   char speed_hack;
   char speed_hack_set;
-
-  char strict_timeouts;
-  char strict_timeouts_set;
 
   int subsong_timeout;
   char subsong_timeout_set;
