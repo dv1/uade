@@ -36,6 +36,7 @@ enum uade_option {
   UC_SILENCE_TIMEOUT_VALUE,
   UC_SONG_TITLE,
   UC_SPEED_HACK,
+  UC_STRICT_TIMEOUTS,
   UC_SUBSONG_TIMEOUT_VALUE,
   UC_TIMEOUT_VALUE,
   UC_VERBOSE
@@ -50,73 +51,120 @@ struct uade_ep_options {
   size_t s;
 };
 
+
+/* All the options are put into an instance of this structure.
+ * There can be many structures, one for uade.conf and the other for
+ * command line options. Then these structures are then merged together
+ * to know the complete behavior for each case. Note, these structures
+ * can be conflicting, so the options are merged in following order
+ * so that the last merge will determine true behavior:
+ *
+ *     1. set uade.conf options
+ *     2. set eagleplayer attributes
+ *     3. set song attributes
+ *     4. set command line options
+ *
+ * Merging works by looking at X_set members of this structure. X_set
+ * member indicates that feature X has explicitly been set, so the
+ * merge will notice the change in value.
+ */
 struct uade_config {
-  int action_keys;
-  int action_keys_set;
+  char action_keys;
+  char action_keys_set;
+
   struct uade_dir basedir;
-  int basedir_set;
+  char basedir_set;
+
   int buffer_time;
-  int buffer_time_set;
-  int content_detection;
-  int content_detection_set;
+  char buffer_time_set;
+
+  char content_detection;
+  char content_detection_set;
+
   struct uade_ep_options ep_options;
-  int ep_options_set;
-  int filter_type;
-  int filter_type_set;
+  char ep_options_set;
+
+  char filter_type;
+  char filter_type_set;
+
   int frequency;
-  int frequency_set;
-  int led_forced;
-  int led_forced_set;
-  int led_state;
-  int led_state_set;
-  int gain_enable;
-  int gain_enable_set;
+  char frequency_set;
+
+  char led_forced;
+  char led_forced_set;
+  char led_state;
+  char led_state_set;
+
+  char gain_enable;
+  char gain_enable_set;
   float gain; /* should be removed of uade_effect integrated */
-  int gain_set;
-  int headphones;
-  int headphones_set;
-  int headphones2;
-  int headphones2_set;
-  int ignore_player_check;
-  int ignore_player_check_set;
+  char gain_set;
+
+  char headphones;
+  char headphones_set;
+  char headphones2;
+  char headphones2_set;
+
+  char ignore_player_check;
+  char ignore_player_check_set;
+
   char *resampler;
-  int resampler_set;
-  int no_ep_end;
-  int no_ep_end_set;
-  int no_filter;
-  int no_filter_set;
-  int no_postprocessing;
-  int no_postprocessing_set;
-  int normalise;
-  int normalise_set;
+  char resampler_set;
+
+  char no_ep_end;
+  char no_ep_end_set;
+
+  char no_filter;
+  char no_filter_set;
+
+  char no_postprocessing;
+  char no_postprocessing_set;
+
+  char normalise;
+  char normalise_set;
   char *normalise_parameter; /* no normalise_parameter_set entry, use manual
 				merging code */
-  int one_subsong;
-  int one_subsong_set;
+
+  char one_subsong;
+  char one_subsong_set;
+
   float panning; /* should be removed */
-  int panning_set;
-  int panning_enable;
-  int panning_enable_set;
-  int random_play;
-  int random_play_set;
-  int recursive_mode;
-  int recursive_mode_set;
+  char panning_set;
+  char panning_enable;
+  char panning_enable_set;
+
+  char random_play;
+  char random_play_set;
+
+  char recursive_mode;
+  char recursive_mode_set;
+
   int silence_timeout;
-  int silence_timeout_set;
+  char silence_timeout_set;
+
   char *song_title;
-  int song_title_set;
-  int speed_hack;
-  int speed_hack_set;
+  char song_title_set;
+
+  char speed_hack;
+  char speed_hack_set;
+
+  char strict_timeouts;
+  char strict_timeouts_set;
+
   int subsong_timeout;
-  int subsong_timeout_set;
+  char subsong_timeout_set;
+
   int timeout;
-  int timeout_set;
-  int use_timeouts;
-  int use_timeouts_set;
-  int use_ntsc;
-  int use_ntsc_set;
-  int verbose;
-  int verbose_set;
+  char timeout_set;
+
+  char use_timeouts;
+  char use_timeouts_set;
+
+  char use_ntsc;
+  char use_ntsc_set;
+
+  char verbose;
+  char verbose_set;
 };
 
 #endif
