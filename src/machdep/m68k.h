@@ -26,7 +26,7 @@ struct flag_struct {
 #define CLEAR_CZNV (regflags.cznv = 0)
 #define COPY_CARRY (regflags.x = regflags.cznv)
 
-extern struct flag_struct regflags __asm__ ("regflags");
+extern struct flag_struct regflags;
 
 static __inline__ int cctrue(int cc)
 {
