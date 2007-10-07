@@ -134,7 +134,7 @@ static const char *bit_mask (int size)
      case sz_long: return "0xffffffff";
      default: abort ();
     }
-    return 0;
+    return NULL;
 }
 
 static const char *gen_nextilong (void)

@@ -278,7 +278,7 @@ static void cheatsearch (char **c)
 
     if (vlist == NULL) {
 	vlist = malloc (256*4);
-	if (vlist != 0) {
+	if (vlist != NULL) {
 	    for (count = 0; count<255; count++)
 		vlist[count] = 0;
 	    count = 0;
@@ -425,7 +425,7 @@ void debug (void) {
     
     printf (">");
     fflush (stdout);
-    if (fgets (input, 80, stdin) == 0) {
+    if (fgets (input, 80, stdin) == NULL) {
       quit_program = 1;
       return;
     }
@@ -605,7 +605,7 @@ void debug (void) {
 	  inptr[strlen(inptr) - 1] = 0;
 	}
 	if (strlen(inptr) <= 1) {
-	  uade_debug_search(0);
+	  uade_debug_search(NULL);
 	  break;
 	}
 	traceaddr = uade_debug_search (inptr + 1);

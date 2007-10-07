@@ -34,7 +34,7 @@ static unsigned int total_skipped = 0;
 
 /* Mouse and joystick emulation */
 
-int buttonstate[3];
+static int buttonstate[3];
 static int mouse_x, mouse_y;
 int joy0button, joy1button;
 unsigned int joy0dir, joy1dir;
@@ -117,12 +117,12 @@ enum diw_states
 };
 
 static int plffirstline, plflastline, plfstrt, plfstop, plflinelen;
-int diwfirstword, diwlastword;
+static int diwfirstword, diwlastword;
 static enum diw_states diwstate, hdiwstate;
 
 /* Sprite collisions */
-uae_u16 clxdat, clxcon;
-int clx_sprmask;
+static uae_u16 clxdat, clxcon;
+static int clx_sprmask;
 
 enum copper_states {
     COP_stop,
@@ -154,17 +154,18 @@ int dskdmaen; /* used in cia.c */
  */
 
 /* Used also by bebox.cpp */
-unsigned long int msecs = 0, frametime = 0, lastframetime = 0, timeframes = 0;
+static unsigned long int msecs = 0, lastframetime = 0;
+unsigned long int frametime = 0, timeframes = 0;
 static unsigned long int seconds_base;
 int bogusframe;
 
 
 static int current_change_set;
 
-struct sprite_draw *curr_sprite_positions, *prev_sprite_positions;
-struct color_change *curr_color_changes, *prev_color_changes;
-struct draw_info *curr_drawinfo, *prev_drawinfo;
-struct color_entry *curr_color_tables, *prev_color_tables;
+static struct sprite_draw *curr_sprite_positions, *prev_sprite_positions;
+static struct color_change *curr_color_changes, *prev_color_changes;
+static struct draw_info *curr_drawinfo, *prev_drawinfo;
+static struct color_entry *curr_color_tables, *prev_color_tables;
 
 static int next_color_change, next_sprite_draw, next_delay_change;
 static int next_color_entry, remembered_color_entry;
@@ -286,9 +287,9 @@ static int lastspr0x,lastspr0y,lastdiffx,lastdiffy,spr0pos,spr0ctl;
 static int mstepx,mstepy,xoffs=defxoffs,yoffs=defyoffs;
 static int sprvbfl;
 
-int lastmx, lastmy;
-int newmousecounters;
-int ievent_alive = 0;
+static int lastmx, lastmy;
+static int newmousecounters;
+static int ievent_alive = 0;
 
 static int timehack_alive = 0;
 
@@ -1416,7 +1417,7 @@ addrbank custom_bank = {
     default_xlate, default_check
 };
 
-uae_u32 REGPARAM2 custom_wget (uaecptr addr)
+static uae_u32 REGPARAM2 custom_wget (uaecptr addr)
 {
     switch (addr & 0x1FE) {
      case 0x002: return DMACONR();
@@ -1443,17 +1444,17 @@ uae_u32 REGPARAM2 custom_wget (uaecptr addr)
     }
 }
 
-uae_u32 REGPARAM2 custom_bget (uaecptr addr)
+static uae_u32 REGPARAM2 custom_bget (uaecptr addr)
 {
     return custom_wget(addr & 0xfffe) >> (addr & 1 ? 0 : 8);
 }
 
-uae_u32 REGPARAM2 custom_lget (uaecptr addr)
+static uae_u32 REGPARAM2 custom_lget (uaecptr addr)
 {
     return ((uae_u32)custom_wget(addr & 0xfffe) << 16) | custom_wget((addr+2) & 0xfffe);
 }
 
-void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
+static void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
 {
     addr &= 0x1FE;
     switch (addr) {
@@ -1621,14 +1622,14 @@ void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
     }
 }
 
-void REGPARAM2 custom_wput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 custom_wput (uaecptr addr, uae_u32 value)
 {
     int hpos = current_hpos ();
     update_copper (hpos);
     custom_wput_1 (hpos, addr, value);
 }
 
-void REGPARAM2 custom_bput (uaecptr addr, uae_u32 value)
+static void REGPARAM2 custom_bput (uaecptr addr, uae_u32 value)
 {
     static int warned = 0;
     /* Is this correct now? (There are people who bput things to the upper byte of AUDxVOL). */
@@ -1642,7 +1643,7 @@ void REGPARAM2 custom_bput (uaecptr addr, uae_u32 value)
     }
 }
 
-void REGPARAM2 custom_lput(uaecptr addr, uae_u32 value)
+static void REGPARAM2 custom_lput(uaecptr addr, uae_u32 value)
 {
     custom_wput(addr & 0xfffe, value >> 16);
     custom_wput((addr+2) & 0xfffe, (uae_u16)value);
