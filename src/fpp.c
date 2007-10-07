@@ -29,7 +29,7 @@
 /* E = MAX & F # 0 -> NotANumber */
 /* E = biased by 127 (single) ,1023 (double) ,16383 (extended) */
 
-static __inline__ double to_single (uae_u32 value)
+static inline double to_single (uae_u32 value)
 {
     double frac;
 
@@ -41,7 +41,7 @@ static __inline__ double to_single (uae_u32 value)
     return (ldexp (frac, ((value >> 23) & 0xff) - 127));
 }
 
-static __inline__ uae_u32 from_single (double src)
+static inline uae_u32 from_single (double src)
 {
     int expon;
     uae_u32 tmp;
@@ -65,7 +65,7 @@ static __inline__ uae_u32 from_single (double src)
 	    (((int) (frac * 16777216.0)) & 0x7fffff));
 }
 
-static __inline__ double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
+static inline double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
     double frac;
 
@@ -78,7 +78,7 @@ static __inline__ double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
     return ldexp (frac, ((wrd1 >> 16) & 0x7fff) - 16383);
 }
 
-static __inline__ void from_exten(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
+static inline void from_exten(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
     int expon;
     double frac;
@@ -106,7 +106,7 @@ static __inline__ void from_exten(double src, uae_u32 * wrd1, uae_u32 * wrd2, ua
     *wrd3 = (uae_u32) (frac * 18446744073709551616.0 - *wrd2 * 4294967296.0);
 }
 
-static __inline__ double to_double(uae_u32 wrd1, uae_u32 wrd2)
+static inline double to_double(uae_u32 wrd1, uae_u32 wrd2)
 {
     double frac;
 
@@ -119,7 +119,7 @@ static __inline__ double to_double(uae_u32 wrd1, uae_u32 wrd2)
     return ldexp (frac, ((wrd1 >> 20) & 0x7ff) - 1023);
 }
 
-static __inline__ void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
+static inline void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
 {
     int expon;
     int tmp;
@@ -147,7 +147,7 @@ static __inline__ void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
     *wrd2 = (uae_u32) (frac * 9007199254740992.0 - tmp * 4294967296.0);
 }
 
-static __inline__ double to_pack(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
+static inline double to_pack(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
     double d;
     char *cp;
@@ -185,7 +185,7 @@ static __inline__ double to_pack(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
     return d;
 }
 
-static __inline__ void from_pack(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
+static inline void from_pack(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
     int i;
     int t;
@@ -231,7 +231,7 @@ static __inline__ void from_pack(double src, uae_u32 * wrd1, uae_u32 * wrd2, uae
     }
 }
 
-static __inline__ int get_fp_value (uae_u32 opcode, uae_u16 extra, double *src)
+static inline int get_fp_value (uae_u32 opcode, uae_u16 extra, double *src)
 {
     uaecptr tmppc;
     uae_u16 tmp;
@@ -361,7 +361,7 @@ static __inline__ int get_fp_value (uae_u32 opcode, uae_u16 extra, double *src)
     return 1;
 }
 
-static __inline__ int put_fp_value (double value, uae_u32 opcode, uae_u16 extra)
+static inline int put_fp_value (double value, uae_u32 opcode, uae_u16 extra)
 {
     uae_u16 tmp;
     uaecptr tmppc;
@@ -496,7 +496,7 @@ static __inline__ int put_fp_value (double value, uae_u32 opcode, uae_u16 extra)
     return 1;
 }
 
-static __inline__ int get_fp_ad(uae_u32 opcode, uae_u32 * ad)
+static inline int get_fp_ad(uae_u32 opcode, uae_u32 * ad)
 {
     uae_u16 tmp;
     uaecptr tmppc;
@@ -548,7 +548,7 @@ static __inline__ int get_fp_ad(uae_u32 opcode, uae_u32 * ad)
     return 1;
 }
 
-static __inline__ int fpp_cond(uae_u32 opcode, int contition)
+static inline int fpp_cond(uae_u32 opcode, int contition)
 {
     int N = (regs.fpsr & 0x8000000) != 0;
     int Z = (regs.fpsr & 0x4000000) != 0;

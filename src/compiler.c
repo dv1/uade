@@ -229,7 +229,7 @@ static void lru_touch_block(struct hash_block *h)
     lru_first_block.lru_prev = h;
 }
 
-static __inline__ int check_block(struct hash_block *hb)
+static inline int check_block(struct hash_block *hb)
 {
 #ifndef RELY_ON_LOADSEG_DETECTION
     struct hash_entry *h = hb->he_first;
@@ -398,7 +398,7 @@ void special_flush_hash(uaecptr addr)
     h->cacheflush = 1;
 }
 
-static __inline__ void m68k_setpc_hash(uaecptr newpc)
+static inline void m68k_setpc_hash(uaecptr newpc)
 {
     struct hash_entry *h = get_hash(newpc);
 
@@ -420,7 +420,7 @@ static __inline__ void m68k_setpc_hash(uaecptr newpc)
     regs.pc_p = regs.pc_oldp = get_real_address(newpc);
 }
 
-static __inline__ void m68k_setpc_nohash(uaecptr newpc)
+static inline void m68k_setpc_nohash(uaecptr newpc)
 {
 #if 0
     /* This is probably not too good for efficiency... FIXME */
@@ -488,7 +488,7 @@ static void code_init(void)
 #define CC68K_N 2
 #define CC68K_X 1
 
-static __inline__ int cc_flagmask_68k(const int cc)
+static inline int cc_flagmask_68k(const int cc)
 {
     switch(cc){
      case 0: return 0;                       /* T */
@@ -512,7 +512,7 @@ static __inline__ int cc_flagmask_68k(const int cc)
     return 0;
 }
 
-static __inline__ void translate_step_over_ea(uae_u8 **pcpp, amodes m,
+static inline void translate_step_over_ea(uae_u8 **pcpp, amodes m,
 					      wordsizes size)
 {
     switch (m) {
@@ -1154,7 +1154,7 @@ void m68k_do_rts(void)
 	jsr_num--;
 }
 
-__inline__ void m68k_do_jsr(uaecptr oldpc, uaecptr dest)
+inline void m68k_do_jsr(uaecptr oldpc, uaecptr dest)
 {
     struct hash_entry *h = find_hash(oldpc);
 
@@ -1182,7 +1182,7 @@ void m68k_do_bsr(uaecptr oldpc, uae_s32 offset)
 static char *compile_current_addr;
 static char *compile_last_addr;
 
-static __inline__ void assemble(uae_u8 a)
+static inline void assemble(uae_u8 a)
 {
     if (compile_current_addr < compile_last_addr) {
 	*compile_current_addr++ = a;
@@ -1191,7 +1191,7 @@ static __inline__ void assemble(uae_u8 a)
     }
 }
 
-static __inline__ void assemble_ulong(uae_u32 a)
+static inline void assemble_ulong(uae_u32 a)
 {
     assemble(a);
     assemble(a >> 8);
@@ -1199,7 +1199,7 @@ static __inline__ void assemble_ulong(uae_u32 a)
     assemble(a >> 24);
 }
 
-static __inline__ void assemble_ulong_68k(uae_u32 a)
+static inline void assemble_ulong_68k(uae_u32 a)
 {
     assemble(a >> 24);
     assemble(a >> 16);
@@ -1207,23 +1207,23 @@ static __inline__ void assemble_ulong_68k(uae_u32 a)
     assemble(a);
 }
 
-static __inline__ void assemble_uword(uae_u16 a)
+static inline void assemble_uword(uae_u16 a)
 {
     assemble(a);
     assemble(a >> 8);
 }
 
-static __inline__ void assemble_long(void *a)
+static inline void assemble_long(void *a)
 {
     assemble_ulong((uae_u32)a);
 }
 
-static __inline__ void compile_org(char *addr)
+static inline void compile_org(char *addr)
 {
     compile_current_addr = addr;
 }
 
-static __inline__ char *compile_here(void)
+static inline char *compile_here(void)
 {
     return compile_current_addr;
 }
@@ -2025,7 +2025,7 @@ static void compile_get_excl_lock(struct register_mapping *map, struct ea_info *
  * 386 instruction.
  */
 
-static __inline__ int rmop_long(struct ea_info *eai)
+static inline int rmop_long(struct ea_info *eai)
 {
     if (eai->data_reg == -2)
 	fprintf(stderr,"rmop for const\n");
@@ -2055,7 +2055,7 @@ static __inline__ int rmop_long(struct ea_info *eai)
     return 0;
 }
 
-static __inline__ int rmop_short(struct ea_info *eai)
+static inline int rmop_short(struct ea_info *eai)
 {
     if (eai->data_reg == -2)
 	fprintf(stderr,"rmop_short for const\n");
@@ -2071,7 +2071,7 @@ static __inline__ int rmop_short(struct ea_info *eai)
     return 0;
 }
 
-static __inline__ void rmop_finalize(struct ea_info *eai)
+static inline void rmop_finalize(struct ea_info *eai)
 {
     if (eai->data_reg == -2)
 	assemble_ulong(eai->data_const_off);

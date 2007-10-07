@@ -108,34 +108,7 @@ struct utimbuf
 };
 #endif
 
-#if defined(__GNUC__) && defined(AMIGA)
-/* gcc on the amiga need that __attribute((regparm)) must */
-/* be defined in function prototypes as well as in        */
-/* function definitions !                                 */
-#define REGPARAM2 REGPARAM
-#else /* not(GCC & AMIGA) */
 #define REGPARAM2
-#endif
-
-/* sam: some definitions so that SAS/C can compile UAE */
-#if defined(__SASC) && defined(AMIGA)
-#define REGPARAM2 
-#define REGPARAM
-#define S_IRUSR S_IREAD
-#define S_IWUSR S_IWRITE
-#define S_IXUSR S_IEXECUTE
-#define S_ISDIR(val) (S_IFDIR & val)
-#define mkdir(x,y) mkdir(x)
-#define truncate(x,y) 0
-#define creat(x,y) open("T:creat",O_CREAT|O_TEMP|O_RDWR) /* sam: for zfile.c */
-#define strcasecmp stricmp
-#define utime(file,time) 0
-struct utimbuf
-{
-    time_t actime;
-    time_t modtime;
-};
-#endif
 
 #ifdef __DOS__
 #include <pc.h>

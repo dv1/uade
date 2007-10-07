@@ -47,7 +47,7 @@ extern uae_u8 nr_bbs_to_run;
 extern code_execfunc exec_me;
 
 #ifdef USE_COMPILER
-static __inline__ void run_compiled_code(void)
+static inline void run_compiled_code(void)
 {
 
     /*if (regs.spcflags == SPCFLAG_EXEC && may_run_compiled) {*/
@@ -88,20 +88,20 @@ extern void compiler_flush_jsr_stack(void);
 #define possible_loadseg() do { ; } while (0)
 #define compiler_flush_jsr_stack() do { ; } while (0)
 
-static __inline__ void m68k_do_rts(void)
+static inline void m68k_do_rts(void)
 {
     m68k_setpc(get_long(m68k_areg(regs, 7)));
     m68k_areg(regs, 7) += 4;
 }
 
-static __inline__ void m68k_do_bsr(uaecptr oldpc, uae_s32 offset)
+static inline void m68k_do_bsr(uaecptr oldpc, uae_s32 offset)
 {
     m68k_areg(regs, 7) -= 4;
     put_long(m68k_areg(regs, 7), oldpc);
     m68k_incpc(offset);
 }
 
-static __inline__ void m68k_do_jsr(uaecptr oldpc, uaecptr dest)
+static inline void m68k_do_jsr(uaecptr oldpc, uaecptr dest)
 {
     m68k_areg(regs, 7) -= 4;
     put_long(m68k_areg(regs, 7), oldpc);

@@ -6,7 +6,7 @@
   * Copyright 1996 Bernd Schmidt
   */
 
-static __inline__ char *raddr(uaecptr p)
+static inline char *raddr(uaecptr p)
 {
     return p == 0 ? NULL : (char *)get_real_address(p);
 }

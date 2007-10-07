@@ -35,7 +35,7 @@ extern uae_u16 intena,intreq;
 
 extern int current_hpos (void);
 
-static __inline__ int dmaen (unsigned int dmamask)
+static inline int dmaen (unsigned int dmamask)
 {
     return (dmamask & dmacon) && (dmacon & 0x200);
 }

@@ -106,7 +106,7 @@ void dump_counts (void)
 
 int broken_in;
 
-static __inline__ unsigned int cft_map (unsigned int f)
+static inline unsigned int cft_map (unsigned int f)
 {
 #ifndef HAVE_GET_WORD_UNSWAPPED
     return f;
@@ -803,7 +803,7 @@ void m68k_movec2 (int regno, uae_u32 *regp)
 	}
 }
 
-static __inline__ int
+static inline int
 div_unsigned(uae_u32 src_hi, uae_u32 src_lo, uae_u32 div, uae_u32 *quot, uae_u32 *rem)
 {
 	uae_u32 q = 0, cbit = 0;
@@ -949,7 +949,7 @@ void m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra, uaecptr oldpc)
 #endif
 }
 
-static __inline__ void
+static inline void
 mul_unsigned(uae_u32 src1, uae_u32 src2, uae_u32 *dst_hi, uae_u32 *dst_lo)
 {
 	uae_u32 r0 = (src1 & 0xffff) * (src2 & 0xffff);

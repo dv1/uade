@@ -207,7 +207,7 @@ void reset_frame_rate_hack (void)
     write_log ("Resetting frame rate hack\n");
 }
 
-static __inline__ void prepare_copper (void)
+static inline void prepare_copper (void)
 {
     if (cop_state.vpos > vpos
 	|| cop_state.state == COP_stop)
@@ -232,7 +232,7 @@ void check_prefs_changed_custom (void)
 	
 }
 
-static __inline__ void setclr (uae_u16 *p, uae_u16 val)
+static inline void setclr (uae_u16 *p, uae_u16 val)
 {
     if (val & 0x8000)
 	*p |= val & 0x7FFF;
@@ -240,7 +240,7 @@ static __inline__ void setclr (uae_u16 *p, uae_u16 val)
 	*p &= ~val;
 }
 
-__inline__ int current_hpos (void)
+inline int current_hpos (void)
 {
     return cycles - eventtab[ev_hsync].oldcycles;
 }
@@ -314,7 +314,7 @@ static uae_u32 timehack_helper (void)
  /*
   * register functions
   */
-static __inline__ uae_u16 DENISEID (void)
+static inline uae_u16 DENISEID (void)
 {
     if (currprefs.chipset_mask & CSMASK_AGA)
 	return 0xF8;
@@ -322,11 +322,11 @@ static __inline__ uae_u16 DENISEID (void)
 	return 0xFC;
     return 0xFFFF;
 }
-static __inline__ uae_u16 DMACONR (void)
+static inline uae_u16 DMACONR (void)
 {
     return (dmacon | 0 | 0x2000);
 }
-static __inline__ uae_u16 INTENAR (void)
+static inline uae_u16 INTENAR (void)
 {
     return intena;
 }
@@ -334,11 +334,11 @@ uae_u16 INTREQR (void)
 {
     return intreq | (currprefs.use_serial ? 0x0001 : 0);
 }
-static __inline__ uae_u16 ADKCONR (void)
+static inline uae_u16 ADKCONR (void)
 {
     return adkcon;
 }
-static __inline__ uae_u16 VPOSR (void)
+static inline uae_u16 VPOSR (void)
 {
     unsigned int csbit = ntscmode ? 0x1000 : 0;
     csbit |= (currprefs.chipset_mask & CSMASK_AGA) ? 0x2300 : 0;
@@ -356,15 +356,15 @@ static void VPOSW (uae_u16 v)
      */
 }
 
-static __inline__ uae_u16 VHPOSR (void)
+static inline uae_u16 VHPOSR (void)
 {
     return (vpos << 8) | current_hpos();
 }
 
-static __inline__ void COP1LCH (uae_u16 v) { cop1lc = (cop1lc & 0xffff) | ((uae_u32)v << 16); }
-static __inline__ void COP1LCL (uae_u16 v) { cop1lc = (cop1lc & ~0xffff) | (v & 0xfffe); }
-static __inline__ void COP2LCH (uae_u16 v) { cop2lc = (cop2lc & 0xffff) | ((uae_u32)v << 16); }
-static __inline__ void COP2LCL (uae_u16 v) { cop2lc = (cop2lc & ~0xffff) | (v & 0xfffe); }
+static inline void COP1LCH (uae_u16 v) { cop1lc = (cop1lc & 0xffff) | ((uae_u32)v << 16); }
+static inline void COP1LCL (uae_u16 v) { cop1lc = (cop1lc & ~0xffff) | (v & 0xfffe); }
+static inline void COP2LCH (uae_u16 v) { cop2lc = (cop2lc & 0xffff) | ((uae_u32)v << 16); }
+static inline void COP2LCL (uae_u16 v) { cop2lc = (cop2lc & ~0xffff) | (v & 0xfffe); }
 
 static void COPJMP1 (uae_u16 a)
 {
@@ -396,7 +396,7 @@ static void COPJMP2 (uae_u16 a)
     events_schedule ();
 }
 
-static __inline__ void COPCON (uae_u16 a)
+static inline void COPCON (uae_u16 a)
 {
     copcon = a;
 }
@@ -453,7 +453,7 @@ static void DMACON (uae_u16 v)
 
 /*static int trace_intena = 0;*/
 
-static __inline__ void INTENA (uae_u16 v)
+static inline void INTENA (uae_u16 v)
 {
 /*    if (trace_intena)
 	fprintf (stderr, "INTENA: %04x\n", v);*/
@@ -494,16 +494,16 @@ static void BPLPTL (int hpos, uae_u16 v, int num)
 static void BPLCON0 (int hpos, uae_u16 v)
 {
 }
-static __inline__ void BPLCON1 (int hpos, uae_u16 v)
+static inline void BPLCON1 (int hpos, uae_u16 v)
 {
 }
-static __inline__ void BPLCON2 (int hpos, uae_u16 v)
+static inline void BPLCON2 (int hpos, uae_u16 v)
 {
 }
-static __inline__ void BPLCON3 (int hpos, uae_u16 v)
+static inline void BPLCON3 (int hpos, uae_u16 v)
 {
 }
-static __inline__ void BPLCON4 (int hpos, uae_u16 v)
+static inline void BPLCON4 (int hpos, uae_u16 v)
 {
 }
 
@@ -516,14 +516,14 @@ static void BPL2MOD (int hpos, uae_u16 v)
 }
 
 /* We could do as well without those... */
-static __inline__ void BPL1DAT (uae_u16 v) {}
-static __inline__ void BPL2DAT (uae_u16 v) {}
-static __inline__ void BPL3DAT (uae_u16 v) {}
-static __inline__ void BPL4DAT (uae_u16 v) {}
-static __inline__ void BPL5DAT (uae_u16 v) {}
-static __inline__ void BPL6DAT (uae_u16 v) {}
-static __inline__ void BPL7DAT (uae_u16 v) {}
-static __inline__ void BPL8DAT (uae_u16 v) {}
+static inline void BPL1DAT (uae_u16 v) {}
+static inline void BPL2DAT (uae_u16 v) {}
+static inline void BPL3DAT (uae_u16 v) {}
+static inline void BPL4DAT (uae_u16 v) {}
+static inline void BPL5DAT (uae_u16 v) {}
+static inline void BPL6DAT (uae_u16 v) {}
+static inline void BPL7DAT (uae_u16 v) {}
+static inline void BPL8DAT (uae_u16 v) {}
 
 static void DIWSTRT (int hpos, uae_u16 v)
 {
@@ -599,16 +599,16 @@ static void BLTSIZH (uae_u16 v)
   fprintf(stderr,"blitter stroken in BLTSIZE (custom.c)...\n");
 }
 
-static __inline__ void SPRxCTL_1 (uae_u16 v, int num)
+static inline void SPRxCTL_1 (uae_u16 v, int num)
 {
 }
-static __inline__ void SPRxPOS_1 (uae_u16 v, int num)
+static inline void SPRxPOS_1 (uae_u16 v, int num)
 {
 }
-static __inline__ void SPRxDATA_1 (uae_u16 v, int num)
+static inline void SPRxDATA_1 (uae_u16 v, int num)
 {
 }
-static __inline__ void SPRxDATB_1 (uae_u16 v, int num)
+static inline void SPRxDATB_1 (uae_u16 v, int num)
 {
 }
 static void SPRxDATA (int hpos, uae_u16 v, int num) {}
@@ -713,7 +713,7 @@ static void JOYTEST (uae_u16 v)
  * Here starts the copper code. Can you believe it used to be worse?
  */
 
-static __inline__ void copper_adjust_diw (struct copper *cst)
+static inline void copper_adjust_diw (struct copper *cst)
 {
     if (cst->vdiw == DIW_waiting_start && vpos == plffirstline)
 	cst->vdiw = DIW_waiting_stop;
@@ -739,13 +739,13 @@ static unsigned int waitmasktab[256];
 
 #define COP_OFFSET 4
 
-static __inline__ int copper_in_playfield (enum diw_states diw, int hpos)
+static inline int copper_in_playfield (enum diw_states diw, int hpos)
 {
     hpos -= COP_OFFSET;
     return diw == DIW_waiting_stop && hpos >= plfstrt && hpos < plfstrt + plflinelen;
 }
 
-static __inline__ int copper_cant_read (enum diw_states diw, int hpos, int planes)
+static inline int copper_cant_read (enum diw_states diw, int hpos, int planes)
 {
     int t;
 
@@ -938,7 +938,7 @@ static void update_copper_1 (int until_hpos)
     cop_state.vpos = c_vpos;
 }
 
-static __inline__ void update_copper (int until_hpos)
+static inline void update_copper (int until_hpos)
 {
     if (cop_state.vpos > vpos
 	|| cop_state.hpos > until_hpos

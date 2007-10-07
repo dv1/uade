@@ -6,7 +6,7 @@ DEBUGFLAGS = {DEBUGFLAGS}
 
 COMMONGCCOPTS = -Wall -Wno-unused -Wno-format -Wmissing-prototypes -Wstrict-prototypes -fno-exceptions -O2
 
-TARGETCFLAGS = -fomit-frame-pointer -DGCCCONSTFUNC="__attribute__((const))" -D_REENTRANT -DREGPARAM= -D__inline__=inline $(COMMONGCCOPTS) $(DEBUGFLAGS) $(ARCHFLAGS)
+TARGETCFLAGS = -fomit-frame-pointer $(COMMONGCCOPTS) $(DEBUGFLAGS) $(ARCHFLAGS)
 LIBRARIES = -lm $(AUDIOLIBS) $(ARCHLIBS)
 
 # Native flags are used to build tools that generate new code that is then

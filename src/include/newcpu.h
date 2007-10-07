@@ -105,21 +105,21 @@ extern struct regstruct
 #define GET_OPCODE (get_iword (0))
 #endif
 
-static __inline__ uae_u32 get_ibyte_prefetch (uae_s32 o)
+static inline uae_u32 get_ibyte_prefetch (uae_s32 o)
 {
     if (o > 3 || o < 0)
 	return do_get_mem_byte((uae_u8 *)(regs.pc_p + o + 1));
 
     return do_get_mem_byte((uae_u8 *)(((uae_u8 *)&regs.prefetch) + o + 1));
 }
-static __inline__ uae_u32 get_iword_prefetch (uae_s32 o)
+static inline uae_u32 get_iword_prefetch (uae_s32 o)
 {
     if (o > 3 || o < 0)
 	return do_get_mem_word((uae_u16 *)(regs.pc_p + o));
 
     return do_get_mem_word((uae_u16 *)(((uae_u8 *)&regs.prefetch) + o));
 }
-static __inline__ uae_u32 get_ilong_prefetch (uae_s32 o)
+static inline uae_u32 get_ilong_prefetch (uae_s32 o)
 {
     union {
         uae_u32 *u32;
@@ -138,7 +138,7 @@ static __inline__ uae_u32 get_ilong_prefetch (uae_s32 o)
 
 #define m68k_incpc(o) (regs.pc_p += (o))
 
-static __inline__ void fill_prefetch_0 (void)
+static inline void fill_prefetch_0 (void)
 {
     uae_u32 r;
 #ifdef UNALIGNED_PROFITABLE
@@ -151,7 +151,7 @@ static __inline__ void fill_prefetch_0 (void)
 }
 
 #if 0
-static __inline__ void fill_prefetch_2 (void)
+static inline void fill_prefetch_2 (void)
 {
     uae_u32 r = do_get_mem_long (&regs.prefetch) << 16;
     uae_u32 r2 = do_get_mem_word (((uae_u16 *)regs.pc_p) + 1);
@@ -164,21 +164,21 @@ static __inline__ void fill_prefetch_2 (void)
 
 /* These are only used by the 68020/68881 code, and therefore don't
  * need to handle prefetch.  */
-static __inline__ uae_u32 next_ibyte (void)
+static inline uae_u32 next_ibyte (void)
 {
     uae_u32 r = get_ibyte (0);
     m68k_incpc (2);
     return r;
 }
 
-static __inline__ uae_u32 next_iword (void)
+static inline uae_u32 next_iword (void)
 {
     uae_u32 r = get_iword (0);
     m68k_incpc (2);
     return r;
 }
 
-static __inline__ uae_u32 next_ilong (void)
+static inline uae_u32 next_ilong (void)
 {
     uae_u32 r = get_ilong (0);
     m68k_incpc (4);
@@ -186,7 +186,7 @@ static __inline__ uae_u32 next_ilong (void)
 }
 
 #if !defined USE_COMPILER
-static __inline__ void m68k_setpc (uaecptr newpc)
+static inline void m68k_setpc (uaecptr newpc)
 {
     regs.pc_p = regs.pc_oldp = get_real_address(newpc);
     regs.pc = newpc;
@@ -195,12 +195,12 @@ static __inline__ void m68k_setpc (uaecptr newpc)
 extern void m68k_setpc (uaecptr newpc);
 #endif
 
-static __inline__ uaecptr m68k_getpc (void)
+static inline uaecptr m68k_getpc (void)
 {
     return regs.pc + ((char *)regs.pc_p - (char *)regs.pc_oldp);
 }
 
-static __inline__ uaecptr m68k_getpc_p (uae_u8 *p)
+static inline uaecptr m68k_getpc_p (uae_u8 *p)
 {
     return regs.pc + ((char *)p - (char *)regs.pc_oldp);
 }
@@ -215,7 +215,7 @@ extern void m68k_setpc_rte (uaecptr newpc);
 #define m68k_setpc_rte  m68k_setpc
 #endif
 
-static __inline__ void m68k_setstopped (int stop)
+static inline void m68k_setstopped (int stop)
 {
     regs.stopped = stop;
     if (stop)

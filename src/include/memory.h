@@ -15,6 +15,10 @@
 #define SAVE_MEMORY_BANKS
 #endif
 
+#ifndef REGPARAM
+#define REGPARAM
+#endif
+
 typedef uae_u32 (*mem_get_func)(uaecptr) REGPARAM;
 typedef void (*mem_put_func)(uaecptr, uae_u32) REGPARAM;
 typedef uae_u8 *(*xlate_func)(uaecptr) REGPARAM;
@@ -141,37 +145,37 @@ extern void byteput(uaecptr addr, uae_u32 b);
 
 #endif
 
-static __inline__ uae_u32 get_long(uaecptr addr)
+static inline uae_u32 get_long(uaecptr addr)
 {
     return longget_1(addr);
 }
-static __inline__ uae_u32 get_word(uaecptr addr)
+static inline uae_u32 get_word(uaecptr addr)
 {
     return wordget_1(addr);
 }
-static __inline__ uae_u32 get_byte(uaecptr addr)
+static inline uae_u32 get_byte(uaecptr addr)
 {
     return byteget_1(addr);
 }
-static __inline__ void put_long(uaecptr addr, uae_u32 l)
+static inline void put_long(uaecptr addr, uae_u32 l)
 {
     longput_1(addr, l);
 }
-static __inline__ void put_word(uaecptr addr, uae_u32 w)
+static inline void put_word(uaecptr addr, uae_u32 w)
 {
     wordput_1(addr, w);
 }
-static __inline__ void put_byte(uaecptr addr, uae_u32 b)
+static inline void put_byte(uaecptr addr, uae_u32 b)
 {
     byteput_1(addr, b);
 }
 
-static __inline__ uae_u8 *get_real_address(uaecptr addr)
+static inline uae_u8 *get_real_address(uaecptr addr)
 {
     return get_mem_bank(addr).xlateaddr(addr);
 }
 
-static __inline__ int valid_address(uaecptr addr, uae_u32 size)
+static inline int valid_address(uaecptr addr, uae_u32 size)
 {
     return get_mem_bank(addr).check(addr, size);
 }

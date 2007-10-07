@@ -195,7 +195,7 @@ extern int memcmpy(void *foo, const void *bar, int len);
  * may need some padding for the array. */
 
 #define fuzzy_memset(p, c, o, l) fuzzy_memset_1 ((p), QUADRUPLIFY (c), (o) & ~3, ((l) + 4) >> 2)
-static __inline__ void fuzzy_memset_1 (void *p, uae_u32 c, int offset, int len)
+static inline void fuzzy_memset_1 (void *p, uae_u32 c, int offset, int len)
 {
     uae_u32 *p2 = (uae_u32 *)((char *)p + offset);
     int a = len & 7;
@@ -238,7 +238,7 @@ static __inline__ void fuzzy_memset_1 (void *p, uae_u32 c, int offset, int len)
 /* This one knows it will never be asked to clear more than 32 bytes.  Make sure you call this with a
    constant for the length.  */
 #define fuzzy_memset_le32(p, c, o, l) fuzzy_memset_le32_1 ((p), QUADRUPLIFY (c), (o) & ~3, ((l) + 7) >> 2)
-static __inline__ void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
+static inline void fuzzy_memset_le32_1 (void *p, uae_u32 c, int offset, int len)
 {
     uae_u32 *p2 = (uae_u32 *)((char *)p + offset);
 

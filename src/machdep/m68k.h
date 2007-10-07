@@ -28,7 +28,7 @@ struct flag_struct {
 
 extern struct flag_struct regflags;
 
-static __inline__ int cctrue(int cc)
+static inline int cctrue(int cc)
 {
     uae_u32 cznv = regflags.cznv;
     switch(cc){

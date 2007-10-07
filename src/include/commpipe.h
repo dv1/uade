@@ -29,7 +29,7 @@ typedef struct {
     volatile int reader_waiting;
 } smp_comm_pipe;
 
-static __inline__ void init_comm_pipe (smp_comm_pipe *p, int size, int chunks)
+static inline void init_comm_pipe (smp_comm_pipe *p, int size, int chunks)
 {
     p->data = (uae_pt *)malloc (size*sizeof (uae_pt));
     p->size = size;
@@ -42,14 +42,14 @@ static __inline__ void init_comm_pipe (smp_comm_pipe *p, int size, int chunks)
     uae_sem_init (&p->writer_wait, 0, 0);
 }
 
-static __inline__ void destroy_comm_pipe (smp_comm_pipe *p)
+static inline void destroy_comm_pipe (smp_comm_pipe *p)
 {
     uae_sem_destroy (&p->lock);
     uae_sem_destroy (&p->reader_wait);
     uae_sem_destroy (&p->writer_wait);
 }
 
-static __inline__ void maybe_wake_reader (smp_comm_pipe *p, int no_buffer)
+static inline void maybe_wake_reader (smp_comm_pipe *p, int no_buffer)
 {
     if (p->reader_waiting
 	&& (no_buffer || ((p->wrp - p->rdp + p->size) % p->size) >= p->chunks))
@@ -59,7 +59,7 @@ static __inline__ void maybe_wake_reader (smp_comm_pipe *p, int no_buffer)
     }
 }
 
-static __inline__ void write_comm_pipe_pt (smp_comm_pipe *p, uae_pt data, int no_buffer)
+static inline void write_comm_pipe_pt (smp_comm_pipe *p, uae_pt data, int no_buffer)
 {
     int nxwrp = (p->wrp + 1) % p->size;
 
@@ -88,7 +88,7 @@ static __inline__ void write_comm_pipe_pt (smp_comm_pipe *p, uae_pt data, int no
     uae_sem_post (&p->lock);
 }
 
-static __inline__ uae_pt read_comm_pipe_pt_blocking (smp_comm_pipe *p)
+static inline uae_pt read_comm_pipe_pt_blocking (smp_comm_pipe *p)
 {
     uae_pt data;
 
@@ -111,43 +111,43 @@ static __inline__ uae_pt read_comm_pipe_pt_blocking (smp_comm_pipe *p)
     return data;
 }
 
-static __inline__ int comm_pipe_has_data (smp_comm_pipe *p)
+static inline int comm_pipe_has_data (smp_comm_pipe *p)
 {
     return p->rdp != p->wrp;
 }
 
-static __inline__ int read_comm_pipe_int_blocking (smp_comm_pipe *p)
+static inline int read_comm_pipe_int_blocking (smp_comm_pipe *p)
 {
     uae_pt foo = read_comm_pipe_pt_blocking (p);
     return foo.i;
 }
-static __inline__ uae_u32 read_comm_pipe_u32_blocking (smp_comm_pipe *p)
+static inline uae_u32 read_comm_pipe_u32_blocking (smp_comm_pipe *p)
 {
     uae_pt foo = read_comm_pipe_pt_blocking (p);
     return foo.u32;
 }
 
-static __inline__ void *read_comm_pipe_pvoid_blocking (smp_comm_pipe *p)
+static inline void *read_comm_pipe_pvoid_blocking (smp_comm_pipe *p)
 {
     uae_pt foo = read_comm_pipe_pt_blocking (p);
     return foo.pv;
 }
 
-static __inline__ void write_comm_pipe_int (smp_comm_pipe *p, int data, int no_buffer)
+static inline void write_comm_pipe_int (smp_comm_pipe *p, int data, int no_buffer)
 {
     uae_pt foo;
     foo.i = data;
     write_comm_pipe_pt (p, foo, no_buffer);
 }
 
-static __inline__ void write_comm_pipe_u32 (smp_comm_pipe *p, int data, int no_buffer)
+static inline void write_comm_pipe_u32 (smp_comm_pipe *p, int data, int no_buffer)
 {
     uae_pt foo;
     foo.u32 = data;
     write_comm_pipe_pt (p, foo, no_buffer);
 }
 
-static __inline__ void write_comm_pipe_pvoid (smp_comm_pipe *p, void *data, int no_buffer)
+static inline void write_comm_pipe_pvoid (smp_comm_pipe *p, void *data, int no_buffer)
 {
     uae_pt foo;
     foo.pv = data;
