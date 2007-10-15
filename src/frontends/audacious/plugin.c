@@ -47,10 +47,14 @@ static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static void uade_init(void);
 static int uade_is_our_file(char *filename);
+
 #if __AUDACIOUS_PLUGIN_API__ >= 6
 static void uade_info_string(InputPlayback *playhandle);
+#define UADE_INFO_STRING(playhandle) uade_info_string(playhandle)
 #else
 static void uade_info_string(void);
+/* Hack, we don't actually use playhandle */
+#define UADE_INFO_STRING(playhandle) uade_info_string()
 #endif
 
 #ifdef __AUDACIOUS_INPUT_PLUGIN_API__
@@ -475,11 +479,7 @@ static void *play_loop(void *arg)
 	uadesong->out_bytes = 0;
 	record_playtime = 0;
 
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-	uade_info_string(playhandle);
-#else
-	uade_info_string();
-#endif
+	UADE_INFO_STRING(playhandle);
       }
       if (subsong_end && song_end_trigger == 0) {
 
@@ -509,12 +509,8 @@ static void *play_loop(void *arg)
 	    uade_unlock();
 	    uade_gui_subsong_changed(uadesong->cur_subsong);
 	    uade_lock();
-
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-	    uade_info_string(playhandle);
-#else
-	    uade_info_string();
-#endif
+	    
+	    UADE_INFO_STRING(playhandle);
 	  }
 	}
       }
@@ -923,11 +919,8 @@ static void uade_stop(void)
 
       uadesong->playtime = play_time;
       uadesong->cur_subsong = uadesong->max_subsong;
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-      uade_info_string(playhandle);
-#else
-      uade_info_string();
-#endif
+
+      UADE_INFO_STRING(playhandle);
     }
 
     /* We must free uadesong after playthread has finished and additional
@@ -987,13 +980,10 @@ static int uade_get_time(void)
 
   if (!gui_info_set && uadesong->max_subsong != -1) {
     uade_lock();
-    if (uadesong->max_subsong != -1) {
-#if __AUDACIOUS_PLUGIN_API__ >= 6
-      uade_info_string(playhandle);
-#else
-      uade_info_string();
-#endif
-    }
+
+    if (uadesong->max_subsong != -1)
+      UADE_INFO_STRING(playhandle);
+
     gui_info_set = 1;
     uade_unlock();
     file_info_update(gui_module_filename, gui_player_filename, gui_modulename, gui_playername, gui_formatname);
@@ -1019,6 +1009,8 @@ static void uade_get_song_info(char *filename, char **title, int *length)
     plugindebug("Not enough memory for song info.\n");
   *length = -1;
 }
+
+
 #if __AUDACIOUS_PLUGIN_API__ >= 6
 static void uade_info_string(InputPlayback *playhandle)
 #else
@@ -1039,8 +1031,9 @@ static void uade_info_string(void)
     strlcpy(info, gui_filename, sizeof info);
 
 #if __AUDACIOUS_PLUGIN_API__ >= 6
-  playhandle->set_params(playhandle, info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
-		   config.frequency, UADE_CHANNELS);
+  playhandle->set_params(playhandle, info, playtime,
+			 UADE_BYTES_PER_FRAME * config.frequency,
+			 config.frequency, UADE_CHANNELS);
 #else
   uade_ip.set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
 		   config.frequency, UADE_CHANNELS);
