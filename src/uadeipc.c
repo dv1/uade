@@ -207,7 +207,9 @@ int uade_send_message(struct uade_msg *um, struct uade_ipc *ipc)
 
 int uade_send_short_message(enum uade_msgtype msgtype, struct uade_ipc *ipc)
 {
-  if (uade_send_message(& (struct uade_msg) {.msgtype = msgtype}, ipc)) {
+  struct uade_msg msg = {.msgtype = msgtype};
+
+  if (uade_send_message(&msg, ipc)) {
     fprintf(stderr, "can not send short message: %d\n", msgtype);
     return -1;
   }

@@ -43,7 +43,7 @@ enum uade_msgtype {
 struct uade_msg {
   uint32_t msgtype;
   uint32_t size;
-  uint8_t data[];
+  uint8_t data[0];
 } __attribute__((packed));
 
 enum uade_control_state {
