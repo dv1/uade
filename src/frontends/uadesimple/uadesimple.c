@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 	char songname[PATH_MAX];
 	struct eagleplayer *ep = NULL;
 
-	strlcpy(modulename, argv[1], sizeof modulename);
+	strlcpy(modulename, argv[songindex], sizeof modulename);
 
 	uc = uc_main;
 
@@ -206,6 +206,8 @@ int main(int argc, char *argv[])
 	play_loop(&uadeipc, us, &effects, &uc);
 
 	uade_unalloc_song(us);
+
+	uade_song_end_trigger = 0;
     }
 
     cleanup();
