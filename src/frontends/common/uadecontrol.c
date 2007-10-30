@@ -210,6 +210,13 @@ int uade_song_initialization(const char *scorename,
     }
   }
 
+  if (uc->use_text_scope) {
+    if (uade_send_short_message(UADE_COMMAND_USE_TEXT_SCOPE, ipc)) {
+      fprintf(stderr, "Can not send use text scope command.\n");
+      goto cleanup;
+    }
+  }
+
   if (send_ep_options(&us->ep_options, ipc) ||
       send_ep_options(&uc->ep_options, ipc))
     goto cleanup;

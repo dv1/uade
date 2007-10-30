@@ -583,6 +583,10 @@ void uade_handle_r_state(void)
       uade_put_long(SCORE_SUBSONG, x);
       break;
 
+    case UADE_COMMAND_USE_TEXT_SCOPE:
+      audio_use_text_scope();
+      break;
+
     default:
       fprintf(stderr, "uadecore: Received invalid command %d\n", um->msgtype);
       exit(-1);

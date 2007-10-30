@@ -33,7 +33,7 @@ int audio_init(int frequency, int buffer_time)
   int driver;
   ao_sample_format format;
 
-  if (uade_no_output)
+  if (uade_no_audio_output)
     return 1;
 
   ao_initialize();
@@ -70,8 +70,9 @@ int audio_init(int frequency, int buffer_time)
 
 int audio_play(unsigned char *samples, int bytes)
 {
-  if (uade_no_output)
+  if (libao_device == NULL)
     return bytes;
+
   /* ao_play returns 0 on failure */
   return ao_play(libao_device, (char *) samples, bytes);
 }

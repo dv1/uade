@@ -50,6 +50,7 @@ void audio_reset (void);
 void audio_set_filter(int filter_type, int filter_force);
 void audio_set_rate (int rate);
 void audio_set_resampler(char *name);
+void audio_use_text_scope(void);
 void update_audio (void);
 
 #endif

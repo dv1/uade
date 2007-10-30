@@ -126,7 +126,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   while (next_song == 0) {
 
     if (uade_terminated) {
-      if (!uade_no_output)
+      if (!uade_no_text_output)
 	tprintf("\n");
       return 0;
     }
@@ -135,7 +135,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 
       if (skip_bytes == 0) {
 	deciseconds = subsong_bytes * 10 / bytes_per_second;
-	if (!uade_no_output) {
+	if (!uade_no_text_output) {
 	  if (us->playtime >= 0) {
 	    int ptimesecs = us->playtime / 1000;
 	    int ptimesubsecs = (us->playtime / 100) % 10;
@@ -189,11 +189,11 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(ue, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
 	case 'i':
-	  if (!uade_no_output)
+	  if (!uade_no_text_output)
 	    print_song_info(us, UADE_MODULE_INFO);
 	  break;
 	case 'I':
-	  if (!uade_no_output)
+	  if (!uade_no_text_output)
 	    print_song_info(us, UADE_HEX_DUMP_INFO);
 	  break;
 	case '\n':

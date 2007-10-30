@@ -45,7 +45,10 @@
 int uade_debug_trigger;
 int uade_info_mode;
 double uade_jump_pos = 0.0;
-int uade_no_output;
+
+int uade_no_audio_output;
+int uade_no_text_output;
+
 char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 struct playlist uade_playlist;
@@ -143,6 +146,7 @@ int main(int argc, char *argv[])
   enum {
     OPT_BASEDIR = 0x2000,
     OPT_REPEAT,
+    OPT_SCOPE,
     OPT_SET,
     OPT_STDERR,
     OPT_VERSION
@@ -180,6 +184,7 @@ int main(int argc, char *argv[])
     {"recursive",        0, NULL, 'r'},
     {"repeat",           0, NULL, OPT_REPEAT},
     {"resampler",        1, NULL, UC_RESAMPLER},
+    {"scope",            0, NULL, OPT_SCOPE},
     {"shuffle",          0, NULL, 'z'},
     {"set",              1, NULL, OPT_SET},
     {"silence-timeout",  1, NULL, 'y'},
@@ -240,7 +245,8 @@ int main(int argc, char *argv[])
       break;
     case 'g':
       uade_info_mode = 1;
-      uade_no_output = 1;
+      uade_no_audio_output = 1;
+      uade_no_text_output = 1;
       uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, "off");
       break;
     case 'G':
@@ -321,6 +327,11 @@ int main(int argc, char *argv[])
 
     case OPT_REPEAT:
       playlist_repeat(&uade_playlist);
+      break;
+
+    case OPT_SCOPE:
+      uade_no_text_output = 1;
+      uade_set_config_option(&uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
       break;
 
     case OPT_SET:
@@ -618,6 +629,7 @@ static void print_help(void)
   printf(" --basedir=dirname,  Set uade base directory (contains data files)\n");
   printf(" -d, --debug,        Enable debug mode (expert only)\n");
   printf(" -S filename,        Set sound core name\n");
+  printf(" --scope             Turn on Paula hardware register debug mode\n");
   printf(" -u uadename,        Set uadecore executable name\n");
   printf("\n");
   printf("Normal options:\n");

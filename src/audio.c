@@ -27,6 +27,9 @@
 
 #include "sinctable.h"
 
+#include "text_scope.h"
+
+
 struct audio_channel_data audio_channel[4];
 static void (*sample_handler) (void);
 static void (*sample_prehandler) (unsigned long best_evtime);
@@ -36,6 +39,8 @@ static float sample_evtime_interval;
 static float next_sample_evtime;
 
 int sound_available;
+
+static int use_text_scope;
 
 static int sound_use_filter = FILTER_MODEL_A500;
 
@@ -450,6 +455,8 @@ void audio_reset (void)
     memset(sound_filter_state, 0, sizeof sound_filter_state);
 
     audio_set_resampler(NULL);
+
+    use_text_scope = 0;
 }
 
 
@@ -528,6 +535,12 @@ void audio_set_resampler(char *name)
 }
 
 
+void audio_use_text_scope(void)
+{
+    use_text_scope = 1;
+}
+
+
 /* update_audio() emulates actions of audio state machine since it was last
    time called. One can assume it is called at least once per horizontal
    line and possibly more often. */
@@ -595,6 +608,9 @@ void AUDxDAT (int nr, uae_u16 v)
 {
     struct audio_channel_data *cdp = audio_channel + nr;
 
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_DAT, v);
+
     update_audio ();
 
     cdp->dat = v;
@@ -611,6 +627,9 @@ void AUDxDAT (int nr, uae_u16 v)
 
 void AUDxLCH (int nr, uae_u16 v)
 {
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_LCH, v);
+
     update_audio ();
 
     audio_channel[nr].lc = (audio_channel[nr].lc & 0xffff) | ((uae_u32)v << 16);
@@ -619,6 +638,9 @@ void AUDxLCH (int nr, uae_u16 v)
 
 void AUDxLCL (int nr, uae_u16 v)
 {
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_LCL, v);
+
     update_audio ();
 
     audio_channel[nr].lc = (audio_channel[nr].lc & ~0xffff) | (v & 0xFFFE);
@@ -627,6 +649,9 @@ void AUDxLCL (int nr, uae_u16 v)
 
 void AUDxPER (int nr, uae_u16 v)
 {
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_PER, v);
+
     update_audio ();
 
     if (v == 0)
@@ -647,6 +672,9 @@ void AUDxPER (int nr, uae_u16 v)
 
 void AUDxLEN (int nr, uae_u16 v)
 {
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_LEN, v);
+
     update_audio ();
 
     audio_channel[nr].len = v;
@@ -656,6 +684,9 @@ void AUDxLEN (int nr, uae_u16 v)
 void AUDxVOL (int nr, uae_u16 v)
 {
     int v2 = v & 64 ? 63 : v & 63;
+
+    if (use_text_scope)
+	text_scope(cycles, nr, PET_VOL, v);
 
     update_audio ();
 

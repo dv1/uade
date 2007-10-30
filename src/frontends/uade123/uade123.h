@@ -14,7 +14,8 @@
 extern int uade_debug_trigger;
 extern int uade_info_mode;
 extern double uade_jump_pos;
-extern int uade_no_output;
+extern int uade_no_audio_output;
+extern int uade_no_text_output;
 extern char uade_output_file_format[16];
 extern char uade_output_file_name[PATH_MAX];
 extern struct playlist uade_playlist;

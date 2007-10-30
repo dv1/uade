@@ -38,6 +38,7 @@ enum uade_option {
   UC_SPEED_HACK,
   UC_SUBSONG_TIMEOUT_VALUE,
   UC_TIMEOUT_VALUE,
+  UC_USE_TEXT_SCOPE,
   UC_VERBOSE
 };
 
@@ -152,6 +153,9 @@ struct uade_config {
 
   int timeout;
   char timeout_set;
+
+  char use_text_scope;
+  char use_text_scope_set;
 
   char use_timeouts;
   char use_timeouts_set;

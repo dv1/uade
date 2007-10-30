@@ -458,6 +458,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
   MERGE_OPTION(speed_hack);
   MERGE_OPTION(subsong_timeout);
   MERGE_OPTION(timeout);
+  MERGE_OPTION(use_text_scope);
   MERGE_OPTION(use_timeouts);
   MERGE_OPTION(use_ntsc);
   MERGE_OPTION(verbose);
@@ -843,6 +844,11 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
       break;
     }
     uade_set_timeout(uc, value);
+    break;
+
+  case UC_USE_TEXT_SCOPE:
+    uc->use_text_scope = 1;
+    uc->use_text_scope_set = 1;
     break;
 
   case UC_VERBOSE:
