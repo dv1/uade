@@ -36,9 +36,13 @@ useuadecore="yes"
 xmmsplugindir=""
 audaciousplugindir=""
 pkgrequirements="ao"
+textscope="no"
 
 for opt in "$@" ; do
 	case $opt in
+
+# General compilation options
+
 	--prefix=*)
 		prefix=`echo $opt | sed -n 's/--prefix=\(.*\)/\1/p'`
 		;;
@@ -81,16 +85,31 @@ for opt in "$@" ; do
 		fi
 		tmpvar=""
 		;;
-	--xmms-config=*)
-	        XMMS_CONFIG=`echo $opt | sed -n 's/--xmms-config=\(.*\)/\1/p'`
-		;;
-	--xmms-plugin-dir=*)
-		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
-		;;
+
+# Options for frontends
+
 	--audacious-plugin-dir=*)
 		audaciousplugindir=`echo $opt | sed -n 's/--audacious-plugin-dir=\(.*\)/\1/p'`
 		;;
 
+	--no-debug)
+		debug_flags=""
+		;;
+
+        --user)
+		user="yes"
+		;;
+
+	--with-audacious)
+		useaudacious="yes"
+		;;
+	--without-audacious)
+		useaudacious="no"
+		;;
+
+	--with-text-scope)
+		textscope="yes"
+		;;
 	--without-uadecore)
 		useuadecore="no"
 		;;
@@ -109,19 +128,13 @@ for opt in "$@" ; do
 		usexmms="no"
 		;;
 
-	--with-audacious)
-		useaudacious="yes"
+	--xmms-config=*)
+	        XMMS_CONFIG=`echo $opt | sed -n 's/--xmms-config=\(.*\)/\1/p'`
 		;;
-	--without-audacious)
-		useaudacious="no"
+	--xmms-plugin-dir=*)
+		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
 
-        --user)
-		user="yes"
-		;;
-	--no-debug)
-		debug_flags=""
-		;;
 	--help)
 		echo
 		echo "Installation control:"
@@ -142,6 +155,7 @@ for opt in "$@" ; do
 		echo " --target-cc=tcc        Specify target compiler. (cross compiling)"
 		echo
 		echo "Frontend options:"
+		echo " --with-text-scope      Enable text scope support (uade123 --scope)"
 		echo " --without-uadecore     Do not compile uadecore. This is useful for"
 		echo "                        distribution makers who want to compile new frontends"
 		echo "                        without re-compiling the emulator binary."
@@ -150,6 +164,8 @@ for opt in "$@" ; do
 		echo " --with-xmms            Compile an XMMS plugin (auto detect)"
 		echo " --without-xmms         Do not compile an XMMS plugin"
 		echo " --xmms-config=exe      Use 'exe' as xmms-config"
+		echo " --xmms-plugin-dir=PATH Install XMMS plugin to PATH"
+		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
 		echo " --with-audacious       Compile an Audacious plugin (auto detect)"
 		echo " --without-audacious    Do not compile an Audacious plugin"
 		echo
@@ -316,10 +332,14 @@ if test "$user" = "no"; then
 	bindir="$prefix/bin"
     fi
     if test "$usexmms" = "yes" ; then
-	xmmsplugindir="`xmms-config --input-plugin-dir`"
+	if test -z "$xmmsplugindir" ; then
+	    xmmsplugindir="`xmms-config --input-plugin-dir`"
+	fi
     fi
     if test "$useaudacious" = "yes" ; then
-	audaciousplugindir="`$PKG_CONFIG audacious --variable=input_plugin_dir`"
+	if test -z "$audaciousplugindir" ; then
+	    audaciousplugindir="`$PKG_CONFIG audacious --variable=input_plugin_dir`"
+	fi
     fi
     if test -z "$docdir"; then
 	docdir="$prefix/share/doc/uade-$VERSION"
@@ -338,13 +358,17 @@ else
 	bindir="$prefix"
     fi
     if test "$usexmms" = "yes" ; then
-	xmmsplugindir="$HOME/.xmms/Plugins/Input"
+	if test -z "$xmmsplugindir" ; then
+	    xmmsplugindir="$HOME/.xmms/Plugins/Input"
+	fi
     fi
     if test "$useaudacious" = "yes" ; then
-        if $PKG_CONFIG --max-version=1.2.2 audacious ; then
-	  audaciousplugindir="$HOME/.audacious/Plugins/Input"
-	else
-	  audaciousplugindir="$HOME/.local/share/audacious/Plugins"	
+	if test -z "$audaciousplugindir" ; then
+	    if $PKG_CONFIG --max-version=1.2.2 audacious ; then
+		audaciousplugindir="$HOME/.audacious/Plugins/Input"
+	    else
+		audaciousplugindir="$HOME/.local/share/audacious/Plugins"	
+	    fi
 	fi
     fi
     if test -z "$docdir"; then
@@ -456,6 +480,7 @@ echo "Audacious plugin                        : $useaudacious"
 if test "$useaudacious" = "yes" ; then
     echo "Audacious plugin directory              : $audaciousplugindir"
 fi
+echo "Text scope support                      : $textscope"
 echo
 
 # Target is UNIX.
@@ -503,17 +528,23 @@ cd ..
 
 conffile=src/include/uadeconfig.h
 echo > "$conffile"
+
 if test "$user" = "yes" ; then
     echo "#define UADE_CONFIG_USER_MODE (1)" >> "$conffile"
 else
     echo "#define UADE_CONFIG_USER_MODE (0)" >> "$conffile"
 fi
+
 echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
+
 echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/$UADECORENAME\"" >> "$conffile"
 test -c /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
+
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
+
 test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
+test "$textscope" = "yes" && echo "#define UADE_CONFIG_TEXT_SCOPE" >> "$conffile"
 
 if test "$useuadecore" = "yes" ; then
     uadecorerule="uadecore"

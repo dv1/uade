@@ -608,8 +608,7 @@ void AUDxDAT (int nr, uae_u16 v)
 {
     struct audio_channel_data *cdp = audio_channel + nr;
 
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_DAT, v);
+    TEXT_SCOPE(cycles, nr, PET_DAT, v);
 
     update_audio ();
 
@@ -627,8 +626,7 @@ void AUDxDAT (int nr, uae_u16 v)
 
 void AUDxLCH (int nr, uae_u16 v)
 {
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_LCH, v);
+    TEXT_SCOPE(cycles, nr, PET_LCH, v);
 
     update_audio ();
 
@@ -638,8 +636,7 @@ void AUDxLCH (int nr, uae_u16 v)
 
 void AUDxLCL (int nr, uae_u16 v)
 {
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_LCL, v);
+    TEXT_SCOPE(cycles, nr, PET_LCL, v);
 
     update_audio ();
 
@@ -649,8 +646,7 @@ void AUDxLCL (int nr, uae_u16 v)
 
 void AUDxPER (int nr, uae_u16 v)
 {
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_PER, v);
+    TEXT_SCOPE(cycles, nr, PET_PER, v);
 
     update_audio ();
 
@@ -672,8 +668,7 @@ void AUDxPER (int nr, uae_u16 v)
 
 void AUDxLEN (int nr, uae_u16 v)
 {
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_LEN, v);
+    TEXT_SCOPE(cycles, nr, PET_LEN, v);
 
     update_audio ();
 
@@ -685,8 +680,7 @@ void AUDxVOL (int nr, uae_u16 v)
 {
     int v2 = v & 64 ? 63 : v & 63;
 
-    if (use_text_scope)
-	text_scope(cycles, nr, PET_VOL, v);
+    TEXT_SCOPE(cycles, nr, PET_VOL, v);
 
     update_audio ();
 
