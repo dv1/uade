@@ -493,11 +493,13 @@ int main(int argc, char *argv[])
   if (!audio_init(uc.frequency, uc.buffer_time))
     goto cleanup;
 
-  plistdir = 0;
+  plistdir = UADE_PLAY_CURRENT;
 
   while (1) {
+
     ssize_t filesize;
     struct uade_song *us;
+
     /* modulename and songname are a bit different. modulename is the name
        of the song from uadecore's point of view and songname is the
        name of the song from user point of view. Sound core considers all
@@ -510,7 +512,7 @@ int main(int argc, char *argv[])
     if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
       break;
 
-    plistdir = 1;
+    plistdir = UADE_PLAY_NEXT;
 
     uc = uc_main;
 
@@ -582,15 +584,21 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
 
-    if ((ret = uade_song_initialization(scorename, playername, modulename, us, &uadeipc, &uc))) {
-      if (ret == UADECORE_INIT_ERROR) {
-	uade_unalloc_song(us);
-	goto cleanup;
-      } else if (ret == UADECORE_CANT_PLAY) {
+    ret = uade_song_initialization(scorename, playername, modulename, us, &uadeipc, &uc);
+    switch (ret) {
+    case UADECORE_INIT_OK:
+      break;
+
+    case UADECORE_INIT_ERROR:
+      uade_unalloc_song(us);
+      goto cleanup;
+
+    case UADECORE_CANT_PLAY:
 	debug(uc.verbose, "Uadecore refuses to play the song.\n");
 	uade_unalloc_song(us);
-	continue;
-      }
+	continue; /* jump to the beginning of playlist loop */
+
+    default:
       fprintf(stderr, "Unknown error from uade_song_initialization()\n");
       exit(1);
     }
@@ -602,8 +610,10 @@ int main(int argc, char *argv[])
 
     uade_unalloc_song(us);
 
-    if (plistdir == 0)
+    if (plistdir == UADE_PLAY_FAILURE)
       goto cleanup;
+    else if (plistdir == UADE_PLAY_EXIT)
+      break;
   }
 
   debug(uc_cmdline.verbose || uc_main.verbose, "Killing child (%d).\n", uadepid);

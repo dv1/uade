@@ -20,6 +20,16 @@ struct playlist_iterator {
   struct playlist *pl;
 };
 
+
+enum {
+  UADE_PLAY_PREVIOUS = -1,
+  UADE_PLAY_CURRENT,
+  UADE_PLAY_NEXT,
+  UADE_PLAY_EXIT,
+  UADE_PLAY_FAILURE
+};
+
+
 int playlist_add(struct playlist *pl, const char *name, int recursive);
 int playlist_empty(struct playlist *pl);
 int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir);

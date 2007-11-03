@@ -108,12 +108,13 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   int deciseconds;
   int jump_sub = 0;
   int have_subsong_info = 0;
-  int plistdir = 1;
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
   const int bytes_per_second = UADE_BYTES_PER_FRAME * uc->frequency;
 
   enum uade_control_state state = UADE_S_STATE;
+
+  int plistdir = UADE_PLAY_NEXT;
 
   uade_effect_reset_internals();
 
@@ -128,7 +129,8 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
     if (uade_terminated) {
       if (!uade_no_text_output)
 	tprintf("\n");
-      return 0;
+
+      return UADE_PLAY_FAILURE;
     }
 
     if (state == UADE_S_STATE) {
@@ -152,7 +154,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	case 0:
 	  break;
 	case '<':
-	  plistdir = -1;
+	  plistdir = UADE_PLAY_PREVIOUS;
 	  uade_song_end_trigger = 1;
 	  record_playtime = 0;
 	  break;
@@ -213,9 +215,11 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  uade_effect_toggle(ue, UADE_EFFECT_PAN);
 	  tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(ue, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(ue, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(ue, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 	  break;
+
 	case 'q':
 	  tprintf("\n");
-	  return 0;
+	  return UADE_PLAY_EXIT;
+
 	case 's':
 	  playlist_random(&uade_playlist, -1);
 	  tprintf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
@@ -234,7 +238,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	  record_playtime = 0;
 	  if (us->cur_subsong == 0 ||
 	      (us->min_subsong >= 0 && us->cur_subsong == us->min_subsong)) {
-	    plistdir = -1;
+	    plistdir = UADE_PLAY_PREVIOUS;
 	    uade_song_end_trigger = 1;
 	    break;
 	  }
@@ -272,7 +276,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
       if (uade_debug_trigger == 1) {
 	if (uade_send_short_message(UADE_COMMAND_ACTIVATE_DEBUGGER, ipc)) {
 	  fprintf(stderr, "\nCan not active debugger\n");
-	  return 0;
+	  return UADE_PLAY_FAILURE;
 	}
 	uade_debug_trigger = 0;
       }
@@ -310,7 +314,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	next_song = 1;
 	if (uade_send_short_message(UADE_COMMAND_REBOOT, ipc)) {
 	  fprintf(stderr, "\nCan not send reboot\n");
-	  return 0;
+	  return UADE_PLAY_FAILURE;
 	}
 	goto sendtoken;
       }
@@ -320,7 +324,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
     sendtoken:
       if (uade_send_short_message(UADE_COMMAND_TOKEN, ipc)) {
 	fprintf(stderr, "\nCan not send token\n");
-	return 0;
+	return UADE_PLAY_FAILURE;
       }
 
       state = UADE_R_STATE;
@@ -353,7 +357,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 
 	if (!audio_play(sampledata, playbytes)) {
 	  fprintf(stderr, "\nlibao error detected.\n");
-	  return 0;
+	  return UADE_PLAY_FAILURE;
 	}
 
 	/* FIX ME */
@@ -391,7 +395,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 
       if (uade_receive_message(um, sizeof(space), ipc) <= 0) {
 	fprintf(stderr, "\nCan not receive events from uade\n");
-	return 0;
+	return UADE_PLAY_FAILURE;
       }
       
       switch (um->msgtype) {
@@ -505,7 +509,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	
       default:
 	fprintf(stderr, "\nExpected sound data. got %u.\n", (unsigned int) um->msgtype);
-	return 0;
+	return UADE_PLAY_FAILURE;
       }
     }
   }
@@ -519,14 +523,15 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
     ret = uade_receive_message(um, sizeof(space), ipc);
     if (ret < 0) {
       fprintf(stderr, "\nCan not receive events (TOKEN) from uade.\n");
-      return 0;
+      return UADE_PLAY_FAILURE;
     }
     if (ret == 0) {
       fprintf(stderr, "\nEnd of input after reboot.\n");
-      return 0;
+      return UADE_PLAY_FAILURE;
     }
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
   tprintf("\n");
+
   return plistdir;
 }

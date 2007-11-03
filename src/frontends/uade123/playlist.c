@@ -308,7 +308,7 @@ int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir)
     return 0;
   }
 
-  if (dir > 0) {
+  if (dir == UADE_PLAY_NEXT) {
     if (pl->randomize) {
       if (pl_get_random(&s, &len, pl) == 0)
 	return 0;
@@ -316,10 +316,13 @@ int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir)
       if (pl_get_next(&s, &len, pl) == 0)
 	return 0;
     }
-  } else if (dir < 0) {
+  } else if (dir == UADE_PLAY_PREVIOUS) {
     pl_get_prev(&s, &len, pl);
-  } else if (dir == 0) {
+  } else if (dir == UADE_PLAY_CURRENT) {
     pl_get_cur(&s, &len, pl);
+  } else {
+    fprintf(stderr, "uade: invalid playlist direction: %d\n", dir);
+    exit(1);
   }
 
   if (len > maxlen) {
