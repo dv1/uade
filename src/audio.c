@@ -61,6 +61,20 @@ static float a500e_filter1_a0;
 static float a500e_filter2_a0;
 static float filter_a0; /* a500 and a1200 use the same */
 
+
+static inline int clamp_sample(int o)
+{
+    if (unlikely(o > 32767 || o < -32768)) {
+	if (o > 32767) {
+	    return 32767;
+	} else {
+	    return -32768;
+	}
+    }
+    return o;
+}
+
+
 /* Amiga has two separate filtering circuits per channel, a static RC filter
  * on A500 and the LED filter. This code emulates both.
  * 
@@ -79,7 +93,6 @@ static float filter_a0; /* a500 and a1200 use the same */
 
 static int filter(int input, struct filter_state *fs)
 {
-    int o;
     float tmp, normal_output, led_output;
 
     switch (sound_use_filter) {
@@ -110,17 +123,7 @@ static int filter(int input, struct filter_state *fs)
 	exit(-1);
     }
 
-    o = gui_ledstate ? led_output : normal_output;
-
-    if (unlikely(o > 32767 || o < -32768)) {
-      if (o > 32767) {
-	o = 32767;
-      } else {
-	o = -32768;
-      }
-    }
-
-    return o;
+    return clamp_sample(gui_ledstate ? led_output : normal_output);
 }
 
 
@@ -217,7 +220,7 @@ static void sample16si_anti_handler (void)
  * functions) with a type of BLEP that matches the filtering configuration. */
 static void sample16si_sinc_handler (void)
 {
-    int i, n, o;
+    int i, n;
     int const *winsinc;
     int datas[4];
 
@@ -247,24 +250,8 @@ static void sample16si_sinc_handler (void)
         datas[i] = sum >> 16;
     }
 
-    o = datas[0] + datas[3];
-    if (unlikely(o > 32767 || o < -32768)) {
-      if (o > 32767) {
-	o = 32767;
-      } else {
-	o = -32768;
-        }
-    }
-    *(sndbufpt++) = o;
-    o = datas[1] + datas[2];
-    if (unlikely(o > 32767 || o < -32768)) {
-      if (o > 32767) {
-	o = 32767;
-      } else {
-	o = -32768;
-      }
-    }
-    *(sndbufpt++) = o;
+    *(sndbufpt++) = clamp_sample(datas[0] + datas[3]);
+    *(sndbufpt++) = clamp_sample(datas[1] + datas[2]);
 
     check_sound_buffers();
 }
