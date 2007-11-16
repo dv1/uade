@@ -1,3 +1,7 @@
+
+* ALL THE CHANGE LOG ENTRIES SINCE 2007-05-28 ARE IN THE GIT REPOSITORY. USE
+  "git log" COMMAND
+
 2007-05-28  Heikki Orsila <heikki.orsila@iki.fi>
 	- The development has been moved to a Git repository. Please issue
 	  "git-clone git://zakalwe.fi/uade uade.git" to checkout the latest
