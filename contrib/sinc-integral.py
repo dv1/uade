@@ -100,7 +100,7 @@ def quantize(x, bits, scale=False):
     # belonged to the integration function.
     correction_factor = 1.0
     if scale:
-    correction_factor = x[-1] - x[0]
+        correction_factor = x[-1] - x[0]
 
     for _ in range(len(x)):
         val = x[_] * fact / correction_factor;

@@ -236,8 +236,14 @@ static void sample16si_sinc_handler (void)
         /* The sum rings with harmonic components up to infinity... */
 	int sum = acd->output_state << 17;
         /* ...but we cancel them through mixing in BLEPs instead */
-        for (j = 0; j < acd->sinc_queue_length; j += 1)
-            sum -= winsinc[acd->sinc_queue[j].age] * acd->sinc_queue[j].output;
+        int offsetpos = acd->sinc_queue_head & (SINC_QUEUE_LENGTH - 1);
+        for (j = 0; j < SINC_QUEUE_LENGTH; j += 1) {
+            int age = acd->sinc_queue_time - acd->sinc_queue[offsetpos].time;
+            if (age >= SINC_QUEUE_MAX_AGE)
+                break;
+            sum -= winsinc[age] * acd->sinc_queue[offsetpos].output;
+            offsetpos = (offsetpos + 1) & (SINC_QUEUE_LENGTH - 1);
+        }
         datas[i] = sum >> 16;
     }
 
@@ -288,30 +294,16 @@ static void sinc_prehandler(unsigned long best_evtime)
 	acd = &audio_channel[i];
 	output = (acd->current_sample * acd->vol) & acd->adk_mask;
 
-	/* age the sinc queue and truncate it when necessary */
-        for (j = 0; j < acd->sinc_queue_length; j += 1) {
-	    acd->sinc_queue[j].age += best_evtime;
-            if (acd->sinc_queue[j].age >= SINC_QUEUE_MAX_AGE) {
-                acd->sinc_queue_length = j;
-		break;
-	    }
-	}
-                
         /* if output state changes, record the state change and also
          * write data into sinc queue for mixing in the BLEP */
         if (acd->output_state != output) {
-            if (acd->sinc_queue_length > SINC_QUEUE_LENGTH - 1) {
-                fprintf(stderr, "warning: sinc queue truncated. Last age: %d.\n", acd->sinc_queue[SINC_QUEUE_LENGTH-1].age);
-                acd->sinc_queue_length = SINC_QUEUE_LENGTH - 1;
-            }
-            /* make room for new and add the new value */
-            memmove(&acd->sinc_queue[1], &acd->sinc_queue[0],
-                    sizeof(acd->sinc_queue[0]) * acd->sinc_queue_length);
-            acd->sinc_queue_length += 1;
-            acd->sinc_queue[0].age = best_evtime;
-            acd->sinc_queue[0].output = output - acd->output_state;
+            acd->sinc_queue_head = (acd->sinc_queue_head - 1) & (SINC_QUEUE_LENGTH - 1);
+            acd->sinc_queue[acd->sinc_queue_head].time = acd->sinc_queue_time;
+            acd->sinc_queue[acd->sinc_queue_head].output = output - acd->output_state;
             acd->output_state = output;
         }
+        
+        acd->sinc_queue_time += best_evtime;
     }
 }
 

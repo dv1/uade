@@ -12,12 +12,12 @@
 #include "sinctable.h"
 
 #define AUDIO_DEBUG 0
-/* Queue length 128 implies minimum emulated period of 16. I add a few extra
- * entries so that CPU updates during minimum period can be played back. */
-#define SINC_QUEUE_LENGTH (SINC_QUEUE_MAX_AGE / 16 + 2)
+/* Queue length 256 implies minimum emulated period of 8. This should be
+ * sufficient for all imaginable purposes. This must be power of two. */
+#define SINC_QUEUE_LENGTH 256
 
 typedef struct {
-    int age, output;
+    int time, output;
 } sinc_queue_t;
 
 extern struct audio_channel_data {
@@ -31,7 +31,8 @@ extern struct audio_channel_data {
     int sample_accum, sample_accum_time;
     int output_state;
     sinc_queue_t sinc_queue[SINC_QUEUE_LENGTH];
-    int sinc_queue_length;
+    int sinc_queue_time;
+    int sinc_queue_head;
     int vol;
     uae_u16 dat, nextdat, per, len;    
 
