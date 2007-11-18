@@ -427,14 +427,18 @@ fi
 cd ..
 
 if test "$useuade123" = "yes" ; then
-    AOFLAGS="`$PKG_CONFIG --cflags ao`"
-    if test "$?" != "0"; then
-	echo ""
-	echo "Can not compile uade123. Please install libao (including development kit)."
-	echo ""
-	useuade123="no"
+    AOFLAGS=""
+    AOLIBS="-lao"
+    if test -n "$PKG_CONFIG" ; then
+	AOFLAGS=$($PKG_CONFIG --cflags ao)
+	if test "$?" != "0"; then
+	    echo ""
+	    echo "Can not compile uade123. Please install libao (including development kit)."
+	    echo ""
+	    useuade123="no"
+	fi
+	AOLIBS=$($PKG_CONFIG --libs ao)
     fi
-    AOLIBS="`$PKG_CONFIG --libs ao`"
 fi
 
 pkgconfigdir="$prefix/lib/pkgconfig"
