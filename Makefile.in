@@ -47,6 +47,7 @@ uade123:
 
 uade123install:	$(UADE123)
 	mkdir -p "$(BINDIR)" "$(MANDIR)"
+	rm -f "$(BINDIR)/$(UADE123NAME)" || true
 	cp -f src/frontends/uade123/$(UADE123NAME) "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
 	cp doc/uade123.1 "$(MANDIR)"/

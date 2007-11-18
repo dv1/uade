@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=2.07
+VERSION=2.08
 IPC_PROTOCOL_VERSION=1
 
 if test -n "$CC"; then
@@ -355,7 +355,7 @@ else
     uadedatadir="$prefix"
     uadelibdir="$prefix"
     if test -z "$bindir"; then
-	bindir="$prefix"
+	bindir="$HOME/bin"
     fi
     if test "$usexmms" = "yes" ; then
 	if test -z "$xmmsplugindir" ; then
@@ -497,15 +497,6 @@ if test "$?" != "0" ; then
     cat memmemrep.h >> ../src/include/ossupport.h
     cat memmemrep.c >> ../src/ossupport.c
     echo "Using memmem() replacement."
-fi
-
-if test "$user" = "yes" ; then
-    if test ! -e "$HOME/bin/uade123" ; then
-	echo
-	echo "You may want to create symlink: ln -s $bindir/uade123 $HOME/bin/"
-	echo "and add $HOME/bin to the user path."
-	echo
-    fi
 fi
 
 csfile="../src/include/compilersupport.h"
