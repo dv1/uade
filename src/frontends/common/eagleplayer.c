@@ -280,7 +280,13 @@ char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
 
   *nitems = 0;
 
-  while (fgets(line, sizeof line, f) != NULL) {
+  while (1) {
+    if (fgets(line, sizeof line, f) == NULL) {
+      if (feof(f))
+	break;
+
+      continue;
+    }
 
     if (lineno != NULL)
       (*lineno)++;

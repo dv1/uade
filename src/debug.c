@@ -425,10 +425,14 @@ void debug (void) {
     
     printf (">");
     fflush (stdout);
-    if (fgets (input, 80, stdin) == NULL) {
-      quit_program = 1;
-      return;
+
+    while (fgets (input, 80, stdin) == NULL) {
+	if (feof(stdin)) {
+	    quit_program = 1;
+	    return;
+	}
     }
+
     inptr = input;
     cmd = next_char (&inptr);
     switch (cmd) {

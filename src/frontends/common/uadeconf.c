@@ -311,7 +311,14 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 
   uade_config_set_defaults(uc);
 
-  while (fgets(line, sizeof(line), f) != NULL) {
+  while (1) {
+    if (fgets(line, sizeof(line), f) == NULL) {
+      if (feof(f))
+	break;
+
+      continue;
+    }
+
     linenumber++;
     if (line[strlen(line) - 1] == '\n')
       line[strlen(line) - 1] = 0;

@@ -374,7 +374,13 @@ int uade_read_content_db(const char *filename)
     return 0;
   }
 
-  while (fgets(line, sizeof line, f)) {
+  while (1) {
+    if (fgets(line, sizeof line, f) == NULL) {
+      if (feof(f))
+	break;
+
+      continue;
+    }
 
     lineno++;
 

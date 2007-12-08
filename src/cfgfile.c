@@ -534,7 +534,14 @@ int cfgfile_load (struct uae_prefs *p, const char *filename)
     if (! fh)
 	return 0;
 
-    while (fgets (line, 256, fh) != NULL) {
+    while (1) {
+	if (fgets (line, 256, fh) == NULL) {
+	    if (feof(fh))
+		break;
+
+	    continue;
+	}
+
 	line[strcspn (line, "\t \r\n")] = '\0';
 	if (strlen (line) > 0)
 	    cfgfile_parse_line (p, line);

@@ -219,17 +219,27 @@ int main(int argc, char *argv[])
 	  fprintf(stderr, "Can not open list file: %s\n", optarg);
 	  exit(1);
 	}
-	while ((fgets(tmpstr, sizeof(tmpstr), listfile)) != NULL) {
+
+	while (1) {
+	  if (fgets(tmpstr, sizeof(tmpstr), listfile) == NULL) {
+	    if (feof(listfile))
+	      break;
+
+	    continue;
+	  }
+
 	  if (tmpstr[0] == '#')
 	    continue;
 	  if (tmpstr[strlen(tmpstr) - 1] == '\n')
 	    tmpstr[strlen(tmpstr) - 1] = 0;
 	  playlist_add(&uade_playlist, tmpstr, 0);
 	}
+
 	fclose(listfile);
 	have_modules = 1;
       } while (0);
       break;
+
     case '1':
       uade_set_config_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
       break;
