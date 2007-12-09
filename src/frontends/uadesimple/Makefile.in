@@ -5,7 +5,7 @@ CLIBS = {AOLIBS} {ARCHLIBS} -lm
 MODULES = uadesimple.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
 	eagleplayer.o effects.o \
 	playloop.o audio.o uadecontrol.o uadeconf.o md5.o \
-	ossupport.o songdb.o songinfo.o vplist.o
+	ossupport.o songdb.o songinfo.o vplist.o support.o
 PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
 
 uadesimple:	$(MODULES)

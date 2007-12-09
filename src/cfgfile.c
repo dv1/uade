@@ -536,7 +536,7 @@ int cfgfile_load (struct uae_prefs *p, const char *filename)
 
     while (1) {
 	if (fgets (line, 256, fh) == NULL) {
-	    if (feof(fh))
+	    if (feof(fh) || ferror(fh))
 		break;
 
 	    continue;

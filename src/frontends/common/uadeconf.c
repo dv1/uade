@@ -25,6 +25,7 @@
 #include "uadeconstants.h"
 #include "songdb.h"
 #include "uadeutils.h"
+#include "support.h"
 
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
@@ -311,13 +312,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 
   uade_config_set_defaults(uc);
 
-  while (1) {
-    if (fgets(line, sizeof(line), f) == NULL) {
-      if (feof(f))
-	break;
-
-      continue;
-    }
+  while (xfgets(line, sizeof(line), f) != NULL) {
 
     linenumber++;
     if (line[strlen(line) - 1] == '\n')

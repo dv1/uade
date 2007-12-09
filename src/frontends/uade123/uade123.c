@@ -33,7 +33,7 @@
 #include "uadeconf.h"
 #include "sysincludes.h"
 #include "songdb.h"
-
+#include "support.h"
 
 #include "uade123.h"
 #include "playlist.h"
@@ -220,18 +220,14 @@ int main(int argc, char *argv[])
 	  exit(1);
 	}
 
-	while (1) {
-	  if (fgets(tmpstr, sizeof(tmpstr), listfile) == NULL) {
-	    if (feof(listfile))
-	      break;
-
-	    continue;
-	  }
+	while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
 
 	  if (tmpstr[0] == '#')
 	    continue;
+
 	  if (tmpstr[strlen(tmpstr) - 1] == '\n')
 	    tmpstr[strlen(tmpstr) - 1] = 0;
+
 	  playlist_add(&uade_playlist, tmpstr, 0);
 	}
 

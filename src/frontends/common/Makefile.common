@@ -39,3 +39,6 @@ unixwalkdir.o:	../common/unixwalkdir.c ../common/unixwalkdir.h
 
 vplist.o:	../common/vplist.c ../common/vplist.h
 	$(CC) $(CFLAGS) -c $<
+
+support.o:	../common/support.c ../common/support.h
+	$(CC) $(CFLAGS) -c $<

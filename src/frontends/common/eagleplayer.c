@@ -29,6 +29,7 @@
 #include "uadeconf.h"
 #include "unixatomic.h"
 #include "songdb.h"
+#include "support.h"
 
 
 #define LINESIZE (1024)
@@ -280,13 +281,7 @@ char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
 
   *nitems = 0;
 
-  while (1) {
-    if (fgets(line, sizeof line, f) == NULL) {
-      if (feof(f))
-	break;
-
-      continue;
-    }
+  while (xfgets(line, sizeof line, f) != NULL) {
 
     if (lineno != NULL)
       (*lineno)++;

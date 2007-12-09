@@ -427,7 +427,7 @@ void debug (void) {
     fflush (stdout);
 
     while (fgets (input, 80, stdin) == NULL) {
-	if (feof(stdin)) {
+	if (feof(stdin) || ferror(stdin)) {
 	    quit_program = 1;
 	    return;
 	}

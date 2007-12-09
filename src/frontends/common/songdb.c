@@ -16,6 +16,7 @@
 #include "unixatomic.h"
 #include "strlrep.h"
 #include "uadeconfig.h"
+#include "support.h"
 
 
 #define NORM_ID "n="
@@ -374,13 +375,7 @@ int uade_read_content_db(const char *filename)
     return 0;
   }
 
-  while (1) {
-    if (fgets(line, sizeof line, f) == NULL) {
-      if (feof(f))
-	break;
-
-      continue;
-    }
+  while (xfgets(line, sizeof line, f) != NULL) {
 
     lineno++;
 
