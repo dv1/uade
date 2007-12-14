@@ -1,7 +1,7 @@
 amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
-eagleplayer.o:	../common/eagleplayer.c $(PLAYERHEADERS)
+eagleplayer.o:	../common/eagleplayer.c ../common/support.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	../common/effects.c ../common/effects.h

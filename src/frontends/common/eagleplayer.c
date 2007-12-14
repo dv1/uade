@@ -34,7 +34,9 @@
 #define LINESIZE (1024)
 #define OPTION_DELIMITER ","
 
-#define eperror(fmt, args...) do { fprintf(stderr, "Eagleplayer.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
+
+#define eperror(fmt, args...) do { uadeerror("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
+
 
 struct attrlist {
 	char *s;
@@ -42,10 +44,12 @@ struct attrlist {
 	enum uade_attribute_type t;
 };
 
+
 static struct eagleplayerstore *playerstore;
 
 static int ufcompare(const void *a, const void *b);
 static struct eagleplayerstore *read_eagleplayer_conf(const char *filename);
+
 
 static struct eagleplayer *analyze_file_format(int *content,
 					       const char *modulename,
@@ -69,11 +73,9 @@ static struct eagleplayer *analyze_file_format(int *content,
 	if ((f = fopen(modulename, "rb")) == NULL)
 		return NULL;
 
-	if (fstat(fileno(f), &st)) {
-		fprintf(stderr, "Very weird stat error: %s (%s)\n", modulename,
-			strerror(errno));
-		exit(-1);
-	}
+	if (fstat(fileno(f), &st))
+		uadeerror("Very weird stat error: %s (%s)\n", modulename, strerror(errno));
+
 	bufsize = sizeof fileformat_buf;
 	readed = atomic_fread(fileformat_buf, 1, bufsize, f);
 	fclose(f);
@@ -97,9 +99,7 @@ static struct eagleplayer *analyze_file_format(int *content,
 			 "%s/eagleplayer.conf", basedir);
 		if ((playerstore = read_eagleplayer_conf(formatsfile)) == NULL) {
 			if (warnings)
-				fprintf(stderr,
-					"Tried to load eagleplayer.conf from %s, but failed\n",
-					formatsfile);
+				fprintf(stderr,	"Tried to load eagleplayer.conf from %s, but failed\n",	formatsfile);
 			warnings = 0;
 			return NULL;
 		}
@@ -122,9 +122,7 @@ static struct eagleplayer *analyze_file_format(int *content,
 		}
 
 		if (verbose)
-			fprintf(stderr,
-				"Deduced file extension (%s) is not on eagleplayer.conf.\n",
-				extension);
+			fprintf(stderr,	"Deduced file extension (%s) is not on eagleplayer.conf.\n", extension);
 	}
 
 	/* magic wasn't able to deduce the format, so we'll try prefix and postfix
@@ -248,8 +246,7 @@ int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 			case UA_STRING:
 				a->s = strdup(str);
 				if (a->s == NULL)
-					eperror
-					    ("Out of memory allocating string option for song\n");
+					eperror("Out of memory allocating string option for song\n");
 				success = 1;
 				break;
 			default:
@@ -312,20 +309,18 @@ char **uade_split_line(size_t * nitems, size_t * lineno, FILE * f,
 	if (*nitems == 0)
 		return NULL;
 
-	if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL) {
-		fprintf(stderr, "No memory for nws items.\n");
-		exit(-1);
-	}
+	if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL)
+		uadeerror("No memory for nws items.\n");
 
 	sp = line;
 	pos = 0;
 	while ((s = strsep(&sp, delimiters)) != NULL) {
 		if (*s == 0)
 			continue;
-		if ((items[pos] = strdup(s)) == NULL) {
-			fprintf(stderr, "No memory for an nws item.\n");
-			exit(-1);
-		}
+
+		if ((items[pos] = strdup(s)) == NULL)
+			uadeerror("No memory for an nws item.\n");
+
 		pos++;
 	}
 	items[pos] = NULL;
@@ -409,9 +404,8 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		if ((items =
-		     uade_split_line(&nitems, &lineno, f,
-				     UADE_WS_DELIMITERS)) == NULL)
+		items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		if (items == NULL)
 			break;
 
 		assert(nitems > 0);
@@ -431,10 +425,8 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		memset(p, 0, sizeof p[0]);
 
 		p->playername = strdup(items[0]);
-		if (p->playername == NULL) {
-			fprintf(stderr, "No memory for playername.\n");
-			exit(-1);
-		}
+		if (p->playername == NULL)
+			uadeerror("No memory for playername.\n");
 
 		for (i = 1; i < nitems; i++) {
 
@@ -451,9 +443,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 				strlcpy(prefixes, prefixstart,
 					sizeof(prefixes));
 				sp = prefixes;
-				while ((s =
-					strsep(&sp,
-					       OPTION_DELIMITER)) != NULL) {
+				while ((s = strsep(&sp, OPTION_DELIMITER)) != NULL) {
 					if (*s == 0)
 						continue;
 					p->nextensions++;
@@ -475,8 +465,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 
 					p->extensions[pos] = strdup(s);
 					if (s == NULL)
-						eperror
-						    ("No memory for prefix.");
+						eperror("No memory for prefix.");
 					pos++;
 				}
 				p->extensions[pos] = NULL;
