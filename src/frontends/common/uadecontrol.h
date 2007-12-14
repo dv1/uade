@@ -8,9 +8,9 @@
 #include <sys/types.h>
 
 enum {
-  UADECORE_INIT_OK = 0,
-  UADECORE_INIT_ERROR,
-  UADECORE_CANT_PLAY
+	UADECORE_INIT_OK = 0,
+	UADECORE_INIT_ERROR,
+	UADECORE_CANT_PLAY
 };
 
 void uade_change_subsong(struct uade_effect *ue, struct uade_config *uc,
@@ -24,7 +24,7 @@ int uade_song_initialization(const char *scorename, const char *playername,
 			     struct uade_song *us,
 			     struct uade_ipc *ipc,
 			     struct uade_config *uadeconf);
-void uade_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename,
+void uade_spawn(struct uade_ipc *ipc, pid_t * uadepid, const char *uadename,
 		const char *configname);
 
 #endif

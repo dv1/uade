@@ -37,85 +37,78 @@
 #define ES_SUBSONG_TIMEOUT     (1 << 25)
 #define ES_TIMEOUT             (1 << 26)
 
-
 #define UADE_WS_DELIMITERS " \t\n"
 
-
 struct eagleplayer {
-  char *playername;
-  size_t nextensions;
-  char **extensions;
-  int flags;
-  struct uade_attribute *attributelist;
+	char *playername;
+	size_t nextensions;
+	char **extensions;
+	int flags;
+	struct uade_attribute *attributelist;
 };
-
 
 struct eagleplayermap {
-  char *extension;
-  struct eagleplayer *player;
+	char *extension;
+	struct eagleplayer *player;
 };
-
 
 struct eagleplayerstore {
-  size_t nplayers;
-  struct eagleplayer *players;
-  size_t nextensions;
-  struct eagleplayermap *map;
+	size_t nplayers;
+	struct eagleplayer *players;
+	size_t nextensions;
+	struct eagleplayermap *map;
 };
-
 
 enum uade_attribute_type {
-  UA_STRING = 1,
-  UA_INT,
-  UA_DOUBLE
+	UA_STRING = 1,
+	UA_INT,
+	UA_DOUBLE
 };
-
 
 struct uade_attribute;
 
 struct uade_attribute {
-  struct uade_attribute *next;
-  enum uade_attribute_type type;
-  char *s;
-  int i;
-  double d;
+	struct uade_attribute *next;
+	enum uade_attribute_type type;
+	char *s;
+	int i;
+	double d;
 };
 
 struct uade_song {
-  char md5[33];
+	char md5[33];
 
-  char module_filename[PATH_MAX];
+	char module_filename[PATH_MAX];
 
-  char playername[256]; /* Eagleplayer name in players directory */
-  char modulename[256]; /* From score */
-  char formatname[256];
+	char playername[256];	/* Eagleplayer name in players directory */
+	char modulename[256];	/* From score */
+	char formatname[256];
 
-  uint8_t *buf;
-  size_t bufsize;
+	uint8_t *buf;
+	size_t bufsize;
 
-  int min_subsong;
-  int max_subsong;
-  int cur_subsong;
+	int min_subsong;
+	int max_subsong;
+	int cur_subsong;
 
-  int playtime;
-  int flags;
-  int nsubsongs;
-  uint8_t *subsongs;
-  struct uade_attribute *songattributes;
-  struct uade_ep_options ep_options;
-  char *normalisation;
+	int playtime;
+	int flags;
+	int nsubsongs;
+	uint8_t *subsongs;
+	struct uade_attribute *songattributes;
+	struct uade_ep_options ep_options;
+	char *normalisation;
 
-  int64_t out_bytes;
+	int64_t out_bytes;
 };
-
 
 struct eagleplayer *uade_analyze_file_format(const char *modulename,
 					     struct uade_config *uc);
-struct eagleplayer *uade_get_eagleplayer(const char *extension, 
+struct eagleplayer *uade_get_eagleplayer(const char *extension,
 					 struct eagleplayerstore *playerstore);
 int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 			 char *item, size_t lineno);
-char **uade_split_line(size_t *nitems, size_t *lineno, FILE *f,
+char **uade_split_line(size_t * nitems, size_t * lineno, FILE * f,
 		       const char *delimiters);
 
 #endif

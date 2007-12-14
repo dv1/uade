@@ -5,13 +5,11 @@
 #include "effects.h"
 #include "vplist.h"
 
-
 struct uade_content {
-  char md5[33];
-  uint32_t playtime; /* in milliseconds */
-  struct vplist *subs;
+	char md5[33];
+	uint32_t playtime;	/* in milliseconds */
+	struct vplist *subs;
 };
-
 
 struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime);
 struct uade_song *uade_alloc_song(const char *filename);
@@ -19,7 +17,7 @@ void uade_lookup_volume_normalisation(struct uade_effect *ue,
 				      struct uade_config *uc,
 				      struct uade_song *us);
 void uade_md5_from_buffer(char *dest, size_t destlen,
-			  uint8_t *buf, size_t bufsize);
+			  uint8_t * buf, size_t bufsize);
 int uade_read_content_db(const char *filename);
 int uade_read_song_conf(const char *filename);
 void uade_save_content_db(const char *filename);
