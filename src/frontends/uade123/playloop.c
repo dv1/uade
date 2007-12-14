@@ -79,8 +79,7 @@ static int uade_test_silence(void *buf, size_t size, struct uade_config *uc)
 }
 
 
-int play_loop(struct uade_ipc *ipc, struct uade_song *us,
-	      struct uade_effect *ue, struct uade_config *uc)
+int play_loop(struct uade_state *state)
 {
   uint16_t *sm;
   int i;
@@ -110,11 +109,16 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
   int have_subsong_info = 0;
 
   const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
-  const int bytes_per_second = UADE_BYTES_PER_FRAME * uc->frequency;
+  const int bytes_per_second = UADE_BYTES_PER_FRAME * state->config.frequency;
 
-  enum uade_control_state state = UADE_S_STATE;
+  enum uade_control_state controlstate = UADE_S_STATE;
 
   int plistdir = UADE_PLAY_NEXT;
+
+  struct uade_ipc *ipc = &state->ipc;
+  struct uade_song *us = state->song;
+  struct uade_effect *ue = &state->effects;
+  struct uade_config *uc = &state->config;
 
   uade_effect_reset_internals();
 
@@ -133,7 +137,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
       return UADE_PLAY_FAILURE;
     }
 
-    if (state == UADE_S_STATE) {
+    if (controlstate == UADE_S_STATE) {
 
       if (skip_bytes == 0) {
 	deciseconds = subsong_bytes * 10 / bytes_per_second;
@@ -301,7 +305,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	    subsong_end = 0;
 	    subsong_bytes = 0;
 
-	    uade_change_subsong(ue, uc, us, ipc);
+	    uade_change_subsong(state);
 
 	    fprintf(stderr, "\nChanging to subsong %d from range [%d, %d]\n", us->cur_subsong, us->min_subsong, us->max_subsong);
 	  }
@@ -327,7 +331,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
 	return UADE_PLAY_FAILURE;
       }
 
-      state = UADE_R_STATE;
+      controlstate = UADE_R_STATE;
 
       if (what_was_left) {
 	if (subsong_end) {
@@ -401,7 +405,7 @@ int play_loop(struct uade_ipc *ipc, struct uade_song *us,
       switch (um->msgtype) {
 
       case UADE_COMMAND_TOKEN:
-	state = UADE_S_STATE;
+	controlstate = UADE_S_STATE;
 	break;
 
       case UADE_REPLY_DATA:

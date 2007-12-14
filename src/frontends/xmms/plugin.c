@@ -92,7 +92,6 @@ static struct uade_state state;
 static char configname[PATH_MAX];
 static pthread_t decode_thread;
 static struct uade_config config_backup;
-static struct uade_effect effects;
 static char gui_filename[PATH_MAX];
 static char gui_formatname[256];
 static int gui_info_set;
@@ -105,8 +104,6 @@ static char md5name[PATH_MAX];
 static int record_playtime; /* Lock before use */
 static int plugin_disabled;
 static char songconfname[PATH_MAX];
-static struct uade_ipc uadeipc;
-static pid_t uadepid;
 
 static time_t config_load_time;
 static time_t md5_load_time;
@@ -180,8 +177,8 @@ static void load_content_db(void)
 
 static void uade_cleanup(void)
 {
-  if (uadepid)
-    kill(uadepid, SIGTERM);
+  if (state.pid)
+    kill(state.pid, SIGTERM);
 
   if (md5name[0]) {
     struct stat st;
@@ -337,7 +334,6 @@ static int initialize_song(char *filename)
 
   state.ep = NULL;
   state.song = NULL;
-  state.effect = NULL;
 
   ret = uade_is_our_file(filename, 0, &state);
 
@@ -365,12 +361,12 @@ static int initialize_song(char *filename)
 
   uade_set_song_attributes(&state.config, playername, sizeof playername, state.song);
 
-  uade_set_effects(&effects, &state.config);
+  uade_set_effects(&state.effects, &state.config);
 
   strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 
   ret = uade_song_initialization(scorename, playername, modulename,
-				 state.song, &uadeipc, &state.config);
+				 state.song, &state.ipc, &state.config);
   if (ret) {
     if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
@@ -434,7 +430,7 @@ static void *play_loop(void *arg)
       if (uade_select_sub != -1) {
 	state.song->cur_subsong = uade_select_sub;
 
-	uade_change_subsong(&effects, &state.config, state.song, &uadeipc);
+	uade_change_subsong(&state);
 
 	uade_ip.output->flush(0);
 	uade_select_sub = -1;
@@ -462,7 +458,7 @@ static void *play_loop(void *arg)
 	  } else {
 	    int x = 0;
 
-	    uade_change_subsong(&effects, &state.config, state.song, &uadeipc);
+	    uade_change_subsong(&state);
 
 	    while (uade_ip.output->buffer_playing()) {
 	      /* Sleep at most 5 secs */
@@ -494,9 +490,9 @@ static void *play_loop(void *arg)
 	break;
       }
 
-      left = uade_read_request(&uadeipc);
+      left = uade_read_request(&state.ipc);
 
-      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &state.ipc)) {
 	fprintf(stderr, "Can not send token.\n");
 	return NULL;
       }
@@ -504,7 +500,7 @@ static void *play_loop(void *arg)
 
     } else {
 
-      if (uade_receive_message(um, sizeof(space), &uadeipc) <= 0) {
+      if (uade_receive_message(um, sizeof(space), &state.ipc) <= 0) {
 	fprintf(stderr, "Can not receive events from uade\n");
 	exit(-1);
       }
@@ -544,7 +540,7 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	uade_effect_run(&effects, (int16_t *) um->data, play_bytes / framesize);
+	uade_effect_run(&state.effects, (int16_t *) um->data, play_bytes / framesize);
 	uade_ip.add_vis_pcm(uade_ip.output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data);
 
 	writeoffs = 0;
@@ -680,18 +676,18 @@ static void *play_loop(void *arg)
 
   last_beat_played = 1;
 
-  if (uade_send_short_message(UADE_COMMAND_REBOOT, &uadeipc)) {
+  if (uade_send_short_message(UADE_COMMAND_REBOOT, &state.ipc)) {
     fprintf(stderr, "Can not send reboot.\n");
     return NULL;
   }
 
-  if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
+  if (uade_send_short_message(UADE_COMMAND_TOKEN, &state.ipc)) {
     fprintf(stderr, "Can not send token.\n");
     return NULL;
   }
 
   do {
-    ret = uade_receive_message(um, sizeof(space), &uadeipc);
+    ret = uade_receive_message(um, sizeof(space), &state.ipc);
     if (ret < 0) {
       fprintf(stderr, "Can not receive events from uade.\n");
       return NULL;
@@ -779,10 +775,10 @@ static void uade_play_file(char *filename)
   gui_module_filename[0] = 0;
   gui_player_filename[0] = 0;
 
-  if (!uadepid) {
+  if (!state.pid) {
     char configname[PATH_MAX];
     snprintf(configname, sizeof configname, "%s/uaerc", config_backup.basedir.name);
-    uade_spawn(&uadeipc, &uadepid, UADE_CONFIG_UADE_CORE, configname);
+    uade_spawn(&state, UADE_CONFIG_UADE_CORE, configname);
   }
 
   if (!uade_ip.output->open_audio(sample_format, config_backup.frequency, UADE_CHANNELS)) {

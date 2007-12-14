@@ -21,14 +21,18 @@
 #include "sysincludes.h"
 #include "uadeconstants.h"
 #include "songdb.h"
+#include "uadestate.h"
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
-void uade_change_subsong(struct uade_effect *ue, struct uade_config *uc,
-			 struct uade_song *us, struct uade_ipc *ipc)
+void uade_change_subsong(struct uade_state *state)
 {
+	struct uade_config *uc = &state->config;
+	struct uade_effect *ue = &state->effects;
+	struct uade_song *us = state->song;
+
 	uade_lookup_volume_normalisation(ue, uc, us);
-	subsong_control(us->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, ipc);
+	subsong_control(us->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, &state->ipc);
 }
 
 int uade_read_request(struct uade_ipc *ipc)
@@ -225,16 +229,16 @@ int uade_song_initialization(const char *scorename,
 	return UADECORE_INIT_ERROR;
 }
 
-void uade_spawn(struct uade_ipc *ipc, pid_t * uadepid, const char *uadename,
+void uade_spawn(struct uade_state *state, const char *uadename,
 		const char *configname)
 {
-	uade_arch_spawn(ipc, uadepid, uadename);
+	uade_arch_spawn(&state->ipc, &state->pid, uadename);
 
-	if (uade_send_string(UADE_COMMAND_CONFIG, configname, ipc)) {
+	if (uade_send_string(UADE_COMMAND_CONFIG, configname, &state->ipc)) {
 		fprintf(stderr, "Can not send config name: %s\n",
 			strerror(errno));
-		kill(*uadepid, SIGTERM);
-		*uadepid = 0;
+		kill(state->pid, SIGTERM);
+		state->pid = 0;
 		abort();
 	}
 }

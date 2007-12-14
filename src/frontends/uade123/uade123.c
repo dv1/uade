@@ -137,9 +137,7 @@ int main(int argc, char *argv[])
   int uadeconf_loaded, songconf_loaded;
   char songconfname[PATH_MAX] = "";
   char uadeconfname[PATH_MAX];
-  struct uade_effect effects;
   struct uade_config uctmp, uc_cmdline, uc_main;
-  struct uade_ipc uadeipc;
   char songoptions[256] = "";
   int have_song_options = 0;
   int plistdir;
@@ -497,14 +495,14 @@ int main(int argc, char *argv[])
 
   setup_sighandlers();
 
-  uade_spawn(&uadeipc, &uadepid, uadename, configname);
+  memset(&state, 0, sizeof state);
+
+  uade_spawn(&state, uadename, configname);
 
   if (!audio_init(uctmp.frequency, uctmp.buffer_time))
     goto cleanup;
 
   plistdir = UADE_PLAY_CURRENT;
-
-  memset(&state, 0, sizeof state);
 
   while (1) {
 
@@ -525,7 +523,6 @@ int main(int argc, char *argv[])
 
     state.config = uc_main;
     state.song = NULL;
-    state.effect = NULL;
     state.ep = NULL;
 
     if (uc_cmdline.verbose)
@@ -584,7 +581,7 @@ int main(int argc, char *argv[])
 
     /* Now we have the final configuration in "uc". */
 
-    uade_set_effects(&effects, &state.config);
+    uade_set_effects(&state.effects, &state.config);
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));
@@ -597,7 +594,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", state.song->module_filename, state.song->bufsize);
 
-    ret = uade_song_initialization(scorename, playername, modulename, state.song, &uadeipc, &state.config);
+    ret = uade_song_initialization(scorename, playername, modulename, state.song, &state.ipc, &state.config);
     switch (ret) {
     case UADECORE_INIT_OK:
       break;
@@ -619,9 +616,9 @@ int main(int argc, char *argv[])
     }
 
     if (subsong >= 0)
-      uade_set_subsong(subsong, &uadeipc);
+      uade_set_subsong(subsong, &state.ipc);
 
-    plistdir = play_loop(&uadeipc, state.song, &effects, &state.config);
+    plistdir = play_loop(&state);
 
     uade_unalloc_song(state.song);
     state.song = NULL;

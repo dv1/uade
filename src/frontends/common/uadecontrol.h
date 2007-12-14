@@ -1,11 +1,9 @@
 #ifndef _UADE_CONTROL_
 #define _UADE_CONTROL_
 
-#include <uadeipc.h>
-#include <uadeconf.h>
-#include <effects.h>
-
 #include <sys/types.h>
+
+#include <uadestate.h>
 
 enum {
 	UADECORE_INIT_OK = 0,
@@ -13,8 +11,7 @@ enum {
 	UADECORE_CANT_PLAY
 };
 
-void uade_change_subsong(struct uade_effect *ue, struct uade_config *uc,
-			 struct uade_song *us, struct uade_ipc *ipc);
+void uade_change_subsong(struct uade_state *state);
 int uade_read_request(struct uade_ipc *ipc);
 void uade_send_filter_command(struct uade_ipc *ipc,
 			      struct uade_config *uadeconf);
@@ -24,7 +21,7 @@ int uade_song_initialization(const char *scorename, const char *playername,
 			     struct uade_song *us,
 			     struct uade_ipc *ipc,
 			     struct uade_config *uadeconf);
-void uade_spawn(struct uade_ipc *ipc, pid_t * uadepid, const char *uadename,
+void uade_spawn(struct uade_state *state, const char *uadename,
 		const char *configname);
 
 #endif
