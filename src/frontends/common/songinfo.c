@@ -10,13 +10,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <songinfo.h>
+
 #include <uadeutils.h>
 #include <ossupport.h>
 #include <strlrep.h>
-
 #include <uadeipc.h>
-#include <songinfo.h>
 #include <amifilemagic.h>
+
 
 static void asciiline(char *dst, unsigned char *buf)
 {
@@ -561,7 +562,7 @@ static int process_module(char *credits, size_t credits_len, char *filename)
 }
 
 int uade_generate_song_title(char *title, size_t dstlen,
-			     struct uade_song *us, struct uade_config *uc)
+			     struct uade_state *state)
 {
 	size_t srcoffs;
 	size_t dstoffs;
@@ -570,6 +571,8 @@ int uade_generate_song_title(char *title, size_t dstlen,
 	char *bname;
 	char p[64];
 	char *default_format = "%F %X [%P]";
+	struct uade_song *us = state->song;
+	struct uade_config *uc = &state->config;
 
 	/* %A min subsong
 	   %B cur subsong

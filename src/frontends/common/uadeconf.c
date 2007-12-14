@@ -166,7 +166,7 @@ double uade_convert_to_double(const char *value, double def, double low,
 	return v;
 }
 
-void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
+static void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 {
 	size_t freespace = sizeof(opts->o) - opts->s;
 

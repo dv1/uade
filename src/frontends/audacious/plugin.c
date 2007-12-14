@@ -30,6 +30,8 @@
 #include "subsongseek.h"
 #include "fileinfo.h"
 #include "songdb.h"
+#include "uadestate.h"
+
 
 #define PLUGIN_DEBUG 0
 
@@ -46,7 +48,7 @@ static void uade_cleanup(void);
 static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
 static void uade_init(void);
-static int uade_is_our_file(char *filename);
+static int uadeaudacious_is_our_file(char *filename);
 
 #if __AUDACIOUS_PLUGIN_API__ >= 6
 static void uade_info_string(InputPlayback *playhandle);
@@ -77,7 +79,7 @@ static void uade_stop(void);
 static InputPlugin uade_ip = {
   .description = "UADE " UADE_VERSION,
   .init = uade_init,
-  .is_our_file = uade_is_our_file,
+  .is_our_file = uadeaudacious_is_our_file,
   .play_file = uade_play_file,
   .stop = uade_stop,
   .pause = uade_pause,
@@ -112,9 +114,10 @@ static const AFormat sample_format = FMT_S16_NE;
 
 static int abort_playing;     /* Trigger type */
 
+static struct uade_state state;
+
 static char configname[PATH_MAX];
 static pthread_t decode_thread;
-static struct uade_config config;
 static struct uade_config config_backup;
 static struct uade_effect effects;
 static char gui_filename[PATH_MAX];
@@ -131,7 +134,6 @@ static int plugin_disabled;
 static char songconfname[PATH_MAX];
 static struct uade_ipc uadeipc;
 static pid_t uadepid;
-static struct uade_song *uadesong;
 
 static time_t config_load_time;
 static time_t md5_load_time;
@@ -241,8 +243,8 @@ int uade_get_cur_subsong(int def)
     int subsong;
     uade_lock();
     subsong = -1;
-    if (uadesong != NULL)
-      subsong = uadesong->cur_subsong;
+    if (state.song != NULL)
+      subsong = state.song->cur_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -255,8 +257,8 @@ int uade_get_max_subsong(int def)
     int subsong;
     uade_lock();
     subsong = -1;
-    if (uadesong != NULL)
-      subsong = uadesong->max_subsong;
+    if (state.song != NULL)
+      subsong = state.song->max_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -269,8 +271,8 @@ int uade_get_min_subsong(int def)
     int subsong;
     uade_lock();
     subsong = -1;
-    if (uadesong != NULL)
-      subsong = uadesong->min_subsong;
+    if (state.song != NULL)
+      subsong = state.song->min_subsong;
     uade_unlock();
     if (subsong == -1)
 	subsong = def;
@@ -337,10 +339,10 @@ static void uade_init(void)
 
 /* Audacious calls this function to check if filename belongs to this
    plugin. */
-static int uade_is_our_file(char *filename)
+static int uadeaudacious_is_our_file(char *filename)
 {
-  struct eagleplayer *ep = NULL;
   char *decoded = NULL;
+  int ret = FALSE;
 
   if (strncmp(filename, "uade://", 7) == 0)
     return 1;
@@ -352,72 +354,94 @@ static int uade_is_our_file(char *filename)
   }
 #endif
 
-  if (filename != NULL)
-    ep = uade_analyze_file_format(filename, &config_backup);
+  if (filename != NULL) {
+
+    uade_lock();
+
+    if (!state.validconfig) {
+      state.config = config_backup;
+      state.validconfig = 1;
+    }
+
+    ret = uade_is_our_file(filename, 1, &state) ? TRUE : FALSE;
+
+    uade_unlock();
+  }
 
   if (decoded != NULL)
     free (decoded);
 
-  return ep != NULL;
+  return ret;
 }
 
 
 /* Analyze file format, and handshake with uadecore. */
 static int initialize_song(char *filename)
 {
-  struct eagleplayer *ep;
   int ret;
   char modulename[PATH_MAX];
   char playername[PATH_MAX];
   char scorename[PATH_MAX];
 
-  config = config_backup;
+  uade_lock();
 
-  ep = uade_analyze_file_format(filename, &config);
+  state.config = config_backup;
+  state.validconfig = 1;
 
-  if (ep == NULL)
-    return FALSE;
+  state.ep = NULL;
+  state.song = NULL;
+  state.effect = NULL;
+
+  ret = uade_is_our_file(filename, 0, &state);
+
+  if (!ret)
+    goto error;
 
   strlcpy(modulename, filename, sizeof modulename);
   strlcpy(gui_module_filename, filename, sizeof gui_module_filename);
 
   snprintf(scorename, sizeof scorename, "%s/score", UADE_CONFIG_BASE_DIR);
 
-  if (strcmp(ep->playername, "custom") == 0) {
+  if (strcmp(state.ep->playername, "custom") == 0) {
     strlcpy(playername, modulename, sizeof playername);
     modulename[0] = 0;
     gui_module_filename[0] = 0;
   } else {
-    snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, ep->playername);
+    snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, state.ep->playername);
   }
 
-  uadesong = uade_alloc_song(filename);
-  if (uadesong == NULL)
-    return FALSE;
+  state.song = uade_alloc_song(filename);
+  if (state.song == NULL)
+    goto error;
 
-  uade_set_ep_attributes(&config, uadesong, ep);
+  uade_set_ep_attributes(&state.config, state.song, state.ep);
 
-  uade_set_song_attributes(&config, playername, sizeof playername, uadesong);
+  uade_set_song_attributes(&state.config, playername, sizeof playername, state.song);
 
-  uade_set_effects(&effects, &config);
+  uade_set_effects(&effects, &state.config);
 
   strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 
   ret = uade_song_initialization(scorename, playername, modulename,
-				 uadesong, &uadeipc, &config);
+				 state.song, &uadeipc, &state.config);
   if (ret) {
     if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
       plugin_disabled = 1;
     }
     uade_lock();
-    uade_unalloc_song(uadesong);
-    uadesong = NULL;
-    uade_unlock();
-    return FALSE;
+    uade_unalloc_song(state.song);
+    state.song = NULL;
+
+    goto error;
   }
 
+  uade_unlock();
   return TRUE;
+
+ error:
+  uade_unlock();
+  return FALSE;
 }
 
 static void *play_loop(void *arg)
@@ -426,7 +450,7 @@ static void *play_loop(void *arg)
   InputPlayback *playhandle = arg;
 #endif
 
-  enum uade_control_state state = UADE_S_STATE;
+  enum uade_control_state controlstate = UADE_S_STATE;
   int ret;
   int left = 0;
   uint8_t space[UADE_MAX_MESSAGE_SIZE];
@@ -447,7 +471,7 @@ static void *play_loop(void *arg)
   uade_unlock();
 
   while (1) {
-    if (state == UADE_S_STATE) {
+    if (controlstate == UADE_S_STATE) {
 
       assert(left == 0);
 
@@ -460,14 +484,14 @@ static void *play_loop(void *arg)
 
       uade_lock();
       if (uade_seek_forward) {
-	skip_bytes += uade_seek_forward * (UADE_BYTES_PER_FRAME * config.frequency);
+	skip_bytes += uade_seek_forward * (UADE_BYTES_PER_FRAME * state.config.frequency);
 	playhandle->output->flush(playhandle->output->written_time() + uade_seek_forward * 1000);
 	uade_seek_forward = 0;
       }
       if (uade_select_sub != -1) {
-	uadesong->cur_subsong = uade_select_sub;
+	state.song->cur_subsong = uade_select_sub;
 
-	uade_change_subsong(&effects, &config, uadesong, &uadeipc);
+	uade_change_subsong(&effects, &state.config, state.song, &uadeipc);
 
 	playhandle->output->flush(0);
 
@@ -476,27 +500,27 @@ static void *play_loop(void *arg)
 	subsong_bytes = 0;
 
 	/* we do this to avoid timeout, and to not record playtime */
-	uadesong->out_bytes = 0;
+	state.song->out_bytes = 0;
 	record_playtime = 0;
 
 	UADE_INFO_STRING(playhandle);
       }
       if (subsong_end && song_end_trigger == 0) {
 
-	if (uadesong->cur_subsong == -1 || uadesong->max_subsong == -1) {
+	if (state.song->cur_subsong == -1 || state.song->max_subsong == -1) {
 	  song_end_trigger = 1;
 
 	} else {
 
-	  uadesong->cur_subsong++;
+	  state.song->cur_subsong++;
 
-	  if (uadesong->cur_subsong > uadesong->max_subsong) {
+	  if (state.song->cur_subsong > state.song->max_subsong) {
 
 	    song_end_trigger = 1;
 
 	  } else {
 
-	    uade_change_subsong(&effects, &config, uadesong, &uadeipc);
+	    uade_change_subsong(&effects, &state.config, state.song, &uadeipc);
 
 	    while (playhandle->output->buffer_playing())
 	      uade_usleep();
@@ -507,7 +531,7 @@ static void *play_loop(void *arg)
 	    subsong_bytes = 0;
 
 	    uade_unlock();
-	    uade_gui_subsong_changed(uadesong->cur_subsong);
+	    uade_gui_subsong_changed(state.song->cur_subsong);
 	    uade_lock();
 	    
 	    UADE_INFO_STRING(playhandle);
@@ -531,7 +555,7 @@ static void *play_loop(void *arg)
 	fprintf(stderr, "Can not send token.\n");
 	return NULL;
       }
-      state = UADE_R_STATE;
+      controlstate = UADE_R_STATE;
 
     } else {
 
@@ -543,7 +567,7 @@ static void *play_loop(void *arg)
       switch (um->msgtype) {
 
       case UADE_COMMAND_TOKEN:
-	state = UADE_S_STATE;
+	controlstate = UADE_S_STATE;
 	break;
 
       case UADE_REPLY_DATA:
@@ -562,7 +586,7 @@ static void *play_loop(void *arg)
 
 	subsong_bytes += play_bytes;
 	uade_lock();
-	uadesong->out_bytes += play_bytes;
+	state.song->out_bytes += play_bytes;
 	uade_unlock();
 
 	if (skip_bytes > 0) {
@@ -581,10 +605,10 @@ static void *play_loop(void *arg)
 #else
 	produce_audio(playhandle->output->written_time(), sample_format, UADE_CHANNELS, play_bytes, um->data, &uade_thread_running);
 #endif
-	if (config.timeout != -1 && config.use_timeouts) {
+	if (state.config.timeout != -1 && state.config.use_timeouts) {
 	  if (song_end_trigger == 0) {
 	    uade_lock();
-	    if (uadesong->out_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.timeout) {
+	    if (state.song->out_bytes / (UADE_BYTES_PER_FRAME * state.config.frequency) >= state.config.timeout) {
 	      song_end_trigger = 1;
 	      record_playtime = 0;
 	    }
@@ -592,9 +616,9 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	if (config.subsong_timeout != -1 && config.use_timeouts) {
+	if (state.config.subsong_timeout != -1 && state.config.use_timeouts) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
-	    if (subsong_bytes / (UADE_BYTES_PER_FRAME * config.frequency) >= config.subsong_timeout) {
+	    if (subsong_bytes / (UADE_BYTES_PER_FRAME * state.config.frequency) >= state.config.subsong_timeout) {
 	      subsong_end = 1;
 	      record_playtime = 0;
 	    }
@@ -614,13 +638,13 @@ static void *play_loop(void *arg)
       case UADE_REPLY_FORMATNAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_formatname, (char *) um->data, sizeof gui_formatname);
-	strlcpy(uadesong->formatname, (char *) um->data, sizeof uadesong->formatname);
+	strlcpy(state.song->formatname, (char *) um->data, sizeof state.song->formatname);
 	break;
 
       case UADE_REPLY_MODULENAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_modulename, (char *) um->data, sizeof gui_modulename);
-	strlcpy(uadesong->modulename, (char *) um->data, sizeof uadesong->modulename);
+	strlcpy(state.song->modulename, (char *) um->data, sizeof state.song->modulename);
 	break;
 
       case UADE_REPLY_MSG:
@@ -631,7 +655,7 @@ static void *play_loop(void *arg)
       case UADE_REPLY_PLAYERNAME:
 	uade_check_fix_string(um, 128);
 	strlcpy(gui_playername, (char *) um->data, sizeof gui_playername);
-	strlcpy(uadesong->playername, (char *) um->data, sizeof uadesong->playername);
+	strlcpy(state.song->playername, (char *) um->data, sizeof state.song->playername);
 	break;
 
       case UADE_REPLY_SONG_END:
@@ -667,19 +691,19 @@ static void *play_loop(void *arg)
 	}
 	u32ptr = (uint32_t *) um->data;
 	uade_lock();
-	uadesong->min_subsong = ntohl(u32ptr[0]);
-	uadesong->max_subsong = ntohl(u32ptr[1]);
-	uadesong->cur_subsong = ntohl(u32ptr[2]);
+	state.song->min_subsong = ntohl(u32ptr[0]);
+	state.song->max_subsong = ntohl(u32ptr[1]);
+	state.song->cur_subsong = ntohl(u32ptr[2]);
 
-	if (!(-1 <= uadesong->min_subsong && uadesong->min_subsong <= uadesong->cur_subsong && uadesong->cur_subsong <= uadesong->max_subsong)) {
-	  int tempmin = uadesong->min_subsong, tempmax = uadesong->max_subsong;
+	if (!(-1 <= state.song->min_subsong && state.song->min_subsong <= state.song->cur_subsong && state.song->cur_subsong <= state.song->max_subsong)) {
+	  int tempmin = state.song->min_subsong, tempmax = state.song->max_subsong;
 	  fprintf(stderr, "uade: The player is broken. Subsong info does not match with %s.\n", gui_filename);
-	  uadesong->min_subsong = tempmin <= tempmax ? tempmin : tempmax;
-	  uadesong->max_subsong = tempmax >= tempmin ? tempmax : tempmin;
-	  if (uadesong->cur_subsong > uadesong->max_subsong)
-	    uadesong->max_subsong = uadesong->cur_subsong;
-	  else if (uadesong->cur_subsong < uadesong->min_subsong)
-	    uadesong->min_subsong = uadesong->cur_subsong;
+	  state.song->min_subsong = tempmin <= tempmax ? tempmin : tempmax;
+	  state.song->max_subsong = tempmax >= tempmin ? tempmax : tempmin;
+	  if (state.song->cur_subsong > state.song->max_subsong)
+	    state.song->max_subsong = state.song->cur_subsong;
+	  else if (state.song->cur_subsong < state.song->min_subsong)
+	    state.song->min_subsong = state.song->cur_subsong;
 	}
 	uade_unlock();
 	break;
@@ -728,7 +752,7 @@ static int test_silence(void *buf, size_t size)
   int nsamples;
   static int64_t silence_count = 0;
 
-  if (config.silence_timeout < 0)
+  if (state.config.silence_timeout < 0)
     return 0;
 
   exceptioncounter = 0;
@@ -747,7 +771,7 @@ static int test_silence(void *buf, size_t size)
   }
   if (i == nsamples) {
     silence_count += size;
-    if (silence_count / (UADE_BYTES_PER_FRAME * config.frequency) >= config.silence_timeout) {
+    if (silence_count / (UADE_BYTES_PER_FRAME * state.config.frequency) >= state.config.silence_timeout) {
       silence_count = 0;
       return 1;
     }
@@ -784,7 +808,7 @@ static void uade_play_file(char *filename)
   uade_select_sub = -1;
   uade_seek_forward = 0;
 
-  assert(uadesong == NULL);
+  assert(state.song == NULL);
 
   uade_unlock();
 
@@ -874,9 +898,9 @@ static void uade_play_file(char *filename)
   free(decoded);
 
   uade_lock();
-  if (uadesong != NULL)
-    uade_unalloc_song(uadesong);
-  uadesong = NULL;
+  if (state.song != NULL)
+    uade_unalloc_song(state.song);
+  state.song = NULL;
   uade_unlock();
 
   /* close audio that was opened */
@@ -908,25 +932,25 @@ static void uade_stop(void)
 
   uade_lock();
 
-  if (uadesong != NULL) {
+  if (state.song != NULL) {
 
     if (record_playtime) {
       /* Song ended voluntarily -> tell the play time for Audacious, and
 	 record it into song length db */
-      int play_time = (uadesong->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * config.frequency);
-      if (uadesong->md5[0] != 0)
-        uade_add_playtime(uadesong->md5, play_time);
+      int play_time = (state.song->out_bytes * 1000) / (UADE_BYTES_PER_FRAME * state.config.frequency);
+      if (state.song->md5[0] != 0)
+        uade_add_playtime(state.song->md5, play_time);
 
-      uadesong->playtime = play_time;
-      uadesong->cur_subsong = uadesong->max_subsong;
+      state.song->playtime = play_time;
+      state.song->cur_subsong = state.song->max_subsong;
 
       UADE_INFO_STRING(playhandle);
     }
 
     /* We must free uadesong after playthread has finished and additional
        GUI windows have been closed. */
-    uade_unalloc_song(uadesong);
-    uadesong = NULL;
+    uade_unalloc_song(state.song);
+    state.song = NULL;
   }
 
   uade_unlock();
@@ -978,10 +1002,10 @@ static int uade_get_time(void)
   if (!uade_thread_running)
     return 0;
 
-  if (!gui_info_set && uadesong->max_subsong != -1) {
+  if (!gui_info_set && state.song->max_subsong != -1) {
     uade_lock();
 
-    if (uadesong->max_subsong != -1)
+    if (state.song->max_subsong != -1)
       UADE_INFO_STRING(playhandle);
 
     gui_info_set = 1;
@@ -1018,7 +1042,7 @@ static void uade_info_string(void)
 #endif
 {
   char info[256];
-  int playtime = uadesong->playtime;
+  int playtime = state.song->playtime;
 
   /* Hack. Set info text and song length late because we didn't know
   subsong amounts before this. Pass zero as a length so that the
@@ -1027,15 +1051,15 @@ static void uade_info_string(void)
   if (playtime <= 0)
     playtime = 0;
 
-  if (uade_generate_song_title(info, sizeof info, uadesong, &config))
+  if (uade_generate_song_title(info, sizeof info, &state))
     strlcpy(info, gui_filename, sizeof info);
 
 #if __AUDACIOUS_PLUGIN_API__ >= 6
   playhandle->set_params(playhandle, info, playtime,
-			 UADE_BYTES_PER_FRAME * config.frequency,
-			 config.frequency, UADE_CHANNELS);
+			 UADE_BYTES_PER_FRAME * state.config.frequency,
+			 state.config.frequency, UADE_CHANNELS);
 #else
-  uade_ip.set_info(info, playtime, UADE_BYTES_PER_FRAME * config.frequency,
-		   config.frequency, UADE_CHANNELS);
+  uade_ip.set_info(info, playtime, UADE_BYTES_PER_FRAME * state.config.frequency,
+		   state.config.frequency, UADE_CHANNELS);
 #endif
 }

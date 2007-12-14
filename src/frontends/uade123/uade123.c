@@ -34,6 +34,7 @@
 #include "sysincludes.h"
 #include "songdb.h"
 #include "support.h"
+#include "uadestate.h"
 
 #include "uade123.h"
 #include "playlist.h"
@@ -137,11 +138,13 @@ int main(int argc, char *argv[])
   char songconfname[PATH_MAX] = "";
   char uadeconfname[PATH_MAX];
   struct uade_effect effects;
-  struct uade_config uc, uc_cmdline, uc_main;
+  struct uade_config uctmp, uc_cmdline, uc_main;
   struct uade_ipc uadeipc;
   char songoptions[256] = "";
   int have_song_options = 0;
   int plistdir;
+
+  struct uade_state state;
 
   enum {
     OPT_BASEDIR = 0x2000,
@@ -384,13 +387,13 @@ int main(int argc, char *argv[])
 					     &uc_main, &uc_cmdline);
 
   /* Merge loaded configurations and command line options */
-  uc = uc_main;
-  uade_merge_configs(&uc, &uc_cmdline);
+  uctmp = uc_main;
+  uade_merge_configs(&uctmp, &uc_cmdline);
 
   if (uadeconf_loaded == 0) {
-    debug(uc.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
+    debug(uctmp.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", uctmp.basedir.name);
   } else {
-    debug(uc.verbose, "Loaded configuration: %s\n", uadeconfname);
+    debug(uctmp.verbose, "Loaded configuration: %s\n", uadeconfname);
   }
 
   songconf_loaded = uade_load_initial_song_conf(songconfname,
@@ -398,16 +401,16 @@ int main(int argc, char *argv[])
 						&uc_main, &uc_cmdline);
 
   if (songconf_loaded == 0) {
-    debug(uc.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc.basedir.name);
+    debug(uctmp.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uctmp.basedir.name);
   } else {
-    debug(uc.verbose, "Loaded song.conf: %s\n", songconfname);
+    debug(uctmp.verbose, "Loaded song.conf: %s\n", songconfname);
   }
 
-  load_content_db(&uc);
+  load_content_db(&uctmp);
 
   for (i = optind; i < argc; i++) {
     /* Play files */
-    playlist_add(&uade_playlist, argv[i], uc.recursive_mode);
+    playlist_add(&uade_playlist, argv[i], uctmp.recursive_mode);
     have_modules = 1;
   }
 
@@ -447,7 +450,7 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  if (uc.random_play)
+  if (uctmp.random_play)
     playlist_randomize(&uade_playlist);
 
   if (have_modules == 0) {
@@ -457,23 +460,23 @@ int main(int argc, char *argv[])
 
   /* we want to control terminal differently in debug mode */
   if (debug_mode)
-    uc.action_keys = 0;
+    uctmp.action_keys = 0;
 
-  if (uc.action_keys)
+  if (uctmp.action_keys)
     setup_terminal();
 
   do {
     DIR *bd;
-    if ((bd = opendir(uc.basedir.name)) == NULL) {
-      fprintf(stderr, "Could not access dir %s: %s\n", uc.basedir.name, strerror(errno));
+    if ((bd = opendir(uctmp.basedir.name)) == NULL) {
+      fprintf(stderr, "Could not access dir %s: %s\n", uctmp.basedir.name, strerror(errno));
       exit(1);
     }
     closedir(bd);
 
-    snprintf(configname, sizeof configname, "%s/uaerc", uc.basedir.name);
+    snprintf(configname, sizeof configname, "%s/uaerc", uctmp.basedir.name);
 
     if (scorename[0] == 0)
-      snprintf(scorename, sizeof scorename, "%s/score", uc.basedir.name);
+      snprintf(scorename, sizeof scorename, "%s/score", uctmp.basedir.name);
 
     if (uadename[0] == 0)
       strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof uadename);
@@ -496,15 +499,16 @@ int main(int argc, char *argv[])
 
   uade_spawn(&uadeipc, &uadepid, uadename, configname);
 
-  if (!audio_init(uc.frequency, uc.buffer_time))
+  if (!audio_init(uctmp.frequency, uctmp.buffer_time))
     goto cleanup;
 
   plistdir = UADE_PLAY_CURRENT;
 
+  memset(&state, 0, sizeof state);
+
   while (1) {
 
     ssize_t filesize;
-    struct uade_song *us;
 
     /* modulename and songname are a bit different. modulename is the name
        of the song from uadecore's point of view and songname is the
@@ -513,34 +517,35 @@ int main(int argc, char *argv[])
        will become a zero-string with custom songs. */
     char modulename[PATH_MAX];
     char songname[PATH_MAX];
-    struct eagleplayer *ep = NULL;
 
     if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
       break;
 
     plistdir = UADE_PLAY_NEXT;
 
-    uc = uc_main;
+    state.config = uc_main;
+    state.song = NULL;
+    state.effect = NULL;
+    state.ep = NULL;
 
     if (uc_cmdline.verbose)
-      uc.verbose = 1;
+      state.config.verbose = 1;
 
     if (playernamegiven == 0) {
-      debug(uc.verbose, "\n");
+      debug(state.config.verbose, "\n");
 
-      ep = uade_analyze_file_format(modulename, &uc);
-      if (ep == NULL) {
+      if (!uade_is_our_file(modulename, 0, &state)) {
 	fprintf(stderr, "Unknown format: %s\n", modulename);
 	continue;
       }
 
-      debug(uc.verbose, "Player candidate: %s\n", ep->playername);
+      debug(state.config.verbose, "Player candidate: %s\n", state.ep->playername);
 
-      if (strcmp(ep->playername, "custom") == 0) {
+      if (strcmp(state.ep->playername, "custom") == 0) {
 	strlcpy(playername, modulename, sizeof playername);
 	modulename[0] = 0;
       } else {
-	snprintf(playername, sizeof playername, "%s/players/%s", uc_cmdline.basedir.name, ep->playername);
+	snprintf(playername, sizeof playername, "%s/players/%s", uc_cmdline.basedir.name, state.ep->playername);
       }
     }
 
@@ -552,7 +557,7 @@ int main(int argc, char *argv[])
     /* If no modulename given, try the playername as it can be a custom song */
     strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
 
-    if ((us = uade_alloc_song(songname)) == NULL) {
+    if ((state.song = uade_alloc_song(songname)) == NULL) {
       fprintf(stderr, "Can not read %s: %s\n", songname, strerror(errno));
       continue;
     }
@@ -564,44 +569,48 @@ int main(int argc, char *argv[])
      * 3. set command line options
      */
 
-    if (ep != NULL)
-      uade_set_ep_attributes(&uc, us, ep);
+    if (state.ep != NULL)
+      uade_set_ep_attributes(&state.config, state.song, state.ep);
 
-    if (uade_set_song_attributes(&uc, playername, sizeof playername, us)) {
-      debug(uc.verbose, "Song rejected based on attributes: %s\n",
-	    us->module_filename);
-      uade_unalloc_song(us);
+    if (uade_set_song_attributes(&state.config, playername, sizeof playername, state.song)) {
+      debug(state.config.verbose, "Song rejected based on attributes: %s\n",
+	    state.song->module_filename);
+      uade_unalloc_song(state.song);
+      state.song = NULL;
       continue;
     }
 
-    uade_merge_configs(&uc, &uc_cmdline);
+    uade_merge_configs(&state.config, &uc_cmdline);
 
     /* Now we have the final configuration in "uc". */
 
-    uade_set_effects(&effects, &uc);
+    uade_set_effects(&effects, &state.config);
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));
-      uade_unalloc_song(us);
+      uade_unalloc_song(state.song);
+      state.song = NULL;
       continue;
     }
 
-    debug(uc.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
+    debug(state.config.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
 
-    fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
+    fprintf(stderr, "Song: %s (%zd bytes)\n", state.song->module_filename, state.song->bufsize);
 
-    ret = uade_song_initialization(scorename, playername, modulename, us, &uadeipc, &uc);
+    ret = uade_song_initialization(scorename, playername, modulename, state.song, &uadeipc, &state.config);
     switch (ret) {
     case UADECORE_INIT_OK:
       break;
 
     case UADECORE_INIT_ERROR:
-      uade_unalloc_song(us);
+      uade_unalloc_song(state.song);
+      state.song = NULL;
       goto cleanup;
 
     case UADECORE_CANT_PLAY:
-	debug(uc.verbose, "Uadecore refuses to play the song.\n");
-	uade_unalloc_song(us);
+	debug(state.config.verbose, "Uadecore refuses to play the song.\n");
+	uade_unalloc_song(state.song);
+	state.song = NULL;
 	continue; /* jump to the beginning of playlist loop */
 
     default:
@@ -612,9 +621,10 @@ int main(int argc, char *argv[])
     if (subsong >= 0)
       uade_set_subsong(subsong, &uadeipc);
 
-    plistdir = play_loop(&uadeipc, us, &effects, &uc);
+    plistdir = play_loop(&uadeipc, state.song, &effects, &state.config);
 
-    uade_unalloc_song(us);
+    uade_unalloc_song(state.song);
+    state.song = NULL;
 
     if (plistdir == UADE_PLAY_FAILURE)
       goto cleanup;

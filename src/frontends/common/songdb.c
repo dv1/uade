@@ -23,8 +23,6 @@
 
 #define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
 
-#define MAX(x, y) ((x) >= (y) ? (x) : (y))
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 struct eaglesong {
 	int flags;
@@ -499,9 +497,8 @@ int uade_read_song_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		if ((items =
-		     uade_split_line(&nitems, &lineno, f,
-				     UADE_WS_DELIMITERS)) == NULL)
+		items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		if (items == NULL)
 			break;
 
 		assert(nitems > 0);

@@ -30,6 +30,8 @@
 #include "unixatomic.h"
 #include "songdb.h"
 #include "support.h"
+#include "uadestate.h"
+
 
 #define LINESIZE (1024)
 #define OPTION_DELIMITER ","
@@ -45,26 +47,52 @@ struct attrlist {
 };
 
 
-static struct eagleplayerstore *playerstore;
-
 static int ufcompare(const void *a, const void *b);
 static struct eagleplayerstore *read_eagleplayer_conf(const char *filename);
 
 
+static struct eagleplayer *get_eagleplayer(const char *extension,
+					   struct eagleplayerstore *playerstore);
+
+
+static int load_playerstore(struct uade_state *state)
+{
+	static int warnings = 1;
+	char formatsfile[PATH_MAX];
+
+	if (state->playerstore == NULL) {
+		snprintf(formatsfile, sizeof(formatsfile),
+			 "%s/eagleplayer.conf", state->config.basedir.name);
+
+		state->playerstore = read_eagleplayer_conf(formatsfile);
+		if (state->playerstore == NULL) {
+			if (warnings) {
+				fprintf(stderr,	"Tried to load eagleplayer.conf from %s, but failed\n",	formatsfile);
+			}
+			warnings = 0;
+			return 0;
+		}
+
+		if (state->config.verbose)
+			fprintf(stderr, "Loaded eagleplayer.conf: %s\n",
+				formatsfile);
+	}
+
+	return 1;
+}
+
+
 static struct eagleplayer *analyze_file_format(int *content,
 					       const char *modulename,
-					       const char *basedir,
-					       int verbose)
+					       struct uade_state *state)
 {
 	struct stat st;
 	char extension[16];
-
 	FILE *f;
 	size_t readed;
 	struct eagleplayer *candidate;
 	char *t, *tn;
 	int len;
-	static int warnings = 1;
 	size_t bufsize;
 	uint8_t fileformat_buf[8192];
 
@@ -84,49 +112,36 @@ static struct eagleplayer *analyze_file_format(int *content,
 	memset(&fileformat_buf[readed], 0, bufsize - readed);
 	bufsize = readed;
 
-	uade_filemagic(fileformat_buf, bufsize, extension, st.st_size, verbose);
+	uade_filemagic(fileformat_buf, bufsize, extension, st.st_size, state->config.verbose);
 
-	if (verbose)
+	if (state->config.verbose)
 		fprintf(stderr, "%s: deduced extension: %s\n", modulename,
 			extension);
 
 	if (strcmp(extension, "packed") == 0)
 		return NULL;
 
-	if (playerstore == NULL) {
-		char formatsfile[PATH_MAX];
-		snprintf(formatsfile, sizeof(formatsfile),
-			 "%s/eagleplayer.conf", basedir);
-		if ((playerstore = read_eagleplayer_conf(formatsfile)) == NULL) {
-			if (warnings)
-				fprintf(stderr,	"Tried to load eagleplayer.conf from %s, but failed\n",	formatsfile);
-			warnings = 0;
-			return NULL;
-		}
-		if (verbose)
-			fprintf(stderr, "Loaded eagleplayer.conf: %s\n",
-				formatsfile);
-	}
+	if (!load_playerstore(state))
+		return NULL;
 
-	/* if filemagic found a match, we'll use player plugins associated with
-	   that extension. if filemagic didn't find a match, we'll try to parse
+	/* If filemagic found a match, we'll use player plugins associated with
+	   that extension. If filemagic didn't find a match, we'll try to parse
 	   pre- and postfixes from the modulename */
 
 	if (extension[0]) {
-
-		candidate = uade_get_eagleplayer(extension, playerstore);
+		candidate = get_eagleplayer(extension, state->playerstore);
 
 		if (candidate) {
 			*content = 1;
 			return candidate;
 		}
 
-		if (verbose)
+		if (state->config.verbose)
 			fprintf(stderr,	"Deduced file extension (%s) is not on eagleplayer.conf.\n", extension);
 	}
 
-	/* magic wasn't able to deduce the format, so we'll try prefix and postfix
-	   from modulename */
+	/* Magic wasn't able to deduce the format, so we'll try prefix and
+	   postfix from modulename */
 	t = strrchr(modulename, (int)'/');
 	if (t == NULL) {
 		t = (char *)modulename;
@@ -144,8 +159,8 @@ static struct eagleplayer *analyze_file_format(int *content,
 		memcpy(extension, t, len);
 		extension[len] = 0;
 
-		if ((candidate =
-		     uade_get_eagleplayer(extension, playerstore)) != NULL)
+		candidate = get_eagleplayer(extension, state->playerstore);
+		if (candidate != NULL)
 			return candidate;
 	}
 
@@ -156,7 +171,8 @@ static struct eagleplayer *analyze_file_format(int *content,
 		return NULL;
 	}
 
-	if ((candidate = uade_get_eagleplayer(extension, playerstore)) != NULL)
+	candidate = get_eagleplayer(extension, state->playerstore);
+	if (candidate != NULL)
 		return candidate;
 
 	return NULL;
@@ -272,98 +288,44 @@ int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 	return 0;
 }
 
-/* Split line with respect to white space. */
-char **uade_split_line(size_t * nitems, size_t * lineno, FILE * f,
-		       const char *delimiters)
-{
-	char line[LINESIZE], templine[LINESIZE];
-	char **items = NULL;
-	size_t pos;
-	char *sp, *s;
-
-	*nitems = 0;
-
-	while (xfgets(line, sizeof line, f) != NULL) {
-
-		if (lineno != NULL)
-			(*lineno)++;
-
-		/* Skip, if a comment line */
-		if (line[0] == '#')
-			continue;
-
-		/* strsep() modifies line that it touches, so we make a copy
-		   of it, and then count the number of items on the line */
-		strlcpy(templine, line, sizeof(templine));
-		sp = templine;
-		while ((s = strsep(&sp, delimiters)) != NULL) {
-			if (*s == 0)
-				continue;
-			(*nitems)++;
-		}
-
-		if (*nitems > 0)
-			break;
-	}
-
-	if (*nitems == 0)
-		return NULL;
-
-	if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL)
-		uadeerror("No memory for nws items.\n");
-
-	sp = line;
-	pos = 0;
-	while ((s = strsep(&sp, delimiters)) != NULL) {
-		if (*s == 0)
-			continue;
-
-		if ((items[pos] = strdup(s)) == NULL)
-			uadeerror("No memory for an nws item.\n");
-
-		pos++;
-	}
-	items[pos] = NULL;
-	assert(pos == *nitems);
-
-	return items;
-}
-
 /* Compare function for bsearch() and qsort() to sort eagleplayers with
    respect to name extension. */
 static int ufcompare(const void *a, const void *b)
 {
 	const struct eagleplayermap *ua = a;
 	const struct eagleplayermap *ub = b;
+
 	return strcasecmp(ua->extension, ub->extension);
 }
 
-struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     struct uade_config *uc)
+int uade_is_our_file(const char *modulename, int scanmode,
+		     struct uade_state *state)
 {
-	struct eagleplayer *ep;
 	int content;
+	struct eagleplayer *ep;
 
-	ep = analyze_file_format(&content, modulename, uc->basedir.name,
-				 uc->verbose);
+	ep = analyze_file_format(&content, modulename, state);
+
+	if (!scanmode)
+		state->ep = ep;
 
 	if (ep == NULL)
-		return NULL;
+		return 0;
 
 	if (content)
-		return ep;
+		return 1;
 
-	if (uc->content_detection && content == 0)
-		return NULL;
+	if (state->config.content_detection && content == 0)
+		return 0;
 
 	if ((ep->flags & ES_CONTENT_DETECTION) != 0)
-		return NULL;
+		return 0;
 
-	return ep;
+	return 1;
 }
 
-struct eagleplayer *uade_get_eagleplayer(const char *extension,
-					 struct eagleplayerstore *ps)
+static struct eagleplayer *get_eagleplayer(const char *extension,
+					   struct eagleplayerstore *ps)
 {
 	struct eagleplayermap *uf = ps->map;
 	struct eagleplayermap *f;

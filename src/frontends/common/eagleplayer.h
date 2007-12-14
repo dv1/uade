@@ -102,13 +102,11 @@ struct uade_song {
 	int64_t out_bytes;
 };
 
-struct eagleplayer *uade_analyze_file_format(const char *modulename,
-					     struct uade_config *uc);
-struct eagleplayer *uade_get_eagleplayer(const char *extension,
-					 struct eagleplayerstore *playerstore);
+/* FIX: A forward declaration to avoid circular dependency */
+struct uade_state;
+
+int uade_is_our_file(const char *modulename, int scanmode, struct uade_state *state);
 int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
 			 char *item, size_t lineno);
-char **uade_split_line(size_t * nitems, size_t * lineno, FILE * f,
-		       const char *delimiters);
 
 #endif

@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "eagleplayer.h"
+#include "uadestate.h"
 #include "uadeconf.h"
 
 enum song_info_type {
@@ -13,7 +13,7 @@ enum song_info_type {
 };
 
 int uade_generate_song_title(char *title, size_t dstlen,
-			     struct uade_song *us, struct uade_config *uc);
+			     struct uade_state *state);
 int uade_song_info(char *info, size_t maxlen, char *filename,
 		   enum song_info_type type);
 
