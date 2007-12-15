@@ -481,9 +481,7 @@ int uade_read_song_conf(const char *filename)
 
 		if (nsongs == allocated) {
 			allocated *= 2;
-			songstore =
-			    realloc(songstore,
-				    allocated * sizeof(songstore[0]));
+			songstore = realloc(songstore, allocated * sizeof(songstore[0]));
 			if (songstore == NULL)
 				eserror("No memory for players.");
 		}
@@ -511,11 +509,9 @@ int uade_read_song_conf(const char *filename)
 		for (i = 1; i < nitems; i++) {
 			if (strncasecmp(items[i], "comment:", 7) == 0)
 				break;
-			if (uade_parse_attribute
-			    (&s->attributes, &s->flags, items[i], lineno))
+			if (uade_song_and_player_attribute(&s->attributes, &s->flags, items[i], lineno))
 				continue;
-			fprintf(stderr, "song option %s is invalid\n",
-				items[i]);
+			fprintf(stderr, "song option %s is invalid\n", items[i]);
 		}
 
 		for (i = 0; items[i] != NULL; i++)

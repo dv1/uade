@@ -106,7 +106,7 @@ struct uade_song {
 struct uade_state;
 
 int uade_is_our_file(const char *modulename, int scanmode, struct uade_state *state);
-int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
-			 char *item, size_t lineno);
+int uade_song_and_player_attribute(struct uade_attribute **attributelist,
+				   int *flags, char *item, size_t lineno);
 
 #endif

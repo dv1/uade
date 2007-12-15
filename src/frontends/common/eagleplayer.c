@@ -40,10 +40,50 @@
 #define eperror(fmt, args...) do { uadeerror("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
 
 
-struct attrlist {
-	char *s;
-	int e;
-	enum uade_attribute_type t;
+struct epconfattr {
+	char *s;                     /* directive/variable name */
+	int e;                       /* internal enumerate for the attrib. */
+	enum uade_attribute_type t;  /* if variable, its special type */
+};
+
+
+/* Directives for eagleplayer.conf and song.conf */
+static const struct epconfattr epconf_directives[] = {
+	{.s = "a500",                     .e = ES_A500},
+	{.s = "a1200",                    .e = ES_A1200},
+	{.s = "always_ends",              .e = ES_ALWAYS_ENDS},
+	{.s = "broken_song_end",          .e = ES_BROKEN_SONG_END},
+	{.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION},
+	{.s = "ignore_player_check",      .e = ES_IGNORE_PLAYER_CHECK},
+	{.s = "led_off",                  .e = ES_LED_OFF},
+	{.s = "led_on",                   .e = ES_LED_ON},
+	{.s = "never_ends",               .e = ES_NEVER_ENDS},
+	{.s = "no_ep_end_detect",         .e = ES_BROKEN_SONG_END},
+	{.s = "no_filter",                .e = ES_NO_FILTER},
+	{.s = "no_headphones",            .e = ES_NO_HEADPHONES},
+	{.s = "no_panning",               .e = ES_NO_PANNING},
+	{.s = "no_postprocessing",        .e = ES_NO_POSTPROCESSING},
+	{.s = "ntsc",                     .e = ES_NTSC},
+	{.s = "one_subsong",              .e = ES_ONE_SUBSONG},
+	{.s = "pal",                      .e = ES_PAL},
+	{.s = "reject",                   .e = ES_REJECT},
+	{.s = "speed_hack",               .e = ES_SPEED_HACK},
+	{.s = NULL}
+};
+
+/* Variables for eagleplayer.conf and song.conf */
+static const struct epconfattr epconf_variables[] = {
+	{.s = "epopt",           .t = UA_STRING, .e = ES_EP_OPTION},
+	{.s = "gain",            .t = UA_STRING, .e = ES_GAIN},
+	{.s = "interpolator",    .t = UA_STRING, .e = ES_RESAMPLER},
+	{.s = "panning",         .t = UA_STRING, .e = ES_PANNING},
+	{.s = "player",          .t = UA_STRING, .e = ES_PLAYER},
+	{.s = "resampler",       .t = UA_STRING, .e = ES_RESAMPLER},
+	{.s = "silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
+	{.s = "subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
+	{.s = "subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
+	{.s = "timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
+	{.s = NULL}
 };
 
 
@@ -166,111 +206,78 @@ static struct eagleplayer *analyze_file_format(int *content,
 	return candidate;
 }
 
-int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,
-			 char *item, size_t lineno)
+
+static void handle_attribute(struct uade_attribute **attributelist,
+			     const struct epconfattr *attr,
+			     char *item, size_t len, size_t lineno)
 {
-	size_t i;
-	size_t len;
+	struct uade_attribute *a;
+	char *str, *endptr;
+	int success = 0;
 
-	struct attrlist esattrs[] = {
-		{.s = "a500",.e = ES_A500},
-		{.s = "a1200",.e = ES_A1200},
-		{.s = "always_ends",.e = ES_ALWAYS_ENDS},
-		{.s = "broken_song_end",.e = ES_BROKEN_SONG_END},
-		{.s = "detect_format_by_content",.e = ES_CONTENT_DETECTION},
-		{.s = "ignore_player_check",.e = ES_IGNORE_PLAYER_CHECK},
-		{.s = "led_off",.e = ES_LED_OFF},
-		{.s = "led_on",.e = ES_LED_ON},
-		{.s = "never_ends",.e = ES_NEVER_ENDS},
-		{.s = "no_ep_end_detect",.e = ES_BROKEN_SONG_END},
-		{.s = "no_filter",.e = ES_NO_FILTER},
-		{.s = "no_headphones",.e = ES_NO_HEADPHONES},
-		{.s = "no_panning",.e = ES_NO_PANNING},
-		{.s = "no_postprocessing",.e = ES_NO_POSTPROCESSING},
-		{.s = "ntsc",.e = ES_NTSC},
-		{.s = "one_subsong",.e = ES_ONE_SUBSONG},
-		{.s = "pal",.e = ES_PAL},
-		{.s = "reject",.e = ES_REJECT},
-		{.s = "speed_hack",.e = ES_SPEED_HACK},
-		{.s = NULL}
-	};
+	if (item[len] != '=') {
+		fprintf(stderr, "Invalid song item: %s\n", item);
+		return;
+	}
+	str = item + len + 1;
 
-	struct attrlist esvalueattrs[] = {
-		{.s = "epopt",.t = UA_STRING,.e = ES_EP_OPTION},
-		{.s = "gain",.t = UA_STRING,.e = ES_GAIN},
-		{.s = "interpolator",.t = UA_STRING,.e = ES_RESAMPLER},
-		{.s = "panning",.t = UA_STRING,.e = ES_PANNING},
-		{.s = "player",.t = UA_STRING,.e = ES_PLAYER},
-		{.s = "resampler",.t = UA_STRING,.e = ES_RESAMPLER},
-		{.s = "silence_timeout",.t = UA_STRING,.e = ES_SILENCE_TIMEOUT},
-		{.s = "subsong_timeout",.t = UA_STRING,.e = ES_SUBSONG_TIMEOUT},
-		{.s = "subsongs",.t = UA_STRING,.e = ES_SUBSONGS},
-		{.s = "timeout",.t = UA_STRING,.e = ES_TIMEOUT},
-		{.s = NULL}
-	};
+	if ((a = calloc(1, sizeof *a)) == NULL)
+		eperror("No memory for song attribute.\n");
 
-	for (i = 0; esattrs[i].s != NULL; i++) {
-		if (strcasecmp(item, esattrs[i].s) == 0) {
-			*flags |= esattrs[i].e;
+	switch (attr->t) {
+	case UA_DOUBLE:
+		a->d = strtod(str, &endptr);
+		if (*endptr == 0)
+			success = 1;
+		break;
+	case UA_INT:
+		a->i = strtol(str, &endptr, 10);
+		if (*endptr == 0)
+			success = 1;
+		break;
+	case UA_STRING:
+		a->s = strdup(str);
+		if (a->s == NULL)
+			eperror("Out of memory allocating string option for song\n");
+		success = 1;
+		break;
+	default:
+		fprintf(stderr, "Unknown song option: %s\n",
+			item);
+		break;
+	}
+
+	if (success) {
+		a->type = attr->e;
+		a->next = *attributelist;
+		*attributelist = a;
+	} else {
+		fprintf(stderr, "Invalid song option: %s\n", item);
+		free(a);
+	}
+}
+
+
+int uade_song_and_player_attribute(struct uade_attribute **attributelist,
+				   int *flags, char *item, size_t lineno)
+{
+	size_t i, len;
+
+	for (i = 0; epconf_directives[i].s != NULL; i++) {
+		if (strcasecmp(item, epconf_directives[i].s) == 0) {
+			*flags |= epconf_directives[i].e;
 			return 1;
 		}
 	}
 
-	for (i = 0; esvalueattrs[i].s != NULL; i++) {
-		len = strlen(esvalueattrs[i].s);
-		if (strncasecmp(item, esvalueattrs[i].s, len) == 0) {
-			struct uade_attribute *a;
-			char *str;
-			char *endptr;
-			int success;
+	for (i = 0; epconf_variables[i].s != NULL; i++) {
+		len = strlen(epconf_variables[i].s);
+		if (strncasecmp(item, epconf_variables[i].s, len) != 0)
+			continue;
 
-			if (item[len] != '=') {
-				fprintf(stderr, "Invalid song item: %s\n",
-					item);
-				break;
-			}
-			str = item + len + 1;
-
-			if ((a = calloc(1, sizeof *a)) == NULL)
-				eperror("No memory for song attribute.\n");
-
-			success = 0;
-
-			switch (esvalueattrs[i].t) {
-			case UA_DOUBLE:
-				a->d = strtod(str, &endptr);
-				if (*endptr == 0)
-					success = 1;
-				break;
-			case UA_INT:
-				a->i = strtol(str, &endptr, 10);
-				if (*endptr == 0)
-					success = 1;
-				break;
-			case UA_STRING:
-				a->s = strdup(str);
-				if (a->s == NULL)
-					eperror("Out of memory allocating string option for song\n");
-				success = 1;
-				break;
-			default:
-				fprintf(stderr, "Unknown song option: %s\n",
-					item);
-				break;
-			}
-
-			if (success) {
-				a->type = esvalueattrs[i].e;
-				a->next = *attributelist;
-				*attributelist = a;
-			} else {
-				fprintf(stderr, "Invalid song option: %s\n",
-					item);
-				free(a);
-			}
-
-			return 1;
-		}
+		handle_attribute(attributelist, &epconf_variables[i],
+				 item, len, lineno);
+		return 1;
 	}
 
 	return 0;
@@ -354,8 +361,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		items = read_and_split_lines(&nitems, &lineno, f,
-					     UADE_WS_DELIMITERS);
+		items = read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
@@ -363,9 +369,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 
 		if (ps->nplayers == allocated) {
 			allocated *= 2;
-			ps->players =
-			    realloc(ps->players,
-				    allocated * sizeof(ps->players[0]));
+			ps->players = realloc(ps->players, allocated * sizeof(ps->players[0]));
 			if (ps->players == NULL)
 				eperror("No memory for players.");
 		}
@@ -387,8 +391,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 				char *sp, *s;
 				size_t pos;
 
-				assert(p->nextensions == 0
-				       && p->extensions == NULL);
+				assert(p->nextensions == 0 && p->extensions == NULL);
 
 				p->nextensions = 0;
 				strlcpy(prefixes, prefixstart,
@@ -408,9 +411,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 
 				pos = 0;
 				sp = prefixstart;
-				while ((s =
-					strsep(&sp,
-					       OPTION_DELIMITER)) != NULL) {
+				while ((s = strsep(&sp, OPTION_DELIMITER)) != NULL) {
 					if (*s == 0)
 						continue;
 
@@ -428,8 +429,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 			if (strncasecmp(items[i], "comment:", 7) == 0)
 				break;
 
-			if (uade_parse_attribute
-			    (&p->attributelist, &p->flags, items[i], lineno))
+			if (uade_song_and_player_attribute(&p->attributelist, &p->flags, items[i], lineno))
 				continue;
 
 			fprintf(stderr, "Unrecognized option: %s\n", items[i]);
