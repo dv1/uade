@@ -353,8 +353,7 @@ static int initialize_song(char *filename)
     snprintf(playername, sizeof playername, "%s/players/%s", state.config.basedir.name, state.ep->playername);
   }
 
-  state.song = uade_alloc_song(filename);
-  if (state.song == NULL)
+  if (!uade_alloc_song(&state, filename))
     goto error;
 
   uade_set_ep_attributes(&state.config, state.song, state.ep);
@@ -371,8 +370,7 @@ static int initialize_song(char *filename)
       fprintf(stderr, "Can not initialize song. Unknown error.\n");
       plugin_disabled = 1;
     }
-    uade_unalloc_song(state.song);
-    state.song = NULL;
+    uade_unalloc_song(&state);
 
     goto error;
   }
@@ -826,9 +824,10 @@ static void uade_play_file(char *filename)
   abort_playing = 1;
 
   uade_lock();
+
   if (state.song)
-    uade_unalloc_song(state.song);
-  state.song = NULL;
+    uade_unalloc_song(&state);
+
   uade_unlock();
 }
 
@@ -861,8 +860,7 @@ static void uade_stop(void)
 
     /* We must free uadesong after playthread has finished and additional
        GUI windows have been closed. */
-    uade_unalloc_song(state.song);
-    state.song = NULL;
+    uade_unalloc_song(&state);
 
     uade_unlock();
   }

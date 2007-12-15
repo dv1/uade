@@ -503,7 +503,7 @@ int play_loop(struct uade_state *state)
 	if ((us->max_subsong - us->min_subsong) != 0)
 	  fprintf(stderr, "\nThere are %d subsongs in range [%d, %d].\n", 1 + us->max_subsong - us->min_subsong, us->min_subsong, us->max_subsong);
 
-	uade_lookup_volume_normalisation(ue, uc, us);
+	uade_lookup_volume_normalisation(state);
 
 	have_subsong_info = 1;
 

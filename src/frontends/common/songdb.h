@@ -1,8 +1,7 @@
 #ifndef _UADE_SONGDB_H_
 #define _UADE_SONGDB_H_
 
-#include "eagleplayer.h"
-#include "effects.h"
+#include "uadestate.h"
 #include "vplist.h"
 
 struct uade_content {
@@ -12,16 +11,14 @@ struct uade_content {
 };
 
 struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime);
-struct uade_song *uade_alloc_song(const char *filename);
-void uade_lookup_volume_normalisation(struct uade_effect *ue,
-				      struct uade_config *uc,
-				      struct uade_song *us);
+int uade_alloc_song(struct uade_state *state, const char *filename);
+void uade_lookup_volume_normalisation(struct uade_state *state);
 void uade_md5_from_buffer(char *dest, size_t destlen,
 			  uint8_t * buf, size_t bufsize);
 int uade_read_content_db(const char *filename);
 int uade_read_song_conf(const char *filename);
 void uade_save_content_db(const char *filename);
-void uade_unalloc_song(struct uade_song *us);
+void uade_unalloc_song(struct uade_state *state);
 int uade_update_song_conf(const char *songconfin, const char *songconfout,
 			  const char *songname, const char *options);
 

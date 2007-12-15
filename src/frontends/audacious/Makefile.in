@@ -10,7 +10,7 @@ CLIBS = $(XMLIBS) -lm
 MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
 	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \
 	ossupport.o fileinfo.o songdb.o songinfo.o vplist.o support.o
-PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
+PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../common/uadestate.h ../../include/uadeconfig.h
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)

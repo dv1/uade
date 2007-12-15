@@ -27,12 +27,8 @@ static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
 void uade_change_subsong(struct uade_state *state)
 {
-	struct uade_config *uc = &state->config;
-	struct uade_effect *ue = &state->effects;
-	struct uade_song *us = state->song;
-
-	uade_lookup_volume_normalisation(ue, uc, us);
-	subsong_control(us->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, &state->ipc);
+	uade_lookup_volume_normalisation(state);
+	subsong_control(state->song->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, &state->ipc);
 }
 
 int uade_read_request(struct uade_ipc *ipc)

@@ -208,11 +208,12 @@ struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime)
 	return n;
 }
 
-void uade_lookup_volume_normalisation(struct uade_effect *ue,
-				      struct uade_config *uc,
-				      struct uade_song *us)
+void uade_lookup_volume_normalisation(struct uade_state *state)
 {
 	size_t i, nsubs;
+	struct uade_effect *ue = &state->effects;
+	struct uade_config *uc = &state->config;
+	struct uade_song *us = state->song;
 	struct uade_content *content = get_content_length(us->md5);
 
 	if (content != NULL) {
@@ -235,12 +236,14 @@ void uade_lookup_volume_normalisation(struct uade_effect *ue,
 	}
 }
 
-struct uade_song *uade_alloc_song(const char *filename)
+int uade_alloc_song(struct uade_state *state, const char *filename)
 {
 	struct uade_song *us;
 	struct eaglesong key;
 	struct eaglesong *es;
 	struct uade_content *content;
+
+	state->song = NULL;
 
 	us = calloc(1, sizeof *us);
 	if (us == NULL)
@@ -274,14 +277,15 @@ struct uade_song *uade_alloc_song(const char *filename)
 	if (content != NULL && content->playtime > 0)
 		us->playtime = content->playtime;
 
-	return us;
+	state->song = us;
+	return 1;
 
       error:
 	if (us != NULL) {
 		free(us->buf);
 		free(us);
 	}
-	return NULL;
+	return 0;
 }
 
 static int uade_open_and_lock(const char *filename, int create)
@@ -630,11 +634,13 @@ void uade_save_content_db(const char *filename)
 	fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
 }
 
-void uade_unalloc_song(struct uade_song *us)
+void uade_unalloc_song(struct uade_state *state)
 {
-	free(us->buf);
-	us->buf = NULL;
-	free(us);
+	free(state->song->buf);
+	state->song->buf = NULL;
+
+	free(state->song);
+	state->song = NULL;
 }
 
 int uade_update_song_conf(const char *songconfin, const char *songconfout,

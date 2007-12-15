@@ -406,8 +406,7 @@ static int initialize_song(char *filename)
     snprintf(playername, sizeof playername, "%s/players/%s", UADE_CONFIG_BASE_DIR, state.ep->playername);
   }
 
-  state.song = uade_alloc_song(filename);
-  if (state.song == NULL)
+  if (!uade_alloc_song(&state, filename))
     goto error;
 
   uade_set_ep_attributes(&state.config, state.song, state.ep);
@@ -425,8 +424,7 @@ static int initialize_song(char *filename)
       plugin_disabled = 1;
     }
     uade_lock();
-    uade_unalloc_song(state.song);
-    state.song = NULL;
+    uade_unalloc_song(&state);
 
     goto error;
   }
@@ -893,9 +891,10 @@ static void uade_play_file(char *filename)
   free(decoded);
 
   uade_lock();
+
   if (state.song != NULL)
-    uade_unalloc_song(state.song);
-  state.song = NULL;
+    uade_unalloc_song(&state);
+
   uade_unlock();
 
   /* close audio that was opened */
@@ -944,8 +943,7 @@ static void uade_stop(void)
 
     /* We must free uadesong after playthread has finished and additional
        GUI windows have been closed. */
-    uade_unalloc_song(state.song);
-    state.song = NULL;
+    uade_unalloc_song(&state);
   }
 
   uade_unlock();

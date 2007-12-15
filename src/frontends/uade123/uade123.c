@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
     /* If no modulename given, try the playername as it can be a custom song */
     strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
 
-    if ((state.song = uade_alloc_song(songname)) == NULL) {
+    if (!uade_alloc_song(&state, songname)) {
       fprintf(stderr, "Can not read %s: %s\n", songname, strerror(errno));
       continue;
     }
@@ -572,8 +572,7 @@ int main(int argc, char *argv[])
     if (uade_set_song_attributes(&state.config, playername, sizeof playername, state.song)) {
       debug(state.config.verbose, "Song rejected based on attributes: %s\n",
 	    state.song->module_filename);
-      uade_unalloc_song(state.song);
-      state.song = NULL;
+      uade_unalloc_song(&state);
       continue;
     }
 
@@ -585,8 +584,7 @@ int main(int argc, char *argv[])
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));
-      uade_unalloc_song(state.song);
-      state.song = NULL;
+      uade_unalloc_song(&state);
       continue;
     }
 
@@ -600,14 +598,12 @@ int main(int argc, char *argv[])
       break;
 
     case UADECORE_INIT_ERROR:
-      uade_unalloc_song(state.song);
-      state.song = NULL;
+      uade_unalloc_song(&state);
       goto cleanup;
 
     case UADECORE_CANT_PLAY:
 	debug(state.config.verbose, "Uadecore refuses to play the song.\n");
-	uade_unalloc_song(state.song);
-	state.song = NULL;
+	uade_unalloc_song(&state);
 	continue; /* jump to the beginning of playlist loop */
 
     default:
@@ -620,8 +616,7 @@ int main(int argc, char *argv[])
 
     plistdir = play_loop(&state);
 
-    uade_unalloc_song(state.song);
-    state.song = NULL;
+    uade_unalloc_song(&state);
 
     if (plistdir == UADE_PLAY_FAILURE)
       goto cleanup;
