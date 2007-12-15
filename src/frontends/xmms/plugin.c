@@ -356,11 +356,11 @@ static int initialize_song(char *filename)
   if (!uade_alloc_song(&state, filename))
     goto error;
 
-  uade_set_ep_attributes(&state.config, state.song, state.ep);
+  uade_set_ep_attributes(&state);
 
-  uade_set_song_attributes(&state.config, playername, sizeof playername, state.song);
+  uade_set_song_attributes(&state, playername, sizeof playername);
 
-  uade_set_effects(&state.effects, &state.config);
+  uade_set_effects(&state);
 
   strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 

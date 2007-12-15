@@ -20,12 +20,10 @@ char *uade_open_create_home(void);
 int uade_parse_subsongs(int **subsongs, char *option);
 void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			    const char *value);
-void uade_set_effects(struct uade_effect *effects,
-		      const struct uade_config *uc);
-void uade_set_ep_attributes(struct uade_config *uc, struct uade_song *us,
-			    struct eagleplayer *ep);
-int uade_set_song_attributes(struct uade_config *uc, char *playername,
-			     size_t playernamelen, struct uade_song *us);
+void uade_set_effects(struct uade_state *state);
+void uade_set_ep_attributes(struct uade_state *state);
+int uade_set_song_attributes(struct uade_state *state, char *playername,
+			     size_t playernamelen);
 void uade_set_filter_type(struct uade_config *uc, const char *value);
 
 #endif

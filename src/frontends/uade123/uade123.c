@@ -567,9 +567,9 @@ int main(int argc, char *argv[])
      */
 
     if (state.ep != NULL)
-      uade_set_ep_attributes(&state.config, state.song, state.ep);
+      uade_set_ep_attributes(&state);
 
-    if (uade_set_song_attributes(&state.config, playername, sizeof playername, state.song)) {
+    if (uade_set_song_attributes(&state, playername, sizeof playername)) {
       debug(state.config.verbose, "Song rejected based on attributes: %s\n",
 	    state.song->module_filename);
       uade_unalloc_song(&state);
@@ -580,7 +580,7 @@ int main(int argc, char *argv[])
 
     /* Now we have the final configuration in "uc". */
 
-    uade_set_effects(&state.effects, &state.config);
+    uade_set_effects(&state);
 
     if ((filesize = stat_file_size(playername)) < 0) {
       fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));

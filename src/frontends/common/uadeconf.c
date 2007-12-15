@@ -291,10 +291,12 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 	return 0;
 }
 
-int uade_set_song_attributes(struct uade_config *uc,
-			     char *playername,
-			     size_t playernamelen, struct uade_song *us)
+int uade_set_song_attributes(struct uade_state *state,
+			     char *playername, size_t playernamelen)
 {
+	struct uade_song *us = state->song;
+	struct uade_config *uc = &state->config;
+
 	if (us->normalisation)
 		uade_set_config_option(uc, UC_NORMALISE, us->normalisation);
 
@@ -530,8 +532,11 @@ int uade_parse_subsongs(int **subsongs, char *option)
 	return nsubsongs;
 }
 
-void uade_set_effects(struct uade_effect *effects, const struct uade_config *uc)
+void uade_set_effects(struct uade_state *state)
 {
+	struct uade_effect *effects = &state->effects;
+	struct uade_config *uc = &state->config;
+
 	uade_effect_set_defaults(effects);
 
 	if (uc->no_postprocessing)
@@ -879,10 +884,9 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 	}
 }
 
-void uade_set_ep_attributes(struct uade_config *uc, struct uade_song *us,
-			    struct eagleplayer *ep)
+void uade_set_ep_attributes(struct uade_state *state)
 {
-	handle_attributes(uc, us, NULL, 0, ep->flags, ep->attributelist);
+	handle_attributes(&state->config, state->song, NULL, 0, state->ep->flags, state->ep->attributelist);
 }
 
 void uade_set_filter_type(struct uade_config *uc, const char *model)
