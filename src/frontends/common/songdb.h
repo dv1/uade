@@ -13,8 +13,6 @@ struct uade_content {
 struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime);
 int uade_alloc_song(struct uade_state *state, const char *filename);
 void uade_lookup_volume_normalisation(struct uade_state *state);
-void uade_md5_from_buffer(char *dest, size_t destlen,
-			  uint8_t * buf, size_t bufsize);
 int uade_read_content_db(const char *filename);
 int uade_read_song_conf(const char *filename);
 void uade_save_content_db(const char *filename);
