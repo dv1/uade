@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Song: %s (%zd bytes)\n", state.song->module_filename, state.song->bufsize);
 
-    ret = uade_song_initialization(scorename, playername, modulename, state.song, &state.ipc, &state.config);
+    ret = uade_song_initialization(scorename, playername, modulename, &state);
     switch (ret) {
     case UADECORE_INIT_OK:
       break;

@@ -418,8 +418,7 @@ static int initialize_song(char *filename)
 
   strlcpy(gui_player_filename, playername, sizeof gui_player_filename);
 
-  ret = uade_song_initialization(scorename, playername, modulename,
-				 state.song, &state.ipc, &state.config);
+  ret = uade_song_initialization(scorename, playername, modulename, &state);
   if (ret) {
     if (ret != UADECORE_CANT_PLAY && ret != UADECORE_INIT_ERROR) {
       fprintf(stderr, "Can not initialize song. Unknown error.\n");

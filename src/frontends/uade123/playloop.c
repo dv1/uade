@@ -179,7 +179,7 @@ int play_loop(struct uade_state *state)
 	case 'f':
 	  uade_set_config_option(uc, UC_FORCE_LED, uc->led_state ? "off" : "on");
 	  tprintf("\nForcing LED %s\n", (uc->led_state & 1) ? "ON" : "OFF");
-	  uade_send_filter_command(ipc, uc);
+	  uade_send_filter_command(state);
 	  break;
 	case 'g':
 	  uade_effect_toggle(ue, UADE_EFFECT_GAIN);

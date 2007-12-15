@@ -65,9 +65,11 @@ static int send_ep_options(struct uade_ep_options *eo, struct uade_ipc *ipc)
 	return 0;
 }
 
-void uade_send_filter_command(struct uade_ipc *ipc,
-			      struct uade_config *uadeconf)
+void uade_send_filter_command(struct uade_state *state)
 {
+	struct uade_config *uadeconf = &state->config;
+	struct uade_ipc *ipc = &state->ipc;
+
 	int filter_type = uadeconf->filter_type;
 	int filter_state = uadeconf->led_state;
 	int force_filter = uadeconf->led_forced;
@@ -119,11 +121,13 @@ void uade_set_subsong(int subsong, struct uade_ipc *ipc)
 int uade_song_initialization(const char *scorename,
 			     const char *playername,
 			     const char *modulename,
-			     struct uade_song *us,
-			     struct uade_ipc *ipc, struct uade_config *uc)
+			     struct uade_state *state)
 {
 	uint8_t space[UADE_MAX_MESSAGE_SIZE];
 	struct uade_msg *um = (struct uade_msg *)space;
+	struct uade_ipc *ipc = &state->ipc;
+	struct uade_config *uc = &state->config;
+	struct uade_song *us = state->song;
 
 	if (uade_send_string(UADE_COMMAND_SCORE, scorename, ipc)) {
 		fprintf(stderr, "Can not send score name.\n");
@@ -186,7 +190,7 @@ int uade_song_initialization(const char *scorename,
 		}
 	}
 
-	uade_send_filter_command(ipc, uc);
+	uade_send_filter_command(state);
 
 	send_resampling_command(ipc, uc);
 
