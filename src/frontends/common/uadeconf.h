@@ -1,9 +1,7 @@
 #ifndef _UADE_FRONTEND_CONFIG_H_
 #define _UADE_FRONTEND_CONFIG_H_
 
-#include <uadeconfstructure.h>
-#include <eagleplayer.h>
-#include <effects.h>
+#include <uadestate.h>
 
 void uade_config_set_defaults(struct uade_config *uc);
 double uade_convert_to_double(const char *value, double def,

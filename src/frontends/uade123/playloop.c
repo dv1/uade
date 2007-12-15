@@ -14,17 +14,18 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <uadecontrol.h>
-#include <uadeconstants.h>
-#include <songinfo.h>
-#include <sysincludes.h>
+#include "uadecontrol.h"
+#include "uadeconstants.h"
+#include "songinfo.h"
+#include "sysincludes.h"
+#include "songdb.h"
+#include "uadeconf.h"
 
 #include "playloop.h"
 #include "uade123.h"
 #include "audio.h"
 #include "terminal.h"
 #include "playlist.h"
-#include "songdb.h"
 
 
 static void print_song_info(struct uade_song *us, enum song_info_type t)

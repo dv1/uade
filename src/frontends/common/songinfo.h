@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "uadestate.h"
-#include "uadeconf.h"
 
 enum song_info_type {
 	UADE_MODULE_INFO = 0,

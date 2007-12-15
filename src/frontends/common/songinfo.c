@@ -11,11 +11,9 @@
 #include <unistd.h>
 
 #include <songinfo.h>
-
 #include <uadeutils.h>
 #include <ossupport.h>
 #include <strlrep.h>
-#include <uadeipc.h>
 #include <amifilemagic.h>
 
 

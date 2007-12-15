@@ -21,7 +21,6 @@
 #include "sysincludes.h"
 #include "uadeconstants.h"
 #include "songdb.h"
-#include "uadestate.h"
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
