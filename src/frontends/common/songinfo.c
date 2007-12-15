@@ -10,11 +10,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <songinfo.h>
-#include <uadeutils.h>
-#include <ossupport.h>
-#include <strlrep.h>
-#include <amifilemagic.h>
+#include "songinfo.h"
+#include "uadeutils.h"
+#include "ossupport.h"
+#include "strlrep.h"
+#include "amifilemagic.h"
+#include "support.h"
 
 
 static void asciiline(char *dst, unsigned char *buf)
@@ -600,12 +601,7 @@ int uade_generate_song_title(char *title, size_t dstlen,
 	if (strlen(us->module_filename) == 0)
 		return 1;
 
-	bname = strrchr(us->module_filename, '/');
-	if (bname == NULL) {
-		bname = us->module_filename;
-	} else {
-		bname++;
-	}
+	bname = xbasename(us->module_filename);
 
 	p[0] = 0;
 	if (us->formatname[0] == 0) {

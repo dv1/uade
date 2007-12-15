@@ -25,6 +25,17 @@ int skip_and_terminate_word(char *s, int i)
 	return i;
 }
 
+char *xbasename(const char *s)
+{
+  char *t = strrchr(s, (int) '/');
+  if (t == NULL) {
+	  t = (char *) s;
+  } else {
+	  t++;
+  }
+  return t;
+}
+
 /*
  * Split a string into 2 whitespace separated fields returned in "key" and
  * "value". If more than 2 fields are found, they are cut off by zero

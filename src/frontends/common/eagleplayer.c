@@ -35,6 +35,7 @@
 
 #define OPTION_DELIMITER ","
 
+#define MAX_SUFFIX_LENGTH 16
 
 #define eperror(fmt, args...) do { uadeerror("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
 
@@ -86,14 +87,12 @@ static struct eagleplayer *analyze_file_format(int *content,
 					       struct uade_state *state)
 {
 	struct stat st;
-	char extension[16];
+	char ext[MAX_SUFFIX_LENGTH];
 	FILE *f;
-	size_t readed;
-	struct eagleplayer *candidate;
-	char *t, *tn;
-	int len;
-	size_t bufsize;
-	uint8_t fileformat_buf[8192];
+	struct eagleplayer *candidate = NULL;
+	char *prefix, *postfix, *t;
+	size_t bufsize, bytesread;
+	uint8_t buf[8192];
 
 	*content = 0;
 
@@ -103,78 +102,68 @@ static struct eagleplayer *analyze_file_format(int *content,
 	if (fstat(fileno(f), &st))
 		uadeerror("Very weird stat error: %s (%s)\n", modulename, strerror(errno));
 
-	bufsize = sizeof fileformat_buf;
-	readed = atomic_fread(fileformat_buf, 1, bufsize, f);
+	bufsize = sizeof buf;
+	bytesread = atomic_fread(buf, 1, bufsize, f);
 	fclose(f);
-	if (readed == 0)
+	if (bytesread == 0)
 		return NULL;
-	memset(&fileformat_buf[readed], 0, bufsize - readed);
-	bufsize = readed;
+	memset(&buf[bytesread], 0, bufsize - bytesread);
 
-	uade_filemagic(fileformat_buf, bufsize, extension, st.st_size, state->config.verbose);
+	uade_filemagic(buf, bytesread, ext, st.st_size, state->config.verbose);
 
 	if (state->config.verbose)
-		fprintf(stderr, "%s: deduced extension: %s\n", modulename,
-			extension);
+		fprintf(stderr, "%s: deduced extension: %s\n", modulename, ext);
 
-	if (strcmp(extension, "packed") == 0)
+	if (strcmp(ext, "packed") == 0)
 		return NULL;
 
 	if (!load_playerstore(state))
 		return NULL;
 
 	/* If filemagic found a match, we'll use player plugins associated with
-	   that extension. If filemagic didn't find a match, we'll try to parse
-	   pre- and postfixes from the modulename */
-
-	if (extension[0]) {
-		candidate = get_eagleplayer(extension, state->playerstore);
-
-		if (candidate) {
+	   that extension */
+	if (ext[0]) {
+		candidate = get_eagleplayer(ext, state->playerstore);
+		if (candidate != NULL) {
 			*content = 1;
 			return candidate;
 		}
 
 		if (state->config.verbose)
-			fprintf(stderr,	"Deduced file extension (%s) is not on eagleplayer.conf.\n", extension);
+			fprintf(stderr,	"%s not in eagleplayer.conf\n", ext);
 	}
 
-	/* Magic wasn't able to deduce the format, so we'll try prefix and
-	   postfix from modulename */
-	t = strrchr(modulename, (int)'/');
-	if (t == NULL) {
-		t = (char *)modulename;
-	} else {
-		t++;
-	}
+	if (state->config.verbose)
+		fprintf(stderr, "Format detection by filename\n");
 
-	/* try prefix first */
-	tn = strchr(t, '.');
-	if (tn == NULL)
+	t = xbasename(modulename);
+
+	if (strlcpy(buf, t, sizeof buf) >= sizeof buf)
 		return NULL;
 
-	len = ((intptr_t) tn) - ((intptr_t) t);
-	if (len < sizeof(extension)) {
-		memcpy(extension, t, len);
-		extension[len] = 0;
+	/* Magic wasn't able to deduce the format, so try modulename prefix */
+	t = strchr(buf, '.');
+	if (t == NULL)
+		return NULL;
 
-		candidate = get_eagleplayer(extension, state->playerstore);
+	*t = 0;
+	prefix = buf;
+
+	if (strlen(prefix) < MAX_SUFFIX_LENGTH) {
+		candidate = get_eagleplayer(prefix, state->playerstore);
 		if (candidate != NULL)
 			return candidate;
 	}
 
-	/* prefix didn't match anything. trying postfix */
-	t = strrchr(t, '.');
-	if (strlcpy(extension, t + 1, sizeof(extension)) >= sizeof(extension)) {
-		/* too long to be an extension */
-		return NULL;
-	}
+	/* Try postfix */
+	t = xbasename(modulename);
+	strlcpy(buf, t, sizeof buf);
+	postfix = strrchr(buf, '.') + 1; /* We know postfix != NULL */
 
-	candidate = get_eagleplayer(extension, state->playerstore);
-	if (candidate != NULL)
-		return candidate;
+	if (strlen(postfix) < MAX_SUFFIX_LENGTH)
+		candidate = get_eagleplayer(postfix, state->playerstore);
 
-	return NULL;
+	return candidate;
 }
 
 int uade_parse_attribute(struct uade_attribute **attributelist, int *flags,

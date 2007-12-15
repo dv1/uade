@@ -10,6 +10,9 @@
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
+
+char *xbasename(const char *path);
+
 int get_two_ws_separated_fields(char **key, char **value, char *s);
 
 int skipnws(const char *s, int i);
