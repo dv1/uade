@@ -1,7 +1,7 @@
 amifilemagic.o:	../common/amifilemagic.c ../common/amifilemagic.h
 	$(CC) $(CFLAGS) -c $<
 
-eagleplayer.o:	../common/eagleplayer.c ../common/support.h $(PLAYERHEADERS)
+eagleplayer.o:	../common/eagleplayer.c $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 effects.o:	../common/effects.c ../common/effects.h
@@ -13,7 +13,7 @@ md5.o:	../common/md5.c ../common/md5.h
 songdb.o:	../common/songdb.c ../common/songdb.h ../common/md5.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
-songinfo.o:	../common/songinfo.c ../common/songinfo.h
+songinfo.o:	../common/songinfo.c ../common/songinfo.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 strlrep.o:	../../strlrep.c ../../include/strlrep.h

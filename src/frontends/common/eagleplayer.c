@@ -33,7 +33,6 @@
 #include "uadestate.h"
 
 
-#define LINESIZE (1024)
 #define OPTION_DELIMITER ","
 
 
@@ -366,7 +365,8 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		items = read_and_split_lines(&nitems, &lineno, f,
+					     UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
@@ -393,7 +393,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		for (i = 1; i < nitems; i++) {
 
 			if (strncasecmp(items[i], "prefixes=", 9) == 0) {
-				char prefixes[LINESIZE];
+				char prefixes[UADE_LINESIZE];
 				char *prefixstart = items[i] + 9;
 				char *sp, *s;
 				size_t pos;

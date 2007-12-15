@@ -95,24 +95,6 @@ static enum uade_option map_str_to_option(const char *key)
 	return 0;
 }
 
-static char *nextspace(const char *foo)
-{
-	while (foo[0] != 0 && !isspace(foo[0]))
-		foo++;
-	if (foo[0] == 0)
-		return NULL;
-	return (char *)foo;
-}
-
-static char *nextnonspace(const char *foo)
-{
-	while (foo[0] != 0 && isspace(foo[0]))
-		foo++;
-	if (foo[0] == 0)
-		return NULL;
-	return (char *)foo;
-}
-
 /* The function sets the default options. No *_set variables are set because
    we don't want any option to become mergeable by default. See
    uade_merge_configs(). */
@@ -308,8 +290,7 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 {
 	char line[256];
 	FILE *f;
-	char *key;
-	char *value;
+	char *key, *value;
 	int linenumber = 0;
 	enum uade_option opt;
 
@@ -319,29 +300,21 @@ int uade_load_config(struct uade_config *uc, const char *filename)
 	uade_config_set_defaults(uc);
 
 	while (xfgets(line, sizeof(line), f) != NULL) {
-
 		linenumber++;
-		if (line[strlen(line) - 1] == '\n')
-			line[strlen(line) - 1] = 0;
-		if (line[0] == 0)
-			continue;
+
+		/* Skip comment lines */
 		if (line[0] == '#')
 			continue;
-		key = line;
-		value = nextspace(key);
-		if (value != NULL) {
-			*value = 0;
-			value = nextnonspace(value + 1);
-		}
+
+		if (!get_two_ws_separated_fields(&key, &value, line))
+			continue; /* Skip an empty line */
 
 		opt = map_str_to_option(key);
 
 		if (opt) {
 			uade_set_config_option(uc, opt, value);
 		} else {
-			fprintf(stderr,
-				"Unknown config key in %s on line %d: %s\n",
-				filename, linenumber, key);
+			fprintf(stderr,	"Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
 		}
 	}
 

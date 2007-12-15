@@ -47,33 +47,25 @@ static struct eaglesong *songstore;
 static int escompare(const void *a, const void *b);
 static struct uade_content *get_content_length(const char *md5);
 
-static void add_sub(struct uade_content *n, char *normalisation)
+
+static void add_sub_normalisation(struct uade_content *n, char *normalisation)
 {
 	struct persub *subinfo;
-	int sub;
 	char *endptr;
 
-	sub = strtol(normalisation, &endptr, 10);
-	if (*endptr != ',' || sub < 0) {
-		fprintf(stderr, "Invalid normalisation entry: %s\n",
-			normalisation);
+	subinfo = malloc(sizeof(*subinfo));
+	if (subinfo == NULL)
+		uadeerror("Can't allocate memory for normalisation entry\n");
+
+	subinfo->sub = strtol(normalisation, &endptr, 10);
+	if (*endptr != ',' || subinfo->sub < 0) {
+		fprintf(stderr, "Invalid normalisation entry: %s\n", normalisation);
 		return;
 	}
-	endptr++;
 
-	subinfo = malloc(sizeof(*subinfo));
-	if (subinfo == NULL) {
-		fprintf(stderr,
-			"Can not allocate memory for normalisation entry\n");
-		exit(-1);
-	}
-	subinfo->sub = sub;
-	subinfo->normalisation = strdup(endptr);
-	if (subinfo->normalisation == NULL) {
-		fprintf(stderr,
-			"Can not allocate memory for normalisation string.\n");
-		exit(-1);
-	}
+	subinfo->normalisation = strdup(endptr + 1);
+	if (subinfo->normalisation == NULL)
+		uadeerror("Can't allocate memory for normalisation string\n");
 
 	vplist_append(n->subs, subinfo);
 }
@@ -315,23 +307,47 @@ static int uade_open_and_lock(const char *filename, int create)
 	return fd;
 }
 
-static int skipws(char *line, int i)
+
+static struct uade_content *store_playtime(const char *md5, long playtime,
+					   int *newccmodified,
+					   size_t oldnccused)
 {
-	while (isspace(line[i]))
-		i++;
-	if (line[i] == 0)
-		return -1;
-	return i;
+	struct uade_content *n = NULL;
+
+	if (oldnccused > 0) {
+		struct uade_content key;
+		memset(&key, 0, sizeof key);
+		strlcpy(key.md5, md5, sizeof key.md5);
+
+		/* We use "oldnccused" here as the length, while new entries
+		   are added in unsorted manner to the end of the array */
+		n = bsearch(&key, contentchecksums, oldnccused,
+			    sizeof contentchecksums[0], contentcompare);
+		if (n == NULL)
+			/* new songs on disk db -> merge -> need saving */
+			*newccmodified = 1;
+	}
+
+	/* We value a playtime determined during run-time over
+	   a database value */
+	if (n == NULL) {
+		/* Note, create_content_checksum() makes "ccmodified"
+		   true, which we work-around later with the "newccmodified" */
+		n = create_content_checksum(md5, (uint32_t) playtime);
+	}
+
+	if (n == NULL) {
+		/* No memory, fuck. We shouldn't save anything to
+		   avoid losing data. */
+		fprintf(stderr,
+			"uade: Warning, no memory for the song database\n");
+		cccorrupted = 1;
+	}
+
+	return n;
 }
 
-static int skipnws(char *line, int i)
-{
-	while (!isspace(line[i]) && line[i] != 0)
-		i++;
-	if (line[i] == 0)
-		return -1;
-	return i;
-}
+
 
 int uade_read_content_db(const char *filename)
 {
@@ -339,11 +355,11 @@ int uade_read_content_db(const char *filename)
 	FILE *f;
 	size_t lineno = 0;
 	long playtime;
-	int i, nexti;
-	char *eptr;
+	int i, j, nexti;
+	char *id, *eptr;
 	char numberstr[1024];
 	char *md5;
-	struct uade_content *n;
+
 	/* We make backups of some variables because following loop will
 	   make it always true, which is not what we want. The end result should
 	   be that ccmodified is true in following cases only:
@@ -353,6 +369,7 @@ int uade_read_content_db(const char *filename)
 	int newccmodified = ccmodified;
 	size_t oldnccused = nccused;
 	int fd;
+	struct uade_content *n;
 
 	/* Try to create a database if it doesn't exist */
 	if (contentchecksums == NULL
@@ -374,94 +391,48 @@ int uade_read_content_db(const char *filename)
 	}
 
 	while (xfgets(line, sizeof line, f) != NULL) {
-
 		lineno++;
 
 		if (line[0] == '#')
 			continue;
 
-		/* grab md5sum */
-		for (i = 0; i < 32; i++) {
-			if (line[i] == 0 || !isxdigit(line[i]))
-				break;
-		}
-		if (i != 32)
-			continue;
-		if (!isspace(line[i]))
-			continue;
-		line[i] = 0;
 		md5 = line;
-		i = skipws(line, i + 1);
+		i = skip_and_terminate_word(line, 0);
 		if (i < 0)
-			continue;
+			continue; /* playtime doesn't exist */
 
-		/* grab play time in milliseconds */
-		nexti = skipnws(line, i);
-		if (nexti < 0)
-			continue;
-		line[nexti] = 0;
-		strlcpy(numberstr, &line[i], sizeof numberstr);
-		playtime = strtol(numberstr, &eptr, 10);
+		for (j = 0; isxdigit(line[j]); j++);
+
+		if (j != 32)
+			continue; /* is not a valid md5sum */
+
+		/* Grab and validate playtime (in milliseconds) */
+		nexti = skip_and_terminate_word(line, i);
+
+		playtime = strtol(&line[i], &eptr, 10);
 		if (*eptr != 0 || playtime < 0) {
-			fprintf(stderr,
-				"Invalid number on contentdb line %zd: %s\n",
-				lineno, numberstr);
+			fprintf(stderr, "Invalid playtime for md5 %s on contentdb line %zd: %s\n", md5, lineno, numberstr);
 			continue;
 		}
 
-		/* WARNING: Hacks ahead, be cautious */
-		n = NULL;
-		if (oldnccused > 0) {
-			struct uade_content key;
-			memset(&key, 0, sizeof key);
-			strlcpy(key.md5, md5, sizeof key.md5);
-			/* Hack! We use "oldnccused" here as the length, while new entries
-			   are added in unsorted manner to the end of the array */
-			n = bsearch(&key, contentchecksums, oldnccused,
-				    sizeof contentchecksums[0], contentcompare);
-			if (n == NULL)
-				/* new songs on disk db -> merge ->
-				   need saving */
-				newccmodified = 1;
-		}
-
-		/* We value a playtime determined during run-time over
-		   a database value */
-		if (n == NULL) {
-			/* Note, create_content_checksum() makes "ccmodified"
-			   true, which we work-around later with
-			   the "newccmodified" */
-			n = create_content_checksum(md5, (uint32_t) playtime);
-		}
-
-		if (n == NULL) {
-			/* No memory, fuck. We shouldn't save anything to
-			   avoid losing data. */
-			fprintf(stderr,
-				"uade: Warning, no memory for the song database\n");
-			cccorrupted = 1;
+		n = store_playtime(md5, playtime, &newccmodified, oldnccused);
+		if (n == NULL)
 			continue;
-		}
 
-		i = skipws(line, nexti + 1);
+		i = nexti; /* Note, it could be that i < 0 */
 
 		/* Get rest of the directives in a loop */
 		while (i >= 0) {
-			nexti = skipnws(line, i);
-			if (nexti < 0)
-				break;
-			line[nexti] = 0;
+			id = &line[i];
+			i = skip_and_terminate_word(line, i);
 
-			/* n=sub1,XXX */
-			if (strncmp(&line[i], NORM_ID, NORM_ID_LENGTH) == 0) {
-				i += NORM_ID_LENGTH;
-				add_sub(n, &line[i]);
+			/* Subsong volume normalisation: n=sub1,XXX */
+			if (strncmp(id, NORM_ID, NORM_ID_LENGTH) == 0) {
+				id += NORM_ID_LENGTH;
+				add_sub_normalisation(n, id);
 			} else {
-				fprintf(stderr,
-					"Unknown contentdb directive on line %zd: %s\n",
-					lineno, &line[i]);
+				fprintf(stderr,	"Unknown contentdb directive on line %zd: %s\n", lineno, id);
 			}
-			i = skipws(line, nexti + 1);
 		}
 	}
 	fclose(f);
@@ -501,7 +472,8 @@ int uade_read_song_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		items = uade_split_line(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		items = read_and_split_lines(&nitems, &lineno, f,
+					     UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
