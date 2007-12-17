@@ -102,6 +102,18 @@ struct uade_song {
 	int64_t out_bytes;
 };
 
+struct epconfattr {
+	char *s;                    /* config file directive/variable name */
+	int e;                      /* ES_* flags for eagleplayers and songs */
+        int o;                      /* UC_* flag for uade.conf option */
+	char *c;                    /* constant for an UC_* flag */
+	enum uade_attribute_type t; /* if variable, its special type */
+};
+
+
+extern const struct epconfattr epconf[];
+
+
 /* FIX: A forward declaration to avoid circular dependency */
 struct uade_state;
 

@@ -1,4 +1,4 @@
-/* uade123 - a simple command line frontend for uadecore.
+/* Handle uade.conf file
 
    Copyright (C) 2005 Heikki Orsila <heikki.orsila@iki.fi>
 
@@ -31,65 +31,63 @@ static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
 static int uade_set_subsong_timeout(struct uade_config *uc, const char *value);
 static int uade_set_timeout(struct uade_config *uc, const char *value);
 
+
+struct uade_conf_opts {
+	char *str;
+	int l;
+	enum uade_option e;
+};
+
+/* List of uade.conf options. The list includes option name, minimum
+   string match length for the option name and its enum code. */
+static const struct uade_conf_opts uadeconfopts[] = {
+	{.str = "action_keys",           .l = 1,  .e = UC_ACTION_KEYS},
+	{.str = "buffer_time",           .l = 1,  .e = UC_BUFFER_TIME},
+	{.str = "detect_format_by_detection", .l = 1, .e = UC_CONTENT_DETECTION},
+	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
+	{.str = "enable_timeout",        .l = 2,  .e = UC_ENABLE_TIMEOUTS},
+	{.str = "ep_option",             .l = 2,  .e = UC_EAGLEPLAYER_OPTION},
+	{.str = "filter_type",           .l = 2,  .e = UC_FILTER_TYPE},
+	{.str = "force_led_off",         .l = 12, .e = UC_FORCE_LED_OFF},
+	{.str = "force_led_on",          .l = 12, .e = UC_FORCE_LED_ON},
+	{.str = "force_led",             .l = 9,  .e = UC_FORCE_LED},
+	{.str = "frequency",             .l = 2,  .e = UC_FREQUENCY},
+	{.str = "gain",                  .l = 1,  .e = UC_GAIN},
+	{.str = "headphones",            .l = 11, .e = UC_HEADPHONES},
+	{.str = "headphones2",           .l = 11, .e = UC_HEADPHONES2},
+	{.str = "headphone",             .l = 11, .e = UC_HEADPHONES},
+	{.str = "ignore_player_check",   .l = 2,  .e = UC_IGNORE_PLAYER_CHECK},
+	{.str = "interpolator",          .l = 2,  .e = UC_RESAMPLER},
+	{.str = "magic_detection",       .l = 1,  .e = UC_CONTENT_DETECTION},
+	{.str = "no_ep_end_detect",      .l = 4,  .e = UC_NO_EP_END},
+	{.str = "no_filter",             .l = 4,  .e = UC_NO_FILTER},
+	{.str = "no_song_end",           .l = 4,  .e = UC_NO_EP_END},
+	{.str = "normalise",             .l = 1,  .e = UC_NORMALISE},
+	{.str = "ntsc",                  .l = 2,  .e = UC_NTSC},
+	{.str = "one_subsong",           .l = 1,  .e = UC_ONE_SUBSONG},
+	{.str = "pal",                   .l = 3,  .e = UC_PAL},
+	{.str = "panning_value",         .l = 3,  .e = UC_PANNING_VALUE},
+	{.str = "random_play",           .l = 3,  .e = UC_RANDOM_PLAY},
+	{.str = "recursive_mode",        .l = 3,  .e = UC_RECURSIVE_MODE},
+	{.str = "resampler",             .l = 3,  .e = UC_RESAMPLER},
+	{.str = "silence_timeout_value", .l = 2,  .e = UC_SILENCE_TIMEOUT_VALUE},
+	{.str = "song_title",            .l = 2,  .e = UC_SONG_TITLE},
+	{.str = "speed_hack",            .l = 2,  .e = UC_SPEED_HACK},
+	{.str = "subsong_timeout_value", .l = 2,  .e = UC_SUBSONG_TIMEOUT_VALUE},
+	{.str = "timeout_value",         .l = 1,  .e = UC_TIMEOUT_VALUE},
+	{.str = "verbose",               .l = 1,  .e = UC_VERBOSE},
+	{.str = NULL} /* END OF LIST */
+};
+
+
 /* Map an uade.conf option to an enum */
 static enum uade_option map_str_to_option(const char *key)
 {
 	size_t i;
 
-	struct optlist {
-		char *str;
-		int l;
-		enum uade_option e;
-	};
-
-	/* List of uade.conf options. The list includes option name, minimum
-	   string match length for the option name and its enum code. */
-	struct optlist ol[] = {
-		{.str = "action_keys",.l = 1,.e = UC_ACTION_KEYS},
-		{.str = "buffer_time",.l = 1,.e = UC_BUFFER_TIME},
-		{.str = "detect_format_by_detection",.l = 1,.e =
-		 UC_CONTENT_DETECTION},
-		{.str = "disable_timeout",.l = 1,.e = UC_DISABLE_TIMEOUTS},
-		{.str = "enable_timeout",.l = 2,.e = UC_ENABLE_TIMEOUTS},
-		{.str = "ep_option",.l = 2,.e = UC_EAGLEPLAYER_OPTION},
-		{.str = "filter_type",.l = 2,.e = UC_FILTER_TYPE},
-		{.str = "force_led_off",.l = 12,.e = UC_FORCE_LED_OFF},
-		{.str = "force_led_on",.l = 12,.e = UC_FORCE_LED_ON},
-		{.str = "force_led",.l = 9,.e = UC_FORCE_LED},
-		{.str = "frequency",.l = 2,.e = UC_FREQUENCY},
-		{.str = "gain",.l = 1,.e = UC_GAIN},
-		{.str = "headphones",.l = 11,.e = UC_HEADPHONES},
-		{.str = "headphones2",.l = 11,.e = UC_HEADPHONES2},
-		{.str = "headphone",.l = 11,.e = UC_HEADPHONES},
-		{.str = "ignore_player_check",.l = 2,.e =
-		 UC_IGNORE_PLAYER_CHECK},
-		{.str = "interpolator",.l = 2,.e = UC_RESAMPLER},
-		{.str = "magic_detection",.l = 1,.e = UC_CONTENT_DETECTION},
-		{.str = "no_ep_end_detect",.l = 4,.e = UC_NO_EP_END},
-		{.str = "no_filter",.l = 4,.e = UC_NO_FILTER},
-		{.str = "no_song_end",.l = 4,.e = UC_NO_EP_END},
-		{.str = "normalise",.l = 1,.e = UC_NORMALISE},
-		{.str = "ntsc",.l = 2,.e = UC_NTSC},
-		{.str = "one_subsong",.l = 1,.e = UC_ONE_SUBSONG},
-		{.str = "pal",.l = 3,.e = UC_PAL},
-		{.str = "panning_value",.l = 3,.e = UC_PANNING_VALUE},
-		{.str = "random_play",.l = 3,.e = UC_RANDOM_PLAY},
-		{.str = "recursive_mode",.l = 3,.e = UC_RECURSIVE_MODE},
-		{.str = "resampler",.l = 3,.e = UC_RESAMPLER},
-		{.str = "silence_timeout_value",.l = 2,.e =
-		 UC_SILENCE_TIMEOUT_VALUE},
-		{.str = "song_title",.l = 2,.e = UC_SONG_TITLE},
-		{.str = "speed_hack",.l = 2,.e = UC_SPEED_HACK},
-		{.str = "subsong_timeout_value",.l = 2,.e =
-		 UC_SUBSONG_TIMEOUT_VALUE},
-		{.str = "timeout_value",.l = 1,.e = UC_TIMEOUT_VALUE},
-		{.str = "verbose",.l = 1,.e = UC_VERBOSE},
-		{.str = NULL}
-	};
-
-	for (i = 0; ol[i].str != NULL; i++) {
-		if (strncmp(key, ol[i].str, ol[i].l) == 0)
-			return ol[i].e;
+	for (i = 0; uadeconfopts[i].str != NULL; i++) {
+		if (strncmp(key, uadeconfopts[i].str, uadeconfopts[i].l) == 0)
+			return uadeconfopts[i].e;
 	}
 
 	return 0;
@@ -102,8 +100,7 @@ void uade_config_set_defaults(struct uade_config *uc)
 {
 	memset(uc, 0, sizeof(*uc));
 	uc->action_keys = 1;
-	strlcpy(uc->basedir.name, UADE_CONFIG_BASE_DIR,
-		sizeof uc->basedir.name);
+	strlcpy(uc->basedir.name, UADE_CONFIG_BASE_DIR,	sizeof uc->basedir.name);
 	uade_set_filter_type(uc, NULL);
 	uc->frequency = UADE_DEFAULT_FREQUENCY;
 	uc->gain = 1.0;
@@ -117,7 +114,7 @@ void uade_config_set_defaults(struct uade_config *uc)
 double uade_convert_to_double(const char *value, double def, double low,
 			      double high, const char *type)
 {
-	char *endptr, *newvalue = NULL;
+	char *endptr, *newvalue;
 	char newseparator;
 	double v;
 
@@ -137,6 +134,7 @@ double uade_convert_to_double(const char *value, double def, double low,
 		newvalue[(intptr_t) endptr - (intptr_t) value] = newseparator;
 
 		v = strtod(newvalue, &endptr);
+		free(newvalue);
 	}
 
 	if (*endptr != 0 || v < low || v > high) {
@@ -144,7 +142,6 @@ double uade_convert_to_double(const char *value, double def, double low,
 		v = def;
 	}
 
-	free(newvalue);
 	return v;
 }
 
@@ -153,8 +150,7 @@ static void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 	size_t freespace = sizeof(opts->o) - opts->s;
 
 	if (strlcpy(&opts->o[opts->s], s, freespace) >= freespace) {
-		fprintf(stderr,
-			"Warning: uade eagleplayer option overflow: %s\n", s);
+		fprintf(stderr, "Warning: uade eagleplayer option overflow: %s\n", s);
 		return;
 	}
 
@@ -166,43 +162,21 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			     int flags, struct uade_attribute *attributelist)
 {
 	struct uade_attribute *a;
-	struct atcon {
-		int f;
-		int o;
-		char *v;
-	};
-
-	/* List of eagleplayer.conf and song.conf options that are mapped directly
-	   to a counterpart in uade.conf options */
-	struct atcon optlist[] = {
-		{.f = ES_A1200,.o = UC_FILTER_TYPE,.v = "a1200"},
-		{.f = ES_A500,.o = UC_FILTER_TYPE,.v = "a500"},
-		{.f = ES_ALWAYS_ENDS,.o = UC_DISABLE_TIMEOUTS},
-		{.f = ES_BROKEN_SONG_END,.o = UC_NO_EP_END},
-		{.f = ES_CONTENT_DETECTION,.o = UC_CONTENT_DETECTION},
-		{.f = ES_IGNORE_PLAYER_CHECK,.o = UC_IGNORE_PLAYER_CHECK},
-		{.f = ES_LED_OFF,.o = UC_FORCE_LED_OFF},
-		{.f = ES_LED_ON,.o = UC_FORCE_LED_ON},
-		{.f = ES_NO_FILTER,.o = UC_NO_FILTER},
-		{.f = ES_NO_HEADPHONES,.o = UC_NO_HEADPHONES},
-		{.f = ES_NO_PANNING,.o = UC_NO_PANNING},
-		{.f = ES_NO_POSTPROCESSING,.o = UC_NO_POSTPROCESSING},
-		{.f = ES_NTSC,.o = UC_NTSC},
-		{.f = ES_ONE_SUBSONG,.o = UC_ONE_SUBSONG},
-		{.f = ES_PAL,.o = UC_PAL},
-		{.f = ES_SPEED_HACK,.o = UC_SPEED_HACK},
-		{.f = 0}
-	};
 	size_t i;
 
-	for (i = 0; optlist[i].f != 0; i++) {
-		if (flags & optlist[i].f)
-			uade_set_config_option(uc, optlist[i].o, optlist[i].v);
+	for (i = 0; epconf[i].s != NULL; i++) {
+
+		if (epconf[i].o == 0)
+			continue;
+
+		if ((flags & epconf[i].e) == 0)
+			continue;
+
+		uade_set_config_option(uc, epconf[i].o, epconf[i].c);
 	}
 
 	if (flags & ES_NEVER_ENDS)
-		fprintf(stderr,
-			"uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
+		fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
 
 	if (flags & ES_REJECT)
 		return -1;
@@ -214,8 +188,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 		switch (a->type) {
 		case ES_EP_OPTION:
 			if (uc->verbose)
-				fprintf(stderr, "Using eagleplayer option %s\n",
-					a->s);
+				fprintf(stderr, "Using eagleplayer option %s\n", a->s);
 			uade_add_ep_option(&us->ep_options, a->s);
 			break;
 
@@ -233,18 +206,14 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 
 		case ES_PLAYER:
 			if (playername) {
-				snprintf(playername, playernamelen,
-					 "%s/players/%s", uc->basedir.name,
-					 a->s);
+				snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
 			} else {
-				fprintf(stderr,
-					"Error: attribute handling was given playername == NULL.\n");
+				fprintf(stderr, "Error: attribute handling was given playername == NULL.\n");
 			}
 			break;
 
 		case ES_SILENCE_TIMEOUT:
-			uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE,
-					       a->s);
+			uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
 			break;
 
 		case ES_SUBSONGS:
@@ -252,8 +221,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			break;
 
 		case ES_SUBSONG_TIMEOUT:
-			uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE,
-					       a->s);
+			uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
 			break;
 
 		case ES_TIMEOUT:
@@ -261,9 +229,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			break;
 
 		default:
-			fprintf(stderr,
-				"Unknown song attribute integer: 0x%x\n",
-				a->type);
+			fprintf(stderr,	"Unknown song attribute integer: 0x%x\n", a->type);
 			break;
 		}
 

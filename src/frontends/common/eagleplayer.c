@@ -1,9 +1,8 @@
-/* UADE
+/* 
+ * Loads contents of 'eagleplayer.conf'. The file formats are
+ * specified in doc/uade123.1.
  *
  * Copyright 2005-2007 Heikki Orsila <heikki.orsila@iki.fi>
- *
- * Loads contents of 'eagleplayer.conf' and 'song.conf'. The file formats are
- * specified in doc/uade123.1.
  *
  * This source code module is dual licensed under GPL and Public Domain.
  * Hence you may use _this_ module (not another code module) in any you
@@ -40,36 +39,32 @@
 #define eperror(fmt, args...) do { uadeerror("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
 
 
-struct epconfattr {
-	char *s;                     /* directive/variable name */
-	int e;                       /* internal enumerate for the attrib. */
-	enum uade_attribute_type t;  /* if variable, its special type */
-};
-
-
-/* Directives for eagleplayer.conf and song.conf */
-static const struct epconfattr epconf_directives[] = {
-	{.s = "a500",                     .e = ES_A500},
-	{.s = "a1200",                    .e = ES_A1200},
-	{.s = "always_ends",              .e = ES_ALWAYS_ENDS},
-	{.s = "broken_song_end",          .e = ES_BROKEN_SONG_END},
-	{.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION},
-	{.s = "ignore_player_check",      .e = ES_IGNORE_PLAYER_CHECK},
-	{.s = "led_off",                  .e = ES_LED_OFF},
-	{.s = "led_on",                   .e = ES_LED_ON},
-	{.s = "never_ends",               .e = ES_NEVER_ENDS},
-	{.s = "no_ep_end_detect",         .e = ES_BROKEN_SONG_END},
-	{.s = "no_filter",                .e = ES_NO_FILTER},
-	{.s = "no_headphones",            .e = ES_NO_HEADPHONES},
-	{.s = "no_panning",               .e = ES_NO_PANNING},
-	{.s = "no_postprocessing",        .e = ES_NO_POSTPROCESSING},
-	{.s = "ntsc",                     .e = ES_NTSC},
-	{.s = "one_subsong",              .e = ES_ONE_SUBSONG},
-	{.s = "pal",                      .e = ES_PAL},
-	{.s = "reject",                   .e = ES_REJECT},
-	{.s = "speed_hack",               .e = ES_SPEED_HACK},
+/* Table for associating eagleplayer.conf, song.conf and uade.conf options
+ * together.
+ */
+const struct epconfattr epconf[] = {
+	{.s = "a500",               .e = ES_A500,                .o = UC_FILTER_TYPE, .c = "a500"},
+	{.s = "a1200",              .e = ES_A1200,               .o = UC_FILTER_TYPE, .c = "a1200"},
+	{.s = "always_ends",        .e = ES_ALWAYS_ENDS,         .o = UC_DISABLE_TIMEOUTS},
+	{.s = "broken_song_end",    .e = ES_BROKEN_SONG_END,     .o = UC_NO_EP_END},
+	{.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION,   .o = UC_CONTENT_DETECTION},
+	{.s = "ignore_player_check",.e = ES_IGNORE_PLAYER_CHECK, .o = UC_IGNORE_PLAYER_CHECK},
+	{.s = "led_off",            .e = ES_LED_OFF,             .o = UC_FORCE_LED_OFF},
+	{.s = "led_on",             .e = ES_LED_ON,              .o = UC_FORCE_LED_ON},
+	{.s = "never_ends",         .e = ES_NEVER_ENDS,          .o = 0},
+	{.s = "no_ep_end_detect",   .e = ES_BROKEN_SONG_END,     .o = UC_NO_EP_END},
+	{.s = "no_filter",          .e = ES_NO_FILTER,           .o = UC_NO_FILTER},
+	{.s = "no_headphones",      .e = ES_NO_HEADPHONES,       .o = UC_NO_HEADPHONES},
+	{.s = "no_panning",         .e = ES_NO_PANNING,          .o = UC_NO_PANNING},
+	{.s = "no_postprocessing",  .e = ES_NO_POSTPROCESSING,   .o = UC_NO_POSTPROCESSING},
+	{.s = "ntsc",               .e = ES_NTSC,                .o = UC_NTSC},
+	{.s = "one_subsong",        .e = ES_ONE_SUBSONG,         .o = UC_ONE_SUBSONG},
+	{.s = "pal",                .e = ES_PAL,                 .o = UC_PAL},
+	{.s = "reject",             .e = ES_REJECT,              .o = 0},
+	{.s = "speed_hack",         .e = ES_SPEED_HACK,          .o = UC_SPEED_HACK},
 	{.s = NULL}
 };
+
 
 /* Variables for eagleplayer.conf and song.conf */
 static const struct epconfattr epconf_variables[] = {
@@ -263,9 +258,9 @@ int uade_song_and_player_attribute(struct uade_attribute **attributelist,
 {
 	size_t i, len;
 
-	for (i = 0; epconf_directives[i].s != NULL; i++) {
-		if (strcasecmp(item, epconf_directives[i].s) == 0) {
-			*flags |= epconf_directives[i].e;
+	for (i = 0; epconf[i].s != NULL; i++) {
+		if (strcasecmp(item, epconf[i].s) == 0) {
+			*flags |= epconf[i].e;
 			return 1;
 		}
 	}
@@ -483,6 +478,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 
 	assert(exti == ps->nextensions);
 
+	/* Make the extension map bsearch() ready */
 	qsort(ps->map, ps->nextensions, sizeof(ps->map[0]), ufcompare);
 
 	return ps;
