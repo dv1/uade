@@ -175,7 +175,7 @@ char *xfgets(char *s, int size, FILE *stream)
 		if (ret != NULL)
 			break;
 
-		if (feof(stream) || ferror(stream))
+		if (feof(stream))
 			break;
 	}
 
