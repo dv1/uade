@@ -115,6 +115,9 @@ int uade_seek_forward;        /* Lock before use */
 int uade_select_sub;          /* Lock before use */
 
 
+static int uade_config_optimization;
+
+
 static pthread_mutex_t vlock = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -306,9 +309,17 @@ static int uadexmms_is_our_file(char *filename)
 
   uade_lock();
 
+
+  /* This is a performance optimization to avoid re-reading uade.conf
+   * when state.config hasn't yet been read. uade_is_our_file() needs the
+   * config. */
   if (!state.validconfig) {
     state.config = config_backup;
     state.validconfig = 1;
+
+    /* Verify that this condition is true at most once */
+    assert(!uade_config_optimization);
+    uade_config_optimization = 1;
   }
 
   ret = uade_is_our_file(filename, 1, &state) ? TRUE : FALSE;
