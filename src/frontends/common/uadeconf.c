@@ -43,7 +43,7 @@ struct uade_conf_opts {
 static const struct uade_conf_opts uadeconfopts[] = {
 	{.str = "action_keys",           .l = 1,  .e = UC_ACTION_KEYS},
 	{.str = "buffer_time",           .l = 1,  .e = UC_BUFFER_TIME},
-	{.str = "detect_format_by_detection", .l = 1, .e = UC_CONTENT_DETECTION},
+	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
 	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
 	{.str = "enable_timeout",        .l = 2,  .e = UC_ENABLE_TIMEOUTS},
 	{.str = "ep_option",             .l = 2,  .e = UC_EAGLEPLAYER_OPTION},
@@ -553,6 +553,11 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		}
 		break;
 
+	case UC_CONTENT_DETECTION:
+		uc->content_detection = 1;
+		uc->content_detection_set = 1;
+		break;
+
 	case UC_DISABLE_TIMEOUTS:
 		uc->use_timeouts = 0;
 		uc->use_timeouts_set = 1;
@@ -782,11 +787,6 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 	case UC_SPEED_HACK:
 		uc->speed_hack = 1;
 		uc->speed_hack_set = 1;
-		break;
-
-	case UC_CONTENT_DETECTION:
-		uc->content_detection = 1;
-		uc->content_detection_set = 1;
 		break;
 
 	case UC_SUBSONG_TIMEOUT_VALUE:

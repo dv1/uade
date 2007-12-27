@@ -48,6 +48,7 @@ const struct epconfattr epconf[] = {
 	{.s = "always_ends",        .e = ES_ALWAYS_ENDS,         .o = UC_DISABLE_TIMEOUTS},
 	{.s = "broken_song_end",    .e = ES_BROKEN_SONG_END,     .o = UC_NO_EP_END},
 	{.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION,   .o = UC_CONTENT_DETECTION},
+	{.s = "detect_format_by_name",    .e = ES_NAME_DETECTION,      .o = 0},
 	{.s = "ignore_player_check",.e = ES_IGNORE_PLAYER_CHECK, .o = UC_IGNORE_PLAYER_CHECK},
 	{.s = "led_off",            .e = ES_LED_OFF,             .o = UC_FORCE_LED_OFF},
 	{.s = "led_on",             .e = ES_LED_ON,              .o = UC_FORCE_LED_ON},
@@ -124,7 +125,8 @@ static struct eagleplayer *analyze_file_format(int *content,
 	struct stat st;
 	char ext[MAX_SUFFIX_LENGTH];
 	FILE *f;
-	struct eagleplayer *candidate = NULL;
+	struct eagleplayer *contentcandidate = NULL;
+	struct eagleplayer *namecandidate = NULL;
 	char *prefix, *postfix, *t;
 	size_t bufsize, bytesread;
 	uint8_t buf[8192];
@@ -146,8 +148,8 @@ static struct eagleplayer *analyze_file_format(int *content,
 
 	uade_filemagic(buf, bytesread, ext, st.st_size, state->config.verbose);
 
-	if (state->config.verbose)
-		fprintf(stderr, "%s: deduced extension: %s\n", modulename, ext);
+	if (ext[0] != 0 && state->config.verbose)
+		fprintf(stderr, "Content recognized: %s (%s)\n", ext, modulename);
 
 	if (strcmp(ext, "packed") == 0)
 		return NULL;
@@ -155,28 +157,12 @@ static struct eagleplayer *analyze_file_format(int *content,
 	if (!load_playerstore(state))
 		return NULL;
 
-	/* If filemagic found a match, we'll use player plugins associated with
-	   that extension */
-	if (ext[0]) {
-		candidate = get_eagleplayer(ext, state->playerstore);
-		if (candidate != NULL) {
-			*content = 1;
-			return candidate;
-		}
-
-		if (state->config.verbose)
-			fprintf(stderr,	"%s not in eagleplayer.conf\n", ext);
-	}
-
-	if (state->config.verbose)
-		fprintf(stderr, "Format detection by filename\n");
-
+	/* First do filename detection (we'll later do content detection) */
 	t = xbasename(modulename);
 
 	if (strlcpy(buf, t, sizeof buf) >= sizeof buf)
 		return NULL;
 
-	/* Magic wasn't able to deduce the format, so try modulename prefix */
 	t = strchr(buf, '.');
 	if (t == NULL)
 		return NULL;
@@ -184,21 +170,41 @@ static struct eagleplayer *analyze_file_format(int *content,
 	*t = 0;
 	prefix = buf;
 
-	if (strlen(prefix) < MAX_SUFFIX_LENGTH) {
-		candidate = get_eagleplayer(prefix, state->playerstore);
-		if (candidate != NULL)
-			return candidate;
+	if (strlen(prefix) < MAX_SUFFIX_LENGTH)
+		namecandidate = get_eagleplayer(prefix, state->playerstore);
+
+	if (namecandidate == NULL) {
+		/* Try postfix */
+		t = xbasename(modulename);
+		strlcpy(buf, t, sizeof buf);
+		postfix = strrchr(buf, '.') + 1; /* We know postfix != NULL */
+
+		if (strlen(postfix) < MAX_SUFFIX_LENGTH)
+			namecandidate = get_eagleplayer(postfix, state->playerstore);
 	}
 
-	/* Try postfix */
-	t = xbasename(modulename);
-	strlcpy(buf, t, sizeof buf);
-	postfix = strrchr(buf, '.') + 1; /* We know postfix != NULL */
+	/* If filemagic found a match, we'll use player plugins associated with
+	   that extension */
+	if (ext[0]) {
+		contentcandidate = get_eagleplayer(ext, state->playerstore);
+		if (contentcandidate != NULL) {
+			/* Do not recognize name detectable eagleplayers by
+			   content */
+			if (namecandidate == NULL ||
+			    (namecandidate->flags & ES_NAME_DETECTION) == 0) {
+				*content = 1;
+				return contentcandidate;
+			}
+		} else {
+			if (state->config.verbose)
+				fprintf(stderr,	"%s not in eagleplayer.conf\n", ext);
+		}
+	}
 
-	if (strlen(postfix) < MAX_SUFFIX_LENGTH)
-		candidate = get_eagleplayer(postfix, state->playerstore);
+	if (state->config.verbose)
+		fprintf(stderr, "Format detection by filename\n");
 
-	return candidate;
+	return namecandidate;
 }
 
 

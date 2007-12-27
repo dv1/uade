@@ -368,6 +368,13 @@ broken_song_end      Song end reported by the eagleplayer is ignored
 detect_format_by_content  A song can only be detected by contents,
                      never by filename prefix or postfix
 .br
+detect_format_by_name     eagleplayer.conf only: the eagleplayer is
+                     detected by name extension only. Furthermore,
+                     any eagleplayer that recognizes the same file by
+                     content is ignored. Do not use this option
+                     without a good reason. Name extensions are
+                     unreliable.
+.br
 epopt=x              Append option x for eagleplayer. Valid options
                      are listed in section "EAGLEPLAYER OPTIONS".
 .br
