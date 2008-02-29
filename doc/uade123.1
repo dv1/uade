@@ -719,7 +719,7 @@ the command line. Put hackuade script somewhere in your command $PATH:
 
 #!/bin/sh
 
-uade123 -f /dev/stdout --stderr "$@" |aplay -c2 -r44100 -fS16_LE
+uade123 -c "$@" |aplay
 
 .SH "INFORMATION SOURCES"
 .TP

@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
     {"silence-timeout",  1, NULL, 'y'},
     {"speed-hack",       0, NULL, UC_SPEED_HACK},
     {"stderr",           0, NULL, OPT_STDERR},
+    {"stdout",           0, NULL, 'c'},
     {"subsong",          1, NULL, 's'},
     {"subsong-timeout",  1, NULL, 'w'},
     {"timeout",          1, NULL, 't'},
@@ -211,8 +212,9 @@ int main(int argc, char *argv[])
          exit(1); \
       }
 
-  while ((ret = getopt_long(argc, argv, "@:1de:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
     switch (ret) {
+
     case '@':
       do {
 	FILE *listfile = fopen(optarg, "r");
@@ -240,6 +242,13 @@ int main(int argc, char *argv[])
     case '1':
       uade_set_config_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
       break;
+
+    case 'c':
+      strlcpy(uade_output_file_name, "/dev/stdout", sizeof uade_output_file_name);
+      /* Output sample data to stdout so do not print anything on stdout */
+      uade_terminal_file = stderr;
+      break;
+
     case 'd':
       debug_mode = 1;
       uade_debug_trigger = 1;
@@ -247,24 +256,30 @@ int main(int argc, char *argv[])
     case 'e':
       GET_OPT_STRING(uade_output_file_format);
       break;
+
     case 'f':
       GET_OPT_STRING(uade_output_file_name);
       break;
+
     case 'g':
       uade_info_mode = 1;
       uade_no_audio_output = 1;
       uade_no_text_output = 1;
       uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, "off");
       break;
+
     case 'G':
       uade_set_config_option(&uc_cmdline, UC_GAIN, optarg);
       break;
+
     case 'h':
       print_help();
       exit(0);
+
     case 'i':
       uade_set_config_option(&uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
       break;
+
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
       if (*endptr != 0 || uade_jump_pos < 0.0) {
@@ -272,27 +287,34 @@ int main(int argc, char *argv[])
 	exit(1);
       }
       break;
+
     case 'k':
       uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, optarg);
       break;
+
     case 'm':
       playlist_add(&uade_playlist, optarg, 0);
       have_modules = 1;
       break;
+
     case 'n':
       uade_set_config_option(&uc_cmdline, UC_NO_EP_END, NULL);
       break;
+
     case 'p':
       uade_set_config_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
       break;
+
     case 'P':
       GET_OPT_STRING(playername);
       playernamegiven = 1;
       have_modules = 1;
       break;
+
     case 'r':
       uade_set_config_option(&uc_cmdline, UC_RECURSIVE_MODE, NULL);
       break;
+
     case 's':
       subsong = strtol(optarg, &endptr, 10);
       if (*endptr != 0 || subsong < 0 || subsong > 255) {
@@ -300,30 +322,39 @@ int main(int argc, char *argv[])
 	exit(1);
       }
       break;
+
     case 'S':
       GET_OPT_STRING(scorename);
       break;
+
     case 't':
       uade_set_config_option(&uc_cmdline, UC_TIMEOUT_VALUE, optarg);
       break;
+
     case 'u':
       GET_OPT_STRING(uadename);
       break;
+
     case 'v':
       uade_set_config_option(&uc_cmdline, UC_VERBOSE, NULL);
       break;
+
     case 'w':
       uade_set_config_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
       break;
+
     case 'x':
       uade_set_config_option(&uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
       break;
+
     case 'y':
       uade_set_config_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
       break;
+
     case 'z':
       uade_set_config_option(&uc_cmdline, UC_RANDOM_PLAY, NULL);
       break;
+
     case '?':
     case ':':
       exit(1);
@@ -637,90 +668,94 @@ int main(int argc, char *argv[])
 static void print_help(void)
 {
   printf("uade123 %s\n", UADE_VERSION);
-  printf(" by Heikki Orsila <heikki.orsila@iki.fi>\n");
-  printf("    Michael Doering <mldoering@gmx.net>\n");
-  printf("uadecore is based on the UAE source code. UAE is made by Bernd Schmidt et al.\n");
-  printf("\n");
-  printf("Usage: uade123 [<options>] <input file> ...\n");
-  printf("\n");
-  printf("Expert options:\n");
-  printf(" --basedir=dirname,  Set uade base directory (contains data files)\n");
-  printf(" -d, --debug,        Enable debug mode (expert only)\n");
-  printf(" -S filename,        Set sound core name\n");
-  printf(" --scope             Turn on Paula hardware register debug mode\n");
-  printf(" -u uadename,        Set uadecore executable name\n");
-  printf("\n");
-  printf("Normal options:\n");
-  printf(" -1, --one,          Play at most one subsong per file\n");
-  printf(" -@ filename, --list=filename,  Read playlist of files from 'filename'\n");
-  printf(" --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n");
-  printf("                     value is determined by the libao.\n");
-  printf(" --detect-format-by-content, Detect modules strictly by file content.\n");
-  printf("                     Detection will ignore file name prefixes.\n");
-  printf(" --disable-timeouts, Disable timeouts. This can be used for songs that are\n");
-  printf("                     known to end. Useful for recording fixed time pieces.\n");
-  printf("                     Some formats, such as protracker, disable timeouts\n");
-  printf("                     automatically, because it is known they will always end.\n");
-  printf(" -e format,          Set output file format. Use with -f. wav is the default\n");
-  printf("                     format.\n");
-  printf(" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n");
-  printf(" -f filename,        Write audio output into 'filename' (see -e also)\n");
-  printf(" --filter=model      Set filter model to A500, A1200 or NONE. The default is\n");
-  printf("                     A500. NONE means disabling the filter.\n");
-  printf(" --filter,           Enable filter emulation. It is enabled by default.\n");
-  printf(" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n");
-  printf(" --frequency=x,      Set output frequency to x Hz. The default is 44,1 kHz.\n");
-  printf(" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1,0.\n");
-  printf(" -g, --get-info,     Just print playername and subsong info on stdout.\n");
-  printf("                     Do not play.\n");
-  printf(" -h, --help,         Print help\n");
-  printf(" --headphones,       Enable headphones postprocessing effect.\n");
-  printf(" --headphones2       Enable headphones 2 postprocessing effect.\n");
-  printf(" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n");
-  printf(" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n");
-  printf("                     fractions of a second are allowed too.\n");
-  printf(" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n");
-  printf("                     on terminal. \n");
-  printf(" -m filename,        Set module name\n");
-  printf(" -n, --no-ep-end-detect, Ignore song end reported by the eagleplayer. Just\n");
-  printf("                     keep playing. This does not affect timeouts. Check -w.\n");
-  printf(" --ntsc,             Set NTSC mode for playing (can be buggy).\n");
-  printf(" --pal,              Set PAL mode (default)\n");
-  printf(" --normalise,        Enable normalise postprocessing effect.\n");
-  printf(" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n");
-  printf("                     1 is mono, and 2 is inverse stereo. The default is 0,7.\n");
-  printf(" -P filename,        Set player name\n");
-  printf(" -r, --recursive,    Recursive directory scan\n");
-  printf(" --repeat,           Play playlist over and over again\n");
-  printf(" --resampler=x       Set resampling method to x, where x = default, sinc\n");
-  printf("                     or none.\n");
-  printf(" -s x, --subsong=x,  Set subsong 'x'\n");
-  printf(" --set=\"options\"     Set song.conf options for each given song.\n");
-  printf(" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n");
-  printf(" --stderr,           Print messages on stderr.\n");
-  printf(" -t x, --timeout=x,  Set song timeout in seconds. -1 is infinite.\n");
-  printf("                     Default is infinite.\n");
-  printf(" -v,  --verbose,     Turn on verbose mode\n");
-  printf(" -w x, --subsong-timeout=x,  Set subsong timeout in seconds. -1 is infinite.\n");
-  printf("                             Default is 512s\n");
-  printf(" -x y, --ep-option=y, Use eagleplayer option y. Option can be used many times.\n");
-  printf("                      Example: uade123 -x type:nt10 mod.foobar, will play\n");
-  printf("                      mod.foobar as a Noisetracker 1.0 module. See eagleplayer\n");
-  printf("                      options from the man page.\n");
-  printf(" -y x, --silence-timeout=x,  Set silence timeout in seconds. -1 is infinite.\n");
-  printf("                         Default is 20s\n");
-  printf(" -z, --shuffle,      Randomize playlist order before playing.\n");
-  printf("\n");
+  printf(
+"\n"
+"Usage: uade123 [<options>] <input file> ...\n"
+"\n"
+"OPTIONS:\n"
+"\n"
+" -1, --one,          Play at most one subsong per file\n"
+" -@ filename, --list=filename,  Read playlist of files from 'filename'\n"
+" --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n"
+"                     value is determined by the libao.\n"
+" -c, --stdout        Write sample data to stdout\n"
+" --detect-format-by-content, Detect modules strictly by file content.\n"
+"                     Detection will ignore file name prefixes.\n"
+" --disable-timeouts, Disable timeouts. This can be used for songs that are\n"
+"                     known to end. Useful for recording fixed time pieces.\n"
+"                     Some formats, such as protracker, disable timeouts\n"
+"                     automatically, because it is known they will always end.\n"
+" -e format,          Set output file format. Use with -f. wav is the default\n"
+"                     format.\n"
+" --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n"
+" -f filename,        Write audio output into 'filename' (see -e also)\n"
+" --filter=model      Set filter model to A500, A1200 or NONE. The default is\n"
+"                     A500. NONE means disabling the filter.\n"
+" --filter,           Enable filter emulation. It is enabled by default.\n"
+" --force-led=0/1,    Force LED state to 0 or 1. That is, filter is OFF or ON.\n"
+" --frequency=x,      Set output frequency to x Hz. The default is 44,1 kHz.\n"
+" -G x, --gain=x,     Set volume gain to x in range [0, 128]. Default is 1,0.\n"
+" -g, --get-info,     Just print playername and subsong info on stdout.\n"
+"                     Do not play.\n"
+" -h, --help,         Print help\n"
+" --headphones,       Enable headphones postprocessing effect.\n"
+" --headphones2       Enable headphones 2 postprocessing effect.\n"
+" -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n"
+" -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n"
+"                     fractions of a second are allowed too.\n"
+" -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n"
+"                     on terminal. \n"
+" -m filename,        Set module name\n"
+" -n, --no-ep-end-detect, Ignore song end reported by the eagleplayer. Just\n"
+"                     keep playing. This does not affect timeouts. Check -w.\n"
+" --ntsc,             Set NTSC mode for playing (can be buggy).\n"
+" --pal,              Set PAL mode (default)\n"
+" --normalise,        Enable normalise postprocessing effect.\n"
+" -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n"
+"                     1 is mono, and 2 is inverse stereo. The default is 0,7.\n"
+" -P filename,        Set player name\n"
+" -r, --recursive,    Recursive directory scan\n"
+" --repeat,           Play playlist over and over again\n"
+" --resampler=x       Set resampling method to x, where x = default, sinc\n"
+"                     or none.\n"
+" -s x, --subsong=x,  Set subsong 'x'\n"
+" --set=\"options\"     Set song.conf options for each given song.\n"
+" --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n"
+" --stderr,           Print messages on stderr rather than stdout\n"
+" -t x, --timeout=x,  Set song timeout in seconds. -1 is infinite.\n"
+"                     The default is infinite.\n"
+" -v,  --verbose,     Turn on verbose mode\n"
+" -w x, --subsong-timeout=x,  Set subsong timeout in seconds. -1 is infinite.\n"
+"                             Default is 512s\n"
+" -x y, --ep-option=y, Use eagleplayer option y. Option can be used many times.\n"
+"                      Example: uade123 -x type:nt10 mod.foobar, will play\n"
+"                      mod.foobar as a Noisetracker 1.0 module. See eagleplayer\n"
+"                      options from the man page.\n"
+" -y x, --silence-timeout=x,  Set silence timeout in seconds. -1 is infinite.\n"
+"                         Default is 20s\n"
+" -z, --shuffle,      Randomize playlist order before playing.\n"
+"\n"
+"EXPERT OPTIONS:\n"
+"\n"
+" --basedir=dirname,  Set uade base directory (contains data files)\n"
+" -d, --debug,        Enable debug mode (expert only)\n"
+" -S filename,        Set sound core name\n"
+" --scope             Turn on Paula hardware register debug mode\n"
+" -u uadename,        Set uadecore executable name\n"
+"\n");
+
   print_action_keys();
-  printf("\n");
-  printf("Example: Play all songs under /chip/fc directory in shuffling mode:\n");
-  printf("  uade -z /chip/fc/*\n"); 
+
+  printf(
+"\n"
+"Example: Play all songs under /chip/fc directory in shuffling mode:\n"
+"  uade -z /chip/fc/*\n");
 }
 
 
 void print_action_keys(void)
 {
-  tprintf("Action keys for interactive mode:\n");
+  tprintf("ACTION KEYS FOR INTERACTIVE MODE:\n");
   tprintf(" [0-9]         Change subsong.\n");
   tprintf(" '<'           Previous song.\n");
   tprintf(" '.'           Skip 10 seconds forward.\n");
