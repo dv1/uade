@@ -702,7 +702,25 @@ Play files under /path recursively in random order.
 .TP
 \fBuade123 \--set=epopt=type:pt10 mod.foo\fR
 .br
-Set protracker compatibility to Protracker 1.0c for mod.foo. See also -x.
+Set protracker compatibility to Protracker 1.0c for mod.foo.
+After this uade will remember epopt=type:pt10 for mod.foo.
+See -x option also.
+
+.SH "TIPS AND WORKAROUNDS"
+.TP
+\fB1.\fR
+uade123 users libao to play audio. However, some distributions have a broken
+or badly configured libao. This can be workarounded with a simple shell script
+that uses ALSA's
+\fBaplay\fR
+for playback. It works for ordinary cases.
+You can call it hackuade and issue "hackuade -zr /music/chip" on 
+the command line. Put hackuade script somewhere in your command $PATH:
+
+#!/bin/sh
+
+uade123 -f /dev/stdout --stderr "$@" |aplay -c2 -r44100 -fS16_LE
+
 .SH "INFORMATION SOURCES"
 .TP
 .B Public web forum
