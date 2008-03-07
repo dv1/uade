@@ -23,13 +23,12 @@
 #include <unistd.h>
 
 #include "uadecontrol.h"
-#include "uadeipc.h"
 #include "strlrep.h"
 #include "uadeconfig.h"
-#include "eagleplayer.h"
 #include "uadeconf.h"
 #include "sysincludes.h"
 #include "songdb.h"
+#include "uadestate.h"
 
 #include "uadesimple.h"
 #include "playloop.h"
@@ -52,42 +51,38 @@ int main(int argc, char *argv[])
     int ret;
     int uadeconf_loaded;
     char uadeconfname[PATH_MAX];
-    struct uade_effect effects;
-    struct uade_config uc, uc_main;
-    struct uade_ipc uadeipc;
     int songindex;
-    int uadepid;
+    struct uade_state state;
+
+    memset(&state, 0, sizeof state);
 
     uadeconf_loaded = uade_load_initial_config(uadeconfname,
 					       sizeof uadeconfname,
-					       &uc_main, NULL);
-
-    /* Merge loaded configurations and command line options */
-    uc = uc_main;
+					       &state.config, NULL);
 
     if (uadeconf_loaded == 0) {
-	debug(uc.verbose,
+	debug(state.config.verbose,
 	      "Not able to load uade.conf from ~/.uade2/ or %s/.\n",
-	      uc.basedir.name);
+	      state.config.basedir.name);
     } else {
-	debug(uc.verbose, "Loaded configuration: %s\n", uadeconfname);
+	debug(state.config.verbose, "Loaded configuration: %s\n", uadeconfname);
     }
 
     do {
 	DIR *bd;
-	if ((bd = opendir(uc.basedir.name)) == NULL) {
+	if ((bd = opendir(state.config.basedir.name)) == NULL) {
 	    fprintf(stderr, "Could not access dir %s: %s\n",
-		    uc.basedir.name, strerror(errno));
+		    state.config.basedir.name, strerror(errno));
 	    exit(1);
 	}
 	closedir(bd);
 
 	snprintf(configname, sizeof configname, "%s/uaerc",
-		 uc.basedir.name);
+		 state.config.basedir.name);
 
 	if (scorename[0] == 0)
 	    snprintf(scorename, sizeof scorename, "%s/score",
-		     uc.basedir.name);
+		     state.config.basedir.name);
 
 	if (uadename[0] == 0)
 	    strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof uadename);
@@ -109,13 +104,12 @@ int main(int argc, char *argv[])
 	}
     } while (0);
 
-    uade_spawn(&uadeipc, &uadepid, uadename, configname);
+    uade_spawn(&state, uadename, configname);
 
-    if (!audio_init(uc.frequency, uc.buffer_time))
+    if (!audio_init(state.config.frequency, state.config.buffer_time))
 	goto cleanup;
 
     for (songindex = 1; songindex < argc; songindex++) {
-	struct uade_song *us;
 	/* modulename and songname are a bit different. modulename is the name
 	   of the song from uadecore's point of view and songname is the
 	   name of the song from user point of view. Sound core considers all
@@ -123,25 +117,24 @@ int main(int argc, char *argv[])
 	   will become a zero-string with custom songs. */
 	char modulename[PATH_MAX];
 	char songname[PATH_MAX];
-	struct eagleplayer *ep = NULL;
 
 	strlcpy(modulename, argv[songindex], sizeof modulename);
 
-	uc = uc_main;
+	state.song = NULL;
+	state.ep = NULL;
 
-	ep = uade_analyze_file_format(modulename, &uc);
-	if (ep == NULL) {
+	if (!uade_is_our_file(modulename, 0, &state)) {
 	    fprintf(stderr, "Unknown format: %s\n", modulename);
 	    continue;
 	}
 
-	debug(uc.verbose, "Player candidate: %s\n", ep->playername);
+	debug(state.config.verbose, "Player candidate: %s\n", state.ep->playername);
 
-	if (strcmp(ep->playername, "custom") == 0) {
+	if (strcmp(state.ep->playername, "custom") == 0) {
 	    strlcpy(playername, modulename, sizeof playername);
 	    modulename[0] = 0;
 	} else {
-	  snprintf(playername, sizeof playername, "%s/players/%s", uc.basedir.name, ep->playername);
+	  snprintf(playername, sizeof playername, "%s/players/%s", state.config.basedir.name, state.ep->playername);
 	}
 
 	if (strlen(playername) == 0) {
@@ -154,7 +147,7 @@ int main(int argc, char *argv[])
 	strlcpy(songname, modulename[0] ? modulename : playername,
 		sizeof songname);
 
-	if ((us = uade_alloc_song(songname)) == NULL) {
+	if (!uade_alloc_song(&state, songname)) {
 	    fprintf(stderr, "Can not read %s: %s\n", songname,
 		    strerror(errno));
 	    continue;
@@ -167,35 +160,36 @@ int main(int argc, char *argv[])
 	 * 3. set command line options
 	 */
 
-	if (ep != NULL)
-	    uade_set_ep_attributes(&uc, us, ep);
+	if (state.ep != NULL)
+	    uade_set_ep_attributes(&state);
 
 	/* Now we have the final configuration in "uc". */
-	uade_set_effects(&effects, &uc);
+	uade_set_effects(&state);
 
 	playerfile = fopen(playername, "r");
 	if (playerfile == NULL) {
 	    fprintf(stderr, "Can not find player: %s (%s)\n", playername,
 		    strerror(errno));
-	    uade_unalloc_song(us);
+	    uade_unalloc_song(&state);
 	    continue;
 	}
 	fclose(playerfile);
 
-	debug(uc.verbose, "Player: %s\n", playername);
+	debug(state.config.verbose, "Player: %s\n", playername);
 
-	fprintf(stderr, "Song: %s (%zd bytes)\n", us->module_filename, us->bufsize);
+	fprintf(stderr, "Song: %s (%zd bytes)\n",
+		state.song->module_filename, state.song->bufsize);
 
 	ret = uade_song_initialization(scorename, playername, modulename,
-				       us, &uadeipc, &uc);
+				       &state);
 	if (ret) {
 	    if (ret == UADECORE_INIT_ERROR) {
-		uade_unalloc_song(us);
+		uade_unalloc_song(&state);
 		goto cleanup;
 
 	    } else if (ret == UADECORE_CANT_PLAY) {
-		debug(uc.verbose, "Uadecore refuses to play the song.\n");
-		uade_unalloc_song(us);
+		debug(state.config.verbose, "Uadecore refuses to play the song.\n");
+		uade_unalloc_song(&state);
 		continue;
 	    }
 
@@ -203,9 +197,9 @@ int main(int argc, char *argv[])
 	    exit(1);
 	}
 
-	play_loop(&uadeipc, us, &effects, &uc);
+	play_loop(&state);
 
-	uade_unalloc_song(us);
+	uade_unalloc_song(&state);
 
 	uade_song_end_trigger = 0;
     }
