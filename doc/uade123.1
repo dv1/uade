@@ -576,7 +576,17 @@ PTK-Prowiz          epopt=vblank
                                   pt11b (Protracker 1.1b - 2.1a)
                                   pt23a (Protracker 2.3)
                                   pt30b (Protracker 3.0b)
-
+.sp 1
+                    example: uade123 -x type:nt20 mod.foobar
+.sp 1
+Infogrames          epopt=timer=x
+.br
+                        This option is used to set playback speed.
+                        Higher value means slower playback. This is the
+                        CIA timer register value.
+                        x is a hexadecimal value. The default is 1a00.
+.sp 1
+                        example: uade123 -x timer=24ff gobliins31.dum
 .br
 .SH "SUPPORTED FORMATS"
 Quite a few. See documentation, eagleplayer.conf and players/ directory.
