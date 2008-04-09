@@ -53,9 +53,6 @@ for opt in "$@" ; do
         --bindir=*)
                 bindir=`echo $opt | sed -n 's/--bindir=\(.*\)/\1/p'`
                 ;;
-	--docdir=*)
-		docdir=`echo $opt | sed -n 's/--docdir=\(.*\)/\1/p'`
-		;;
 	--includedir=*)
 		includedir=`echo $opt | sed -n 's/--includedir=\(.*\)/\1/p'`
 		;;
@@ -143,7 +140,6 @@ for opt in "$@" ; do
                 echo " --prefix=path          Install program under 'path'"
 	        echo " --package-prefix=path  File installation prefix (for package maintainers)"
 		echo " --bindir=dir           Install executables into this directory"
-		echo " --docdir=dir           Install documentation into this directory"
 		echo " --includedir=dir       Add this directory to compilation include path"
 		echo " --make=exe             Use 'exe' as the make command"
 		echo " --mandir=dir           Install man page to this directory"
@@ -341,9 +337,6 @@ if test "$user" = "no"; then
 	    audaciousplugindir="`$PKG_CONFIG audacious --variable=input_plugin_dir`"
 	fi
     fi
-    if test -z "$docdir"; then
-	docdir="$prefix/share/doc/uade-$VERSION"
-    fi
     if test -z "$mandir"; then
 	mandir="$prefix/share/man/man1"
     fi
@@ -370,9 +363,6 @@ else
 		audaciousplugindir="$HOME/.local/share/audacious/Plugins"	
 	    fi
 	fi
-    fi
-    if test -z "$docdir"; then
-	docdir="$prefix/uade-$VERSION"
     fi
     if test -z "$mandir"; then
 	mandir="$prefix/man/man1"
@@ -461,13 +451,12 @@ EOF
 fi
 
 echo ""
-echo "UADE and frontends will be installed to : $bindir"
-echo "Data directory will be                  : $uadedatadir"
-echo "Uadecore directory:                     : $uadelibdir"
-echo "Documentation directory will be         : $docdir"
-echo "Man directory will be                   : $mandir"
-echo "Installer that will be used             : $INSTALLTEST"
-echo "Make that will be used during the build : $MAKE"
+echo "UADE and frontends is installed to      : $bindir"
+echo "Data directory                          : $uadedatadir"
+echo "Uadecore directory                      : $uadelibdir"
+echo "Man (documentation) directory           : $mandir"
+echo "Installer                               : $INSTALLTEST"
+echo "Make                                    : $MAKE"
 if test "$TARGETCC" != "$NATIVECC" ; then
     echo "Native CC                               : $NATIVECC"
 fi
@@ -573,30 +562,7 @@ else
     audaciousplugininstallrule=""
 fi
 
-sed -e "s|{MAKE}|$MAKE|g" \
-    -e "s|{DATADIR}|$uadedatadir|g" \
-    -e "s|{BINDIR}|$bindir|g" \
-    -e "s|{DOCDIR}|$docdir|g" \
-    -e "s|{MANDIR}|$mandir|g" \
-    -e "s|{LIBDIR}|$uadelibdir|g" \
-    -e "s|{PACKAGEPREFIX}|$packageprefix|g" \
-    -e "s|{UADECORENAME}|$UADECORENAME|g" \
-    -e "s|{UADECORE}|$uadecorerule|g" \
-    -e "s|{UADECOREINSTALL}|$uadecoreinstallrule|g" \
-    -e "s|{UADE123NAME}|$UADE123NAME|g" \
-    -e "s|{UADE123}|$uade123rule|g" \
-    -e "s|{UADE123INSTALL}|$uade123installrule|g" \
-    -e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
-    -e "s|{XMMSPLUGININSTALL}|$xmmsplugininstallrule|g" \
-    -e "s|{XMMSPLUGINDIR}|$xmmsplugindir|g" \
-    -e "s|{AUDACIOUSPLUGIN}|$audaciouspluginrule|g" \
-    -e "s|{AUDACIOUSPLUGININSTALL}|$audaciousplugininstallrule|g" \
-    -e "s|{AUDACIOUSPLUGINDIR}|$audaciousplugindir|g" \
-    -e "s|{PKGCONFIGDIR}|$pkgconfigdir|g" \
-    Makefile.in > Makefile
-
-for file in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mod2ogg2.sh.in ; do
-    dst="`echo $file |sed -e "s|\.in||"`"
+function replace_with_sed() {
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
 	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
 	-e "s|{AOFLAGS}|$AOFLAGS|g" \
@@ -614,7 +580,33 @@ for file in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mo
 	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
 	-e "s|{VERSION}|$VERSION|g" \
-	"$file" > "$dst"
+	-e "s|{MAKE}|$MAKE|g" \
+	-e "s|{DATADIR}|$uadedatadir|g" \
+	-e "s|{BINDIR}|$bindir|g" \
+	-e "s|{MANDIR}|$mandir|g" \
+	-e "s|{LIBDIR}|$uadelibdir|g" \
+	-e "s|{PACKAGEPREFIX}|$packageprefix|g" \
+	-e "s|{UADECORENAME}|$UADECORENAME|g" \
+	-e "s|{UADECORE}|$uadecorerule|g" \
+	-e "s|{UADECOREINSTALL}|$uadecoreinstallrule|g" \
+	-e "s|{UADE123NAME}|$UADE123NAME|g" \
+	-e "s|{UADE123}|$uade123rule|g" \
+	-e "s|{UADE123INSTALL}|$uade123installrule|g" \
+	-e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
+	-e "s|{XMMSPLUGININSTALL}|$xmmsplugininstallrule|g" \
+	-e "s|{XMMSPLUGINDIR}|$xmmsplugindir|g" \
+	-e "s|{AUDACIOUSPLUGIN}|$audaciouspluginrule|g" \
+	-e "s|{AUDACIOUSPLUGININSTALL}|$audaciousplugininstallrule|g" \
+	-e "s|{AUDACIOUSPLUGINDIR}|$audaciousplugindir|g" \
+	-e "s|{PKGCONFIGDIR}|$pkgconfigdir|g" \
+	"$@"
+}
+
+replace_with_sed Makefile.in > Makefile
+
+for file in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mod2ogg2.sh.in ; do
+    dst="`echo $file |sed -e "s|\.in||"`"
+    replace_with_sed "$file" > "$dst"
 done
 
 # Make mod2ogg script executable

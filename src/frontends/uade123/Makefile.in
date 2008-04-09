@@ -1,3 +1,5 @@
+BINDIR = {PACKAGEPREFIX}{BINDIR}
+UADE123NAME={UADE123NAME}
 
 CC = {CC}
 CFLAGS = -Wall -O2 -I../../include -I../common {AOFLAGS} {DEBUGFLAGS} {ARCHFLAGS}
@@ -13,6 +15,15 @@ uade123:	$(MODULES)
 
 clean:	
 	rm -f uade123 *.o
+
+install:	uade123
+	mkdir -p "$(BINDIR)"
+	rm -f "$(BINDIR)/$(UADE123NAME)"
+	cp -f $(UADE123NAME) "$(BINDIR)/" || true
+	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
+
+uninstall:	
+	rm -f "$(BINDIR)/$(UADE123NAME)"
 
 audio.o:	audio.c audio.h
 	$(CC) $(CFLAGS) -c $<

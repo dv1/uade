@@ -45,13 +45,8 @@ uadecoreinstall:	$(UADECORE)
 uade123:	
 	$(MAKE) -C src/frontends/uade123
 
-uade123install:	$(UADE123)
-	mkdir -p "$(BINDIR)" "$(MANDIR)"
-	rm -f "$(BINDIR)/$(UADE123NAME)" || true
-	cp -f src/frontends/uade123/$(UADE123NAME) "$(BINDIR)/" || true
-	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
-	cp doc/uade123.1 "$(MANDIR)"/
-	chmod og+r "$(MANDIR)"/uade123.1
+uade123install:	
+	$(MAKE) -C src/frontends/uade123 install
 
 xmmsplugin:	
 	$(MAKE) -C src/frontends/xmms
@@ -90,6 +85,14 @@ install:
 	$(MAKE) installagain
 	$(MAKE) feinstall
 	install src/frontends/mod2ogg/mod2ogg2.sh "$(BINDIR)/"
+	cp doc/uade123.1 "$(MANDIR)"/
+	chmod og+r "$(MANDIR)"/uade123.1
+
+uninstall:	
+# Don't remove everything
+	for name in players score ; do rm -rf -- "$(DATADIR)/$$name" ; done
+	rm -f "$(MANDIR)"/uade123.1
+	rm -f "$(LIBDIR)/$(UADECORENAME)"
 
 installagain:	$(UADECOREINSTALL)
 	@true
