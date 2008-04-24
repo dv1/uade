@@ -1,7 +1,7 @@
 General Instructions for Installing UADE
 ========================================
 
-*** Dependencies
+*** 1. Dependencies ***
 
 Compiling and running UADE requires some libraries depending on which
 frontends you want to use:
@@ -19,7 +19,9 @@ frontends you want to use:
 
  - sed is required for creating Makefiles in the configure script
 
-*** Compiling and installation
+ - The default shell /bin/sh should be more or less compatible with Bash
+
+*** 2. Compiling and installation ***
 
 The installation process has 3 or 4 steps.
 
@@ -75,13 +77,17 @@ Longer explanations of these steps follow:
   are installed into ~/.uade2/.
 
 
-*** Hints for various GNU/Linux distributions
+*** 3. Notes on GNU/Linux distributions ***
+
+3.1 Gentoo
 
 To install necessary dependencies for Gentoo, execute:
 
 	emerge -u libao		(the dependency for uade123)
 	emerge -u xmms
 	emerge -u audacious
+
+3.2 Debian and Ubuntu
 
 In Debian/Ubuntu, the required libraries can be downloaded by:
 
@@ -93,18 +99,28 @@ In Debian/Ubuntu, the required libraries can be downloaded by:
 	apt-get install audacious-dev (get a mirror from
 	                               audacious-mediaplayer.org)
 
-*** Hints for Solaris
+3.3 Ubuntu 8.04 Dash shell problem
+
+Ubuntu 8.04 uses Dash as the default shell, which breaks the configure
+script because the configure script assumes some Bash semantics.
+
+WORKAROUND SOLUTION: Instead of running "./configure", run:
+
+# bash configure
+
+*** 4. Notes on Solaris ***
 
  - Change configure scripts #!/bin/sh to #!/bin/bash
  - Change reference of floorf() function in src/audio.c to floor()
  - Use gmake instead of make
  - Add #include <sys/time.h> into src/unixatomic.c
 
-*** Hints for Mac OS X
+*** 5. Notes on Mac OS X ***
  - Install libao and pkg-config from MacPorts (http://www.macports.org)
+
  - If compiling the XMMS plugin fails, either
 	* use --without-xmms for the configure script
-   or or try a hack:
+   or try a hack:
 	* Remove line
 	    $(OBJCOPY) -G get_iplugin_info $@
 	  from src/frontends/xmms/Makefile after you have run the
