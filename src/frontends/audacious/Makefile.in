@@ -1,3 +1,4 @@
+AUDACIOUSPLUGINDIR = {AUDACIOUSPLUGINDIR}
 ARCHFLAGS={ARCHFLAGS}
 CC={CC}
 OBJCOPY={OBJCOPY}
@@ -26,6 +27,10 @@ subsongseek.o:	subsongseek.c subsongseek.h plugin.h
 	$(CC) $(CFLAGS) -c $<
 
 include ../common/Makefile.common
+
+install:	
+	mkdir -p "$(AUDACIOUSPLUGINDIR)"
+	install libuade2.so "$(AUDACIOUSPLUGINDIR)"
 
 clean:	
 	rm -f *.so *.o

@@ -60,9 +60,7 @@ audaciousplugin:
 	$(MAKE) -C src/frontends/audacious
 
 audaciousplugininstall:	$(AUDACIOUSPLUGIN)
-	mkdir -p "$(AUDACIOUSPLUGINDIR)" "$(BINDIR)"
-	install src/frontends/audacious/libuade2.so "$(AUDACIOUSPLUGINDIR)"
-	install contrib/uadexmmsadd "$(BINDIR)"/
+	$(MAKE) -C src/frontends/audacious install
 
 src/include/uadeconfig.h:	
 	@echo ""
