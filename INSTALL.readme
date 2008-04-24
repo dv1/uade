@@ -99,15 +99,6 @@ In Debian/Ubuntu, the required libraries can be downloaded by:
 	apt-get install audacious-dev (get a mirror from
 	                               audacious-mediaplayer.org)
 
-3.3 Ubuntu 8.04 Dash shell problem
-
-Ubuntu 8.04 uses Dash as the default shell, which breaks the configure
-script because the configure script assumes some Bash semantics.
-
-WORKAROUND SOLUTION: Instead of running "./configure", run:
-
-# bash configure
-
 *** 4. Notes on Solaris ***
 
  - Change configure scripts #!/bin/sh to #!/bin/bash

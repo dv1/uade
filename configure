@@ -562,7 +562,7 @@ else
     audaciousplugininstallrule=""
 fi
 
-function replace_with_sed() {
+replace_with_sed() {
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
 	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
 	-e "s|{AOFLAGS}|$AOFLAGS|g" \
