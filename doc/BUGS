@@ -1,11 +1,11 @@
 To be solved:
+2008-04-26: --normalise doesn't work and isn't documented (shd)
 2007-12-27: Pirates, Red Storm Rising and M-1 Tank Platoon do not work
             because of unimplemented system calls, or maybe audio.device (shd)
 2007-12-27: Two file TFMX ST songs have to be played like this:
             1. rename song and sample data as MDAT.foo and SMPL.foo
 	    2. uade123 --set=player=TFMX_ST MDAT.foo
             (shd)
-2007-07-07: Don't save play length if timeout catched the song (shd)
 2007-07-07: mod_packer/prorunner/pru2/Benefactor/pru2.ingame-2 subson 3 never
 	    ends (shd)
 2006-08-29: Prowiz seems to forget to convert the first two lines of pattern
@@ -66,3 +66,4 @@ Resolved:
 	    XMMS plugin. (shd)
 2006-03-09: Remove useless symbol exports in plugins. Only get_iplugin_info
 	    should be preserved as an exported symbol. (shd)
+2007-07-07: Don't save play length if timeout catched the song (shd)
