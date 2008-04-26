@@ -75,16 +75,21 @@ soundcheck:
 	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AbyssHighestExperience -m songs/AHX.Cruisin -u src/uadecore
 
 install:	
-	mkdir -p "$(DATADIR)/players"
+	mkdir -p "$(DATADIR)"
 	test -e "$(DATADIR)/uade.conf" || cp -f uade.conf "$(DATADIR)/"
 	cp -f amigasrc/score/score uaerc eagleplayer.conf "$(DATADIR)/"
 	cp -rf players "$(DATADIR)/" || true
 	chmod -R og+rX "$(DATADIR)"
-	$(MAKE) installagain
-	$(MAKE) feinstall
+
+	mkdir -p "$(BINDIR)"
 	install src/frontends/mod2ogg/mod2ogg2.sh "$(BINDIR)/"
+
+	mkdir -p "$(MANDIR)"
 	cp doc/uade123.1 "$(MANDIR)"/
 	chmod og+r "$(MANDIR)"/uade123.1
+
+	$(MAKE) installagain
+	$(MAKE) feinstall
 
 uninstall:	
 # Don't remove everything
