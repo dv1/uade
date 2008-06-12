@@ -160,15 +160,15 @@ static struct eagleplayer *analyze_file_format(int *content,
 	/* First do filename detection (we'll later do content detection) */
 	t = xbasename(modulename);
 
-	if (strlcpy(buf, t, sizeof buf) >= sizeof buf)
+	if (strlcpy((char *) buf, t, sizeof buf) >= sizeof buf)
 		return NULL;
 
-	t = strchr(buf, '.');
+	t = strchr((char *) buf, '.');
 	if (t == NULL)
 		return NULL;
 
 	*t = 0;
-	prefix = buf;
+	prefix = (char *) buf;
 
 	if (strlen(prefix) < MAX_SUFFIX_LENGTH)
 		namecandidate = get_eagleplayer(prefix, state->playerstore);
@@ -176,8 +176,8 @@ static struct eagleplayer *analyze_file_format(int *content,
 	if (namecandidate == NULL) {
 		/* Try postfix */
 		t = xbasename(modulename);
-		strlcpy(buf, t, sizeof buf);
-		postfix = strrchr(buf, '.') + 1; /* We know postfix != NULL */
+		strlcpy((char *) buf, t, sizeof buf);
+		postfix = strrchr((char *) buf, '.') + 1; /* postfix != NULL */
 
 		if (strlen(postfix) < MAX_SUFFIX_LENGTH)
 			namecandidate = get_eagleplayer(postfix, state->playerstore);
