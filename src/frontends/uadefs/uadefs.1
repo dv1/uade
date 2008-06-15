@@ -1,0 +1,43 @@
+.\" Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.\" Please adjust this date whenever revising the manpage.
+.\" 
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.TH "uadefs" "1" "2008-06-16" "Heikki Orsila" ""
+.SH "NAME"
+uadefs - FUSE filesystem that transparently converts Amiga songs to WAV files
+.SH "SYNOPSIS"
+.B uadefs
+\fImusicdir\fR \fImountpoint\fR
+[\fIoptions\fR]
+.SH "DESCRIPTION"
+.BR uadefs
+mounts an Amiga music directory so that files that are transparently
+converted info WAV files. This allows players without UADE plugin to
+play Amiga songs.
+
+Run 
+.BR uadefs\ \-h
+for help. Use
+.BR fusermount\ \-f\ mountpoint
+to unmount.
+
+.SH "SEE ALSO"
+.BR fusermount (1)
+.BR uade123 (1)
+
+.SH "AUTHORS"
+\fBuadefs\fP was written by Heikki Orsila <heikki.orsila@iki.fi>.
+The code is heavily based on sshfs and FUSE written by
+Miklos Seredi <miklos@szeredi.hu>.

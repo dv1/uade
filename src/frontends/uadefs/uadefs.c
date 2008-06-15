@@ -10,6 +10,8 @@
  * See the file COPYING.
  */
 
+#define _GNU_SOURCE
+
 #define FUSE_USE_VERSION 26
 
 #ifdef HAVE_CONFIG_H
@@ -82,6 +84,7 @@ struct sndctx {
 	struct cacheblock *blocks;
 };
 
+static char *srcdir = NULL;
 static int debugfd = -1;
 static int debugmode;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
@@ -89,6 +92,17 @@ static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 static void kill_child(struct sndctx *ctx);
 static struct sndctx *uadefs_open_file(int *success, const char *path);
 
+static char *uadefs_get_path(const char *path)
+{
+	char *realpath;
+
+	if (asprintf(&realpath, "%s%s", srcdir, path) < 0) {
+		fprintf(stderr, "No memory for path name: %s\n", path);
+		exit(1);
+	}
+
+	return realpath;
+}
 
 /*
  * xread() is the same as the read(), but it automatically restarts read()
@@ -302,14 +316,17 @@ static void kill_child(struct sndctx *ctx)
 	ctx->pid = -1;
 }
 
-static int uadefs_getattr(const char *path, struct stat *stbuf)
+static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 {
 	int res;
 	struct sndctx *ctx;
+	char *path = uadefs_get_path(fpath);
 
 	res = lstat(path, stbuf);
-	if (res == -1)
+	if (res == -1) {
+		free(path);
 		return -errno;
+	}
 
 	ctx = uadefs_open_file(&res, path);
 	if (ctx != NULL) {
@@ -326,25 +343,34 @@ static int uadefs_getattr(const char *path, struct stat *stbuf)
 		destroy_ctx(ctx);
 	}
 
+	free(path);
 	return 0;
 }
 
-static int uadefs_access(const char *path, int mask)
+static int uadefs_access(const char *fpath, int mask)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = access(path, mask);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_readlink(const char *path, char *buf, size_t size)
+static int uadefs_readlink(const char *fpath, char *buf, size_t size)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = readlink(path, buf, size - 1);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
@@ -353,16 +379,20 @@ static int uadefs_readlink(const char *path, char *buf, size_t size)
 }
 
 
-static int uadefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 			  off_t offset, struct fuse_file_info *fi)
 {
 	DIR *dp;
 	struct dirent *de;
+	char *path = uadefs_get_path(fpath);
 
 	(void) offset;
 	(void) fi;
 
 	dp = opendir(path);
+
+	free(path);
+
 	if (dp == NULL)
 		return -errno;
 
@@ -379,9 +409,10 @@ static int uadefs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	return 0;
 }
 
-static int uadefs_mknod(const char *path, mode_t mode, dev_t rdev)
+static int uadefs_mknod(const char *fpath, mode_t mode, dev_t rdev)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
 	   is more portable */
@@ -393,112 +424,154 @@ static int uadefs_mknod(const char *path, mode_t mode, dev_t rdev)
 		res = mkfifo(path, mode);
 	else
 		res = mknod(path, mode, rdev);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_mkdir(const char *path, mode_t mode)
+static int uadefs_mkdir(const char *fpath, mode_t mode)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = mkdir(path, mode);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_unlink(const char *path)
+static int uadefs_unlink(const char *fpath)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = unlink(path);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_rmdir(const char *path)
+static int uadefs_rmdir(const char *fpath)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = rmdir(path);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_symlink(const char *from, const char *to)
+static int uadefs_symlink(const char *ffrom, const char *fto)
 {
 	int res;
+	char *from = uadefs_get_path(ffrom);
+	char *to = uadefs_get_path(fto);
 
 	res = symlink(from, to);
+
+	free(from);
+	free(to);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_rename(const char *from, const char *to)
+static int uadefs_rename(const char *ffrom, const char *fto)
 {
 	int res;
+	char *from = uadefs_get_path(ffrom);
+	char *to = uadefs_get_path(fto);
 
 	res = rename(from, to);
+
+	free(from);
+	free(to);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_link(const char *from, const char *to)
+static int uadefs_link(const char *ffrom, const char *fto)
 {
 	int res;
+	char *from = uadefs_get_path(ffrom);
+	char *to = uadefs_get_path(fto);
 
 	res = link(from, to);
+
+	free(from);
+	free(to);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_chmod(const char *path, mode_t mode)
+static int uadefs_chmod(const char *fpath, mode_t mode)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = chmod(path, mode);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_chown(const char *path, uid_t uid, gid_t gid)
+static int uadefs_chown(const char *fpath, uid_t uid, gid_t gid)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = lchown(path, uid, gid);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_truncate(const char *path, off_t size)
+static int uadefs_truncate(const char *fpath, off_t size)
 {
-	(void) path;
+	(void) fpath;
 	(void) size;
 
 	return -EIO;
 }
 
-static int uadefs_utimens(const char *path, const struct timespec ts[2])
+static int uadefs_utimens(const char *fpath, const struct timespec ts[2])
 {
 	int res;
 	struct timeval tv[2];
+	char *path = uadefs_get_path(fpath);
 
 	tv[0].tv_sec = ts[0].tv_sec;
 	tv[0].tv_usec = ts[0].tv_nsec / 1000;
@@ -506,6 +579,9 @@ static int uadefs_utimens(const char *path, const struct timespec ts[2])
 	tv[1].tv_usec = ts[1].tv_nsec / 1000;
 
 	res = utimes(path, tv);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
@@ -609,12 +685,16 @@ static struct sndctx *uadefs_open_file(int *success, const char *path)
 	return NULL;
 }
 
-static int uadefs_open(const char *path, struct fuse_file_info *fi)
+static int uadefs_open(const char *fpath, struct fuse_file_info *fi)
 {
 	int ret;
 	struct sndctx *ctx;
+	char *path = uadefs_get_path(fpath);
 
 	ctx = uadefs_open_file(&ret, path);
+
+	free(path);
+
 	if (ctx == NULL)
 		return ret;
 
@@ -625,7 +705,7 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
+static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 		       struct fuse_file_info *fi)
 {
 	int fd;
@@ -635,7 +715,12 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 	size_t bsize;
 
 	if (ctx->normalfile) {
+		char *path = uadefs_get_path(fpath);
+
 		fd = open(path, O_RDONLY);
+
+		free(path);
+
 		if (fd == -1)
 			return -errno;
 
@@ -671,10 +756,10 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 	return totalread;
 }
 
-static int uadefs_write(const char *path, const char *buf, size_t size,
+static int uadefs_write(const char *fpath, const char *buf, size_t size,
 			off_t offset, struct fuse_file_info *fi)
 {
-	(void) path;
+	(void) fpath;
 	(void) buf;
 	(void) size;
 	(void) offset;
@@ -683,35 +768,37 @@ static int uadefs_write(const char *path, const char *buf, size_t size,
 	return -EIO;
 }
 
-static int uadefs_statfs(const char *path, struct statvfs *stbuf)
+static int uadefs_statfs(const char *fpath, struct statvfs *stbuf)
 {
 	int res;
+	char *path = uadefs_get_path(fpath);
 
 	res = statvfs(path, stbuf);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 
 	return 0;
 }
 
-static int uadefs_release(const char *path, struct fuse_file_info *fi)
+static int uadefs_release(const char *fpath, struct fuse_file_info *fi)
 {
-	(void) path;
-
 	destroy_ctx(get_uadefs_file(fi));
 
-	DEBUG("release %s\n", path);
+	DEBUG("release %s\n", fpath);
 
 	return 0;
 }
 
-static int uadefs_fsync(const char *path, int isdatasync,
+static int uadefs_fsync(const char *fpath, int isdatasync,
 		     struct fuse_file_info *fi)
 {
 	/* Just a stub.	 This method is optional and can safely be left
 	   unimplemented */
 
-	(void) path;
+	(void) fpath;
 	(void) isdatasync;
 	(void) fi;
 	return 0;
@@ -719,35 +806,59 @@ static int uadefs_fsync(const char *path, int isdatasync,
 
 #ifdef HAVE_SETXATTR
 /* xattr operations are optional and can safely be left unimplemented */
-static int uadefs_setxattr(const char *path, const char *name, const char *value,
+static int uadefs_setxattr(const char *fpath, const char *name, const char *value,
 			size_t size, int flags)
 {
-	int res = lsetxattr(path, name, value, size, flags);
+	char *path = uadefs_get_path(fpath);
+	int res;
+
+	res = lsetxattr(path, name, value, size, flags);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 	return 0;
 }
 
-static int uadefs_getxattr(const char *path, const char *name, char *value,
+static int uadefs_getxattr(const char *fpath, const char *name, char *value,
 			size_t size)
 {
-	int res = lgetxattr(path, name, value, size);
+	char *path = uadefs_get_path(fpath);
+	int res;
+
+	res = lgetxattr(path, name, value, size);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 	return res;
 }
 
-static int uadefs_listxattr(const char *path, char *list, size_t size)
+static int uadefs_listxattr(const char *fpath, char *list, size_t size)
 {
-	int res = llistxattr(path, list, size);
+	char *path = uadefs_get_path(fpath);
+	int res;
+
+	res = llistxattr(path, list, size);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 	return res;
 }
 
-static int uadefs_removexattr(const char *path, const char *name)
+static int uadefs_removexattr(const char *fpath, const char *name)
 {
-	int res = lremovexattr(path, name);
+	char *path = uadefs_get_path(fpath);
+	int res;
+
+	res = lremovexattr(path, name);
+
+	free(path);
+
 	if (res == -1)
 		return -errno;
 	return 0;
@@ -784,16 +895,117 @@ static struct fuse_operations uadefs_oper = {
 #endif
 };
 
+static void usage(const char *progname)
+{
+	fprintf(stderr,
+"usage: %s musicdir mountpoint [options]\n"
+"\n"
+"general options:\n"
+"    -o opt,[opt...]        mount options\n"
+"    -h   --help            print help\n"
+"    -V   --version         print version\n"
+"\n", progname);
+}
+
+enum {
+	KEY_HELP,
+	KEY_VERSION,
+	KEY_FOREGROUND,
+};
+
+static struct fuse_opt uadefs_opts[] = {
+	FUSE_OPT_KEY("-V",             KEY_VERSION),
+	FUSE_OPT_KEY("--version",      KEY_VERSION),
+	FUSE_OPT_KEY("-h",             KEY_HELP),
+	FUSE_OPT_KEY("--help",         KEY_HELP),
+	FUSE_OPT_KEY("debug",          KEY_FOREGROUND),
+	FUSE_OPT_KEY("-d",             KEY_FOREGROUND),
+	FUSE_OPT_KEY("-f",             KEY_FOREGROUND),
+	FUSE_OPT_END
+};
+
+static int uadefs_fuse_main(struct fuse_args *args)
+{
+#if FUSE_VERSION >= 26
+	return fuse_main(args->argc, args->argv, &uadefs_oper, NULL);
+#else
+	return fuse_main(args->argc, args->argv, &uadefs_oper);
+#endif
+}
+
+static int uadefs_opt_proc(void *data, const char *arg, int key,
+			   struct fuse_args *outargs)
+{
+	(void) data;
+	char dname[4096];
+
+	switch (key) {
+	case FUSE_OPT_KEY_NONOPT:
+		if (!srcdir) {
+			if (arg[0] == '/') {
+				srcdir = strdup(arg);
+				if (srcdir == NULL) {
+					fprintf(stderr, "No memory for srcdir\n");
+					exit(1);
+				}
+			} else {
+				getcwd(dname, sizeof dname);
+				if (asprintf(&srcdir, "%s/%s", dname, arg) == -1) {
+					fprintf(stderr, "asprintf() failed\n");
+					exit(1);
+				}
+			}
+
+			while (1) {
+				size_t l = strlen(srcdir);
+
+				if (l == 1 && srcdir[0] == '/')
+					break;
+
+				if (srcdir[l - 1] != '/')
+					break;
+
+				srcdir[l - 1] = 0;
+			}
+
+			return 0;
+		}
+		return 1;
+
+	case KEY_HELP:
+		usage(outargs->argv[0]);
+		fuse_opt_add_arg(outargs, "-ho");
+		uadefs_fuse_main(outargs);
+		exit(1);
+
+	case KEY_VERSION:
+		fprintf(stderr, "uadefs version N/A\n");
+#if FUSE_VERSION >= 25
+		fuse_opt_add_arg(outargs, "--version");
+		uadefs_fuse_main(outargs);
+#endif
+		exit(0);
+
+	case KEY_FOREGROUND:
+		debugmode = 1;
+		return 1;
+
+	default:
+		fprintf(stderr, "internal error\n");
+		abort();
+	}
+
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
-	int i;
+	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-	for (i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-f") == 0) {
-			debugmode = 1;
-			break;
-		}
-	}
+	if (fuse_opt_parse(&args, NULL, uadefs_opts, uadefs_opt_proc) == -1)
+		exit(1);
+
+	DEBUG("srcdir: %s\n", srcdir);
 
 	if (getenv("HOME")) {
 		int flags = O_WRONLY | O_TRUNC | O_APPEND | O_CREAT;
@@ -805,5 +1017,5 @@ int main(int argc, char *argv[])
 	}
 
 	umask(0);
-	return fuse_main(argc, argv, &uadefs_oper, NULL);
+	return uadefs_fuse_main(&args);
 }
