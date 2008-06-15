@@ -21,6 +21,7 @@
 #define _XOPEN_SOURCE 500
 #endif
 
+#include <pthread.h>
 #include <fuse.h>
 #include <stdio.h>
 #include <string.h>
@@ -41,8 +42,15 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 #define MAGIC_LENGTH 0x1000
+
+#define CACHE_BLOCK_SHIFT 12  /* 4096 bytes per cache block */
+#define CACHE_BLOCK_SIZE (1 << CACHE_BLOCK_SHIFT)
+#define CACHE_LSB_MASK (CACHE_BLOCK_SIZE - 1)
+#define CACHE_SECONDS 512
+#define SND_PER_SECOND (44100 * 4)
 
 #define LOG(fmt, args...) do { \
         char debugmsg[4096]; \
@@ -51,31 +59,220 @@
         write(debugfd, debugmsg, debuglen); \
     } while (0)
 
+#define MAX(x, y) (x >= y) ? (x) : (y)
+#define MIN(x, y) (x <= y) ? (x) : (y)
+
+struct cacheblock {
+	unsigned int bytes; /* 0 <= bytes <= CACHE_BLOCK_SIZE */
+	void *data;
+};
 
 struct sndctx {
 	int normalfile;   /* if non-zero, the file is not decoded */
-	size_t length;    /* length of sound data that has been synthesized */
 	int pipefd;       /* pipefd from which to read sound data */
 	pid_t pid;        /* pid of the decoding process */
 	char *fname;      /* filename of the song being played */
-	char buf[MAGIC_LENGTH];
+
+	size_t nblocks;
+	size_t start_bi;
+	size_t end_bi;
+	struct cacheblock *blocks;
 };
 
 static int debugfd = -1;
+static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 
-
+static void kill_child(struct sndctx *ctx);
 static struct sndctx *uadefs_open_file(int *success, const char *path);
 
 
-static void kill_child(struct sndctx *ctx)
+/*
+ * xread() is the same a read(), but it automatically restarts read()
+ * operations with a recoverable error (EAGAIN and EINTR). xread()
+ * DOES NOT GUARANTEE that "len" bytes is read even if the data is available.
+ */
+static ssize_t xread(int fd, void *buf, size_t len)
 {
-	kill(ctx->pid, SIGINT);
-	while (waitpid(ctx->pid, NULL, 0) <= 0);
+	ssize_t nr;
+	while (1) {
+		nr = read(fd, buf, len);
+		if ((nr < 0) && (errno == EAGAIN || errno == EINTR))
+			continue;
+		return nr;
+	}
+}
+
+ssize_t read_in_full(int fd, void *buf, size_t count)
+{
+	char *p = buf;
+	ssize_t total = 0;
+
+	while (count > 0) {
+		ssize_t loaded = xread(fd, p, count);
+		if (loaded <= 0)
+			return total ? total : loaded;
+		count -= loaded;
+		p += loaded;
+		total += loaded;
+	}
+
+	return total;
+}
+
+static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
+				size_t size)
+{
+	size_t toread;
+	size_t offset_bi;
+	struct cacheblock *cb;
+
+	offset_bi = offset >> CACHE_BLOCK_SHIFT;
+
+	if (offset_bi < ctx->start_bi) {
+		LOG("offset < cache offset: %s\n", ctx->fname);
+		return 0;
+	}
+
+	if (offset_bi >= (ctx->start_bi + ctx->nblocks)) {
+		LOG("Too much sound data: %s\n", ctx->fname);
+		return 0;
+	}
+
+	cb = &ctx->blocks[offset_bi - ctx->start_bi];
+
+	if (cb->bytes > 0) {
+		size_t lsb = offset & CACHE_LSB_MASK;
+
+		if ((lsb + size) > CACHE_BLOCK_SIZE) {
+			LOG("lsb + size (%zd) failed: %zd %zd\n", lsb + size, offset, size);
+			abort();
+		}
+
+		if (lsb >= cb->bytes)
+			return 0;
+
+		toread = MIN(size, cb->bytes - lsb);
+
+		memcpy(buf, ((char *) cb->data) + lsb, toread);
+
+		return toread;
+	}
+
+	return -1;
+}
+
+static void cache_init(struct sndctx *ctx)
+{
+	ctx->start_bi = 0;
+	ctx->end_bi = 0;
+	ctx->nblocks = (SND_PER_SECOND * CACHE_SECONDS) >> CACHE_BLOCK_SHIFT;
+	ctx->blocks = calloc(1, ctx->nblocks * sizeof(ctx->blocks[0]));
+	if (ctx->blocks == NULL) {
+		LOG("No memory for cache\n");
+		abort();
+	}
+}
+
+static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
+			  size_t size)
+{
+	size_t offset_bi;
+	size_t cbi;
+	struct cacheblock *cb;
+	ssize_t res;
+	size_t length_bi;
+
+	res = cache_block_read(ctx, buf, offset, size);
+	if (res >= 0)
+		return res;
+
+	offset_bi = offset >> CACHE_BLOCK_SHIFT;
+
+	if (offset_bi < ctx->start_bi) {
+		LOG("offset < cache offset: %s\n", ctx->fname);
+		return 0;
+	}
+
+	if (offset_bi >= (ctx->start_bi + ctx->nblocks)) {
+		LOG("Too much sound data: %s\n", ctx->fname);
+		return 0;
+	}
+
+	cbi = offset_bi - ctx->start_bi;
+	length_bi = ctx->end_bi - ctx->start_bi;
+
+	while (length_bi <= cbi) {
+		cb = &ctx->blocks[length_bi];
+
+		cb->data = malloc(CACHE_BLOCK_SIZE);
+		if (cb->data == NULL) {
+			LOG("Out of memory: %s\n", ctx->fname);
+			break;
+		}
+
+		res = read_in_full(ctx->pipefd, cb->data, CACHE_BLOCK_SIZE);
+		if (res <= 0) {
+			free(cb->data);
+			cb->data = NULL;
+			LOG("EOF %s\n", ctx->fname);
+			break;
+		}
+
+		cb->bytes = res;
+
+		length_bi++;
+
+		if (res < CACHE_BLOCK_SIZE)
+			break;
+	}
+
+	ctx->end_bi = ctx->start_bi + length_bi;
+
+	res = cache_block_read(ctx, buf, offset, size);
+	if (res >= 0)
+		return res;
+
+	return 0;
+}
+
+static struct sndctx *create_ctx(void)
+{
+	struct sndctx *ctx;
+
+	ctx = calloc(1, sizeof ctx[0]);
+	if (ctx == NULL)
+		return NULL;
+
+	ctx->pipefd = -1;
 	ctx->pid = -1;
+
+	return ctx;
+}
+
+static void destroy_cache(struct sndctx *ctx)
+{
+	size_t cbi;
+
+	if (ctx->blocks != NULL) {
+		for (cbi = 0; cbi < ctx->nblocks; cbi++) {
+			ctx->blocks[cbi].bytes = 0;
+			free(ctx->blocks[cbi].data);
+			ctx->blocks[cbi].data = NULL;
+		}
+
+		free(ctx->blocks);
+		ctx->blocks = NULL;
+		ctx->start_bi = -1;
+		ctx->end_bi = -1;
+		ctx->nblocks = -1;
+	}
+
 }
 
 static void destroy_ctx(struct sndctx *ctx)
 {
+	destroy_cache(ctx);
+
 	free(ctx->fname);
 	ctx->fname = NULL;
 
@@ -92,6 +289,13 @@ static void destroy_ctx(struct sndctx *ctx)
 static inline struct sndctx *get_uadefs_file(struct fuse_file_info *fi)
 {
 	return (struct sndctx *) (uintptr_t) fi->fh;
+}
+
+static void kill_child(struct sndctx *ctx)
+{
+	kill(ctx->pid, SIGINT);
+	while (waitpid(ctx->pid, NULL, 0) <= 0);
+	ctx->pid = -1;
 }
 
 static int uadefs_getattr(const char *path, struct stat *stbuf)
@@ -111,7 +315,7 @@ static int uadefs_getattr(const char *path, struct stat *stbuf)
 			 * it yet. Maybe we could use song content database
 			 * here.
 			 */
-			stbuf->st_size = 44100 * 4 * 1024;
+			stbuf->st_size = SND_PER_SECOND * CACHE_SECONDS;
 		}
 
 		destroy_ctx(ctx);
@@ -309,14 +513,16 @@ static int uadefs_utimens(const char *path, const struct timespec ts[2])
 static struct sndctx *uadefs_open_file(int *success, const char *path)
 {
 	int ret;
-	int bytes;
 	struct sndctx *ctx = NULL;
 	int fds[2];
 	struct stat st;
+	char crapbuf[MAGIC_LENGTH];
 
-	ctx = calloc(1, sizeof *ctx);
-	ctx->pid = -1;
-	ctx->pipefd = -1;
+	ctx = create_ctx();
+	if (ctx == NULL) {
+		ret = -ENOMEM;
+		goto err;
+	}
 
 	ctx->fname = strdup(path);
 	if (ctx->fname == NULL) {
@@ -370,34 +576,32 @@ static struct sndctx *uadefs_open_file(int *success, const char *path)
 	ctx->pipefd = fds[0];
 	close(fds[1]);
 
-	bytes = 0;
-	while (bytes < MAGIC_LENGTH) {
-		ret = read(ctx->pipefd, ctx->buf + bytes, MAGIC_LENGTH - bytes);
-		if (ret == 0) {
-			LOG("File is not playable: %s\n", path);
-			ctx->normalfile = 1;
+	cache_init(ctx);
 
-			kill_child(ctx);
+	ret = cache_read(ctx, crapbuf, 0, sizeof(crapbuf));
 
-			close(ctx->pipefd);
-			ctx->pipefd = -1;
+	if (ret < sizeof(crapbuf)) {
+		LOG("File is not playable: %s\n", path);
+		ctx->normalfile = 1;
 
-			break;
-		} else if (ret == -1) {
-			LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
-			ret = -errno;
-			goto err;
-		}
-		bytes += ret;
+		destroy_cache(ctx);
+
+		kill_child(ctx);
+
+		close(ctx->pipefd);
+		ctx->pipefd = -1;
+	} else if (ret == -1) {
+		LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
+		ret = -errno;
+		goto err;
 	}
-
  out:
 	*success = 0;
 	return ctx;
 
  err:
 	if (ctx)
-		free(ctx);
+		destroy_ctx(ctx);
 
 	*success = ret;
 	return NULL;
@@ -424,7 +628,8 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 	int fd;
 	ssize_t res;
 	struct sndctx *ctx = get_uadefs_file(fi);
-	size_t totalread = 0;
+	ssize_t totalread = 0;
+	size_t bsize;
 
 	if (ctx->normalfile) {
 		fd = open(path, O_RDONLY);
@@ -440,70 +645,25 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 		return totalread;
 	}
 
-	if (offset < MAGIC_LENGTH) {
-		ssize_t msize = size;
+	pthread_mutex_lock(&readmutex);
+	LOG("offset %zd size %zd\n", offset, size);
 
-		if (msize > (MAGIC_LENGTH - offset))
-			msize = MAGIC_LENGTH - offset;
-
-		memcpy(buf, ctx->buf + offset, msize);
-
-		ctx->length = offset + msize;
-		offset += msize;
-		size -= msize;
-		buf += msize;
-		totalread += msize;
-
-		if (size == 0)
-			return totalread;
-
-		/* More data expected, continue reading */
-	}
-
-	if (offset > ctx->length) {
-		/* Skip sound data */
-		char skipbuf[4096];
-		size_t toread;
-
-		while (ctx->length < offset) {
-			toread = offset - ctx->length;
-			if (toread > sizeof(skipbuf))
-				toread = sizeof(skipbuf);
-
-			res = read(ctx->pipefd, skipbuf, toread);
-
-			if (res == 0) {
-				/* What to do here? */
-				return 0;
-			} else if (res == -1) {
-				return -errno;
-			}
-
-			ctx->length += res;
+	while (size > 0) {
+		bsize = CACHE_BLOCK_SIZE - (offset & CACHE_LSB_MASK);
+		res = cache_read(ctx, buf, offset, bsize);
+		if (res <= 0) {
+			if (res == -1 && totalread == 0)
+				totalread = -errno;
+			break;
 		}
+		totalread += res;
+		buf += res;
+		offset += res;
+		size -= res;
 	}
 
-	if (offset < ctx->length) {
-		LOG("Offset < ctx->length. Not implemented.\n");
-		totalread = 0;
-
-	} else if (offset == ctx->length) {
-		while (size > 0) {
-			res = read(ctx->pipefd, buf, size);
-			if (res == -1) {
-				LOG("ERR: %s", strerror(errno));
-				if (totalread == 0)
-					totalread = -errno;
-				break;
-			} else if (res == 0) {
-				break;
-			}
-			ctx->length += res;
-			totalread += res;
-			buf += res;
-			size -= res;
-		}
-	}
+	LOG("ret %zd\n", totalread);
+	pthread_mutex_unlock(&readmutex);
 
 	return totalread;
 }
@@ -543,6 +703,8 @@ static int uadefs_release(const char *path, struct fuse_file_info *fi)
 	(void) path;
 
 	destroy_ctx(get_uadefs_file(fi));
+
+	LOG("release %s\n", path);
 
 	return 0;
 }

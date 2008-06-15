@@ -2,7 +2,7 @@ BINDIR = {PACKAGEPREFIX}{BINDIR}
 UADE123NAME={UADE123NAME}
 
 CC = {CC}
-CFLAGS = -Wall -O2 `pkg-config fuse --cflags` -DUADENAME=\"{BINDIR}/{UADE123NAME}\" {DEBUGFLAGS} {ARCHFLAGS}
+CFLAGS = -Wall -O2 -pthread `pkg-config fuse --cflags` -DUADENAME=\"{BINDIR}/{UADE123NAME}\" {DEBUGFLAGS} {ARCHFLAGS}
 CLIBS = {ARCHLIBS} `pkg-config fuse --libs`
 MODULES = uadefs.o
 
