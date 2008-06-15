@@ -1,3 +1,6 @@
+BINDIR = {PACKAGEPREFIX}{BINDIR}
+XMMSPLUGINDIR= {PACKAGEPREFIX}{XMMSPLUGINDIR}
+
 ARCHFLAGS={ARCHFLAGS}
 CC={CC}
 OBJCOPY={OBJCOPY}
@@ -15,6 +18,11 @@ PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfs
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 	$(OBJCOPY) -G get_iplugin_info $@
+
+install:	libuade2.so
+	mkdir -p "$(XMMSPLUGINDIR)" "$(BINDIR)"
+	install libuade2.so "$(XMMSPLUGINDIR)"
+	install uadexmmsadd "$(BINDIR)"/
 
 fileinfo.o:	fileinfo.c fileinfo.h
 	$(CC) $(CFLAGS) -c $<

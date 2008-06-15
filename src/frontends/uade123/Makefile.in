@@ -19,7 +19,7 @@ clean:
 install:	uade123
 	mkdir -p "$(BINDIR)"
 	rm -f "$(BINDIR)/$(UADE123NAME)"
-	cp -f $(UADE123NAME) "$(BINDIR)/" || true
+	cp -f "$(UADE123NAME)" "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
 
 uninstall:	

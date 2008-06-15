@@ -2,45 +2,25 @@
 
 MAKE = {MAKE}
 
-FINALBINDIR = {BINDIR}
-FINALDATADIR = {DATADIR}
-FINALDOCDIR = {DOCDIR}
-FINALMANDIR = {MANDIR}
-FINALLIBDIR = {LIBDIR}
-
 BINDIR = {PACKAGEPREFIX}{BINDIR}
 DATADIR = {PACKAGEPREFIX}{DATADIR}
 DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
-XMMSPLUGINDIR= {PACKAGEPREFIX}{XMMSPLUGINDIR}
-AUDACIOUSPLUGINDIR= {PACKAGEPREFIX}{AUDACIOUSPLUGINDIR}
-PKGCONFIGDIR = {PACKAGEPREFIX}{PKGCONFIGDIR}
 
-UADECORE={UADECORE}
 UADECORENAME={UADECORENAME}
-UADECOREINSTALL={UADECOREINSTALL}
-UADE123={UADE123}
 UADE123NAME={UADE123NAME}
-UADE123INSTALL={UADE123INSTALL}
-XMMSPLUGIN={XMMSPLUGIN}
-XMMSPLUGININSTALL={XMMSPLUGININSTALL}
-AUDACIOUSPLUGIN={AUDACIOUSPLUGIN}
-AUDACIOUSPLUGININSTALL={AUDACIOUSPLUGININSTALL}
 
-all:	src/include/uadeconfig.h $(UADECORE) $(UADE123) $(XMMSPLUGIN) $(AUDACIOUSPLUGIN)
+COMPILED_COMPONENTS = {UADECORE} {UADE123} {XMMSPLUGIN} {AUDACIOUSPLUGIN} {UADEFS}
+INSTALLED_COMPONENTS = {UADECOREINSTALL} {UADE123INSTALL} {XMMSPLUGININSTALL} {AUDACIOUSPLUGININSTALL} {UADEFSINSTALL}
+
+all:	src/include/uadeconfig.h $(COMPILED_COMPONENTS)
 
 uadecore:	
 	$(MAKE) -C src
 
-uadecoreinstall:	$(UADECORE)
-	mkdir -p "$(LIBDIR)" "$(PKGCONFIGDIR)"
-	chmod og+rx "$(LIBDIR)"
-	cp -f src/$(UADECORENAME) "$(LIBDIR)"/
-	chmod og+rx "$(LIBDIR)/$(UADECORENAME)"
-	install uade.pc $(PKGCONFIGDIR)/
-	chmod og+rx $(PKGCONFIGDIR)
-	chmod 644 $(PKGCONFIGDIR)/uade.pc
+uadecoreinstall:	
+	$(MAKE) -C src install
 
 uade123:	
 	$(MAKE) -C src/frontends/uade123
@@ -51,16 +31,20 @@ uade123install:
 xmmsplugin:	
 	$(MAKE) -C src/frontends/xmms
 
-xmmsplugininstall:	$(XMMSPLUGIN)
-	mkdir -p "$(XMMSPLUGINDIR)" "$(BINDIR)"
-	install src/frontends/xmms/libuade2.so "$(XMMSPLUGINDIR)"
-	install contrib/uadexmmsadd "$(BINDIR)"/
+xmmsplugininstall:	
+	$(MAKE) -C src/frontends/xmms install
 
 audaciousplugin:	
 	$(MAKE) -C src/frontends/audacious
 
-audaciousplugininstall:	$(AUDACIOUSPLUGIN)
+audaciousplugininstall:	
 	$(MAKE) -C src/frontends/audacious install
+
+uadefs:	
+	$(MAKE) -C src/frontends/uadefs
+
+uadefsinstall:	
+	$(MAKE) -C src/frontends/uadefs install
 
 src/include/uadeconfig.h:	
 	@echo ""
@@ -74,7 +58,7 @@ soundcheck:
 	@ echo ""
 	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AbyssHighestExperience -m songs/AHX.Cruisin -u src/uadecore
 
-install:	
+generalinstall:
 	mkdir -p "$(DATADIR)"
 	test -e "$(DATADIR)/uade.conf" || cp -f uade.conf "$(DATADIR)/"
 	cp -f amigasrc/score/score uaerc eagleplayer.conf "$(DATADIR)/"
@@ -88,8 +72,8 @@ install:
 	cp doc/uade123.1 "$(MANDIR)"/
 	chmod og+r "$(MANDIR)"/uade123.1
 
-	$(MAKE) installagain
-	$(MAKE) feinstall
+install:	generalinstall $(INSTALLED_COMPONENTS)
+	@echo
 
 uninstall:	
 # Don't remove everything
@@ -97,16 +81,11 @@ uninstall:
 	rm -f "$(MANDIR)"/uade123.1
 	rm -f "$(LIBDIR)/$(UADECORENAME)"
 
-installagain:	$(UADECOREINSTALL)
-	@true
-
-feinstall:	$(UADE123INSTALL) $(XMMSPLUGININSTALL) $(AUDACIOUSPLUGININSTALL)
-	@true
-
 feclean:	
 	$(MAKE) -C src/frontends/uade123 clean
 	$(MAKE) -C src/frontends/xmms clean
 	$(MAKE) -C src/frontends/audacious clean
+	$(MAKE) -C src/frontends/uadefs clean
 
 clean:	
 	$(MAKE) -C src clean

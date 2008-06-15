@@ -16,5 +16,8 @@ uadefs:	$(MODULES)
 
 uadefs.o:	uadefs.c
 
+install:	uadefs
+	install uadefs "$(BINDIR)"/
+
 clean:	
 	rm -f uadefs *.o
