@@ -89,6 +89,11 @@ static void destroy_ctx(struct sndctx *ctx)
 	free(ctx);
 }
 
+static inline struct sndctx *get_uadefs_file(struct fuse_file_info *fi)
+{
+	return (struct sndctx *) (uintptr_t) fi->fh;
+}
+
 static int uadefs_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
@@ -418,7 +423,7 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 {
 	int fd;
 	ssize_t res;
-	struct sndctx *ctx = (struct sndctx *) fi->fh;
+	struct sndctx *ctx = get_uadefs_file(fi);
 	size_t totalread = 0;
 
 	if (ctx->normalfile) {
@@ -535,11 +540,9 @@ static int uadefs_statfs(const char *path, struct statvfs *stbuf)
 
 static int uadefs_release(const char *path, struct fuse_file_info *fi)
 {
-	struct sndctx *ctx = (struct sndctx *) fi->fh;
-
 	(void) path;
 
-	destroy_ctx(ctx);
+	destroy_ctx(get_uadefs_file(fi));
 
 	return 0;
 }
