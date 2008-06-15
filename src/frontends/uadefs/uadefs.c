@@ -52,12 +52,14 @@
 #define CACHE_SECONDS 512
 #define SND_PER_SECOND (44100 * 4)
 
-#define LOG(fmt, args...) do { \
+#define LOG(fmt, args...) if (debugfd != -1) { \
         char debugmsg[4096]; \
         int debuglen; \
         debuglen = snprintf(debugmsg, sizeof debugmsg, fmt, ## args); \
         write(debugfd, debugmsg, debuglen); \
     } while (0)
+
+#define DEBUG(fmt, args...) if (debugmode) { fprintf(stderr, fmt, ## args); }
 
 #define MAX(x, y) (x >= y) ? (x) : (y)
 #define MIN(x, y) (x <= y) ? (x) : (y)
@@ -80,6 +82,7 @@ struct sndctx {
 };
 
 static int debugfd = -1;
+static int debugmode;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void kill_child(struct sndctx *ctx);
@@ -214,7 +217,7 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 		if (res <= 0) {
 			free(cb->data);
 			cb->data = NULL;
-			LOG("EOF at %zd: %s\n", (length_bi + ctx->start_bi) << CACHE_BLOCK_SHIFT, ctx->fname);
+			DEBUG("EOF at %zd: %s\n", (length_bi + ctx->start_bi) << CACHE_BLOCK_SHIFT, ctx->fname);
 			break;
 		}
 
@@ -566,7 +569,7 @@ static struct sndctx *uadefs_open_file(int *success, const char *path)
 		dup2(fds[1], 1);
 		dup2(fd, 2);
 
-		LOG("Execute %s\n", UADENAME);
+		DEBUG("Execute %s\n", UADENAME);
 
 		execv(UADENAME, argv);
 
@@ -582,7 +585,7 @@ static struct sndctx *uadefs_open_file(int *success, const char *path)
 	ret = cache_read(ctx, crapbuf, 0, sizeof(crapbuf));
 
 	if (ret < sizeof(crapbuf)) {
-		LOG("File is not playable: %s\n", path);
+		DEBUG("File is not playable: %s\n", path);
 		ctx->normalfile = 1;
 
 		destroy_cache(ctx);
@@ -620,7 +623,7 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 	fi->direct_io = 1;
 	fi->fh = (uint64_t) ctx;
 
-	LOG("Opened %s as %s file\n", ctx->fname, ctx->normalfile ? "normal" : "UADE");
+	DEBUG("Opened %s as %s file\n", ctx->fname, ctx->normalfile ? "normal" : "UADE");
 	return 0;
 }
 
@@ -648,7 +651,7 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 	}
 
 	pthread_mutex_lock(&readmutex);
-	LOG("offset %zd size %zd\n", off, size);
+	DEBUG("offset %zd size %zd\n", off, size);
 
 	while (size > 0) {
 		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
@@ -664,7 +667,7 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 		size -= res;
 	}
 
-	LOG("ret %zd\n", totalread);
+	DEBUG("ret %zd\n", totalread);
 	pthread_mutex_unlock(&readmutex);
 
 	return totalread;
@@ -706,7 +709,7 @@ static int uadefs_release(const char *path, struct fuse_file_info *fi)
 
 	destroy_ctx(get_uadefs_file(fi));
 
-	LOG("release %s\n", path);
+	DEBUG("release %s\n", path);
 
 	return 0;
 }
@@ -793,6 +796,14 @@ static struct fuse_operations uadefs_oper = {
 int main(int argc, char *argv[])
 {
 	char logfname[4096];
+	int i;
+
+	for (i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "-f") == 0) {
+			debugmode = 1;
+			break;
+		}
+	}
 
 	if (getenv("HOME")) {
 		int flags = O_WRONLY | O_TRUNC | O_APPEND | O_CREAT;
