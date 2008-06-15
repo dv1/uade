@@ -489,13 +489,10 @@ static int uadefs_chown(const char *path, uid_t uid, gid_t gid)
 
 static int uadefs_truncate(const char *path, off_t size)
 {
-	int res;
+	(void) path;
+	(void) size;
 
-	res = truncate(path, size);
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	return -EIO;
 }
 
 static int uadefs_utimens(const char *path, const struct timespec ts[2])
@@ -677,20 +674,13 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 static int uadefs_write(const char *path, const char *buf, size_t size,
 			off_t offset, struct fuse_file_info *fi)
 {
-	int fd;
-	int res;
-
+	(void) path;
+	(void) buf;
+	(void) size;
+	(void) offset;
 	(void) fi;
-	fd = open(path, O_WRONLY);
-	if (fd == -1)
-		return -errno;
 
-	res = pwrite(fd, buf, size, offset);
-	if (res == -1)
-		res = -errno;
-
-	close(fd);
-	return res;
+	return -EIO;
 }
 
 static int uadefs_statfs(const char *path, struct statvfs *stbuf)
