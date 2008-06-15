@@ -91,7 +91,7 @@ static struct sndctx *uadefs_open_file(int *success, const char *path);
 
 
 /*
- * xread() is the same a read(), but it automatically restarts read()
+ * xread() is the same as the read(), but it automatically restarts read()
  * operations with a recoverable error (EAGAIN and EINTR). xread()
  * DOES NOT GUARANTEE that "len" bytes is read even if the data is available.
  */
@@ -786,7 +786,6 @@ static struct fuse_operations uadefs_oper = {
 
 int main(int argc, char *argv[])
 {
-	char logfname[4096];
 	int i;
 
 	for (i = 1; i < argc; i++) {
@@ -799,6 +798,7 @@ int main(int argc, char *argv[])
 	if (getenv("HOME")) {
 		int flags = O_WRONLY | O_TRUNC | O_APPEND | O_CREAT;
 		int fmode = S_IRUSR | S_IWUSR;
+		char logfname[4096];
 
 		snprintf(logfname, sizeof logfname, "%s/.uade2/uadefs.log", getenv("HOME"));
 		debugfd = open(logfname, flags, fmode);
