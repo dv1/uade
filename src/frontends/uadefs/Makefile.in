@@ -1,0 +1,20 @@
+BINDIR = {PACKAGEPREFIX}{BINDIR}
+UADE123NAME={UADE123NAME}
+
+CC = {CC}
+CFLAGS = -Wall -O2 `pkg-config fuse --cflags` {DEBUGFLAGS} {ARCHFLAGS}
+CLIBS = {ARCHLIBS} `pkg-config fuse --libs`
+MODULES = uadefs.o
+
+%.o:	%.c
+	$(CC) $(CFLAGS) -c $<
+
+all:	uadefs
+
+uadefs:	$(MODULES)
+	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
+
+uadefs.o:	uadefs.c
+
+clean:	
+	rm -f uadefs *.o
