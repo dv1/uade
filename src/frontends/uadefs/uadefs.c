@@ -617,6 +617,7 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 	if (ctx == NULL)
 		return ret;
 
+	fi->direct_io = 1;
 	fi->fh = (uint64_t) ctx;
 
 	LOG("Opened %s as %s file\n", ctx->fname, ctx->normalfile ? "normal" : "UADE");
@@ -653,8 +654,6 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
 		res = cache_read(ctx, buf, off, bsize);
 		if (res <= 0) {
-			if (totalread == 0)
-				totalread = -EIO;
 			if (res == -1 && totalread == 0)
 				totalread = -errno;
 			break;
