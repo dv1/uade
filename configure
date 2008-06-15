@@ -222,6 +222,13 @@ if test "$useaudacious" = "auto" -o "$useaudacious" = "yes" ; then
     fi
 fi
 
+useuadefs="no"
+if test -n "$PKG_CONFIG" ; then
+    if test -n "$($PKG_CONFIG fuse --libs 2>/dev/null)" ; then
+	useuadefs="yes"
+    fi
+fi
+
 # set kernel type (such as AmigaOS) with environment variable $UADEKERNEL
 OS="$UADEKERNEL"
 if test -z "$OS" ; then

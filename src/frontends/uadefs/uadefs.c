@@ -64,13 +64,53 @@ struct sndctx {
 static int debugfd = -1;
 
 
+static struct sndctx *uadefs_open_file(int *success, const char *path);
+
+
+static void kill_child(struct sndctx *ctx)
+{
+	kill(ctx->pid, SIGINT);
+	while (waitpid(ctx->pid, NULL, 0) <= 0);
+	ctx->pid = -1;
+}
+
+static void destroy_ctx(struct sndctx *ctx)
+{
+	free(ctx->fname);
+	ctx->fname = NULL;
+
+	if (ctx->normalfile == 0) {
+		close(ctx->pipefd);
+		ctx->pipefd = -1;
+
+		kill_child(ctx);
+	}
+
+	free(ctx);
+}
+
 static int uadefs_getattr(const char *path, struct stat *stbuf)
 {
 	int res;
+	struct sndctx *ctx;
 
 	res = lstat(path, stbuf);
 	if (res == -1)
 		return -errno;
+
+	ctx = uadefs_open_file(&res, path);
+	if (ctx != NULL) {
+		if (ctx->normalfile == 0) {
+			/*
+			 * HACK HACK. Lie about the size, because we don't know
+			 * it yet. Maybe we could use song content database
+			 * here.
+			 */
+			stbuf->st_size = 44100 * 4 * 1024;
+		}
+
+		destroy_ctx(ctx);
+	}
 
 	return 0;
 }
@@ -261,28 +301,34 @@ static int uadefs_utimens(const char *path, const struct timespec ts[2])
 	return 0;
 }
 
-static int uadefs_open(const char *path, struct fuse_file_info *fi)
+static struct sndctx *uadefs_open_file(int *success, const char *path)
 {
 	int ret;
 	int bytes;
 	struct sndctx *ctx = NULL;
 	int fds[2];
-
-	LOG("Trying to open %s\n", path);
+	struct stat st;
 
 	ctx = calloc(1, sizeof *ctx);
+	ctx->pid = -1;
+	ctx->pipefd = -1;
+
 	ctx->fname = strdup(path);
 	if (ctx->fname == NULL) {
 		ret = -ENOMEM;
 		goto err;
 	}
 
-	ret = open(ctx->fname, fi->flags);
-	if (ret == -1) {
+	if (stat(ctx->fname, &st)) {
 		ret = -errno;
 		goto err;
 	}
-	close(ret);
+
+	if (!S_ISREG(st.st_mode)) {
+		ctx->normalfile = 1;
+		*success = 0;
+		goto out;
+	}
 
 	if (pipe(fds)) {
 		LOG("Can not create a pipe\n");
@@ -306,18 +352,18 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 
 		dup2(fd, 0);
 		dup2(fds[1], 1);
-		dup2(debugfd, 2);
+		dup2(fd, 2);
 
-		execv("/home/shd/bin/uade123", argv);
+		LOG("Execute %s\n", UADENAME);
 
-		LOG("Could not execute uade123\n");
+		execv(UADENAME, argv);
+
+		LOG("Could not execute %s\n", UADENAME);
 		abort();
 	}
 
 	ctx->pipefd = fds[0];
 	close(fds[1]);
-
-	fi->fh = (uint64_t) ctx;
 
 	bytes = 0;
 	while (bytes < MAGIC_LENGTH) {
@@ -325,6 +371,12 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 		if (ret == 0) {
 			LOG("File is not playable: %s\n", path);
 			ctx->normalfile = 1;
+
+			kill_child(ctx);
+
+			close(ctx->pipefd);
+			ctx->pipefd = -1;
+
 			break;
 		} else if (ret == -1) {
 			LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
@@ -334,15 +386,31 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 		bytes += ret;
 	}
 
-	LOG("Opened %s\n", ctx->fname);
-
-	return 0;
+ out:
+	*success = 0;
+	return ctx;
 
  err:
 	if (ctx)
 		free(ctx);
 
-	return ret;
+	*success = ret;
+	return NULL;
+}
+
+static int uadefs_open(const char *path, struct fuse_file_info *fi)
+{
+	int ret;
+	struct sndctx *ctx;
+
+	ctx = uadefs_open_file(&ret, path);
+	if (ctx == NULL)
+		return ret;
+
+	fi->fh = (uint64_t) ctx;
+
+	LOG("Opened %s as %s file\n", ctx->fname, ctx->normalfile ? "normal" : "UADE");
+	return 0;
 }
 
 static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
@@ -367,8 +435,6 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 		return totalread;
 	}
 
-	LOG("Offset %zd Size %zd\n", offset, size);
-
 	if (offset < MAGIC_LENGTH) {
 		ssize_t msize = size;
 
@@ -376,7 +442,6 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 			msize = MAGIC_LENGTH - offset;
 
 		memcpy(buf, ctx->buf + offset, msize);
-		LOG("copy %zd\n", msize);
 
 		ctx->length = offset + msize;
 		offset += msize;
@@ -401,7 +466,6 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 				toread = sizeof(skipbuf);
 
 			res = read(ctx->pipefd, skipbuf, toread);
-			LOG("read %zd\n", res);
 
 			if (res == 0) {
 				/* What to do here? */
@@ -419,11 +483,10 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 		totalread = 0;
 
 	} else if (offset == ctx->length) {
-
 		while (size > 0) {
 			res = read(ctx->pipefd, buf, size);
-			LOG("read %zd\n", res);
 			if (res == -1) {
+				LOG("ERR: %s", strerror(errno));
 				if (totalread == 0)
 					totalread = -errno;
 				break;
@@ -473,12 +536,10 @@ static int uadefs_statfs(const char *path, struct statvfs *stbuf)
 static int uadefs_release(const char *path, struct fuse_file_info *fi)
 {
 	struct sndctx *ctx = (struct sndctx *) fi->fh;
+
 	(void) path;
 
-	if (waitpid(ctx->pid, NULL, WNOHANG) == 0)
-		kill(ctx->pid, SIGINT);
-
-	while (waitpid(ctx->pid, NULL, WNOHANG) > 0);
+	destroy_ctx(ctx);
 
 	return 0;
 }
@@ -564,7 +625,15 @@ static struct fuse_operations uadefs_oper = {
 
 int main(int argc, char *argv[])
 {
-	debugfd = open("uadefs.log", O_WRONLY | O_TRUNC | O_CREAT);
+	char logfname[4096];
+
+	if (getenv("HOME")) {
+		int flags = O_WRONLY | O_TRUNC | O_APPEND | O_CREAT;
+		int fmode = S_IRUSR | S_IWUSR;
+
+		snprintf(logfname, sizeof logfname, "%s/.uade2/uadefs.log", getenv("HOME"));
+		debugfd = open(logfname, flags, fmode);
+	}
 
 	umask(0);
 	return fuse_main(argc, argv, &uadefs_oper, NULL);
