@@ -214,7 +214,7 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 		if (res <= 0) {
 			free(cb->data);
 			cb->data = NULL;
-			LOG("EOF %s\n", ctx->fname);
+			LOG("EOF at %zd: %s\n", (length_bi + ctx->start_bi) << CACHE_BLOCK_SHIFT, ctx->fname);
 			break;
 		}
 
@@ -622,7 +622,7 @@ static int uadefs_open(const char *path, struct fuse_file_info *fi)
 	return 0;
 }
 
-static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
+static int uadefs_read(const char *path, char *buf, size_t size, off_t off,
 		       struct fuse_file_info *fi)
 {
 	int fd;
@@ -636,7 +636,7 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 		if (fd == -1)
 			return -errno;
 
-		totalread = pread(fd, buf, size, offset);
+		totalread = pread(fd, buf, size, off);
 		if (totalread == -1)
 			totalread = -errno;
 
@@ -646,11 +646,11 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 	}
 
 	pthread_mutex_lock(&readmutex);
-	LOG("offset %zd size %zd\n", offset, size);
+	LOG("offset %zd size %zd\n", off, size);
 
 	while (size > 0) {
-		bsize = CACHE_BLOCK_SIZE - (offset & CACHE_LSB_MASK);
-		res = cache_read(ctx, buf, offset, bsize);
+		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
+		res = cache_read(ctx, buf, off, bsize);
 		if (res <= 0) {
 			if (res == -1 && totalread == 0)
 				totalread = -errno;
@@ -658,7 +658,7 @@ static int uadefs_read(const char *path, char *buf, size_t size, off_t offset,
 		}
 		totalread += res;
 		buf += res;
-		offset += res;
+		off += res;
 		size -= res;
 	}
 
