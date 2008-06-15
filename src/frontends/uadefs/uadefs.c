@@ -52,14 +52,15 @@
 #define CACHE_SECONDS 512
 #define SND_PER_SECOND (44100 * 4)
 
+#define DEBUG(fmt, args...) if (debugmode) { fprintf(stderr, fmt, ## args); }
+
 #define LOG(fmt, args...) if (debugfd != -1) { \
         char debugmsg[4096]; \
         int debuglen; \
+        DEBUG(fmt, ## args); \
         debuglen = snprintf(debugmsg, sizeof debugmsg, fmt, ## args); \
         write(debugfd, debugmsg, debuglen); \
     } while (0)
-
-#define DEBUG(fmt, args...) if (debugmode) { fprintf(stderr, fmt, ## args); }
 
 #define MAX(x, y) (x >= y) ? (x) : (y)
 #define MIN(x, y) (x <= y) ? (x) : (y)
