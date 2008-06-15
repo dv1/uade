@@ -316,6 +316,7 @@ static int uadefs_getattr(const char *path, struct stat *stbuf)
 			 * here.
 			 */
 			stbuf->st_size = SND_PER_SECOND * CACHE_SECONDS;
+			stbuf->st_blocks = stbuf->st_size / 512;
 		}
 
 		destroy_ctx(ctx);
