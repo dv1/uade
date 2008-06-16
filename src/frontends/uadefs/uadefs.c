@@ -89,9 +89,6 @@ static int debugfd = -1;
 static int debugmode;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 
-static void kill_child(struct sndctx *ctx);
-static struct sndctx *uadefs_open_file(int *success, const char *path);
-
 static char *uadefs_get_path(const char *path)
 {
 	char *realpath;
@@ -253,18 +250,30 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 	return 0;
 }
 
-static struct sndctx *create_ctx(void)
+static struct sndctx *create_ctx(const char *path)
 {
 	struct sndctx *ctx;
 
 	ctx = calloc(1, sizeof ctx[0]);
 	if (ctx == NULL)
-		return NULL;
+		goto err;
+
+	ctx->fname = strdup(path);
+	if (ctx->fname == NULL)
+		goto err;
 
 	ctx->pipefd = -1;
 	ctx->pid = -1;
 
 	return ctx;
+
+ err:
+	if (ctx) {
+		free(ctx->fname);
+		ctx->fname = NULL;
+		free(ctx);
+	}
+	return NULL;
 }
 
 static void destroy_cache(struct sndctx *ctx)
@@ -282,24 +291,38 @@ static void destroy_cache(struct sndctx *ctx)
 		ctx->blocks = NULL;
 		ctx->start_bi = -1;
 		ctx->end_bi = -1;
-		ctx->nblocks = -1;
+		ctx->nblocks = 0;
 	}
+}
 
+static void kill_child(struct sndctx *ctx)
+{
+	if (ctx->pid != -1) {
+		kill(ctx->pid, SIGINT);
+		while (waitpid(ctx->pid, NULL, 0) <= 0);
+		ctx->pid = -1;
+	}
+}
+
+static void set_no_snd_file(struct sndctx *ctx)
+{
+	ctx->normalfile = 1;
+
+	destroy_cache(ctx);
+
+	kill_child(ctx);
+
+	close(ctx->pipefd);
+	ctx->pipefd = -1;
 }
 
 static void destroy_ctx(struct sndctx *ctx)
 {
-	destroy_cache(ctx);
-
 	free(ctx->fname);
 	ctx->fname = NULL;
 
-	if (ctx->normalfile == 0) {
-		close(ctx->pipefd);
-		ctx->pipefd = -1;
-
-		kill_child(ctx);
-	}
+	if (ctx->normalfile == 0)
+		set_no_snd_file(ctx);
 
 	free(ctx);
 }
@@ -309,11 +332,87 @@ static inline struct sndctx *get_uadefs_file(struct fuse_file_info *fi)
 	return (struct sndctx *) (uintptr_t) fi->fh;
 }
 
-static void kill_child(struct sndctx *ctx)
+static struct sndctx *open_file(int *success, const char *path)
 {
-	kill(ctx->pid, SIGINT);
-	while (waitpid(ctx->pid, NULL, 0) <= 0);
-	ctx->pid = -1;
+	int ret;
+	struct sndctx *ctx;
+	int fds[2];
+	struct stat st;
+	char crapbuf[MAGIC_LENGTH];
+
+	ctx = create_ctx(path);
+	if (ctx == NULL) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
+	if (stat(path, &st)) {
+		ret = -errno;
+		goto err;
+	}
+
+	if (!S_ISREG(st.st_mode)) {
+		set_no_snd_file(ctx);
+		goto out;
+	}
+
+	if (pipe(fds)) {
+		LOG("Can not create a pipe\n");
+		ret = -errno;
+		goto err;
+	}
+
+	ctx->pid = fork();
+	if (ctx->pid == 0) {
+		char *argv[] = {"uade123", "-c", "-k0", "--stderr", "-v",
+				ctx->fname, NULL};
+		int fd;
+
+		close(0);
+		close(2);
+		close(fds[0]);
+
+		fd = open("/dev/null", O_RDWR);
+		if (fd < 0)
+			LOG("Can not open /dev/null\n");
+
+		dup2(fd, 0);
+		dup2(fds[1], 1);
+		dup2(fd, 2);
+
+		DEBUG("Execute %s\n", UADENAME);
+
+		execv(UADENAME, argv);
+
+		LOG("Could not execute %s\n", UADENAME);
+		abort();
+	}
+
+	ctx->pipefd = fds[0];
+	close(fds[1]);
+
+	cache_init(ctx);
+
+	ret = cache_read(ctx, crapbuf, 0, sizeof(crapbuf));
+
+	if (ret < sizeof(crapbuf)) {
+		DEBUG("File is not playable: %s\n", path);
+		set_no_snd_file(ctx);
+	} else if (ret == -1) {
+		LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
+		ret = -errno;
+		goto err;
+	}
+ out:
+	*success = 0;
+	return ctx;
+
+ err:
+	if (ctx)
+		destroy_ctx(ctx);
+
+	*success = ret;
+	return NULL;
 }
 
 static int uadefs_getattr(const char *fpath, struct stat *stbuf)
@@ -328,7 +427,7 @@ static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 		return -errno;
 	}
 
-	ctx = uadefs_open_file(&res, path);
+	ctx = open_file(&res, path);
 	if (ctx != NULL) {
 		if (ctx->normalfile == 0) {
 			/*
@@ -588,110 +687,13 @@ static int uadefs_utimens(const char *fpath, const struct timespec ts[2])
 	return 0;
 }
 
-static struct sndctx *uadefs_open_file(int *success, const char *path)
-{
-	int ret;
-	struct sndctx *ctx = NULL;
-	int fds[2];
-	struct stat st;
-	char crapbuf[MAGIC_LENGTH];
-
-	ctx = create_ctx();
-	if (ctx == NULL) {
-		ret = -ENOMEM;
-		goto err;
-	}
-
-	ctx->fname = strdup(path);
-	if (ctx->fname == NULL) {
-		ret = -ENOMEM;
-		goto err;
-	}
-
-	if (stat(ctx->fname, &st)) {
-		ret = -errno;
-		goto err;
-	}
-
-	if (!S_ISREG(st.st_mode)) {
-		ctx->normalfile = 1;
-		*success = 0;
-		goto out;
-	}
-
-	if (pipe(fds)) {
-		LOG("Can not create a pipe\n");
-		ret = -errno;
-		goto err;
-	}
-
-	ctx->pid = fork();
-	if (ctx->pid == 0) {
-		char *argv[] = {"uade123", "-c", "-k0", "--stderr", "-v",
-				ctx->fname, NULL};
-		int fd;
-
-		close(0);
-		close(2);
-		close(fds[0]);
-
-		fd = open("/dev/null", O_RDWR);
-		if (fd < 0)
-			LOG("Can not open /dev/null\n");
-
-		dup2(fd, 0);
-		dup2(fds[1], 1);
-		dup2(fd, 2);
-
-		DEBUG("Execute %s\n", UADENAME);
-
-		execv(UADENAME, argv);
-
-		LOG("Could not execute %s\n", UADENAME);
-		abort();
-	}
-
-	ctx->pipefd = fds[0];
-	close(fds[1]);
-
-	cache_init(ctx);
-
-	ret = cache_read(ctx, crapbuf, 0, sizeof(crapbuf));
-
-	if (ret < sizeof(crapbuf)) {
-		DEBUG("File is not playable: %s\n", path);
-		ctx->normalfile = 1;
-
-		destroy_cache(ctx);
-
-		kill_child(ctx);
-
-		close(ctx->pipefd);
-		ctx->pipefd = -1;
-	} else if (ret == -1) {
-		LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
-		ret = -errno;
-		goto err;
-	}
- out:
-	*success = 0;
-	return ctx;
-
- err:
-	if (ctx)
-		destroy_ctx(ctx);
-
-	*success = ret;
-	return NULL;
-}
-
 static int uadefs_open(const char *fpath, struct fuse_file_info *fi)
 {
 	int ret;
 	struct sndctx *ctx;
 	char *path = uadefs_get_path(fpath);
 
-	ctx = uadefs_open_file(&ret, path);
+	ctx = open_file(&ret, path);
 
 	free(path);
 
