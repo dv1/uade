@@ -46,7 +46,14 @@
 #include <sys/stat.h>
 #include <assert.h>
 
+#include "uadeconf.h"
+#include "uadestate.h"
+#include "eagleplayer.h"
+#include "songdb.h"
+
+
 #define MAGIC_LENGTH 0x1000
+#define WAV_HEADER_LEN 44   /* Stolen from libao source. Not verified. */
 
 #define CACHE_BLOCK_SHIFT 12  /* 4096 bytes per cache block */
 #define CACHE_BLOCK_SIZE (1 << CACHE_BLOCK_SHIFT)
@@ -67,6 +74,7 @@
 #define MAX(x, y) (x >= y) ? (x) : (y)
 #define MIN(x, y) (x <= y) ? (x) : (y)
 
+
 struct cacheblock {
 	unsigned int bytes; /* 0 <= bytes <= CACHE_BLOCK_SIZE */
 	void *data;
@@ -84,10 +92,16 @@ struct sndctx {
 	struct cacheblock *blocks;
 };
 
+
 static char *srcdir = NULL;
 static int debugfd = -1;
 static int debugmode;
+static struct uade_state uadestate;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+static size_t get_file_size(const char *path);
+
 
 static char *uadefs_get_path(const char *path)
 {
@@ -250,6 +264,32 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 	return 0;
 }
 
+static void write_le_32(char *data, int32_t v)
+{
+	data[0] = v         & 0xff;
+	data[1] = (v >> 8)  & 0xff;
+	data[2] = (v >> 16) & 0xff;
+	data[3] = (v >> 24) & 0xff;
+}
+
+static void cache_invasive_write(struct sndctx *ctx, size_t offset,
+				 char *data, size_t len)
+{
+	size_t offset_bi = offset >> CACHE_BLOCK_SHIFT;
+	size_t lsbpos = offset & CACHE_LSB_MASK;
+	struct cacheblock *cb;
+
+	if (offset_bi < ctx->start_bi || offset_bi >= ctx->end_bi) {
+		LOG("Invasive cache write: %zu\n", offset);
+		return;
+	}
+
+	cb = &ctx->blocks[offset_bi - ctx->start_bi];
+
+	if ((lsbpos + len) <= cb->bytes)
+		memcpy(((char *) cb->data) + lsbpos, data, len);
+}
+
 static struct sndctx *create_ctx(const char *path)
 {
 	struct sndctx *ctx;
@@ -289,8 +329,8 @@ static void destroy_cache(struct sndctx *ctx)
 
 		free(ctx->blocks);
 		ctx->blocks = NULL;
-		ctx->start_bi = -1;
-		ctx->end_bi = -1;
+		ctx->start_bi = 0;
+		ctx->end_bi = 0;
 		ctx->nblocks = 0;
 	}
 }
@@ -402,7 +442,23 @@ static struct sndctx *open_file(int *success, const char *path)
 		LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
 		ret = -errno;
 		goto err;
+	} else {
+		size_t s = get_file_size(path);
+
+		if (s > 0 &&
+		    memcmp(&crapbuf[0], "RIFF", 4) == 0 &&
+		    memcmp(&crapbuf[8], "WAVE", 4) == 0    ) {
+			/* Fix WAV header */
+			char data[4];
+
+			write_le_32(data, (int32_t) (s - 8));
+			cache_invasive_write(ctx, 4, data, 4);
+
+			write_le_32(data, (int32_t) (s - 44));
+			cache_invasive_write(ctx, 40, data, 4);
+		}
 	}
+
  out:
 	*success = 0;
 	return ctx;
@@ -415,11 +471,42 @@ static struct sndctx *open_file(int *success, const char *path)
 	return NULL;
 }
 
+/*
+ * If the file is an uade song, return a heuristic wav file size, a positive
+ * integer. Otherwise, return zero.
+ */
+static size_t get_file_size(const char *path)
+{
+	int64_t msecs = 0;
+	size_t s;
+
+	if (uade_is_our_file(path, 1, &uadestate)) {
+		/*
+		 * HACK HACK. Use playlength stored in the content database
+		 * or lie about the time.
+		 */
+		if (uade_alloc_song(&uadestate, path)) {
+			msecs = uadestate.song->playtime;
+			if (msecs <= 0)
+				msecs = CACHE_SECONDS * 1000;
+
+			uade_unalloc_song(&uadestate);
+		}
+	}
+
+	s = (msecs * SND_PER_SECOND) / 1000;
+	/* Make it divisible by 4 bytes, round down */
+	s &= ~0x3;
+	s += WAV_HEADER_LEN;
+
+	return s;
+}
+
 static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 {
 	int res;
-	struct sndctx *ctx;
 	char *path = uadefs_get_path(fpath);
+	size_t s;
 
 	res = lstat(path, stbuf);
 	if (res == -1) {
@@ -427,19 +514,10 @@ static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 		return -errno;
 	}
 
-	ctx = open_file(&res, path);
-	if (ctx != NULL) {
-		if (ctx->normalfile == 0) {
-			/*
-			 * HACK HACK. Lie about the size, because we don't know
-			 * it yet. Maybe we could use song content database
-			 * here.
-			 */
-			stbuf->st_size = SND_PER_SECOND * CACHE_SECONDS;
-			stbuf->st_blocks = stbuf->st_size / 512;
-		}
-
-		destroy_ctx(ctx);
+	s = get_file_size(path);
+	if (s > 0) {
+		stbuf->st_size = s; /* replace the lstat() value */
+		stbuf->st_blocks = stbuf->st_size / 512;
 	}
 
 	free(path);
@@ -1000,6 +1078,47 @@ static int uadefs_opt_proc(void *data, const char *arg, int key,
 	return 0;
 }
 
+static void load_content_db(void)
+{
+	struct stat st;
+	char name[PATH_MAX] = "";
+	char *home;
+
+	home = getenv("HOME");
+	if (home)
+		snprintf(name, sizeof name, "%s/.uade2/contentdb", home);
+
+	/* User database has priority over global database, so we read it
+	 * first */
+	if (name[0]) {
+		if (stat(name, &st) == 0) {
+			if (uade_read_content_db(name))
+				return;
+		} else {
+			FILE *f = fopen(name, "w");
+			if (f)
+				fclose(f);
+			uade_read_content_db(name);
+		}
+	}
+
+	snprintf(name, sizeof name, "%s/contentdb.conf", uadestate.config.basedir.name);
+	if (stat(name, &st) == 0)
+		uade_read_content_db(name);
+}
+
+
+static void init_uade(void)
+{
+    char uadeconfname[4096];
+
+    (void) uade_load_initial_config(uadeconfname, sizeof uadeconfname,
+				    &uadestate.config, NULL);
+
+    load_content_db();
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -1017,6 +1136,8 @@ int main(int argc, char *argv[])
 		snprintf(logfname, sizeof logfname, "%s/.uade2/uadefs.log", getenv("HOME"));
 		debugfd = open(logfname, flags, fmode);
 	}
+
+	init_uade();
 
 	umask(0);
 	return uadefs_fuse_main(&args);

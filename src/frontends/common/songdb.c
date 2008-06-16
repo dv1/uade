@@ -45,7 +45,7 @@ static int nsongs;
 static struct eaglesong *songstore;
 
 static int escompare(const void *a, const void *b);
-static struct uade_content *get_content_length(const char *md5);
+static struct uade_content *get_content(const char *md5);
 
 
 static void add_sub_normalisation(struct uade_content *n, char *normalisation)
@@ -84,7 +84,7 @@ static int escompare(const void *a, const void *b)
 			  ((struct eaglesong *)b)->md5);
 }
 
-static struct uade_content *get_content_length(const char *md5)
+static struct uade_content *get_content(const char *md5)
 {
 	struct uade_content key;
 
@@ -187,7 +187,7 @@ struct uade_content *uade_add_playtime(const char *md5, uint32_t playtime)
 	if (strlen(md5) != 32)
 		return NULL;
 
-	n = get_content_length(md5);
+	n = get_content(md5);
 	if (n != NULL) {
 		update_playtime(n, playtime);
 		return n;
@@ -206,7 +206,7 @@ void uade_lookup_volume_normalisation(struct uade_state *state)
 	struct uade_effect *ue = &state->effects;
 	struct uade_config *uc = &state->config;
 	struct uade_song *us = state->song;
-	struct uade_content *content = get_content_length(us->md5);
+	struct uade_content *content = get_content(us->md5);
 
 	if (content != NULL) {
 
@@ -228,11 +228,27 @@ void uade_lookup_volume_normalisation(struct uade_state *state)
 	}
 }
 
+static void get_song_flags_and_attributes_from_songstore(struct uade_song *us)
+{
+	struct eaglesong key;
+	struct eaglesong *es;
+
+	if (songstore != NULL) {
+		/* Lookup md5 from the songdb */
+		strlcpy(key.md5, us->md5, sizeof key.md5);
+		es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
+
+		if (es != NULL) {
+			/* Found -> copy flags and attributes from database */
+			us->flags |= es->flags;
+			us->songattributes = es->attributes;
+		}
+	}
+}
+
 int uade_alloc_song(struct uade_state *state, const char *filename)
 {
 	struct uade_song *us;
-	struct eaglesong key;
-	struct eaglesong *es;
 	struct uade_content *content;
 
 	state->song = NULL;
@@ -250,24 +266,18 @@ int uade_alloc_song(struct uade_state *state, const char *filename)
 	/* Compute an md5sum of the song */
 	md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
 
-	/* Lookup md5 from the songdb */
-	strlcpy(key.md5, us->md5, sizeof key.md5);
-	es = bsearch(&key, songstore, nsongs, sizeof songstore[0], escompare);
+	/* Needs us->md5 sum */
+	get_song_flags_and_attributes_from_songstore(us);
 
-	if (es != NULL) {
-		/* Found -> copy flags and attributes from database */
-		us->flags |= es->flags;
-		us->songattributes = es->attributes;
-	}
-
-	us->min_subsong = us->max_subsong = us->cur_subsong = -1;
-
+	/* Lookup playtime from content database */
 	us->playtime = -1;
-
-	content = get_content_length(us->md5);
-
+	content = get_content(us->md5);
 	if (content != NULL && content->playtime > 0)
 		us->playtime = content->playtime;
+
+	/* We can't know subsong numbers yet. The eagleplayer will report them
+	 * in the playback state */
+	us->min_subsong = us->max_subsong = us->cur_subsong = -1;
 
 	state->song = us;
 	return 1;

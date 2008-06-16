@@ -3,9 +3,16 @@ MANDIR = {PACKAGEPREFIX}{MANDIR}
 UADE123NAME={UADE123NAME}
 
 CC = {CC}
-CFLAGS = -Wall -O2 -pthread `pkg-config fuse --cflags` -DUADENAME=\"{BINDIR}/{UADE123NAME}\" {DEBUGFLAGS} {ARCHFLAGS}
-CLIBS = {ARCHLIBS} `pkg-config fuse --libs`
-MODULES = uadefs.o
+CFLAGS = -Wall -O2 -pthread -I../../include -I../common `pkg-config fuse --cflags` -DUADENAME=\"{BINDIR}/{UADE123NAME}\" {DEBUGFLAGS} {ARCHFLAGS}
+CLIBS = {ARCHLIBS} `pkg-config fuse --libs` -lm
+
+MODULES = uadefs.o \
+          strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
+	  eagleplayer.o effects.o uadecontrol.o uadeconf.o md5.o \
+	  ossupport.o songdb.o songinfo.o vplist.o support.o
+
+PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
+
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $<
@@ -24,3 +31,5 @@ install:	uadefs
 
 clean:	
 	rm -f uadefs *.o
+
+include ../common/Makefile.common
