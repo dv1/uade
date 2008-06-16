@@ -100,13 +100,15 @@ static char gui_module_filename[PATH_MAX];
 static char gui_playername[256];
 static char gui_player_filename[PATH_MAX];
 static int last_beat_played;  /* Lock before use */
-static char md5name[PATH_MAX];
+
+static char contentname[PATH_MAX];
+static time_t content_mtime;
+
 static int record_playtime; /* Lock before use */
 static int plugin_disabled;
 static char songconfname[PATH_MAX];
 
 static time_t config_load_time;
-static time_t md5_load_time;
 
 
 int uade_is_paused;           /* Lock before use */
@@ -146,35 +148,41 @@ static void load_config(void)
 
 static void load_content_db(void)
 {
-  struct stat st;
-  time_t curtime = time(NULL);
-  char name[PATH_MAX];
+	struct stat st;
+	char name[PATH_MAX];
+	int ret;
 
-  if (curtime)
-    md5_load_time = curtime;
+	if (contentname[0] == 0) {
+		char *home = uade_open_create_home();
+		if (home)
+			snprintf(contentname, sizeof contentname, "%s/.uade2/contentdb", home);
+	}
 
-  if (md5name[0] == 0) {
-    char *home = uade_open_create_home();
-    if (home)
-      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
-  }
+	/* User database has priority over global database, so we read it
+	 * first */
+	if (contentname[0]) {
+		if (stat(contentname, &st) == 0) {
+			if (content_mtime < st.st_mtime) {
+				ret = uade_read_content_db(contentname);
+				if (stat(contentname, &st) == 0)
+					content_mtime = st.st_mtime;
+				if (ret)
+					return;
+			}
+		} else {
+			FILE *f = fopen(contentname, "w");
+			if (f)
+				fclose(f);
+			uade_read_content_db(contentname);
+		}
+	}
 
-  /* User database has priority over global database, so we read it first */
-  if (md5name[0]) {
-    if (stat(md5name, &st) == 0) {
-      if (uade_read_content_db(md5name))
-	return;
-    } else {
-      FILE *f = fopen(md5name, "w");
-      if (f)
-	fclose(f);
-      uade_read_content_db(md5name);
-    }
-  }
-
-  snprintf(name, sizeof name, "%s/contentdb.conf", config_backup.basedir.name);
-  if (stat(name, &st) == 0)
-    uade_read_content_db(name);
+	snprintf(name, sizeof name, "%s/contentdb.conf", config_backup.basedir.name);
+	if (stat(name, &st) == 0 && content_mtime < st.st_mtime) {
+		uade_read_content_db(name);
+		if (stat(name, &st) == 0)
+			content_mtime = st.st_mtime;
+	}
 }
 
 
@@ -183,10 +191,10 @@ static void uade_cleanup(void)
   if (state.pid)
     kill(state.pid, SIGTERM);
 
-  if (md5name[0]) {
+  if (contentname[0]) {
     struct stat st;
-    if (stat(md5name, &st) == 0 && md5_load_time >= st.st_mtime)
-      uade_save_content_db(md5name);
+    if (stat(contentname, &st) == 0 && content_mtime >= st.st_mtime)
+      uade_save_content_db(contentname);
   }
 }
 
@@ -801,21 +809,17 @@ static void uade_play_file(char *filename)
 
   /* If content db has changed (newer mtime chan previously read) then force
      a reload */
-  if (md5name[0]) {
-    struct stat st;
-    time_t curtime;
+  load_content_db();
 
-    if (stat(md5name, &st) == 0 && md5_load_time < st.st_mtime)
-      load_content_db();
-
-    /* Save current db if an hour has passed */
-    curtime = time(NULL);
-    if (curtime >= (md5_load_time + 3600)) {
-      uade_save_content_db(md5name);
-      md5_load_time = curtime;
+  /* Save current db if an hour has passed */
+  if (contentname[0]) {
+    time_t curtime = time(NULL);
+    if (curtime >= (content_mtime + 3600)) {
+      struct stat st;
+      uade_save_content_db(contentname);
+      if (stat(contentname, &st) == 0)
+	content_mtime = st.st_mtime;
     }
-  } else {
-    load_content_db();
   }
 
   if (initialize_song(filename) == FALSE)
