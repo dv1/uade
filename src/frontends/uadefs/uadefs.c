@@ -699,7 +699,7 @@ static int uadefs_open(const char *fpath, struct fuse_file_info *fi)
 		return ret;
 
 	fi->direct_io = 1;
-	fi->fh = (uint64_t) ctx;
+	fi->fh = (uint64_t) (uintptr_t) ctx;
 
 	DEBUG("Opened %s as %s file\n", ctx->fname, ctx->normalfile ? "normal" : "UADE");
 	return 0;
@@ -734,7 +734,7 @@ static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 	}
 
 	pthread_mutex_lock(&readmutex);
-	DEBUG("offset %zd size %zd\n", off, size);
+	DEBUG("offset %zu size %zu\n", (size_t) off, size);
 
 	while (size > 0) {
 		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
