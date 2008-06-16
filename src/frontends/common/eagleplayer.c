@@ -148,6 +148,9 @@ static struct eagleplayer *analyze_file_format(int *content,
 
 	uade_filemagic(buf, bytesread, ext, st.st_size, state->config.verbose);
 
+	if (strcmp(ext, "reject") == 0)
+		return NULL;
+
 	if (ext[0] != 0 && state->config.verbose)
 		fprintf(stderr, "Content recognized: %s (%s)\n", ext, modulename);
 

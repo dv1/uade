@@ -35,6 +35,7 @@
 #define amifiledebug(fmt, args...) 
 #endif
 
+#define WAV_HEADER_LEN 44
 
 enum {
   MOD_UNDEFINED = 0,
@@ -731,6 +732,23 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
   return 3; /* anything is played as normal soundtracker */
 }
 
+/* Reject WAV files so that uadefs doesn't cause bad behaviour */
+static int is_wav_file(unsigned char *buf, size_t size)
+{
+	if (size < WAV_HEADER_LEN)
+		return 0;
+
+	if (memcmp(buf, "RIFF", 4))
+		return 0;
+
+	if (memcmp(buf + 8, "WAVEfmt ", 8))
+		return 0;
+
+	if (memcmp(buf + 36, "data", 4))
+		return 0;
+
+	return 1;
+}
 
 void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
 		    size_t realfilesize, int verbose)
@@ -783,6 +801,11 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
 
   /* Mark format unknown by default */
   pre[0] = 0;
+
+  if (is_wav_file(buf, bufsize)) {
+    strcpy(pre, "reject");
+    return;
+  }
 
   modtype = mod32check(buf, bufsize, realfilesize, verbose);
   if (modtype != MOD_UNDEFINED) {
