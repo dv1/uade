@@ -97,6 +97,7 @@ static char *srcdir = NULL;
 static int debugfd = -1;
 static int debugmode;
 static struct uade_state uadestate;
+static time_t mtime = 0;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -108,7 +109,7 @@ static char *uadefs_get_path(const char *path)
 	char *realpath;
 
 	if (asprintf(&realpath, "%s%s", srcdir, path) < 0) {
-		fprintf(stderr, "No memory for path name: %s\n", path);
+		LOG("No memory for path name: %s\n", path);
 		exit(1);
 	}
 
@@ -471,6 +472,44 @@ static struct sndctx *open_file(int *success, const char *path)
 	return NULL;
 }
 
+static void load_content_db(void)
+{
+	struct stat st;
+	char name[PATH_MAX] = "";
+	char *home;
+	int ret;
+
+	home = getenv("HOME");
+	if (home)
+		snprintf(name, sizeof name, "%s/.uade2/contentdb", home);
+
+	/* User database has priority over global database, so we read it
+	 * first */
+	if (name[0]) {
+		if (stat(name, &st) == 0) {
+			if (mtime < st.st_mtime) {
+				ret = uade_read_content_db(name);
+				if (stat(name, &st) == 0)
+					mtime = st.st_mtime;
+				if (ret)
+					return;
+			}
+		} else {
+			FILE *f = fopen(name, "w");
+			if (f)
+				fclose(f);
+			uade_read_content_db(name);
+		}
+	}
+
+	snprintf(name, sizeof name, "%s/contentdb.conf", uadestate.config.basedir.name);
+	if (stat(name, &st) == 0 && mtime < st.st_mtime) {
+		uade_read_content_db(name);
+		if (stat(name, &st) == 0)
+			mtime = st.st_mtime;
+	}
+}
+
 /*
  * If the file is an uade song, return a heuristic wav file size, a positive
  * integer. Otherwise, return zero.
@@ -485,6 +524,7 @@ static size_t get_file_size(const char *path)
 		 * HACK HACK. Use playlength stored in the content database
 		 * or lie about the time.
 		 */
+		load_content_db();
 		if (uade_alloc_song(&uadestate, path)) {
 			msecs = uadestate.song->playtime;
 			if (msecs <= 0)
@@ -1077,36 +1117,6 @@ static int uadefs_opt_proc(void *data, const char *arg, int key,
 
 	return 0;
 }
-
-static void load_content_db(void)
-{
-	struct stat st;
-	char name[PATH_MAX] = "";
-	char *home;
-
-	home = getenv("HOME");
-	if (home)
-		snprintf(name, sizeof name, "%s/.uade2/contentdb", home);
-
-	/* User database has priority over global database, so we read it
-	 * first */
-	if (name[0]) {
-		if (stat(name, &st) == 0) {
-			if (uade_read_content_db(name))
-				return;
-		} else {
-			FILE *f = fopen(name, "w");
-			if (f)
-				fclose(f);
-			uade_read_content_db(name);
-		}
-	}
-
-	snprintf(name, sizeof name, "%s/contentdb.conf", uadestate.config.basedir.name);
-	if (stat(name, &st) == 0)
-		uade_read_content_db(name);
-}
-
 
 static void init_uade(void)
 {
