@@ -29,14 +29,23 @@ fi
 debug_flags="-g"
 packageprefix=""
 user="no"
-usexmms="auto"
-useaudacious="auto"
+usexmms="yes"
+useaudacious="yes"
+useuadefs="yes"
 useuade123="yes"
 useuadecore="yes"
 xmmsplugindir=""
 audaciousplugindir=""
 pkgrequirements="ao"
 textscope="no"
+
+set_all_no() {
+    usexmms="no"
+    useaudacious="no"
+    useuadefs="no"
+    useuade123="no"
+    useuadecore="no"
+}
 
 for opt in "$@" ; do
 	case $opt in
@@ -97,32 +106,44 @@ for opt in "$@" ; do
 		user="yes"
 		;;
 
-	--with-audacious)
-		useaudacious="yes"
-		;;
 	--without-audacious)
 		useaudacious="no"
+		;;
+	--only-audacious)
+		set_all_no
+		useaudacious="yes"
 		;;
 
 	--with-text-scope)
 		textscope="yes"
 		;;
+
 	--without-uadecore)
 		useuadecore="no"
 		;;
 
-	--with-uade123)
-		useuade123="yes"
-		;;
 	--without-uade123)
 		useuade123="no"
 		;;
-
-	--with-xmms)
-		usexmms="yes"
+	--only-uade123)
+		set_all_no
+		useuade123="yes"
 		;;
+
 	--without-xmms)
 		usexmms="no"
+		;;
+	--only-xmms)
+		set_all_no
+		usexmms="yes"
+		;;
+
+	--without-uadefs)
+		useuadefs="no"
+		;;
+	--only-uadefs)
+		set_all_no
+		useuadefs="yes"
 		;;
 
 	--xmms-config=*)
@@ -150,20 +171,23 @@ for opt in "$@" ; do
 		echo "                        tarch-gcc. (cross compiling)"
 		echo " --target-cc=tcc        Specify target compiler. (cross compiling)"
 		echo
-		echo "Frontend options:"
+		echo "Plugins and tools to compile:"
+		echo " --without-audacious    Do not compile an Audacious plugin"
 		echo " --with-text-scope      Enable text scope support (uade123 --scope)"
+		echo " --without-uade123      Do not compile uade123"
 		echo " --without-uadecore     Do not compile uadecore. This is useful for"
 		echo "                        distribution makers who want to compile new frontends"
 		echo "                        without re-compiling the emulator binary."
-		echo " --with-uade123         Compile uade123 (auto detect)"
-		echo " --without-uade123      Do not compile uade123"
-		echo " --with-xmms            Compile an XMMS plugin (auto detect)"
+		echo " --without-uadefs       Do not compile uadefs filesystem"
 		echo " --without-xmms         Do not compile an XMMS plugin"
+		echo " --only-audacious       Compile only Audacious plugin"
+		echo " --only-uade123         Compile only uade123 plugin"
+		echo " --only-uadecore        Compile only uadecore plugin"
+		echo " --only-uadefs          Compile only uadefs plugin"
+		echo " --only-xmms            Compile only XMMS plugin"
+		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
 		echo " --xmms-config=exe      Use 'exe' as xmms-config"
 		echo " --xmms-plugin-dir=PATH Install XMMS plugin to PATH"
-		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
-		echo " --with-audacious       Compile an Audacious plugin (auto detect)"
-		echo " --without-audacious    Do not compile an Audacious plugin"
 		echo
 		echo "Library control:"
 		echo " --pkg-config=exe       Use 'exe' as pkg-config executable"
@@ -184,41 +208,37 @@ if test -z "$PKG_CONFIG" ; then
     PKG_CONFIG="pkg-config"
 fi
 "$PKG_CONFIG" --version 2> /dev/null > /dev/null || PKG_CONFIG=""
+if test -z "$PKG_CONFIG" ; then
+    echo "The system doesn't have pkg-config. You may not be able to compile some frontends (audacious, uadefs, ...)"
+fi
 
 if test -z "$XMMS_CONFIG" ; then
     XMMS_CONFIG="xmms-config"
 fi
 
-if test "$usexmms" = "auto" -o "$usexmms" = "yes" ; then
+if test "$usexmms" = "yes" ; then
+    usexmms="no"
     if test -x "`which $XMMS_CONFIG`" ; then
 	usexmms="yes"
 	XMMSFLAGS="`$XMMS_CONFIG --cflags`"
 	XMMSLIBS="`$XMMS_CONFIG --libs`"
-    else
-	if test "$usexmms" = "yes" ; then
-	    echo "Sorry, compiling XMMS plugin is impossible."
-	    exit 1
-	fi
-	usexmms="no"
-	echo "Couldn't find xmms-config -> not compiling xmms-plugin!"
+    fi
+    if test "$usexmms" = "no" ; then
+	echo "Couldn't find xmms-config -> not compiling the XMMS plugin!"
     fi
 fi
 
-if test "$useaudacious" = "auto" -o "$useaudacious" = "yes" ; then
+if test "$useaudacious" = "yes" ; then
+    useaudacious="no"
     if test -n "$PKG_CONFIG" ; then
-	useaudacious="no"
 	if test -n "`$PKG_CONFIG audacious --libs 2>/dev/null`"; then
 		useaudacious="yes"
 		AUDACIOUSFLAGS="`$PKG_CONFIG audacious --cflags`"
 		AUDACIOUSLIBS="`$PKG_CONFIG audacious --libs`"
 	fi
-    else
-	if test "$useaudacious" = "yes" ; then
-	    echo "Sorry, compiling Audacious plugin is impossible."
-	    exit 1
-	fi
-	useaudacious="no"
-	echo "Couldn't find pkg-config audacious -> not compiling plugin!"
+    fi
+    if test "$useaudacious" = "no" ; then
+	echo "Couldn't find pkg-config information for audacious plugin -> not compiling it"
     fi
 fi
 
@@ -450,10 +470,12 @@ Requires: $pkgrequirements
 EOF
 fi
 
-useuadefs="no"
-if test -n "$PKG_CONFIG" ; then
-    if test -n "$($PKG_CONFIG fuse --libs 2>/dev/null)" ; then
-	useuadefs="yes"
+if test "$useuadefs" = "yes" ; then
+    useuadefs="no"
+    if test -n "$PKG_CONFIG" ; then
+	if test -n "$($PKG_CONFIG fuse --libs 2>/dev/null)" ; then
+	    useuadefs="yes"
+	fi
     fi
 fi
 
@@ -468,6 +490,7 @@ if test "$TARGETCC" != "$NATIVECC" ; then
     echo "Native CC                               : $NATIVECC"
 fi
 echo "Target CC                               : $TARGETCC"
+echo "uadecore                                : $useuadecore"
 echo "uade123                                 : $useuade123"
 if test "$useuade123" = "yes" ; then
     echo "uade123 sound output                    : AO"
