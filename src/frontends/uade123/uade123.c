@@ -27,7 +27,7 @@
 
 #include "uadecontrol.h"
 #include "uadeipc.h"
-#include "strlrep.h"
+#include "ossupport.h"
 #include "uadeconfig.h"
 #include "eagleplayer.h"
 #include "uadeconf.h"

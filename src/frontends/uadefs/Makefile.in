@@ -6,18 +6,14 @@ CC = {CC}
 CFLAGS = -Wall -O2 -pthread -I../../include -I../common `pkg-config fuse --cflags` -DUADENAME=\"{BINDIR}/{UADE123NAME}\" {DEBUGFLAGS} {ARCHFLAGS}
 CLIBS = {ARCHLIBS} `pkg-config fuse --libs` -lm
 
-MODULES = uadefs.o \
-          strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
-	  eagleplayer.o effects.o uadecontrol.o uadeconf.o md5.o \
-	  ossupport.o songdb.o songinfo.o vplist.o support.o
+all:	uadefs
 
-PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../../include/uadeconfig.h
+include ../common/Makefile.common
 
+MODULES = uadefs.o $(COMMONMODULES)
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $<
-
-all:	uadefs
 
 uadefs:	$(MODULES)
 	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
@@ -32,4 +28,3 @@ install:	uadefs
 clean:	
 	rm -f uadefs *.o
 
-include ../common/Makefile.common

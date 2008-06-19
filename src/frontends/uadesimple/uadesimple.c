@@ -23,13 +23,12 @@
 #include <unistd.h>
 
 #include "uadecontrol.h"
-#include "strlrep.h"
+#include "ossupport.h"
 #include "uadeconfig.h"
 #include "uadeconf.h"
 #include "sysincludes.h"
 #include "songdb.h"
 #include "uadestate.h"
-
 #include "uadesimple.h"
 #include "playloop.h"
 #include "audio.h"

@@ -13,7 +13,6 @@
 #include "songinfo.h"
 #include "uadeutils.h"
 #include "ossupport.h"
-#include "strlrep.h"
 #include "amifilemagic.h"
 #include "support.h"
 

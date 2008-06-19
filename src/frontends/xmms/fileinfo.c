@@ -30,10 +30,8 @@
 #include <xmms/configfile.h>
 #include <xmms/util.h>
 
-#include <strlrep.h>
-
-#include <songinfo.h>
-
+#include "ossupport.h"
+#include "songinfo.h"
 #include "fileinfo.h"
 #include "plugin.h"
 

@@ -14,10 +14,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include <uadeipc.h>
-#include <strlrep.h>
-#include <ossupport.h>
-#include <sysincludes.h>
+#include "uadeipc.h"
+#include "ossupport.h"
+#include "sysincludes.h"
 
 
 static int valid_message(struct uade_msg *uc);

@@ -30,8 +30,6 @@
 
 #include "uade.h"
 #include "amigamsg.h"
-#include "strlrep.h"
-#include "uadeipc.h"
 #include "ossupport.h"
 #include "sysincludes.h"
 

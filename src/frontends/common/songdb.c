@@ -14,7 +14,7 @@
 #include "uadeconf.h"
 #include "md5.h"
 #include "unixatomic.h"
-#include "strlrep.h"
+#include "ossupport.h"
 #include "uadeconfig.h"
 #include "support.h"
 

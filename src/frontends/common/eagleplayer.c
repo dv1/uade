@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 #include "eagleplayer.h"
-#include "strlrep.h"
+#include "ossupport.h"
 #include "amifilemagic.h"
 #include "uadeconf.h"
 #include "unixatomic.h"

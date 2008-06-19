@@ -18,10 +18,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <ossupport.h>
-#include <uade.h>
-#include <strlrep.h>
-#include <unixatomic.h>
+#include "uade.h"
+#include "unixatomic.h"
 
 
 static int url_to_fd(const char *url, int flags, mode_t mode)

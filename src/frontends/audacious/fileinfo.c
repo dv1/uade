@@ -28,10 +28,8 @@
 #include <audacious/plugin.h>
 #include <audacious/util.h>
 
-#include <strlrep.h>
-
-#include <songinfo.h>
-
+#include "ossupport.h"
+#include "songinfo.h"
 #include "fileinfo.h"
 #include "plugin.h"
 

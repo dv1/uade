@@ -21,7 +21,7 @@
 #include "uadeconfig.h"
 #include "uadecontrol.h"
 #include "uadeconstants.h"
-#include "strlrep.h"
+#include "ossupport.h"
 #include "uadeconf.h"
 #include "effects.h"
 #include "sysincludes.h"

@@ -412,18 +412,6 @@ if test "$?" != "0"; then
 fi
 
 cd compat
-rm -f strltest
-$TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
-if test -e "strltest" ; then
-    echo "#include <string.h>" > ../src/include/strlrep.h
-    echo "" > ../src/strlrep.c
-else
-    cp strlrep.c ../src/
-    cp strlrep.h ../src/include/
-fi
-cd ..
-
-cd compat
 rm -f ../src/include/stdint.h
 cat > stdinttest.c <<EOF
 #include <stdint.h>
@@ -509,12 +497,19 @@ echo
 
 # Target is UNIX.
 cat > src/ossupport.c <<EOF
+#include "ossupport.h"
+
 #include "unixsupport.c"
 EOF
 
 OSSUPPORTMODULES="unixsupport.c include/ossupport.h"
 
-cp src/include/unixsupport.h src/include/ossupport.h
+cat > src/include/ossupport.h <<EOF
+#ifndef _UADE_OSSUPPORT_H_
+#define _UADE_OSSUPPORT_H_
+
+#include "unixsupport.h"
+EOF
 cd compat
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o memmemtest memmemtest.c 2>/dev/null
 if test "$?" != "0" ; then
@@ -522,6 +517,17 @@ if test "$?" != "0" ; then
     cat memmemrep.c >> ../src/ossupport.c
     echo "Using memmem() replacement."
 fi
+
+rm -f strltest
+$TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
+if test -e "strltest" ; then
+    echo "#include <string.h>" >> ../src/include/ossupport.h
+else
+    cat strlrep.c >> ../src/ossupport.c
+    cat strlrep.h >> ../src/include/ossupport.h
+fi
+
+echo "#endif" >> ../src/include/ossupport.h
 
 csfile="../src/include/compilersupport.h"
 echo "#ifndef _UADE_COMPILER_SUPPORT_H_" > "$csfile"

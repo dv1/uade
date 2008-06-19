@@ -25,7 +25,7 @@
 #include "compiler.h"
 
 #include "uade.h"
-#include "strlrep.h"
+#include "ossupport.h"
 
 struct uae_prefs currprefs, changed_prefs;
 

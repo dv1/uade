@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <uadeutils.h>
+#include "uadeutils.h"
 
 #define UADE_MAX_MESSAGE_SIZE (4096)
 

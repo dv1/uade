@@ -8,10 +8,12 @@ AUDACIOUSLIBS={AUDACIOUSLIBS}
 SHAREDLIBRARYFLAGS={SHAREDLIBRARYFLAGS}
 CFLAGS = -Wall -O2 $(SHAREDLIBRARYFLAGS) $(AUDACIOUSFLAGS) $(ARCHFLAGS) $(DEBUGFLAGS) -I../common -I../../include
 CLIBS = $(XMLIBS) -lm
-MODULES = plugin.o amifilemagic.o eagleplayer.o strlrep.o uadecontrol.o \
-	uadeipc.o unixatomic.o subsongseek.o effects.o uadeconf.o md5.o \
-	ossupport.o fileinfo.o songdb.o songinfo.o vplist.o support.o
-PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../common/uadestate.h ../common/support.h ../../include/uadeconfig.h
+
+all:	libuade2.so
+
+include ../common/Makefile.common
+
+MODULES = plugin.o subsongseek.o fileinfo.o $(COMMONMODULES)
 
 libuade2.so:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -25,8 +27,6 @@ plugin.o:	plugin.c plugin.h subsongseek.h fileinfo.h ../common/uadecontrol.h ../
 
 subsongseek.o:	subsongseek.c subsongseek.h plugin.h
 	$(CC) $(CFLAGS) -c $<
-
-include ../common/Makefile.common
 
 install:	
 	mkdir -p "$(AUDACIOUSPLUGINDIR)"

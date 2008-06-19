@@ -1,14 +1,16 @@
 BINDIR = {PACKAGEPREFIX}{BINDIR}
-UADE123NAME={UADE123NAME}
+UADE123NAME = {UADE123NAME}
 
 CC = {CC}
 CFLAGS = -Wall -O2 -I../../include -I../common {AOFLAGS} {DEBUGFLAGS} {ARCHFLAGS}
 CLIBS = {AOLIBS} {ARCHLIBS} -lm
-MODULES = uade123.o strlrep.o unixatomic.o uadeipc.o amifilemagic.o \
-	chrarray.o playlist.o eagleplayer.o unixwalkdir.o effects.o \
-	playloop.o audio.o terminal.o uadecontrol.o uadeconf.o md5.o \
-	ossupport.o songdb.o songinfo.o vplist.o support.o
-PLAYERHEADERS = ../common/eagleplayer.h ../common/uadeconf.h ../common/uadeconfstructure.h ../common/uadestate.h ../common/support.h ../../include/uadeconfig.h
+
+all:	uade123
+
+include ../common/Makefile.common
+
+MODULES = uade123.o chrarray.o playlist.o playloop.o audio.o terminal.o \
+	  $(COMMONMODULES)
 
 uade123:	$(MODULES)
 	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
@@ -31,16 +33,14 @@ audio.o:	audio.c audio.h
 chrarray.o:	chrarray.c chrarray.h
 	$(CC) $(CFLAGS) -c $<
 
-playlist.o:	playlist.c playlist.h uade123.h ../../include/uadeconfig.h
+playlist.o:	playlist.c playlist.h uade123.h
 	$(CC) $(CFLAGS) -c $<
 
-playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../../include/uadeipc.h ../common/songinfo.h $(PLAYERHEADERS)
+playloop.o:	playloop.c playloop.h uade123.h ../common/uadecontrol.h ../common/songinfo.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 terminal.o:	terminal.c terminal.h
 	$(CC) $(CFLAGS) -c $<
 
-uade123.o:	uade123.c uade123.h ../../include/uadeipc.h ../../include/amigafilter.h ../common/amifilemagic.h ../common/uadecontrol.h $(PLAYERHEADERS)
+uade123.o:	uade123.c uade123.h ../../include/amigafilter.h ../common/amifilemagic.h ../common/uadecontrol.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
-
-include ../common/Makefile.common

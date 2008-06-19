@@ -18,7 +18,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "strlrep.h"
+#include "ossupport.h"
 #include "uadeconf.h"
 #include "uadeconfig.h"
 #include "amigafilter.h"
