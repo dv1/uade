@@ -134,7 +134,6 @@ cpudefs.o:	cpudefs.c include/readcpu.h
 readcpu.o:	readcpu.c include/readcpu.h
 
 main.o:	include/uae.h
-uademain.o:	include/uae.h
 cia.o: include/events.h
 custom.o: include/events.h
 newcpu.o: newcpu.c include/uade.h include/events.h include/uadeipc.h
@@ -147,12 +146,14 @@ memory.o:
 debug.o: 
 fpp.o: 
 
-uade.o: include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h
+uademain.o:	uademain.c include/uae.h include/ossupport.h
 
-uadeipc.o:	include/uadeipc.h
+uade.o:	uade.c include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h include/ossupport.h include/amigamsg.h include/sysincludes.h
 
-ossupport.o:	include/uade.h ossupport.c {OSSUPPORTMODULES}
+uadeipc.o:	uadeipc.c include/uadeipc.h include/ossupport.h include/sysincludes.h
 
-unixatomic.o:	include/sysincludes.h include/unixatomic.h
+ossupport.o:	ossupport.c include/ossupport.h include/uade.h include/unixatomic.h unixatomic.c
 
-textscope.o:	include/text_scope.h include/custom.h
+unixatomic.o:	unixatomic.c include/sysincludes.h include/unixatomic.h
+
+textscope.o:	text_scope.c include/text_scope.h include/custom.h

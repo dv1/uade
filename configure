@@ -502,8 +502,6 @@ cat > src/ossupport.c <<EOF
 #include "unixsupport.c"
 EOF
 
-OSSUPPORTMODULES="unixsupport.c include/ossupport.h"
-
 cat > src/include/ossupport.h <<EOF
 #ifndef _UADE_OSSUPPORT_H_
 #define _UADE_OSSUPPORT_H_
@@ -614,7 +612,6 @@ replace_with_sed() {
 	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|g" \
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
 	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
-	-e "s|{OSSUPPORTMODULES}|$OSSUPPORTMODULES|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
 	-e "s|{VERSION}|$VERSION|g" \
 	-e "s|{MAKE}|$MAKE|g" \

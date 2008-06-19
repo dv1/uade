@@ -1,10 +1,9 @@
-#include <unixatomic.h>
-#include <sysincludes.h>
-
 #include <errno.h>
 #include <stdint.h>
 #include <assert.h>
 
+#include "unixatomic.h"
+#include "sysincludes.h"
 
 int atomic_close(int fd)
 {
