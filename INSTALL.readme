@@ -12,8 +12,9 @@ frontends you want to use:
  xmms		| XMMS plugin	 	| XMMS
  audacious	| Audacious plugin	| Audacious:
 					| http:/audacious-media-player.org
+ uadefs         | Amiga to WAV filesys. | FUSE, uade123
 
- - pkg-config is required for detecting libao and audacious in the
+ - pkg-config is required for detecting libao, audacious and fuse in the
    configure script. This dependency can be hacked away for specific
    platforms.
 
@@ -57,8 +58,10 @@ Longer explanations of these steps follow:
   distribution packagers are:
 
 	--package-prefix
+	--without-audacious
 	--without-uadecore
 	--without-uade123
+	--without-uadefs
 	--without-xmms
 
 (2) make
@@ -91,13 +94,15 @@ To install necessary dependencies for Gentoo, execute:
 
 In Debian/Ubuntu, the required libraries can be downloaded by:
 
-    for uade123:
+uade123:
 	apt-get install libao-dev
-    for xmms:
+XMMS plugin:
         apt-get install xmms-dev
-    for audacious:
+Audacious plugin:
 	apt-get install audacious-dev (get a mirror from
 	                               audacious-mediaplayer.org)
+uadefs:
+	apt-get install libfuse-dev
 
 *** 4. Notes on Solaris ***
 
