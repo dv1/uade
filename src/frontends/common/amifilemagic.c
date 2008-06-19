@@ -346,7 +346,7 @@ static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int ma
 
 
 static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
-		      int verbose)
+		      const char *path, int verbose)
 {
   /* mod patterns at file offset 0x438 */
   char *mod_patterns[] = { "M.K.", ".M.K", NULL};
@@ -433,16 +433,16 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
       /* only spam filesize message when it's a tracker module */
 
     if (calculated_size != realfilesize) {
-      fprintf(stderr, "uade: file size is %zd but calculated size for a mod file is %zd.\n", realfilesize, calculated_size); 
+      fprintf(stderr, "uade: file size is %zd but calculated size for a mod file is %zd (%s).\n", realfilesize, calculated_size, path);
     }
 
     if (calculated_size > realfilesize) {
-        fprintf(stderr, "uade: file is truncated and won't get played.\n");
+        fprintf(stderr, "uade: file is truncated and won't get played (%s)\n", path);
       return MOD_UNDEFINED;
     }
 
     if (calculated_size < realfilesize) {
-        fprintf(stderr, "uade: file has trailing garbage behind the actual module data. Please fix it.\n");
+        fprintf(stderr, "uade: file has trailing garbage behind the actual module data. Please fix it. (%s)\n", path);
     }
 
     /* parse instruments */
@@ -574,7 +574,8 @@ static int mod32check(unsigned char *buf, size_t bufsize, size_t realfilesize,
 }
 
 
-static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
+static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize,
+		      const char *path)
 /* pattern parsing based on Sylvain 'Asle' Chipaux'	*/
 /* Modinfo-V2						*/
 /*							*/
@@ -618,7 +619,7 @@ static int mod15check(unsigned char *buf, size_t bufsize, size_t realfilesize)
     }
 
   if (calculated_size > realfilesize) {
-      fprintf(stderr, "uade: file is truncated and won't get played.\n");
+      fprintf(stderr, "uade: file is truncated and won't get played (%s)\n", path);
       return 0 ;
     }
 
@@ -751,7 +752,7 @@ static int is_wav_file(unsigned char *buf, size_t size)
 }
 
 void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
-		    size_t realfilesize, int verbose)
+		    size_t realfilesize, const char *path, int verbose)
 {
   /* char filemagic():
      detects formats like e.g.: tfmx1.5, hip, hipc, fc13, fc1.4      
@@ -807,7 +808,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
     return;
   }
 
-  modtype = mod32check(buf, bufsize, realfilesize, verbose);
+  modtype = mod32check(buf, bufsize, realfilesize, path, verbose);
   if (modtype != MOD_UNDEFINED) {
     for (t = 0; mod32types[t].str != NULL; t++) {
       if (modtype == mod32types[t].e) {
@@ -1094,7 +1095,7 @@ void uade_filemagic(unsigned char *buf, size_t bufsize, char *pre,
     fprintf(stderr, "uade: The file is SQSH packed. Please depack first.\n");
     strcpy(pre, "packed");
 
-  } else if ((modtype = mod15check(buf, bufsize, realfilesize)) != 0) {
+  } else if ((modtype = mod15check(buf, bufsize, realfilesize, path)) != 0) {
     for (t = 0; mod15types[t].str != NULL; t++) {
       if (modtype == mod15types[t].e) {
 	strcpy(pre, mod15types[t].str);

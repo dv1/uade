@@ -146,7 +146,7 @@ static struct eagleplayer *analyze_file_format(int *content,
 		return NULL;
 	memset(&buf[bytesread], 0, bufsize - bytesread);
 
-	uade_filemagic(buf, bytesread, ext, st.st_size, state->config.verbose);
+	uade_filemagic(buf, bytesread, ext, st.st_size, modulename, state->config.verbose);
 
 	if (strcmp(ext, "reject") == 0)
 		return NULL;

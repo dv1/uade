@@ -476,8 +476,8 @@ static int process_module(char *credits, size_t credits_len, char *filename)
 	snprintf(tmpstr, sizeof tmpstr, "UADE2 MODINFO:\n\nFile name:      %s\nFile length:    %zd bytes\n", filename, modfilelen);
 	strlcpy(credits, tmpstr, credits_len);
 
-	/* here we go */
-	uade_filemagic(buf, modfilelen, pre, modfilelen, 0);	/*get filetype in pre */
+	/* Get filetype in pre */
+	uade_filemagic(buf, modfilelen, pre, modfilelen, filename, 0);
 
 	snprintf(tmpstr, sizeof tmpstr, "File prefix:    %s.*\n", pre);
 	strlcat(credits, tmpstr, credits_len);
