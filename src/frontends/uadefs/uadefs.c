@@ -50,10 +50,11 @@
 #include "uadestate.h"
 #include "eagleplayer.h"
 #include "songdb.h"
+#include "uadeconfig.h"
 
 
 #define MAGIC_LENGTH 0x1000
-#define WAV_HEADER_LEN 44   /* Stolen from libao source. Not verified. */
+#define WAV_HEADER_LEN 44
 
 #define CACHE_BLOCK_SHIFT 12  /* 4096 bytes per cache block */
 #define CACHE_BLOCK_SIZE (1 << CACHE_BLOCK_SHIFT)
@@ -1099,7 +1100,7 @@ static int uadefs_opt_proc(void *data, const char *arg, int key,
 		exit(1);
 
 	case KEY_VERSION:
-		fprintf(stderr, "uadefs version N/A\n");
+		fprintf(stderr, "uadefs version %s\n", UADE_VERSION);
 #if FUSE_VERSION >= 25
 		fuse_opt_add_arg(outargs, "--version");
 		uadefs_fuse_main(outargs);
