@@ -146,13 +146,13 @@ memory.o:
 debug.o: 
 fpp.o: 
 
-uademain.o:	uademain.c include/uae.h include/ossupport.h
+uademain.o:	uademain.c include/uae.h include/ossupport.h include/unixsupport.h
 
-uade.o:	uade.c include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h include/ossupport.h include/amigamsg.h include/sysincludes.h
+uade.o:	uade.c include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h include/ossupport.h include/unixsupport.h include/amigamsg.h include/sysincludes.h
 
-uadeipc.o:	uadeipc.c include/uadeipc.h include/ossupport.h include/sysincludes.h
+uadeipc.o:	uadeipc.c include/uadeipc.h include/ossupport.h include/unixsupport.h include/sysincludes.h
 
-ossupport.o:	ossupport.c include/ossupport.h include/uade.h include/unixatomic.h unixatomic.c
+ossupport.o:	ossupport.c include/ossupport.h include/unixsupport.h include/uade.h include/unixatomic.h unixatomic.c
 
 unixatomic.o:	unixatomic.c include/sysincludes.h include/unixatomic.h
 
