@@ -23,7 +23,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-
 #include <getopt.h>
 
 #include "uadecontrol.h"
@@ -36,7 +35,6 @@
 #include "songdb.h"
 #include "support.h"
 #include "uadestate.h"
-
 #include "uade123.h"
 #include "playlist.h"
 #include "playloop.h"
@@ -148,6 +146,37 @@ static void scan_playlist(struct uade_config *uc)
     songfile = NULL;
   }
 }
+
+
+static void set_song_options(int *songconf_loaded, char *songoptions,
+			     char *songconfname, size_t maxname)
+{
+  char homesongconfname[PATH_MAX];
+  struct playlist_iterator pli;
+  char *songfile;
+  char *home;
+
+  home = uade_open_create_home();
+  if (home == NULL)
+    die("No $HOME for song.conf :(\n");
+
+  snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf", home);
+
+  if (*songconf_loaded == 0)
+    strlcpy(songconfname, homesongconfname, maxname);
+
+  playlist_iterator(&pli, &uade_playlist);
+
+  while (1) {
+    songfile = playlist_iterator_get(&pli);
+    if (songfile == NULL)
+      break;
+
+    if (!uade_update_song_conf(songconfname, homesongconfname, songfile, songoptions))
+      fprintf(stderr, "Could not update song.conf entry for %s\n", songfile);
+  }
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -470,41 +499,12 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  load_content_db(&uc_eff);
-
   if (have_song_options) {
-    char homesongconfname[PATH_MAX];
-    struct playlist_iterator pli;
-    char *songfile;
-    char *home;
-
-    home = uade_open_create_home();
-    /* Make song.conf settings */
-    if (home == NULL)
-      die("No $HOME for song.conf :(\n");
-
-    snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf",
-	     home);
-
-    if (songconf_loaded == 0)
-      strlcpy(songconfname, homesongconfname, sizeof songconfname);
-
-    playlist_iterator(&pli, &uade_playlist);
-
-    while (1) {
-      songfile = playlist_iterator_get(&pli);
-      if (songfile == NULL)
-	break;
-
-      if (uade_update_song_conf(songconfname, homesongconfname,
-				songfile, songoptions) == 0) {
-	fprintf(stderr, "Could not update song.conf entry for %s\n", argv[i]);
-	break;
-      }
-    }
-
+    set_song_options(&songconf_loaded, songoptions, songconfname, sizeof songconfname);
     exit(0);
   }
+
+  load_content_db(&uc_eff);
 
   if (uc_eff.random_play)
     playlist_randomize(&uade_playlist);
