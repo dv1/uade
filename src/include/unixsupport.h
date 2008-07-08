@@ -4,8 +4,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <string.h>
+#include <errno.h>
 
 #include "uadeipc.h"
+
+
+#define die(fmt, args...) do { fprintf(stderr, "uade: " fmt, ## args); exit(1); } while(0)
+
+#define dieerror(fmt, args...) do { fprintf(stderr, "uade: " fmt ": %s\n", ## args, strerror(errno)); exit(1); } while(0)
+
 
 char *uade_dirname(char *dst, char *src, size_t maxlen);
 FILE *uade_open_amiga_file(char *aname, const char *playerdir);

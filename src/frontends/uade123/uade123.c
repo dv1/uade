@@ -7,6 +7,8 @@
    want in your projects.
 */
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <errno.h>
 #include <dirent.h>
@@ -22,7 +24,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#define _GNU_SOURCE
 #include <getopt.h>
 
 #include "uadecontrol.h"
@@ -122,6 +123,32 @@ static void save_content_db(void)
 }
 
 
+static void scan_playlist(struct uade_config *uc)
+{
+  struct playlist_iterator pli;
+  char *songfile;
+  struct uade_state state = {.config = *uc};
+
+  playlist_iterator(&pli, &uade_playlist);
+
+  while (1) {
+    songfile = playlist_iterator_get(&pli);
+    if (songfile == NULL)
+      break;
+
+    if (!uade_is_our_file(songfile, 1, &state))
+      continue;
+
+    songfile = canonicalize_file_name(songfile);
+
+    if (songfile)
+      printf("%s\n", songfile);
+
+    free(songfile);
+    songfile = NULL;
+  }
+}
+
 int main(int argc, char *argv[])
 {
   int i;
@@ -137,16 +164,18 @@ int main(int argc, char *argv[])
   int uadeconf_loaded, songconf_loaded;
   char songconfname[PATH_MAX] = "";
   char uadeconfname[PATH_MAX];
-  struct uade_config uctmp, uc_cmdline, uc_main;
+  struct uade_config uc_eff, uc_cmdline, uc_main;
   char songoptions[256] = "";
   int have_song_options = 0;
   int plistdir;
+  int scanmode = 0;
 
   struct uade_state state;
 
   enum {
     OPT_BASEDIR = 0x2000,
     OPT_REPEAT,
+    OPT_SCAN,
     OPT_SCOPE,
     OPT_SET,
     OPT_STDERR,
@@ -185,6 +214,7 @@ int main(int argc, char *argv[])
     {"recursive",        0, NULL, 'r'},
     {"repeat",           0, NULL, OPT_REPEAT},
     {"resampler",        1, NULL, UC_RESAMPLER},
+    {"scan",             0, NULL, OPT_SCAN},
     {"scope",            0, NULL, OPT_SCOPE},
     {"shuffle",          0, NULL, 'z'},
     {"set",              1, NULL, OPT_SET},
@@ -202,15 +232,10 @@ int main(int argc, char *argv[])
 
   uade_config_set_defaults(&uc_cmdline);
 
-  if (!playlist_init(&uade_playlist)) {
-    fprintf(stderr, "Can not initialize playlist.\n");
-    exit(1);
-  }
+  if (!playlist_init(&uade_playlist))
+    die("Can not initialize playlist.\n");
 
-#define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) {\
-	fprintf(stderr, "Too long a string for option %c.\n", ret); \
-         exit(1); \
-      }
+#define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) { die("Too long a string for option %c.\n", ret); }
 
   while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
     switch (ret) {
@@ -218,10 +243,8 @@ int main(int argc, char *argv[])
     case '@':
       do {
 	FILE *listfile = fopen(optarg, "r");
-	if (listfile == NULL) {
-	  fprintf(stderr, "Can not open list file: %s\n", optarg);
-	  exit(1);
-	}
+	if (listfile == NULL)
+	  die("Can not open list file: %s\n", optarg);
 
 	while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
 
@@ -282,10 +305,8 @@ int main(int argc, char *argv[])
 
     case 'j':
       uade_jump_pos = strtod(optarg, &endptr);
-      if (*endptr != 0 || uade_jump_pos < 0.0) {
-	fprintf(stderr, "Invalid jump position: %s\n", optarg);
-	exit(1);
-      }
+      if (*endptr != 0 || uade_jump_pos < 0.0)
+	die("Invalid jump position: %s\n", optarg);
       break;
 
     case 'k':
@@ -317,10 +338,8 @@ int main(int argc, char *argv[])
 
     case 's':
       subsong = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || subsong < 0 || subsong > 255) {
-	fprintf(stderr, "Invalid subsong string: %s\n", optarg);
-	exit(1);
-      }
+      if (*endptr != 0 || subsong < 0 || subsong > 255)
+	die("Invalid subsong string: %s\n", optarg);
       break;
 
     case 'S':
@@ -367,6 +386,12 @@ int main(int argc, char *argv[])
       playlist_repeat(&uade_playlist);
       break;
 
+    case OPT_SCAN:
+      scanmode = 1;
+      /* Set recursive mode in scan mode */
+      uade_set_config_option(&uc_cmdline, UC_RECURSIVE_MODE, NULL);
+      break;
+
     case OPT_SCOPE:
       uade_no_text_output = 1;
       uade_set_config_option(&uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
@@ -407,8 +432,7 @@ int main(int argc, char *argv[])
       break;
 
     default:
-      fprintf(stderr, "Impossible option.\n");
-      exit(1);
+      die("Impossible option.\n");
     }
   }
 
@@ -416,13 +440,13 @@ int main(int argc, char *argv[])
 					     &uc_main, &uc_cmdline);
 
   /* Merge loaded configurations and command line options */
-  uctmp = uc_main;
-  uade_merge_configs(&uctmp, &uc_cmdline);
+  uc_eff = uc_main;
+  uade_merge_configs(&uc_eff, &uc_cmdline);
 
   if (uadeconf_loaded == 0) {
-    debug(uctmp.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", uctmp.basedir.name);
+    debug(uc_eff.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", uc_eff.basedir.name);
   } else {
-    debug(uctmp.verbose, "Loaded configuration: %s\n", uadeconfname);
+    debug(uc_eff.verbose, "Loaded configuration: %s\n", uadeconfname);
   }
 
   songconf_loaded = uade_load_initial_song_conf(songconfname,
@@ -430,18 +454,23 @@ int main(int argc, char *argv[])
 						&uc_main, &uc_cmdline);
 
   if (songconf_loaded == 0) {
-    debug(uctmp.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uctmp.basedir.name);
+    debug(uc_eff.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", uc_eff.basedir.name);
   } else {
-    debug(uctmp.verbose, "Loaded song.conf: %s\n", songconfname);
+    debug(uc_eff.verbose, "Loaded song.conf: %s\n", songconfname);
   }
-
-  load_content_db(&uctmp);
 
   for (i = optind; i < argc; i++) {
     /* Play files */
-    playlist_add(&uade_playlist, argv[i], uctmp.recursive_mode);
+    playlist_add(&uade_playlist, argv[i], uc_eff.recursive_mode);
     have_modules = 1;
   }
+
+  if (scanmode) {
+    scan_playlist(&uc_eff);
+    exit(0);
+  }
+
+  load_content_db(&uc_eff);
 
   if (have_song_options) {
     char homesongconfname[PATH_MAX];
@@ -451,10 +480,8 @@ int main(int argc, char *argv[])
 
     home = uade_open_create_home();
     /* Make song.conf settings */
-    if (home == NULL) {
-      fprintf(stderr, "No $HOME for song.conf :(\n");
-      exit(1);
-    }
+    if (home == NULL)
+      die("No $HOME for song.conf :(\n");
 
     snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf",
 	     home);
@@ -479,7 +506,7 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  if (uctmp.random_play)
+  if (uc_eff.random_play)
     playlist_randomize(&uade_playlist);
 
   if (have_modules == 0) {
@@ -489,39 +516,35 @@ int main(int argc, char *argv[])
 
   /* we want to control terminal differently in debug mode */
   if (debug_mode)
-    uctmp.action_keys = 0;
+    uc_eff.action_keys = 0;
 
-  if (uctmp.action_keys)
+  if (uc_eff.action_keys)
     setup_terminal();
 
   do {
-    DIR *bd;
-    if ((bd = opendir(uctmp.basedir.name)) == NULL) {
-      fprintf(stderr, "Could not access dir %s: %s\n", uctmp.basedir.name, strerror(errno));
-      exit(1);
-    }
+    DIR *bd = opendir(uc_eff.basedir.name);
+    if (bd == NULL)
+      dieerror("Could not access dir %s", uc_eff.basedir.name);
+
     closedir(bd);
 
-    snprintf(configname, sizeof configname, "%s/uaerc", uctmp.basedir.name);
+    snprintf(configname, sizeof configname, "%s/uaerc", uc_eff.basedir.name);
 
     if (scorename[0] == 0)
-      snprintf(scorename, sizeof scorename, "%s/score", uctmp.basedir.name);
+      snprintf(scorename, sizeof scorename, "%s/score", uc_eff.basedir.name);
 
     if (uadename[0] == 0)
       strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof uadename);
 
-    if (access(configname, R_OK)) {
-      fprintf(stderr, "Could not read %s: %s\n", configname, strerror(errno));
-      exit(1);
-    }
-    if (access(scorename, R_OK)) {
-      fprintf(stderr, "Could not read %s: %s\n", scorename, strerror(errno));
-      exit(1);
-    }
-    if (access(uadename, X_OK)) {
-      fprintf(stderr, "Could not execute %s: %s\n", uadename, strerror(errno));
-      exit(1);
-    }
+    if (access(configname, R_OK))
+      dieerror("Could not read %s", configname);
+
+    if (access(scorename, R_OK))
+      dieerror("Could not read %s", scorename);
+
+    if (access(uadename, X_OK))
+      dieerror("Could not execute %s", uadename);
+
   } while (0);
 
   setup_sighandlers();
@@ -530,7 +553,7 @@ int main(int argc, char *argv[])
 
   uade_spawn(&state, uadename, configname);
 
-  if (!audio_init(uctmp.frequency, uctmp.buffer_time))
+  if (!audio_init(uc_eff.frequency, uc_eff.buffer_time))
     goto cleanup;
 
   plistdir = UADE_PLAY_CURRENT;
@@ -638,8 +661,7 @@ int main(int argc, char *argv[])
 	continue; /* jump to the beginning of playlist loop */
 
     default:
-      fprintf(stderr, "Unknown error from uade_song_initialization()\n");
-      exit(1);
+      die("Unknown error from uade_song_initialization()\n");
     }
 
     if (subsong >= 0)
@@ -719,6 +741,9 @@ static void print_help(void)
 " --resampler=x       Set resampling method to x, where x = default, sinc\n"
 "                     or none.\n"
 " -s x, --subsong=x,  Set subsong 'x'\n"
+" --scan              Scan given files and directories for playable songs and\n"
+"                     print their names, one per line on stdout.\n"
+"                     Example: uade123 --scan /song/directory\n"
 " --set=\"options\"     Set song.conf options for each given song.\n"
 " --speed-hack,       Set speed hack on. This gives more virtual CPU power.\n"
 " --stderr,           Print messages on stderr rather than stdout\n"
@@ -786,19 +811,15 @@ static void setup_sighandlers(void)
   memset(&act, 0, sizeof act);
   act.sa_handler = trivial_sigint;
 
-  if ((sigaction(SIGINT, &act, NULL)) < 0) {
-    fprintf(stderr, "can not install signal handler SIGINT: %s\n", strerror(errno));
-    exit(1);
-  }
+  if ((sigaction(SIGINT, &act, NULL)) < 0)
+    dieerror("can not install signal handler SIGINT");
 
   memset(&act, 0, sizeof act);
   act.sa_handler = trivial_sigchld;
   act.sa_flags = SA_NOCLDSTOP;
 
-  if ((sigaction(SIGCHLD, &act, NULL)) < 0) {
-    fprintf(stderr, "can not install signal handler SIGCHLD: %s\n", strerror(errno));
-    exit(1);
-  }
+  if ((sigaction(SIGCHLD, &act, NULL)) < 0)
+    dieerror("can not install signal handler SIGCHLD");
 }
 
 
@@ -838,8 +859,7 @@ int test_song_end_trigger(void)
   return ret;
 
  sigerr:
-  fprintf(stderr, "signal hell\n");
-  exit(1);
+  die("signal hell\n");
 }
 
 

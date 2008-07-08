@@ -17,6 +17,7 @@
 #include <libgen.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "uade.h"
 #include "unixatomic.h"
@@ -139,10 +140,10 @@ FILE *uade_open_amiga_file(char *aname, const char *playerdir)
 {
   char *separator;
   char *ptr;
-  char copy[UADE_PATH_MAX];
-  char dirname[UADE_PATH_MAX];
-  char fake[UADE_PATH_MAX];
-  char real[UADE_PATH_MAX];
+  char copy[PATH_MAX];
+  char dirname[PATH_MAX];
+  char fake[PATH_MAX];
+  char real[PATH_MAX];
   int len;
   DIR *dir;
   FILE *file;

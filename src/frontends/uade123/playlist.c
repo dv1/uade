@@ -15,12 +15,12 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include <unixwalkdir.h>
-#include <uadeconfig.h>
-#include <unixatomic.h>
-
+#include "unixwalkdir.h"
+#include "uadeconfig.h"
+#include "unixatomic.h"
 #include "playlist.h"
 #include "uade123.h"
+#include "ossupport.h"
 
 
 static int random_fd = -1;
@@ -195,6 +195,7 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
   if (S_ISREG(st.st_mode)) {
     /* fprintf(stderr, "enqueuing regular: %s\n", name); */
     ret = chrarray_add(&pl->list, name, strlen(name) + 1);
+
   } else if (S_ISDIR(st.st_mode)) {
     /* add directories to playlist only if 'recursive' is non-zero */
     if (recursive) {
@@ -202,16 +203,18 @@ int playlist_add(struct playlist *pl, const char *name, int recursive)
       /* strip directory name of ending '/' characters */
       char *strippedname = strdup(name);
       size_t len = strlen(name);
-      if (strippedname == NULL) {
-	fprintf(stderr, "Not enough memory for directory name.\n");
-	exit(-1);
-      }
+
+      if (strippedname == NULL)
+	die("Not enough memory for directory name.\n");
+
       while (len > 0) {
 	len--;
 	if (strippedname[len] != '/')
 	  break;
 	strippedname[len] = 0;
       }
+
+
 
       /* walk directory hierarchy */
       uade_walk_directories(strippedname, recursive_func, pl);
@@ -321,8 +324,7 @@ int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir)
   } else if (dir == UADE_PLAY_CURRENT) {
     pl_get_cur(&s, &len, pl);
   } else {
-    fprintf(stderr, "uade: invalid playlist direction: %d\n", dir);
-    exit(1);
+    die("invalid playlist direction: %d\n", dir);
   }
 
   if (len > maxlen) {

@@ -1,14 +1,15 @@
 #ifndef _UADE_MAIN_H_
 #define _UADE_MAIN_H_
 
-#include <uadeipc.h>
+#include <limits.h>
+#include <stdlib.h>
 
-#define UADE_PATH_MAX (1024)
+#include "uadeipc.h"
 
 struct uade_song {
-  char playername[UADE_PATH_MAX];       /* filename of eagleplayer */
-  char modulename[UADE_PATH_MAX];       /* filename of song */
-  char scorename[UADE_PATH_MAX];        /* filename of score file */
+  char playername[PATH_MAX];       /* filename of eagleplayer */
+  char modulename[PATH_MAX];       /* filename of song */
+  char scorename[PATH_MAX];        /* filename of score file */
 
   int min_subsong;
   int max_subsong;

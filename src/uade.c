@@ -95,7 +95,7 @@ static int uade_big_endian;
 static int uade_dmawait;
 static int uade_execdebugboolean;
 static int uade_highmem;
-static char uade_player_dir[UADE_PATH_MAX];
+static char uade_player_dir[PATH_MAX];
 static struct uade_song song;
 static int uade_speed_hack;
 static int voltestboolean;
@@ -599,7 +599,7 @@ void uade_option(int argc, char **argv)
   char **s_argv;
   int s_argc;
   int cfg_loaded = 0;
-  char optionsfile[UADE_PATH_MAX];
+  char optionsfile[PATH_MAX];
   int ret;
   char *input = NULL;
   char *output = NULL;
