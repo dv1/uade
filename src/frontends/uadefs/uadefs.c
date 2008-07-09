@@ -931,6 +931,13 @@ static int uadefs_statfs(const char *fpath, struct statvfs *stbuf)
 	return 0;
 }
 
+static int uadefs_flush(const char *fpath, struct fuse_file_info *fi)
+{
+	(void) fi;
+	(void) fpath;
+	return 0;
+}
+
 static int uadefs_release(const char *fpath, struct fuse_file_info *fi)
 {
 	destroy_ctx(get_uadefs_file(fi));
@@ -1033,6 +1040,7 @@ static struct fuse_operations uadefs_oper = {
 	.read		= uadefs_read,
 	.write		= uadefs_write,
 	.statfs		= uadefs_statfs,
+	.flush          = uadefs_flush,
 	.release	= uadefs_release,
 	.fsync		= uadefs_fsync,
 #ifdef HAVE_SETXATTR
