@@ -108,12 +108,28 @@ static size_t get_file_size(const char *path);
 static char *uadefs_get_path(const char *path)
 {
 	char *realpath;
+	char *sep;
+	struct stat st;
 
 	if (asprintf(&realpath, "%s%s", srcdir, path) < 0) {
 		LOG("No memory for path name: %s\n", path);
 		exit(1);
 	}
 
+	if (!lstat(realpath, &st))
+		goto out;
+
+	/* File doesn't exist */
+	sep = strrchr(realpath, '.');
+	if (sep == NULL || strcmp(sep, ".wav") != 0)
+		goto out;
+
+	*sep = 0;
+
+	if (!uade_is_our_file(realpath, 1, &uadestate))
+		*sep = '.'; /* Not an UADE file -> restore .wav postfix */
+
+out:
 	return realpath;
 }
 
@@ -597,32 +613,56 @@ static int uadefs_readlink(const char *fpath, char *buf, size_t size)
 }
 
 
+static void gen_uade_name(char *name, size_t maxname, mode_t mode,
+			  const char *dirname, const char *filename)
+{
+	char fullname[PATH_MAX];
+
+	snprintf(name, maxname, "%s", filename);
+
+	if (!S_ISREG(mode))
+		return;
+
+	snprintf(fullname, sizeof fullname, "%s/%s", dirname, filename);
+
+	if (!uade_is_our_file(fullname, 1, &uadestate))
+		return;
+
+	snprintf(name, maxname, "%s.wav", filename);
+}
+
+
 static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 			  off_t offset, struct fuse_file_info *fi)
 {
 	DIR *dp;
 	struct dirent *de;
 	char *path = uadefs_get_path(fpath);
+	char name[256];
 
 	(void) offset;
 	(void) fi;
 
 	dp = opendir(path);
 
-	free(path);
-
-	if (dp == NULL)
+	if (dp == NULL) {
+		free(path);
 		return -errno;
+	}
 
 	while ((de = readdir(dp)) != NULL) {
 		struct stat st;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
-		if (filler(buf, de->d_name, &st, 0))
+
+		gen_uade_name(name, sizeof name, st.st_mode, path, de->d_name);
+
+		if (filler(buf, name, &st, 0))
 			break;
 	}
 
+	free(path);
 	closedir(dp);
 	return 0;
 }
