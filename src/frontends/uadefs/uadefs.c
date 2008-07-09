@@ -237,7 +237,7 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 	/*
 	 * Read cache blocks in sequence until the requested cache block
 	 * has been read. ctx->end_bi is increased every time a new block
-	 * is read.
+	 * is read. ctx->end_bi points to the first block that is not cached.
 	 */
 	while (ctx->end_bi <= cbi) {
 		cb = &ctx->blocks[ctx->end_bi];
