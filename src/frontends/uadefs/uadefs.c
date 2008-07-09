@@ -87,7 +87,6 @@ struct sndctx {
 	char *fname;      /* filename of the song being played */
 
 	size_t nblocks;
-	size_t start_bi;
 	size_t end_bi;
 	struct cacheblock *blocks;
 };
@@ -175,17 +174,12 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 
 	offset_bi = offset >> CACHE_BLOCK_SHIFT;
 
-	if (offset_bi < ctx->start_bi) {
-		LOG("offset < cache offset: %s\n", ctx->fname);
-		return 0;
-	}
-
-	if (offset_bi >= (ctx->start_bi + ctx->nblocks)) {
+	if (offset_bi >= ctx->nblocks) {
 		LOG("Too much sound data: %s\n", ctx->fname);
 		return 0;
 	}
 
-	cb = &ctx->blocks[offset_bi - ctx->start_bi];
+	cb = &ctx->blocks[offset_bi];
 
 	if (!cb->bytes)
 		return -1;
@@ -209,7 +203,6 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 
 static void cache_init(struct sndctx *ctx)
 {
-	ctx->start_bi = 0;
 	ctx->end_bi = 0;
 	ctx->nblocks = (SND_PER_SECOND * CACHE_SECONDS) >> CACHE_BLOCK_SHIFT;
 	ctx->blocks = calloc(1, ctx->nblocks * sizeof(ctx->blocks[0]));
@@ -226,29 +219,28 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 	size_t cbi;
 	struct cacheblock *cb;
 	ssize_t res;
-	size_t length_bi;
 
+	/* The requested block is already in cache, copy it directly */
 	res = cache_block_read(ctx, buf, offset, size);
 	if (res >= 0)
 		return res;
 
 	offset_bi = offset >> CACHE_BLOCK_SHIFT;
 
-	if (offset_bi < ctx->start_bi) {
-		LOG("offset < cache offset: %s\n", ctx->fname);
-		return 0;
-	}
-
-	if (offset_bi >= (ctx->start_bi + ctx->nblocks)) {
+	if (offset_bi >= ctx->nblocks) {
 		LOG("Too much sound data: %s\n", ctx->fname);
 		return 0;
 	}
 
-	cbi = offset_bi - ctx->start_bi;
-	length_bi = ctx->end_bi - ctx->start_bi;
+	cbi = offset_bi;
 
-	while (length_bi <= cbi) {
-		cb = &ctx->blocks[length_bi];
+	/*
+	 * Read cache blocks in sequence until the requested cache block
+	 * has been read. ctx->end_bi is increased every time a new block
+	 * is read.
+	 */
+	while (ctx->end_bi <= cbi) {
+		cb = &ctx->blocks[ctx->end_bi];
 
 		cb->data = malloc(CACHE_BLOCK_SIZE);
 		if (cb->data == NULL) {
@@ -260,19 +252,17 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 		if (res <= 0) {
 			free(cb->data);
 			cb->data = NULL;
-			DEBUG("EOF at %zd: %s\n", (length_bi + ctx->start_bi) << CACHE_BLOCK_SHIFT, ctx->fname);
+			DEBUG("EOF at %zd: %s\n", ctx->end_bi << CACHE_BLOCK_SHIFT, ctx->fname);
 			break;
 		}
 
 		cb->bytes = res;
 
-		length_bi++;
+		ctx->end_bi++;
 
 		if (res < CACHE_BLOCK_SIZE)
 			break;
 	}
-
-	ctx->end_bi = ctx->start_bi + length_bi;
 
 	res = cache_block_read(ctx, buf, offset, size);
 	if (res >= 0)
@@ -296,12 +286,12 @@ static void cache_invasive_write(struct sndctx *ctx, size_t offset,
 	size_t lsbpos = offset & CACHE_LSB_MASK;
 	struct cacheblock *cb;
 
-	if (offset_bi < ctx->start_bi || offset_bi >= ctx->end_bi) {
+	if (offset_bi >= ctx->end_bi) {
 		LOG("Invasive cache write: %zu\n", offset);
 		return;
 	}
 
-	cb = &ctx->blocks[offset_bi - ctx->start_bi];
+	cb = &ctx->blocks[offset_bi];
 
 	if ((lsbpos + len) <= cb->bytes)
 		memcpy(((char *) cb->data) + lsbpos, data, len);
@@ -346,7 +336,6 @@ static void destroy_cache(struct sndctx *ctx)
 
 		free(ctx->blocks);
 		ctx->blocks = NULL;
-		ctx->start_bi = 0;
 		ctx->end_bi = 0;
 		ctx->nblocks = 0;
 	}
