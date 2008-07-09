@@ -45,6 +45,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <time.h>
 
 #include "uadeconf.h"
 #include "uadestate.h"
@@ -65,6 +66,7 @@
 #define NSTASHES 4
 #define STASH_CACHE_BLOCKS 2
 #define STASH_SIZE (CACHE_BLOCK_SIZE * STASH_CACHE_BLOCKS)
+#define STASH_TIME 30
 
 #define DEBUG(fmt, args...) if (debugmode) { fprintf(stderr, fmt, ## args); }
 
@@ -100,6 +102,7 @@ struct stash {
 	/* Add time invalidation */
 	char fname[PATH_MAX];          /* File name for the stash */
 	char data[STASH_SIZE];
+	time_t created;               /* Timestamp for validity checks */
 };
 
 
@@ -481,6 +484,18 @@ static inline struct sndctx *get_uadefs_file(struct fuse_file_info *fi)
 	return (struct sndctx *) (uintptr_t) fi->fh;
 }
 
+static int check_stash(const char *fname, struct stash *stash, time_t t)
+{
+	if (strcmp(fname, stash->fname) != 0)
+		return 0;
+
+	/* Reject old stashes */
+	if (t >= (stash->created + STASH_TIME))
+		return 0;
+
+	return 1;
+}
+
 int warm_up_cache(struct sndctx *ctx)
 {
 	char crapbuf[STASH_SIZE];
@@ -488,9 +503,16 @@ int warm_up_cache(struct sndctx *ctx)
 	int i;
 	struct stash *stash;
 	size_t offs;
+	time_t created;
+
+	created = time(NULL);
+	if (created == ((time_t) -1)) {
+		LOG("Clock failed\n");
+		created = 0;
+	}
 
 	for (i = 0; i < NSTASHES; i++) {
-		if (strcmp(ctx->fname, stashes[i].fname) == 0) {
+		if (check_stash(ctx->fname, &stashes[i], created)) {
 			LOG("Found stash for %s\n", ctx->fname);
 			if (cache_prefill(ctx, stashes[i].data))
 				return -EIO;
@@ -540,6 +562,7 @@ int warm_up_cache(struct sndctx *ctx)
 			exit(1);
 		}
 
+		stash->created = created;
 		strlcpy(stash->fname, ctx->fname, sizeof stash->fname);
 		memcpy(stash->data, crapbuf, sizeof stash->data);
 
