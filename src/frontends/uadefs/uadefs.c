@@ -51,6 +51,7 @@
 #include "eagleplayer.h"
 #include "songdb.h"
 #include "uadeconfig.h"
+#include "ossupport.h"
 
 
 #define WAV_HEADER_LEN 44
@@ -60,6 +61,10 @@
 #define CACHE_LSB_MASK (CACHE_BLOCK_SIZE - 1)
 #define CACHE_SECONDS 512
 #define SND_PER_SECOND (44100 * 4)
+
+#define NSTASHES 4
+#define STASH_CACHE_BLOCKS 2
+#define STASH_SIZE (CACHE_BLOCK_SIZE * STASH_CACHE_BLOCKS)
 
 #define DEBUG(fmt, args...) if (debugmode) { fprintf(stderr, fmt, ## args); }
 
@@ -81,14 +86,20 @@ struct cacheblock {
 };
 
 struct sndctx {
-	int normalfile;   /* if non-zero, the file is not decoded */
-	int pipefd;       /* pipefd from which to read sound data */
-	pid_t pid;        /* pid of the decoding process */
-	char *fname;      /* filename of the song being played */
+	int normalfile;       /* if non-zero, the file is not decoded */
+	int pipefd;           /* pipefd from which to read sound data */
+	pid_t pid;            /* pid of the decoding process */
+	char fname[PATH_MAX]; /* filename of the song being played */
 
 	size_t nblocks;
 	size_t end_bi;
 	struct cacheblock *blocks;
+};
+
+struct stash {
+	/* Add time invalidation */
+	char fname[PATH_MAX];          /* File name for the stash */
+	char data[STASH_SIZE];
 };
 
 
@@ -99,15 +110,21 @@ static struct uade_state uadestate;
 static time_t mtime = 0;
 static pthread_mutex_t readmutex = PTHREAD_MUTEX_INITIALIZER;
 
+int nextstash;
+struct stash stashes[NSTASHES];
+
 
 static size_t get_file_size(const char *path);
 
 
-static char *uadefs_get_path(const char *path)
+static char *uadefs_get_path(int *isuade, const char *path)
 {
 	char *realpath;
 	char *sep;
 	struct stat st;
+
+	if (isuade)
+		*isuade = 0;
 
 	if (asprintf(&realpath, "%s%s", srcdir, path) < 0) {
 		LOG("No memory for path name: %s\n", path);
@@ -124,9 +141,13 @@ static char *uadefs_get_path(const char *path)
 
 	*sep = 0;
 
-	if (!uade_is_our_file(realpath, 1, &uadestate))
-		*sep = '.'; /* Not an UADE file -> restore .wav postfix */
-
+	if (uade_is_our_file(realpath, 1, &uadestate)) {
+		if (isuade)
+			*isuade = 1;
+	} else {
+		/* Not an UADE file -> restore .wav postfix */
+		*sep = '.';
+	}
 out:
 	return realpath;
 }
@@ -162,6 +183,54 @@ ssize_t read_in_full(int fd, void *buf, size_t count)
 	}
 
 	return total;
+}
+
+static int spawn_uade(struct sndctx *ctx)
+{
+	int fds[2];
+
+	LOG("Spawn UADE %s\n", ctx->fname);
+
+	if (pipe(fds)) {
+		LOG("Can not create a pipe\n");
+		return -errno;
+	}
+
+	ctx->pid = fork();
+	if (ctx->pid == 0) {
+		char *argv[] = {"uade123", "-c", "-k0", "--stderr", "-v",
+				ctx->fname, NULL};
+		int fd;
+
+		close(0);
+		close(2);
+		close(fds[0]);
+
+		fd = open("/dev/null", O_RDWR);
+		if (fd < 0)
+			LOG("Can not open /dev/null\n");
+
+		dup2(fd, 0);
+		dup2(fds[1], 1);
+		dup2(fd, 2);
+
+		DEBUG("Execute %s\n", UADENAME);
+
+		execv(UADENAME, argv);
+
+		LOG("Could not execute %s\n", UADENAME);
+		abort();
+	} else if (ctx->pid == -1) {
+		LOG("Can not fork\n");
+		close(fds[0]);
+		close(fds[1]);
+		return -errno;
+	}
+
+	ctx->pipefd = fds[0];
+	close(fds[1]);
+
+	return 0;
 }
 
 static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
@@ -212,34 +281,45 @@ static void cache_init(struct sndctx *ctx)
 	}
 }
 
-static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
-			  size_t size)
+static size_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
+			 size_t size)
 {
 	size_t offset_bi;
-	size_t cbi;
 	struct cacheblock *cb;
 	ssize_t res;
+
+	offset_bi = offset >> CACHE_BLOCK_SHIFT;
+
+	if (offset_bi >= STASH_CACHE_BLOCKS && ctx->pid == -1) {
+		char buf[CACHE_BLOCK_SIZE];
+		int i;
+
+		if (spawn_uade(ctx))
+			return 0;
+
+		for (i = 0; i < STASH_CACHE_BLOCKS; i++) {
+			res = read_in_full(ctx->pipefd, buf, sizeof buf);
+			if (res < sizeof buf)
+				return 0;
+		}
+	}
 
 	/* The requested block is already in cache, copy it directly */
 	res = cache_block_read(ctx, buf, offset, size);
 	if (res >= 0)
-		return res;
-
-	offset_bi = offset >> CACHE_BLOCK_SHIFT;
+		return (size_t) res;
 
 	if (offset_bi >= ctx->nblocks) {
 		LOG("Too much sound data: %s\n", ctx->fname);
 		return 0;
 	}
 
-	cbi = offset_bi;
-
 	/*
 	 * Read cache blocks in sequence until the requested cache block
 	 * has been read. ctx->end_bi is increased every time a new block
 	 * is read. ctx->end_bi points to the first block that is not cached.
 	 */
-	while (ctx->end_bi <= cbi) {
+	while (ctx->end_bi <= offset_bi) {
 		cb = &ctx->blocks[ctx->end_bi];
 
 		cb->data = malloc(CACHE_BLOCK_SIZE);
@@ -252,7 +332,7 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 		if (res <= 0) {
 			free(cb->data);
 			cb->data = NULL;
-			DEBUG("EOF at %zd: %s\n", ctx->end_bi << CACHE_BLOCK_SHIFT, ctx->fname);
+			DEBUG("Read code %d at %zd: %s\n", (int) res, ctx->end_bi << CACHE_BLOCK_SHIFT, ctx->fname);
 			break;
 		}
 
@@ -266,7 +346,41 @@ static ssize_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
 
 	res = cache_block_read(ctx, buf, offset, size);
 	if (res >= 0)
-		return res;
+		return (size_t) res;
+
+	return 0;
+}
+
+int cache_prefill(struct sndctx *ctx, char *data)
+{
+	int i;
+
+	if (data == NULL)
+		LOG("Prefill segfault: %s\n", ctx->fname);
+
+	ctx->end_bi = STASH_CACHE_BLOCKS;
+
+	for (i = 0; i < STASH_CACHE_BLOCKS; i++) {
+		ctx->blocks[i].data = malloc(CACHE_BLOCK_SIZE);
+		if (ctx->blocks[i].data == NULL) {
+			LOG("Prefill OOM: %s\n", ctx->fname);
+			break;
+		}
+		ctx->blocks[i].bytes = CACHE_BLOCK_SIZE;
+		memcpy(ctx->blocks[i].data, data, CACHE_BLOCK_SIZE);
+		data += CACHE_BLOCK_SIZE;
+	}
+
+	if (i < STASH_CACHE_BLOCKS) {
+		/* Free cache blocks from the beginning to the first NULL */
+		for (i = 0; i < STASH_CACHE_BLOCKS; i++) {
+			if (ctx->blocks[i].data == NULL)
+				break;
+			free(ctx->blocks[i].data);
+			ctx->blocks[i].data = NULL;
+		}
+		return -1;
+	}
 
 	return 0;
 }
@@ -303,24 +417,14 @@ static struct sndctx *create_ctx(const char *path)
 
 	ctx = calloc(1, sizeof ctx[0]);
 	if (ctx == NULL)
-		goto err;
+		return NULL;
 
-	ctx->fname = strdup(path);
-	if (ctx->fname == NULL)
-		goto err;
+	strlcpy(ctx->fname, path, sizeof ctx->fname);
 
 	ctx->pipefd = -1;
 	ctx->pid = -1;
 
 	return ctx;
-
- err:
-	if (ctx) {
-		free(ctx->fname);
-		ctx->fname = NULL;
-		free(ctx);
-	}
-	return NULL;
 }
 
 static void destroy_cache(struct sndctx *ctx)
@@ -364,8 +468,7 @@ static void set_no_snd_file(struct sndctx *ctx)
 
 static void destroy_ctx(struct sndctx *ctx)
 {
-	free(ctx->fname);
-	ctx->fname = NULL;
+	ctx->fname[0] = 0;
 
 	if (ctx->normalfile == 0)
 		set_no_snd_file(ctx);
@@ -378,13 +481,79 @@ static inline struct sndctx *get_uadefs_file(struct fuse_file_info *fi)
 	return (struct sndctx *) (uintptr_t) fi->fh;
 }
 
-static struct sndctx *open_file(int *success, const char *path)
+int warm_up_cache(struct sndctx *ctx)
+{
+	char crapbuf[STASH_SIZE];
+	size_t s;
+	int i;
+	struct stash *stash;
+	size_t offs;
+
+	for (i = 0; i < NSTASHES; i++) {
+		if (strcmp(ctx->fname, stashes[i].fname) == 0) {
+			LOG("Found stash for %s\n", ctx->fname);
+			if (cache_prefill(ctx, stashes[i].data))
+				return -EIO;
+			break;
+		}
+	}
+
+	/* Start uade iff no stash found */
+	if (i == NSTASHES) {
+		int ret = spawn_uade(ctx);
+		if (ret)
+			return ret;
+	}
+
+	for (offs = 0; offs < sizeof crapbuf; offs += CACHE_BLOCK_SIZE) {
+		s = cache_read(ctx, &crapbuf[offs], offs, CACHE_BLOCK_SIZE);
+		if (s < CACHE_BLOCK_SIZE) {
+			DEBUG("File is not playable: %s\n", ctx->fname);
+			set_no_snd_file(ctx);
+			return -EIO;
+		}
+	}
+
+	s = get_file_size(ctx->fname);
+
+	if (s > 0 &&
+	    memcmp(&crapbuf[0], "RIFF", 4) == 0 &&
+	    memcmp(&crapbuf[8], "WAVE", 4) == 0    ) {
+		/* Fix WAV header */
+		char data[4];
+
+		write_le_32(data, (int32_t) (s - 8));
+		cache_invasive_write(ctx, 4, data, 4);
+
+		write_le_32(data, (int32_t) (s - 44));
+		cache_invasive_write(ctx, 40, data, 4);
+	}
+
+	if (i == NSTASHES) {
+		/* We found no stash -> create one from crapbuf */
+		stash = &stashes[nextstash++];
+		if (nextstash >= NSTASHES)
+			nextstash = 0;
+
+		if (sizeof(stash->data) != sizeof(crapbuf)) {
+			LOG("Stash data != crapbuf\n");
+			exit(1);
+		}
+
+		strlcpy(stash->fname, ctx->fname, sizeof stash->fname);
+		memcpy(stash->data, crapbuf, sizeof stash->data);
+
+		LOG("Allocated stash for %s\n", ctx->fname);
+	}
+
+	return 0;
+}
+
+static struct sndctx *open_file(int *success, const char *path, int isuade)
 {
 	int ret;
 	struct sndctx *ctx;
-	int fds[2];
 	struct stat st;
-	char crapbuf[CACHE_BLOCK_SIZE];
 
 	ctx = create_ctx(path);
 	if (ctx == NULL) {
@@ -397,74 +566,16 @@ static struct sndctx *open_file(int *success, const char *path)
 		goto err;
 	}
 
-	if (!S_ISREG(st.st_mode)) {
+	if (!S_ISREG(st.st_mode) || !isuade) {
 		set_no_snd_file(ctx);
 		goto out;
 	}
 
-	if (pipe(fds)) {
-		LOG("Can not create a pipe\n");
-		ret = -errno;
-		goto err;
-	}
-
-	ctx->pid = fork();
-	if (ctx->pid == 0) {
-		char *argv[] = {"uade123", "-c", "-k0", "--stderr", "-v",
-				ctx->fname, NULL};
-		int fd;
-
-		close(0);
-		close(2);
-		close(fds[0]);
-
-		fd = open("/dev/null", O_RDWR);
-		if (fd < 0)
-			LOG("Can not open /dev/null\n");
-
-		dup2(fd, 0);
-		dup2(fds[1], 1);
-		dup2(fd, 2);
-
-		DEBUG("Execute %s\n", UADENAME);
-
-		execv(UADENAME, argv);
-
-		LOG("Could not execute %s\n", UADENAME);
-		abort();
-	}
-
-	ctx->pipefd = fds[0];
-	close(fds[1]);
-
 	cache_init(ctx);
 
-	ret = cache_read(ctx, crapbuf, 0, sizeof(crapbuf));
-
-	if (ret < sizeof(crapbuf)) {
-		DEBUG("File is not playable: %s\n", path);
-		set_no_snd_file(ctx);
-	} else if (ret == -1) {
-		LOG("Something odd happened: %s (%s)\n", path, strerror(errno));
-		ret = -errno;
+	ret = warm_up_cache(ctx);
+	if (ret < 0)
 		goto err;
-	} else {
-		size_t s = get_file_size(path);
-
-		if (s > 0 &&
-		    memcmp(&crapbuf[0], "RIFF", 4) == 0 &&
-		    memcmp(&crapbuf[8], "WAVE", 4) == 0    ) {
-			/* Fix WAV header */
-			char data[4];
-
-			write_le_32(data, (int32_t) (s - 8));
-			cache_invasive_write(ctx, 4, data, 4);
-
-			write_le_32(data, (int32_t) (s - 44));
-			cache_invasive_write(ctx, 40, data, 4);
-		}
-	}
-
  out:
 	*success = 0;
 	return ctx;
@@ -550,7 +661,7 @@ static size_t get_file_size(const char *path)
 static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	size_t s;
 
 	res = lstat(path, stbuf);
@@ -572,7 +683,7 @@ static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 static int uadefs_access(const char *fpath, int mask)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = access(path, mask);
 
@@ -587,7 +698,7 @@ static int uadefs_access(const char *fpath, int mask)
 static int uadefs_readlink(const char *fpath, char *buf, size_t size)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = readlink(path, buf, size - 1);
 
@@ -625,7 +736,7 @@ static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 {
 	DIR *dp;
 	struct dirent *de;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	char name[256];
 
 	(void) offset;
@@ -666,7 +777,7 @@ static int uadefs_mknod(const char *fpath, mode_t mode, dev_t rdev)
 static int uadefs_mkdir(const char *fpath, mode_t mode)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = mkdir(path, mode);
 
@@ -681,7 +792,7 @@ static int uadefs_mkdir(const char *fpath, mode_t mode)
 static int uadefs_unlink(const char *fpath)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = unlink(path);
 
@@ -696,7 +807,7 @@ static int uadefs_unlink(const char *fpath)
 static int uadefs_rmdir(const char *fpath)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = rmdir(path);
 
@@ -711,8 +822,8 @@ static int uadefs_rmdir(const char *fpath)
 static int uadefs_symlink(const char *ffrom, const char *fto)
 {
 	int res;
-	char *from = uadefs_get_path(ffrom);
-	char *to = uadefs_get_path(fto);
+	char *from = uadefs_get_path(NULL, ffrom);
+	char *to = uadefs_get_path(NULL, fto);
 
 	res = symlink(from, to);
 
@@ -728,8 +839,8 @@ static int uadefs_symlink(const char *ffrom, const char *fto)
 static int uadefs_rename(const char *ffrom, const char *fto)
 {
 	int res;
-	char *from = uadefs_get_path(ffrom);
-	char *to = uadefs_get_path(fto);
+	char *from = uadefs_get_path(NULL, ffrom);
+	char *to = uadefs_get_path(NULL, fto);
 
 	res = rename(from, to);
 
@@ -745,8 +856,8 @@ static int uadefs_rename(const char *ffrom, const char *fto)
 static int uadefs_link(const char *ffrom, const char *fto)
 {
 	int res;
-	char *from = uadefs_get_path(ffrom);
-	char *to = uadefs_get_path(fto);
+	char *from = uadefs_get_path(NULL, ffrom);
+	char *to = uadefs_get_path(NULL, fto);
 
 	res = link(from, to);
 
@@ -762,7 +873,7 @@ static int uadefs_link(const char *ffrom, const char *fto)
 static int uadefs_chmod(const char *fpath, mode_t mode)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = chmod(path, mode);
 
@@ -777,7 +888,7 @@ static int uadefs_chmod(const char *fpath, mode_t mode)
 static int uadefs_chown(const char *fpath, uid_t uid, gid_t gid)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = lchown(path, uid, gid);
 
@@ -801,7 +912,7 @@ static int uadefs_utimens(const char *fpath, const struct timespec ts[2])
 {
 	int res;
 	struct timeval tv[2];
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	tv[0].tv_sec = ts[0].tv_sec;
 	tv[0].tv_usec = ts[0].tv_nsec / 1000;
@@ -822,12 +933,15 @@ static int uadefs_open(const char *fpath, struct fuse_file_info *fi)
 {
 	int ret;
 	struct sndctx *ctx;
-	char *path = uadefs_get_path(fpath);
+	int isuade;
+	char *path = uadefs_get_path(&isuade, fpath);
 
-	if (fi->flags & O_CREAT)
+	if (fi->flags & O_CREAT) {
+		free(path);
 		return -EPERM;
+	}
 
-	ctx = open_file(&ret, path);
+	ctx = open_file(&ret, path, isuade);
 
 	free(path);
 
@@ -845,13 +959,13 @@ static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 		       struct fuse_file_info *fi)
 {
 	int fd;
-	ssize_t res;
+	size_t res;
 	struct sndctx *ctx = get_uadefs_file(fi);
 	ssize_t totalread = 0;
 	size_t bsize;
 
 	if (ctx->normalfile) {
-		char *path = uadefs_get_path(fpath);
+		char *path = uadefs_get_path(NULL, fpath);
 
 		fd = open(path, O_RDONLY);
 
@@ -875,11 +989,9 @@ static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 	while (size > 0) {
 		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
 		res = cache_read(ctx, buf, off, bsize);
-		if (res <= 0) {
-			if (res == -1 && totalread == 0)
-				totalread = -errno;
+		if (res == 0)
 			break;
-		}
+
 		totalread += res;
 		buf += res;
 		off += res;
@@ -907,7 +1019,7 @@ static int uadefs_write(const char *fpath, const char *buf, size_t size,
 static int uadefs_statfs(const char *fpath, struct statvfs *stbuf)
 {
 	int res;
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 
 	res = statvfs(path, stbuf);
 
@@ -952,7 +1064,7 @@ static int uadefs_fsync(const char *fpath, int isdatasync,
 static int uadefs_setxattr(const char *fpath, const char *name, const char *value,
 			size_t size, int flags)
 {
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	int res;
 
 	res = lsetxattr(path, name, value, size, flags);
@@ -967,7 +1079,7 @@ static int uadefs_setxattr(const char *fpath, const char *name, const char *valu
 static int uadefs_getxattr(const char *fpath, const char *name, char *value,
 			size_t size)
 {
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	int res;
 
 	res = lgetxattr(path, name, value, size);
@@ -981,7 +1093,7 @@ static int uadefs_getxattr(const char *fpath, const char *name, char *value,
 
 static int uadefs_listxattr(const char *fpath, char *list, size_t size)
 {
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	int res;
 
 	res = llistxattr(path, list, size);
@@ -995,7 +1107,7 @@ static int uadefs_listxattr(const char *fpath, char *list, size_t size)
 
 static int uadefs_removexattr(const char *fpath, const char *name)
 {
-	char *path = uadefs_get_path(fpath);
+	char *path = uadefs_get_path(NULL, fpath);
 	int res;
 
 	res = lremovexattr(path, name);
