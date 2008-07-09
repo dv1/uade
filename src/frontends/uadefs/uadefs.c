@@ -53,7 +53,6 @@
 #include "uadeconfig.h"
 
 
-#define MAGIC_LENGTH 0x1000
 #define WAV_HEADER_LEN 44
 
 #define CACHE_BLOCK_SHIFT 12  /* 4096 bytes per cache block */
@@ -171,6 +170,7 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 {
 	size_t toread;
 	size_t offset_bi;
+	size_t lsb;
 	struct cacheblock *cb;
 
 	offset_bi = offset >> CACHE_BLOCK_SHIFT;
@@ -187,25 +187,24 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 
 	cb = &ctx->blocks[offset_bi - ctx->start_bi];
 
-	if (cb->bytes > 0) {
-		size_t lsb = offset & CACHE_LSB_MASK;
+	if (!cb->bytes)
+		return -1;
 
-		if ((lsb + size) > CACHE_BLOCK_SIZE) {
-			LOG("lsb + size (%zd) failed: %zd %zd\n", lsb + size, offset, size);
-			abort();
-		}
+	lsb = offset & CACHE_LSB_MASK;
 
-		if (lsb >= cb->bytes)
-			return 0;
-
-		toread = MIN(size, cb->bytes - lsb);
-
-		memcpy(buf, ((char *) cb->data) + lsb, toread);
-
-		return toread;
+	if ((lsb + size) > CACHE_BLOCK_SIZE) {
+		LOG("lsb + size (%zd) failed: %zd %zd\n", lsb + size, offset, size);
+		abort();
 	}
 
-	return -1;
+	if (lsb >= cb->bytes)
+		return 0;
+
+	toread = MIN(size, cb->bytes - lsb);
+
+	memcpy(buf, ((char *) cb->data) + lsb, toread);
+
+	return toread;
 }
 
 static void cache_init(struct sndctx *ctx)
@@ -396,7 +395,7 @@ static struct sndctx *open_file(int *success, const char *path)
 	struct sndctx *ctx;
 	int fds[2];
 	struct stat st;
-	char crapbuf[MAGIC_LENGTH];
+	char crapbuf[CACHE_BLOCK_SIZE];
 
 	ctx = create_ctx(path);
 	if (ctx == NULL) {
