@@ -669,26 +669,10 @@ static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 
 static int uadefs_mknod(const char *fpath, mode_t mode, dev_t rdev)
 {
-	int res;
-	char *path = uadefs_get_path(fpath);
-
-	/* On Linux this could just be 'mknod(path, mode, rdev)' but this
-	   is more portable */
-	if (S_ISREG(mode)) {
-		res = open(path, O_CREAT | O_EXCL | O_WRONLY, mode);
-		if (res >= 0)
-			res = close(res);
-	} else if (S_ISFIFO(mode))
-		res = mkfifo(path, mode);
-	else
-		res = mknod(path, mode, rdev);
-
-	free(path);
-
-	if (res == -1)
-		return -errno;
-
-	return 0;
+	(void) mode;
+	(void) fpath;
+	(void) rdev;
+	return -EACCES;
 }
 
 static int uadefs_mkdir(const char *fpath, mode_t mode)
@@ -851,6 +835,9 @@ static int uadefs_open(const char *fpath, struct fuse_file_info *fi)
 	int ret;
 	struct sndctx *ctx;
 	char *path = uadefs_get_path(fpath);
+
+	if (fi->flags & O_CREAT)
+		return -EPERM;
 
 	ctx = open_file(&ret, path);
 
