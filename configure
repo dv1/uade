@@ -467,34 +467,6 @@ if test "$useuadefs" = "yes" ; then
     fi
 fi
 
-echo ""
-echo "UADE and frontends is installed to      : $bindir"
-echo "Data directory                          : $uadedatadir"
-echo "Uadecore directory                      : $uadelibdir"
-echo "Man (documentation) directory           : $mandir"
-echo "Installer                               : $INSTALLTEST"
-echo "Make                                    : $MAKE"
-if test "$TARGETCC" != "$NATIVECC" ; then
-    echo "Native CC                               : $NATIVECC"
-fi
-echo "Target CC                               : $TARGETCC"
-echo "uadecore                                : $useuadecore"
-echo "uade123                                 : $useuade123"
-if test "$useuade123" = "yes" ; then
-    echo "uade123 sound output                    : AO"
-fi
-echo "XMMS plugin                             : $usexmms"
-if test "$usexmms" = "yes" ; then
-    echo "XMMS plugin directory                   : $xmmsplugindir"
-fi
-echo "Audacious plugin                        : $useaudacious"
-if test "$useaudacious" = "yes" ; then
-    echo "Audacious plugin directory              : $audaciousplugindir"
-fi
-echo "uadefs                                  : $useuadefs"
-echo "Text scope support                      : $textscope"
-echo
-
 # Target is UNIX.
 cat > src/ossupport.c <<EOF
 #include "ossupport.h"
@@ -514,16 +486,23 @@ $TARGETCC $ARCHFLAGS $ARCHLIBS -o memmemtest memmemtest.c 2>/dev/null
 if test "$?" != "0" ; then
     cat memmemrep.h >> ../src/include/ossupport.h
     cat memmemrep.c >> ../src/ossupport.c
-    echo "Using memmem() replacement."
+    echo "Using memmem() replacement"
 fi
 
-rm -f strltest
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
 if test -e "strltest" ; then
     echo "#include <string.h>" >> ../src/include/ossupport.h
 else
     cat strlrep.c >> ../src/ossupport.c
     cat strlrep.h >> ../src/include/ossupport.h
+    echo "Using strlcpy/cat() replacements"
+fi
+
+$TARGETCC $ARCHFLAGS $ARCHLIBS -o canontest canontest.c 2>/dev/null
+if test ! -e "canontest" ; then
+    cat canonrep.c >> ../src/ossupport.c
+    cat canonrep.h >> ../src/include/ossupport.h
+    echo "Using canonical_file_name() replacement"
 fi
 
 echo "#endif" >> ../src/include/ossupport.h
@@ -565,6 +544,34 @@ echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
 test "$textscope" = "yes" && echo "#define UADE_CONFIG_TEXT_SCOPE" >> "$conffile"
+
+echo ""
+echo "UADE and frontends is installed to      : $bindir"
+echo "Data directory                          : $uadedatadir"
+echo "Uadecore directory                      : $uadelibdir"
+echo "Man (documentation) directory           : $mandir"
+echo "Installer                               : $INSTALLTEST"
+echo "Make                                    : $MAKE"
+if test "$TARGETCC" != "$NATIVECC" ; then
+    echo "Native CC                               : $NATIVECC"
+fi
+echo "Target CC                               : $TARGETCC"
+echo "uadecore                                : $useuadecore"
+echo "uade123                                 : $useuade123"
+if test "$useuade123" = "yes" ; then
+    echo "uade123 sound output                    : AO"
+fi
+echo "XMMS plugin                             : $usexmms"
+if test "$usexmms" = "yes" ; then
+    echo "XMMS plugin directory                   : $xmmsplugindir"
+fi
+echo "Audacious plugin                        : $useaudacious"
+if test "$useaudacious" = "yes" ; then
+    echo "Audacious plugin directory              : $audaciousplugindir"
+fi
+echo "uadefs                                  : $useuadefs"
+echo "Text scope support                      : $textscope"
+echo
 
 uadecorerule=""
 uadecoreinstallrule=""
