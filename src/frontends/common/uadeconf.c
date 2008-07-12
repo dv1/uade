@@ -404,9 +404,15 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 	MERGE_OPTION(song_title);
 	MERGE_OPTION(speed_hack);
 	MERGE_OPTION(subsong_timeout);
+
 	MERGE_OPTION(timeout);
-	MERGE_OPTION(use_text_scope);
 	MERGE_OPTION(use_timeouts);
+	if (ucs->timeout_set) {
+		ucd->use_timeouts = 1;
+		ucd->use_timeouts_set = 1;
+	}
+
+	MERGE_OPTION(use_text_scope);
 	MERGE_OPTION(use_ntsc);
 	MERGE_OPTION(verbose);
 }

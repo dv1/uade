@@ -365,7 +365,6 @@ int play_loop(struct uade_state *state)
 	  return UADE_PLAY_FAILURE;
 	}
 
-	/* FIX ME */
 	if (uc->timeout != -1 && uc->use_timeouts) {
 	  if (uade_song_end_trigger == 0) {
 	    if (us->out_bytes / bytes_per_second >= uc->timeout) {
