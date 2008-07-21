@@ -50,9 +50,6 @@ unsigned int ciaapra, ciabpra;
 unsigned int gui_ledstate;
 int gui_ledstate_forced = 0;
 
-static int ciaatod_read;
-static int ciabtod_read;
-
 static unsigned long ciaala,ciaalb,ciabla,ciablb;
 static int ciaatodon, ciabtodon;
 static unsigned int ciaaprb,ciaadra,ciaadrb,ciaasdr;
@@ -291,10 +288,6 @@ static uae_u8 ReadCIAA(unsigned int addr)
      case 7:
 	return ciaatb >> 8;
      case 8:
-	if (ciaatod_read < 8) {
-	    fprintf(stderr, "uadecore warning: CIAA 0xbfe801 read. The player might not work.\n");
-	    ciaatod_read++;
-	}
 	if (ciaatlatch) {
 	    ciaatlatch = 0;
 	    return ciaatol & 0xff;
@@ -344,10 +337,6 @@ static uae_u8 ReadCIAB(unsigned int addr)
      case 7:
 	return ciabtb >> 8;
      case 8:
-	if (ciabtod_read < 8) {
-	     ciabtod_read++;
-	     fprintf(stderr, "uadecore warning: CIAB 0xbfd800 read. The player might not work.\n");
-	}
 	if (ciabtlatch) {
 	    ciabtlatch = 0;
 	    return ciabtol & 0xff;
@@ -631,10 +620,6 @@ void CIA_reset(void)
     lastdiv10 = 0;
     CIA_calctimers();
     ciabpra = 0x8C;
-
-    /* for debugging CIA tod problems with uade */
-    ciaatod_read = 0;
-    ciabtod_read = 0;
 
     /* we don't want ersatzkick or kickstart roms in uade */
     /*
