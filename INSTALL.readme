@@ -127,3 +127,20 @@ uadefs:
 	    objcopy: styJDS31: Invalid operation
 	    make[1]: *** [libuade2.so] Error 1
 	    make: *** [xmmsplugin] Error 2 
+
+*** 5. Notes on Cygwin ***
+
+- Run Cygwin setup and install the following binary packages:
+  gcc-core, libao2, libao-devel, make and pkg-config
+
+- During compilation you may see hundreds of warnings like this:
+  Warning: .stabs: description field '1399a' too big, try a different
+  debug format; they can safely be ignored.
+
+Limitations of Cygwin builds:
+
+- UNIX<->Windows path conversion is not always reliable causing
+  multifile songs to fail. Use of UNIX paths negates this problem.
+
+- The binary version of libao produces a lot of debug output when using
+  the winmm driver
