@@ -292,6 +292,9 @@ int play_loop(struct uade_state *state)
 	subsong_end = 0;
       }
 
+      if (uade_song_end_trigger)
+	record_playtime = 0;
+
       if (subsong_end && uade_song_end_trigger == 0) {
 
 	if (jump_sub || (uc->one_subsong == 0 && us->cur_subsong != -1 && us->max_subsong != -1)) {
