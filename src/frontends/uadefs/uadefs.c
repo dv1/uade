@@ -761,6 +761,7 @@ static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 	struct dirent *de;
 	char *path = uadefs_get_path(NULL, fpath);
 	char name[256];
+	char fullname[PATH_MAX];
 
 	(void) offset;
 	(void) fi;
@@ -777,6 +778,13 @@ static int uadefs_readdir(const char *fpath, void *buf, fuse_fill_dir_t filler,
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
 		st.st_mode = de->d_type << 12;
+		if (st.st_mode == 0) {
+			/* de->d_type not supported -> use stat() */
+			struct stat oldst;
+			snprintf(fullname, sizeof fullname, "%s/%s", path, de->d_name);
+			if (!stat(fullname, &oldst))
+				st.st_mode = oldst.st_mode & ~0777;
+		}
 
 		gen_uade_name(name, sizeof name, st.st_mode, path, de->d_name);
 
