@@ -16,6 +16,7 @@ void uade_lookup_volume_normalisation(struct uade_state *state);
 int uade_read_content_db(const char *filename);
 int uade_read_song_conf(const char *filename);
 void uade_save_content_db(const char *filename);
+int uade_test_silence(void *buf, size_t size, struct uade_state *state);
 void uade_unalloc_song(struct uade_state *state);
 int uade_update_song_conf(const char *songconfin, const char *songconfout,
 			  const char *songname, const char *options);

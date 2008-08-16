@@ -43,7 +43,6 @@
 
 
 static int initialize_song(char *filename);
-static int test_silence(void *buf, size_t size);
 static void uade_cleanup(void);
 static void uade_file_info(char *filename);
 static void uade_get_song_info(char *filename, char **title, int *length);
@@ -599,7 +598,7 @@ static void *play_loop(void *arg)
 	  }
 	}
 
-	if (test_silence(um->data, play_bytes)) {
+	if (uade_test_silence(um->data, play_bytes, &state)) {
 	  if (subsong_end == 0 && song_end_trigger == 0) {
 	    subsong_end = 1;
 	  }
@@ -715,42 +714,6 @@ static void *play_loop(void *arg)
   } while (um->msgtype != UADE_COMMAND_TOKEN);
 
   return NULL;
-}
-
-
-/* Note that this function has side effects (static int64_t silence_count) */
-static int test_silence(void *buf, size_t size)
-{
-  int i, s, exceptioncounter;
-  int16_t *sm;
-  int nsamples;
-  static int64_t silence_count = 0;
-
-  if (state.config.silence_timeout < 0)
-    return 0;
-
-  exceptioncounter = 0;
-  sm = buf;
-  nsamples = size / 2;
-
-  for (i = 0; i < nsamples; i++) {
-    s = (sm[i] >= 0) ? sm[i] : -sm[i];
-    if (s >= (32767 * 1 / 100)) {
-      exceptioncounter++;
-      if (exceptioncounter >= (size * 2 / 100)) {
-	silence_count = 0;
-	break;
-      }
-    }
-  }
-  if (i == nsamples) {
-    silence_count += size;
-    if (silence_count / (UADE_BYTES_PER_FRAME * state.config.frequency) >= state.config.silence_timeout) {
-      silence_count = 0;
-      return 1;
-    }
-  }
-  return 0;
 }
 
 

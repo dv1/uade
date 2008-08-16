@@ -101,6 +101,8 @@ struct uade_song {
 	char *normalisation;
 
 	int64_t out_bytes;
+
+	int64_t silence_count;
 };
 
 struct epconfattr {

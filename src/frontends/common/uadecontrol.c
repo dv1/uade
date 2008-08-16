@@ -26,7 +26,10 @@ static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
 void uade_change_subsong(struct uade_state *state)
 {
+	state->song->silence_count = 0;
+
 	uade_lookup_volume_normalisation(state);
+
 	subsong_control(state->song->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, &state->ipc);
 }
 

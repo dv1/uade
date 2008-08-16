@@ -44,42 +44,6 @@ static void print_song_info(struct uade_song *us, enum song_info_type t)
 }
 
 
-/* Note that this function has side effects (static int64_t silence_count) */
-static int uade_test_silence(void *buf, size_t size, struct uade_config *uc)
-{
-  int i, s, exceptioncounter;
-  int16_t *sm;
-  int nsamples;
-  static int64_t silence_count = 0;
-
-  if (uc->silence_timeout < 0)
-    return 0;
-
-  exceptioncounter = 0;
-  sm = buf;
-  nsamples = size / 2;
-
-  for (i = 0; i < nsamples; i++) {
-    s = (sm[i] >= 0) ? sm[i] : -sm[i];
-    if (s >= (32767 * 1 / 100)) {
-      exceptioncounter++;
-      if (exceptioncounter >= (size * 2 / 100)) {
-	silence_count = 0;
-	break;
-      }
-    }
-  }
-  if (i == nsamples) {
-    silence_count += size;
-    if (silence_count / (UADE_BYTES_PER_FRAME * uc->frequency) >= uc->silence_timeout) {
-      silence_count = 0;
-      return 1;
-    }
-  }
-  return 0;
-}
-
-
 int play_loop(struct uade_state *state)
 {
   uint16_t *sm;
@@ -388,7 +352,7 @@ int play_loop(struct uade_state *state)
 	  }
 	}
 
-	if (uade_test_silence(um->data, playbytes, uc)) {
+	if (uade_test_silence(um->data, playbytes, state)) {
 	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
 	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uc->silence_timeout);
 	    subsong_end = 1;

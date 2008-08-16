@@ -17,6 +17,7 @@
 #include "ossupport.h"
 #include "uadeconfig.h"
 #include "support.h"
+#include "uadeconstants.h"
 
 #define NORM_ID "n="
 #define NORM_ID_LENGTH 2
@@ -610,6 +611,45 @@ void uade_save_content_db(const char *filename)
 
 	fclose(f);
 	fprintf(stderr, "uade: Saved %zd entries into content db.\n", nccused);
+}
+
+int uade_test_silence(void *buf, size_t size, struct uade_state *state)
+{
+	int i, s, exceptioncount;
+	int16_t *sm;
+	int nsamples;
+	int64_t count = state->song->silence_count;
+	int end = 0;
+
+	if (state->config.silence_timeout < 0)
+		return 0;
+
+	exceptioncount = 0;
+	sm = buf;
+	nsamples = size / 2;
+
+	for (i = 0; i < nsamples; i++) {
+		s = (sm[i] >= 0) ? sm[i] : -sm[i];
+		if (s >= (32767 * 1 / 100)) {
+			exceptioncount++;
+			if (exceptioncount >= (size * 2 / 100)) {
+				count = 0;
+				break;
+			}
+		}
+	}
+
+	if (i == nsamples) {
+		count += size;
+		if (count / (UADE_BYTES_PER_FRAME * state->config.frequency) >= state->config.silence_timeout) {
+			count = 0;
+			end = 1;
+		}
+	}
+
+	state->song->silence_count = count;
+
+	return end;
 }
 
 void uade_unalloc_song(struct uade_state *state)
