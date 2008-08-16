@@ -311,6 +311,13 @@ int play_loop(struct uade_state *state)
 	  playbytes = what_was_left;
 	}
 
+	if (subsong_end == 0 && uade_song_end_trigger == 0 &&
+	    uade_test_silence(um->data, playbytes, state)) {
+	    
+	  fprintf(stderr, "\nsilence detected (%d seconds)\n", uc->silence_timeout);
+	  subsong_end = 1;
+	}
+
 	us->out_bytes += playbytes;
 	subsong_bytes += playbytes;
 
@@ -349,13 +356,6 @@ int play_loop(struct uade_state *state)
 	      subsong_end = 1;
 	      record_playtime = 0;
 	    }
-	  }
-	}
-
-	if (uade_test_silence(um->data, playbytes, state)) {
-	  if (subsong_end == 0 && uade_song_end_trigger == 0) {
-	    fprintf(stderr, "\nsilence detected (%d seconds)\n", uc->silence_timeout);
-	    subsong_end = 1;
 	  }
 	}
       }

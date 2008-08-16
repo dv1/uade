@@ -584,6 +584,11 @@ static void *play_loop(void *arg)
 	  play_bytes = um->size;
 	}
 
+	if (subsong_end == 0 && song_end_trigger == 0 &&
+	    uade_test_silence(um->data, play_bytes, &state)) {
+	  subsong_end = 1;
+	}
+
 	subsong_bytes += play_bytes;
 	uade_lock();
 	state.song->out_bytes += play_bytes;
@@ -622,12 +627,6 @@ static void *play_loop(void *arg)
 	      subsong_end = 1;
 	      record_playtime = 0;
 	    }
-	  }
-	}
-
-	if (uade_test_silence(um->data, play_bytes, &state)) {
-	  if (subsong_end == 0 && song_end_trigger == 0) {
-	    subsong_end = 1;
 	  }
 	}
 
