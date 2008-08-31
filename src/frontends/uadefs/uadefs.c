@@ -1227,6 +1227,9 @@ static int uadefs_opt_proc(void *data, const char *arg, int key,
 	char dname[4096];
 
 	switch (key) {
+	case FUSE_OPT_KEY_OPT:
+		return 1;
+
 	case FUSE_OPT_KEY_NONOPT:
 		if (!srcdir) {
 			if (arg[0] == '/') {
