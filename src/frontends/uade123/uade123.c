@@ -698,6 +698,7 @@ static void print_help(void)
 " --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n"
 "                     value is determined by the libao.\n"
 " -c, --stdout        Write sample data to stdout\n"
+" --cygwin,           Cygwin path name workaround: X:\ -> /cygdrive/X\n"
 " --detect-format-by-content, Detect modules strictly by file content.\n"
 "                     Detection will ignore file name prefixes.\n"
 " --disable-timeouts, Disable timeouts. This can be used for songs that are\n"

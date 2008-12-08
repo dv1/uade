@@ -100,6 +100,11 @@ by the libao. Notice that libao support for ALSA has a bug
 in versions 0.8.6 and earlier that buffer_time must actually be given in
 microseconds rather than milliseconds.
 .TP
+\fB\-\-cygwin\fR
+Enable Cygwin workaround mode that converts X:\\foo style Windows names
+into /cygdrive/X/foo. This can be set by default with "cygwin" keyword
+in uade.conf.
+.TP
 \fB\-d, \-\-debug\fR
 Turn debug mode on. Experts only.
 .TP
@@ -462,6 +467,9 @@ The valid commands are:
     action_keys x      Set action keys "off" or "on".
 .br
     buffer_time x      Set audio buffer length to x milliseconds.
+.br
+    cygwin             Set Cygwin path name workaround mode.
+                       See help for --cygwin option.
 .br
     detect_format_by_content  Only detect files by content. Do not
                        use file name based heuristics.
