@@ -51,6 +51,10 @@ struct uade_ep_options {
 	size_t s;
 };
 
+#define UADE_CHAR_CONFIG(x) char x; char x##_set;
+#define UADE_FLOAT_CONFIG(x) float x; char x##_set;
+#define UADE_INT_CONFIG(x) int x; char x##_set;
+
 /* All the options are put into an instance of this structure.
  * There can be many structures, one for uade.conf and the other for
  * command line options. Then these structures are then merged together
@@ -68,102 +72,58 @@ struct uade_ep_options {
  * merge will notice the change in value.
  */
 struct uade_config {
-	char action_keys;
-	char action_keys_set;
+	UADE_CHAR_CONFIG(action_keys);
 
 	struct uade_dir basedir;
 	char basedir_set;
 
-	int buffer_time;
-	char buffer_time_set;
-
-	char content_detection;
-	char content_detection_set;
+	UADE_INT_CONFIG(buffer_time);
+	UADE_CHAR_CONFIG(content_detection);
 
 	struct uade_ep_options ep_options;
 	char ep_options_set;
 
-	char filter_type;
-	char filter_type_set;
+	UADE_CHAR_CONFIG(filter_type);
+	UADE_INT_CONFIG(frequency);
+	UADE_CHAR_CONFIG(led_forced);
+	UADE_CHAR_CONFIG(led_state);
 
-	int frequency;
-	char frequency_set;
+	UADE_CHAR_CONFIG(gain_enable);
+	/* should be removed of uade_effect integrated */
+	UADE_FLOAT_CONFIG(gain);
 
-	char led_forced;
-	char led_forced_set;
-	char led_state;
-	char led_state_set;
-
-	char gain_enable;
-	char gain_enable_set;
-	float gain;		/* should be removed of uade_effect integrated */
-	char gain_set;
-
-	char headphones;
-	char headphones_set;
-	char headphones2;
-	char headphones2_set;
-
-	char ignore_player_check;
-	char ignore_player_check_set;
+	UADE_CHAR_CONFIG(headphones);
+	UADE_CHAR_CONFIG(headphones2);
+	UADE_CHAR_CONFIG(ignore_player_check);
 
 	char *resampler;
 	char resampler_set;
 
-	char no_ep_end;
-	char no_ep_end_set;
+	UADE_CHAR_CONFIG(no_ep_end);
+	UADE_CHAR_CONFIG(no_filter);
+	UADE_CHAR_CONFIG(no_postprocessing);
 
-	char no_filter;
-	char no_filter_set;
+	UADE_CHAR_CONFIG(normalise);
+	/* no normalise_parameter_set entry, use manual merging code */
+	char *normalise_parameter;
 
-	char no_postprocessing;
-	char no_postprocessing_set;
-
-	char normalise;
-	char normalise_set;
-	char *normalise_parameter;	/* no normalise_parameter_set entry, use manual
-					   merging code */
-
-	char one_subsong;
-	char one_subsong_set;
-
-	float panning;		/* should be removed */
-	char panning_set;
-	char panning_enable;
-	char panning_enable_set;
-
-	char random_play;
-	char random_play_set;
-
-	char recursive_mode;
-	char recursive_mode_set;
-
-	int silence_timeout;
-	char silence_timeout_set;
+	UADE_CHAR_CONFIG(one_subsong);
+	UADE_FLOAT_CONFIG(panning);		/* should be removed */
+	UADE_CHAR_CONFIG(panning_enable);
+	UADE_CHAR_CONFIG(random_play);
+	UADE_CHAR_CONFIG(recursive_mode);
+	UADE_INT_CONFIG(silence_timeout);
 
 	char *song_title;
 	char song_title_set;
 
-	char speed_hack;
-	char speed_hack_set;
-
-	int subsong_timeout;
-	char subsong_timeout_set;
-
-	int timeout;
-	char timeout_set;
-
-	char use_text_scope;
-	char use_text_scope_set;
-
-	char use_timeouts;
-	char use_timeouts_set;
-
-	char use_ntsc;
-	char use_ntsc_set;
-
-	char verbose;
-	char verbose_set;
+	UADE_CHAR_CONFIG(speed_hack);
+	UADE_INT_CONFIG(subsong_timeout);
+	UADE_INT_CONFIG(timeout);
+	UADE_CHAR_CONFIG(use_text_scope);
+	UADE_CHAR_CONFIG(use_timeouts);
+	UADE_CHAR_CONFIG(use_ntsc);
+	UADE_CHAR_CONFIG(verbose);
 };
 
 #endif
