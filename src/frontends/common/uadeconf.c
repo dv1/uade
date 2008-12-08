@@ -517,6 +517,8 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 	char *endptr;
 	long x;
 
+#define SET_OPTION(opt, value) do { uc->opt = (value); uc->opt##_set = 1; } while (0)
+
 	switch (opt) {
 	case UC_ACTION_KEYS:
 		if (value != NULL) {
@@ -560,18 +562,15 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		break;
 
 	case UC_CONTENT_DETECTION:
-		uc->content_detection = 1;
-		uc->content_detection_set = 1;
+		SET_OPTION(content_detection, 1);
 		break;
 
 	case UC_DISABLE_TIMEOUTS:
-		uc->use_timeouts = 0;
-		uc->use_timeouts_set = 1;
+		SET_OPTION(use_timeouts, 0);
 		break;
 
 	case UC_ENABLE_TIMEOUTS:
-		uc->use_timeouts = 1;
-		uc->use_timeouts_set = 1;
+		SET_OPTION(use_timeouts, 1);
 		break;
 
 	case UC_EAGLEPLAYER_OPTION:
@@ -585,8 +584,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		break;
 
 	case UC_FILTER_TYPE:
-		uc->no_filter = 0;
-		uc->no_filter_set = 1;
+		SET_OPTION(no_filter, 0);
 
 		if (value != NULL) {
 			if (strcasecmp(value, "none") != 0) {
@@ -616,22 +614,18 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			break;
 		}
 		uc->led_state_set = 1;
-		uc->led_forced_set = 1;
-		uc->led_forced = 1;
+
+		SET_OPTION(led_forced, 1);
 		break;
 
 	case UC_FORCE_LED_OFF:
-		uc->led_forced_set = 1;
-		uc->led_forced = 1;
-		uc->led_state = 0;
-		uc->led_state_set = 1;
+		SET_OPTION(led_forced, 1);
+		SET_OPTION(led_state, 0);
 		break;
 
 	case UC_FORCE_LED_ON:
-		uc->led_forced_set = 1;
-		uc->led_forced = 1;
-		uc->led_state = 1;
-		uc->led_state_set = 1;
+		SET_OPTION(led_forced, 1);
+		SET_OPTION(led_state, 1);
 		break;
 
 	case UC_FREQUENCY:
@@ -650,8 +644,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			fprintf(stderr, "Frequency out of bounds: %ld\n", x);
 			x = UADE_DEFAULT_FREQUENCY;
 		}
-		uc->frequency = x;
-		uc->frequency_set = 1;
+		SET_OPTION(frequency, x);
 		break;
 
 	case UC_GAIN:
@@ -659,26 +652,20 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			fprintf(stderr, "uade: UC_GAIN value is NULL\n");
 			break;
 		}
-		uc->gain_enable_set = 1;
-		uc->gain_enable = 1;
-		uc->gain_set = 1;
-		uc->gain =
-		    uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain");
+		SET_OPTION(gain_enable, 1);
+		SET_OPTION(gain, uade_convert_to_double(value, 1.0, 0.0, 128.0, "gain"));
 		break;
 
 	case UC_HEADPHONES:
-		uc->headphones_set = 1;
-		uc->headphones = 1;
+		SET_OPTION(headphones, 1);
 		break;
 
 	case UC_HEADPHONES2:
-		uc->headphones2_set = 1;
-		uc->headphones2 = 1;
+		SET_OPTION(headphones2, 1);
 		break;
 
 	case UC_IGNORE_PLAYER_CHECK:
-		uc->ignore_player_check_set = 1;
-		uc->ignore_player_check = 1;
+		SET_OPTION(ignore_player_check, 1);
 		break;
 
 	case UC_RESAMPLER:
@@ -690,36 +677,29 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		if (uc->resampler != NULL) {
 			uc->resampler_set = 1;
 		} else {
-			fprintf(stderr,
-				"uade.conf: no memory for resampler.\n");
+			fprintf(stderr,	"uade.conf: no memory for resampler.\n");
 		}
 		break;
 
 	case UC_NO_EP_END:
-		uc->no_ep_end = 1;
-		uc->no_ep_end_set = 1;
+		SET_OPTION(no_ep_end, 1);
 		break;
 
 	case UC_NO_FILTER:
-		uc->no_filter_set = 1;
-		uc->no_filter = 1;
+		SET_OPTION(no_filter, 1);
 		break;
 
 	case UC_NO_HEADPHONES:
-		uc->headphones_set = 1;
-		uc->headphones = 0;
-		uc->headphones2_set = 1;
-		uc->headphones2 = 0;
+		SET_OPTION(headphones, 0);
+		SET_OPTION(headphones2, 0);
 		break;
 
 	case UC_NO_PANNING:
-		uc->panning_enable_set = 1;
-		uc->panning_enable = 0;
+		SET_OPTION(panning_enable, 0);
 		break;
 
 	case UC_NO_POSTPROCESSING:
-		uc->no_postprocessing = 1;
-		uc->no_postprocessing_set = 1;
+		SET_OPTION(no_postprocessing, 1);
 		break;
 
 	case UC_NORMALISE:
@@ -727,24 +707,20 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			fprintf(stderr, "uade: UC_NORMALISE is NULL\n");
 			break;
 		}
-		uc->normalise = 1;
-		uc->normalise_set = 1;
-		uc->normalise_parameter = (char *)value;
+		SET_OPTION(normalise, 1);
+		uc->normalise_parameter = (char *) value;
 		break;
 
 	case UC_NTSC:
-		uc->use_ntsc_set = 1;
-		uc->use_ntsc = 1;
+		SET_OPTION(use_ntsc, 1);
 		break;
 
 	case UC_ONE_SUBSONG:
-		uc->one_subsong_set = 1;
-		uc->one_subsong = 1;
+		SET_OPTION(one_subsong, 1);
 		break;
 
 	case UC_PAL:
-		uc->use_ntsc_set = 1;
-		uc->use_ntsc = 0;
+		SET_OPTION(use_ntsc, 0);
 		break;
 
 	case UC_PANNING_VALUE:
@@ -752,21 +728,16 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			fprintf(stderr, "uade: UC_PANNING_VALUE is NULL\n");
 			break;
 		}
-		uc->panning_enable_set = 1;
-		uc->panning_enable = 1;
-		uc->panning_set = 1;
-		uc->panning =
-		    uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning");
+		SET_OPTION(panning_enable, 1);
+		SET_OPTION(panning, uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning"));
 		break;
 
 	case UC_RANDOM_PLAY:
-		uc->random_play_set = 1;
-		uc->random_play = 1;
+		SET_OPTION(random_play, 1);
 		break;
 
 	case UC_RECURSIVE_MODE:
-		uc->recursive_mode_set = 1;
-		uc->recursive_mode = 1;
+		SET_OPTION(recursive_mode, 1);
 		break;
 
 	case UC_SILENCE_TIMEOUT_VALUE:
@@ -791,8 +762,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		break;
 
 	case UC_SPEED_HACK:
-		uc->speed_hack = 1;
-		uc->speed_hack_set = 1;
+		SET_OPTION(speed_hack, 1);
 		break;
 
 	case UC_SUBSONG_TIMEOUT_VALUE:
@@ -813,13 +783,11 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		break;
 
 	case UC_USE_TEXT_SCOPE:
-		uc->use_text_scope = 1;
-		uc->use_text_scope_set = 1;
+		SET_OPTION(use_text_scope, 1);
 		break;
 
 	case UC_VERBOSE:
-		uc->verbose = 1;
-		uc->verbose_set = 1;
+		SET_OPTION(verbose, 1);
 		break;
 
 	default:
