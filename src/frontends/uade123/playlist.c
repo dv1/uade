@@ -21,7 +21,7 @@
 #include "playlist.h"
 #include "uade123.h"
 #include "ossupport.h"
-
+#include "unixsupport.h"
 
 static int random_fd = -1;
 #ifdef UADE_CONFIG_HAVE_URANDOM
@@ -174,59 +174,70 @@ int playlist_empty(struct playlist *pl)
 static void *recursive_func(const char *file, enum uade_wtype wtype, void *pl)
 {
   if (wtype == UADE_WALK_REGULAR_FILE) {
-    if (!playlist_add(pl, file, 0))
+    if (!playlist_add(pl, file, 0, 0))
       fprintf(stderr, "error enqueuing %s\n", file);
   }
   return NULL;
 }
 
 
-int playlist_add(struct playlist *pl, const char *name, int recursive)
+int playlist_add(struct playlist *pl, const char *name, int recursive,
+		 int cygwin)
 {
   int ret = 0;
   struct stat st;
+  int allocated = 0;
+  char *path;
 
   if (!pl->valid)
-    return 0;
+    goto out;
 
-  if (stat(name, &st))
-    return 0;
+  path = (char *) name;
+  if (cygwin) {
+    path = windows_to_cygwin_path(name);
+    allocated = 1;
+  }
+
+  if (stat(path, &st))
+    goto out;
 
   if (S_ISREG(st.st_mode)) {
-    /* fprintf(stderr, "enqueuing regular: %s\n", name); */
-    ret = chrarray_add(&pl->list, name, strlen(name) + 1);
+    /* fprintf(stderr, "enqueuing regular: %s\n", path); */
+    ret = chrarray_add(&pl->list, path, strlen(path) + 1);
 
   } else if (S_ISDIR(st.st_mode)) {
     /* add directories to playlist only if 'recursive' is non-zero */
     if (recursive) {
 
-      /* strip directory name of ending '/' characters */
-      char *strippedname = strdup(name);
-      size_t len = strlen(name);
+      /* strip directory path of ending '/' characters */
+      char *strippedpath = strdup(path);
+      size_t len = strlen(path);
 
-      if (strippedname == NULL)
-	die("Not enough memory for directory name.\n");
+      if (strippedpath == NULL)
+	die("Not enough memory for directory path.\n");
 
       while (len > 0) {
 	len--;
-	if (strippedname[len] != '/')
+	if (strippedpath[len] != '/')
 	  break;
-	strippedname[len] = 0;
+	strippedpath[len] = 0;
       }
 
-
-
       /* walk directory hierarchy */
-      uade_walk_directories(strippedname, recursive_func, pl);
+      uade_walk_directories(strippedpath, recursive_func, pl);
 
-      /* free stripped name */
-      free(strippedname);
+      /* free stripped path */
+      free(strippedpath);
 
     } else {
-      debug(1, "Not adding directory %s. Use -r to add recursively.\n", name);
+      debug(1, "Not adding directory %s. Use -r to add recursively.\n", path);
     }
     ret = 1;
   }
+
+ out:
+  if (allocated)
+    free(path);
 
   return ret;
 }

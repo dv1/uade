@@ -43,6 +43,7 @@ struct uade_conf_opts {
 static const struct uade_conf_opts uadeconfopts[] = {
 	{.str = "action_keys",           .l = 1,  .e = UC_ACTION_KEYS},
 	{.str = "buffer_time",           .l = 1,  .e = UC_BUFFER_TIME},
+	{.str = "cygwin",                .l = 1,  .e = UC_CYGWIN_DRIVE_WORKAROUND},
 	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
 	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
 	{.str = "enable_timeout",        .l = 2,  .e = UC_ENABLE_TIMEOUTS},
@@ -373,6 +374,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 	MERGE_OPTION(basedir);
 	MERGE_OPTION(buffer_time);
 	MERGE_OPTION(content_detection);
+	MERGE_OPTION(cygwin_drive_workaround);
 	MERGE_OPTION(ep_options);
 	MERGE_OPTION(filter_type);
 	MERGE_OPTION(frequency);
@@ -563,6 +565,10 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 
 	case UC_CONTENT_DETECTION:
 		SET_OPTION(content_detection, 1);
+		break;
+
+	case UC_CYGWIN_DRIVE_WORKAROUND:
+		SET_OPTION(cygwin_drive_workaround, 1);
 		break;
 
 	case UC_DISABLE_TIMEOUTS:

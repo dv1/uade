@@ -187,6 +187,7 @@ int main(int argc, char *argv[])
   int playernamegiven = 0;
   char tmpstr[PATH_MAX + 256];
   long subsong = -1;
+  FILE *listfile = NULL;
   int have_modules = 0;
   int ret;
   char *endptr;
@@ -214,6 +215,7 @@ int main(int argc, char *argv[])
   struct option long_options[] = {
     {"basedir",          1, NULL, OPT_BASEDIR},
     {"buffer-time",      1, NULL, UC_BUFFER_TIME},
+    {"cygwin",           0, NULL, UC_CYGWIN_DRIVE_WORKAROUND},
     {"debug",            0, NULL, 'd'},
     {"detect-format-by-content", 0, NULL, UC_CONTENT_DETECTION},
     {"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
@@ -266,29 +268,13 @@ int main(int argc, char *argv[])
 
 #define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) { die("Too long a string for option %c.\n", ret); }
 
-  while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:m:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
+  while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
     switch (ret) {
 
     case '@':
-      do {
-	FILE *listfile = fopen(optarg, "r");
-	if (listfile == NULL)
-	  die("Can not open list file: %s\n", optarg);
-
-	while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
-
-	  if (tmpstr[0] == '#')
-	    continue;
-
-	  if (tmpstr[strlen(tmpstr) - 1] == '\n')
-	    tmpstr[strlen(tmpstr) - 1] = 0;
-
-	  playlist_add(&uade_playlist, tmpstr, 0);
-	}
-
-	fclose(listfile);
-	have_modules = 1;
-      } while (0);
+      listfile = fopen(optarg, "r");
+      if (listfile == NULL)
+	die("Can not open list file: %s\n", optarg);
       break;
 
     case '1':
@@ -340,11 +326,6 @@ int main(int argc, char *argv[])
 
     case 'k':
       uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, optarg);
-      break;
-
-    case 'm':
-      playlist_add(&uade_playlist, optarg, 0);
-      have_modules = 1;
       break;
 
     case 'n':
@@ -450,6 +431,7 @@ int main(int argc, char *argv[])
       break;
 
     case UC_CONTENT_DETECTION:
+    case UC_CYGWIN_DRIVE_WORKAROUND:
     case UC_DISABLE_TIMEOUTS:
     case UC_ENABLE_TIMEOUTS:
     case UC_HEADPHONES:
@@ -488,9 +470,24 @@ int main(int argc, char *argv[])
     debug(uc_eff.verbose, "Loaded song.conf: %s\n", songconfname);
   }
 
+  /* Read play list from file */
+  if (listfile != NULL) {
+    while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
+      if (tmpstr[0] == '#')
+	continue;
+      if (tmpstr[strlen(tmpstr) - 1] == '\n')
+	tmpstr[strlen(tmpstr) - 1] = 0;
+      playlist_add(&uade_playlist, tmpstr, uc_eff.recursive_mode, uc_eff.cygwin_drive_workaround);
+    }
+    fclose(listfile);
+    listfile = NULL;
+    have_modules = 1;
+  }
+
+  /* Read play list from command line parameters */
   for (i = optind; i < argc; i++) {
     /* Play files */
-    playlist_add(&uade_playlist, argv[i], uc_eff.recursive_mode);
+    playlist_add(&uade_playlist, argv[i], uc_eff.recursive_mode, uc_eff.cygwin_drive_workaround);
     have_modules = 1;
   }
 
@@ -727,7 +724,6 @@ static void print_help(void)
 "                     fractions of a second are allowed too.\n"
 " -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n"
 "                     on terminal. \n"
-" -m filename,        Set module name\n"
 " -n, --no-ep-end-detect, Ignore song end reported by the eagleplayer. Just\n"
 "                     keep playing. This does not affect timeouts. Check -w.\n"
 " --ntsc,             Set NTSC mode for playing (can be buggy).\n"

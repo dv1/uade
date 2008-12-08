@@ -8,6 +8,7 @@ enum uade_option {
 	UC_BASE_DIR,
 	UC_BUFFER_TIME,
 	UC_CONTENT_DETECTION,
+	UC_CYGWIN_DRIVE_WORKAROUND,
 	UC_DISABLE_TIMEOUTS,
 	UC_ENABLE_TIMEOUTS,
 	UC_EAGLEPLAYER_OPTION,
@@ -79,6 +80,7 @@ struct uade_config {
 
 	UADE_INT_CONFIG(buffer_time);
 	UADE_CHAR_CONFIG(content_detection);
+	UADE_CHAR_CONFIG(cygwin_drive_workaround);
 
 	struct uade_ep_options ep_options;
 	char ep_options_set;

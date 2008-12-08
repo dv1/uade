@@ -27,4 +27,6 @@ ssize_t uade_ipc_write(void *f, const void *buf, size_t count);
 void *uade_ipc_set_input(const char *input);
 void *uade_ipc_set_output(const char *output);
 
+char *windows_to_cygwin_path(const char *path);
+
 #endif
