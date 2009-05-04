@@ -10,7 +10,7 @@ size_t strlcpy(char *dst, const char *src, size_t size)
   size_t slen = strlen(src);
   if(slen < size)
     strcpy(dst, src);
-  else {
+  else if (size > 0) {
     strncpy(dst, src, size-1);
     dst[size-1] = 0;
   }
