@@ -496,19 +496,19 @@ void audio_set_rate(int rate)
 
 void audio_set_resampler(char *name)
 {
-    sample_prehandler = NULL;
+    sample_handler = sample16si_anti_handler;
+    sample_prehandler = anti_prehandler;
 
-    if (name == NULL || strcasecmp(name, "default") == 0) {
-	sample_handler = sample16si_anti_handler;
-	sample_prehandler = anti_prehandler;
-    } else if (strcasecmp(name, "sinc") == 0) {
+    if (name == NULL || strcasecmp(name, "default") == 0)
+	return;
+
+    if (strcasecmp(name, "sinc") == 0) {
 	sample_handler = sample16si_sinc_handler;
 	sample_prehandler = sinc_prehandler;
     } else if (strcasecmp(name, "none") == 0) {
 	sample_handler = sample16s_handler;
+	sample_prehandler = NULL;
     } else {
-	sample_handler = sample16si_anti_handler;
-	sample_prehandler = anti_prehandler;
 	fprintf(stderr, "\nUnknown resampling method: %s. Using the default.\n", name);
     }
 }
