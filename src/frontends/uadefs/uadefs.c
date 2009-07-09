@@ -285,7 +285,7 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 static void cache_init(struct sndctx *ctx)
 {
 	ctx->end_bi = 0;
-	ctx->nblocks = (SND_PER_SECOND * CACHE_SECONDS) >> CACHE_BLOCK_SHIFT;
+	ctx->nblocks = (SND_PER_SECOND * CACHE_SECONDS + CACHE_BLOCK_SIZE - 1) >> CACHE_BLOCK_SHIFT;
 	ctx->blocks = calloc(1, ctx->nblocks * sizeof(ctx->blocks[0]));
 	if (ctx->blocks == NULL)
 		LOGDIE("No memory for cache\n");
