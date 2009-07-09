@@ -121,7 +121,7 @@ int nextstash;
 struct stash stashes[NSTASHES];
 
 
-static size_t get_file_size(const char *path);
+static ssize_t get_file_size(const char *path);
 
 /*
  * xread() is the same as the read(), but it automatically restarts read()
@@ -506,7 +506,7 @@ static int check_stash(const char *fname, struct stash *stash, time_t t)
 int warm_up_cache(struct sndctx *ctx)
 {
 	char crapbuf[STASH_SIZE];
-	size_t s;
+	ssize_t s;
 	int i;
 	struct stash *stash;
 	size_t offs;
@@ -535,8 +535,7 @@ int warm_up_cache(struct sndctx *ctx)
 	}
 
 	for (offs = 0; offs < sizeof crapbuf; offs += CACHE_BLOCK_SIZE) {
-		s = cache_read(ctx, &crapbuf[offs], offs, CACHE_BLOCK_SIZE);
-		if (s < CACHE_BLOCK_SIZE) {
+		if (cache_read(ctx, &crapbuf[offs], offs, CACHE_BLOCK_SIZE) < CACHE_BLOCK_SIZE) {
 			DEBUG("File is not playable: %s\n", ctx->fname);
 			set_no_snd_file(ctx);
 			return -EIO;
@@ -544,7 +543,6 @@ int warm_up_cache(struct sndctx *ctx)
 	}
 
 	s = get_file_size(ctx->fname);
-
 	if (s > 0 &&
 	    memcmp(&crapbuf[0], "RIFF", 4) == 0 &&
 	    memcmp(&crapbuf[8], "WAVE", 4) == 0    ) {
@@ -658,39 +656,38 @@ static void load_content_db(void)
  * If the file is an uade song, return a heuristic wav file size, a positive
  * integer. Otherwise, return zero.
  */
-static size_t get_file_size(const char *path)
+static ssize_t get_file_size(const char *path)
 {
-	int64_t msecs = 0;
-	size_t s;
+	int64_t msecs;
 
-	if (uade_is_our_file(path, 1, &uadestate)) {
-		/*
-		 * HACK HACK. Use playlength stored in the content database
-		 * or lie about the time.
-		 */
-		load_content_db();
-		if (uade_alloc_song(&uadestate, path)) {
-			msecs = uadestate.song->playtime;
-			if (msecs <= 0)
-				msecs = CACHE_SECONDS * 1000;
+	if (!uade_is_our_file(path, 1, &uadestate))
+		return 0;
 
-			uade_unalloc_song(&uadestate);
-		}
-	}
+	/*
+	 * HACK HACK. Use playlength stored in the content database
+	 * or lie about the time.
+	 */
+	load_content_db();
+	if (!uade_alloc_song(&uadestate, path))
+		return -1;
 
-	s = (msecs * SND_PER_SECOND) / 1000;
-	/* Make it divisible by 4 bytes, round down */
-	s &= ~0x3;
-	s += WAV_HEADER_LEN;
+	msecs = uadestate.song->playtime;
+	uade_unalloc_song(&uadestate);
 
-	return s;
+	if (msecs > 3600000)
+		return -1;
+
+	if (msecs <= 0)
+		msecs = 1000 * CACHE_SECONDS;
+
+	return WAV_HEADER_LEN + (((msecs * SND_PER_SECOND) / 1000) & ~0x3);
 }
 
 static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 {
 	int res;
 	char *path = uadefs_get_path(NULL, fpath);
-	size_t s;
+	ssize_t s;
 
 	res = lstat(path, stbuf);
 	if (res == -1) {
@@ -699,12 +696,17 @@ static int uadefs_getattr(const char *fpath, struct stat *stbuf)
 	}
 
 	s = get_file_size(path);
+
+	free(path);
+	path = NULL;
+
 	if (s > 0) {
 		stbuf->st_size = s; /* replace the lstat() value */
 		stbuf->st_blocks = stbuf->st_size / 512;
+	} else if (s < 0) {
+		return -ENOMEM;
 	}
-
-	free(path);
+	/* For s == 0, the result of lstat() is returned */
 	return 0;
 }
 
