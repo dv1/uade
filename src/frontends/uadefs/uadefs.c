@@ -75,8 +75,12 @@
         int debuglen; \
         DEBUG(fmt, ## args); \
         debuglen = snprintf(debugmsg, sizeof debugmsg, fmt, ## args); \
-        write(debugfd, debugmsg, debuglen); \
-    } while (0)
+        xwrite(debugfd, debugmsg, debuglen); \
+    }
+
+#define DIE(fmt, args...) do {fprintf(stderr, fmt, ## args); exit(1); } while (0)
+
+#define LOGDIE(fmt, args...) do {LOG(fmt, ## args); abort();} while (0)
 
 #define MAX(x, y) (x >= y) ? (x) : (y)
 #define MIN(x, y) (x <= y) ? (x) : (y)
@@ -119,52 +123,27 @@ struct stash stashes[NSTASHES];
 
 static size_t get_file_size(const char *path);
 
-
-static char *uadefs_get_path(int *isuade, const char *path)
-{
-	char *realpath;
-	char *sep;
-	struct stat st;
-
-	if (isuade)
-		*isuade = 0;
-
-	if (asprintf(&realpath, "%s%s", srcdir, path) < 0) {
-		LOG("No memory for path name: %s\n", path);
-		exit(1);
-	}
-
-	if (!lstat(realpath, &st))
-		goto out;
-
-	/* File doesn't exist */
-	sep = strrchr(realpath, '.');
-	if (sep == NULL || strcmp(sep, ".wav") != 0)
-		goto out;
-
-	*sep = 0;
-
-	if (uade_is_our_file(realpath, 1, &uadestate)) {
-		if (isuade)
-			*isuade = 1;
-	} else {
-		/* Not an UADE file -> restore .wav postfix */
-		*sep = '.';
-	}
-out:
-	return realpath;
-}
-
 /*
  * xread() is the same as the read(), but it automatically restarts read()
  * operations with a recoverable error (EAGAIN and EINTR). xread()
  * DOES NOT GUARANTEE that "len" bytes is read even if the data is available.
  */
-static ssize_t xread(int fd, void *buf, size_t len)
+static ssize_t xread(int fd, void *buf, size_t count)
 {
 	ssize_t nr;
 	while (1) {
-		nr = read(fd, buf, len);
+		nr = read(fd, buf, count);
+		if ((nr < 0) && (errno == EAGAIN || errno == EINTR))
+			continue;
+		return nr;
+	}
+}
+
+static ssize_t xwrite(int fd, const void *buf, size_t count)
+{
+	ssize_t nr;
+	while (1) {
+		nr = write(fd, buf, count);
 		if ((nr < 0) && (errno == EAGAIN || errno == EINTR))
 			continue;
 		return nr;
@@ -186,6 +165,39 @@ ssize_t read_in_full(int fd, void *buf, size_t count)
 	}
 
 	return total;
+}
+
+static char *uadefs_get_path(int *isuade, const char *path)
+{
+	char *realpath;
+	char *sep;
+	struct stat st;
+
+	if (isuade)
+		*isuade = 0;
+
+	if (asprintf(&realpath, "%s%s", srcdir, path) < 0)
+		LOGDIE("No memory for path name: %s\n", path);
+
+	if (!lstat(realpath, &st))
+		goto out;
+
+	/* File doesn't exist */
+	sep = strrchr(realpath, '.');
+	if (sep == NULL || strcmp(sep, ".wav") != 0)
+		goto out;
+
+	*sep = 0;
+
+	if (uade_is_our_file(realpath, 1, &uadestate)) {
+		if (isuade)
+			*isuade = 1;
+	} else {
+		/* Not an UADE file -> restore .wav postfix */
+		*sep = '.';
+	}
+out:
+	return realpath;
 }
 
 static int spawn_uade(struct sndctx *ctx)
@@ -211,7 +223,7 @@ static int spawn_uade(struct sndctx *ctx)
 
 		fd = open("/dev/null", O_RDWR);
 		if (fd < 0)
-			LOG("Can not open /dev/null\n");
+			LOGDIE("Can not open /dev/null\n");
 
 		dup2(fd, 0);
 		dup2(fds[1], 1);
@@ -221,8 +233,7 @@ static int spawn_uade(struct sndctx *ctx)
 
 		execv(UADENAME, argv);
 
-		LOG("Could not execute %s\n", UADENAME);
-		abort();
+		LOGDIE("Could not execute %s\n", UADENAME);
 	} else if (ctx->pid == -1) {
 		LOG("Can not fork\n");
 		close(fds[0]);
@@ -247,7 +258,7 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 	offset_bi = offset >> CACHE_BLOCK_SHIFT;
 
 	if (offset_bi >= ctx->nblocks) {
-		LOG("Too much sound data: %s\n", ctx->fname);
+		LOG("Too much sound data: %zu >= %zu: %s\n", offset_bi, ctx->nblocks, ctx->fname);
 		return 0;
 	}
 
@@ -258,10 +269,8 @@ static ssize_t cache_block_read(struct sndctx *ctx, char *buf, size_t offset,
 
 	lsb = offset & CACHE_LSB_MASK;
 
-	if ((lsb + size) > CACHE_BLOCK_SIZE) {
-		LOG("lsb + size (%zd) failed: %zd %zd\n", lsb + size, offset, size);
-		abort();
-	}
+	if ((lsb + size) > CACHE_BLOCK_SIZE)
+		LOGDIE("lsb + size (%zd) failed: %zd %zd\n", lsb + size, offset, size);
 
 	if (lsb >= cb->bytes)
 		return 0;
@@ -278,10 +287,8 @@ static void cache_init(struct sndctx *ctx)
 	ctx->end_bi = 0;
 	ctx->nblocks = (SND_PER_SECOND * CACHE_SECONDS) >> CACHE_BLOCK_SHIFT;
 	ctx->blocks = calloc(1, ctx->nblocks * sizeof(ctx->blocks[0]));
-	if (ctx->blocks == NULL) {
-		LOG("No memory for cache\n");
-		abort();
-	}
+	if (ctx->blocks == NULL)
+		LOGDIE("No memory for cache\n");
 }
 
 static size_t cache_read(struct sndctx *ctx, char *buf, size_t offset,
@@ -359,7 +366,7 @@ int cache_prefill(struct sndctx *ctx, char *data)
 	int i;
 
 	if (data == NULL)
-		LOG("Prefill segfault: %s\n", ctx->fname);
+		LOGDIE("Prefill segfault: %s\n", ctx->fname);
 
 	ctx->end_bi = STASH_CACHE_BLOCKS;
 
@@ -557,10 +564,8 @@ int warm_up_cache(struct sndctx *ctx)
 		if (nextstash >= NSTASHES)
 			nextstash = 0;
 
-		if (sizeof(stash->data) != sizeof(crapbuf)) {
-			LOG("Stash data != crapbuf\n");
-			exit(1);
-		}
+		if (sizeof(stash->data) != sizeof(crapbuf))
+			LOGDIE("Stash data != crapbuf\n");
 
 		stash->created = created;
 		strlcpy(stash->fname, ctx->fname, sizeof stash->fname);
@@ -1234,16 +1239,14 @@ static int uadefs_opt_proc(void *data, const char *arg, int key,
 		if (!srcdir) {
 			if (arg[0] == '/') {
 				srcdir = strdup(arg);
-				if (srcdir == NULL) {
-					fprintf(stderr, "No memory for srcdir\n");
-					exit(1);
-				}
+				if (srcdir == NULL)
+					DIE("No memory for srcdir\n");
 			} else {
-				getcwd(dname, sizeof dname);
-				if (asprintf(&srcdir, "%s/%s", dname, arg) == -1) {
-					fprintf(stderr, "asprintf() failed\n");
-					exit(1);
-				}
+				if (getcwd(dname, sizeof dname) == NULL)
+					DIE("getcwd() failed\n");
+
+				if (asprintf(&srcdir, "%s/%s", dname, arg) == -1)
+					DIE("asprintf() failed\n");
 			}
 
 			while (1) {
