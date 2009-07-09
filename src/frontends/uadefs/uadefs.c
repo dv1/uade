@@ -1020,7 +1020,6 @@ static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 	}
 
 	pthread_mutex_lock(&readmutex);
-	DEBUG("offset %zu size %zu\n", (size_t) off, size);
 
 	while (size > 0) {
 		bsize = MIN(CACHE_BLOCK_SIZE - (off & CACHE_LSB_MASK), size);
@@ -1034,7 +1033,7 @@ static int uadefs_read(const char *fpath, char *buf, size_t size, off_t off,
 		size -= res;
 	}
 
-	DEBUG("ret %zd\n", totalread);
+	DEBUG("read() returns %zd\n", totalread);
 	pthread_mutex_unlock(&readmutex);
 
 	return totalread;
