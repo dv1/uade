@@ -15,24 +15,6 @@ static ao_device *libao_device = NULL;
 
 static ao_option *options = NULL;
 
-static void audio_set_option(const char *key, const char *value)
-{
-  ao_option *newoptions;
-
-  newoptions = calloc(1, sizeof(*options));
-  assert(newoptions != NULL);
-
-  newoptions->key = strdup(key);
-  newoptions->value = strdup(value);
-  assert(newoptions->key != NULL);
-  assert(newoptions->value != NULL);
-
-  newoptions->next = options;
-
-  if (options == NULL)
-    options = newoptions;
-}
-
 void audio_close(void)
 {
   if (libao_device) {
@@ -55,7 +37,7 @@ void process_config_options(const struct uade_config *uc)
       char val[32];
       /* buffer_time is given in milliseconds, so convert to microseconds */
       snprintf(val, sizeof val, "%d", 1000 * uc->buffer_time);
-      audio_set_option("buffer_time", val);
+      ao_append_option(&options, "buffer_time", val);
   }
 
   format.bits = UADE_BYTES_PER_SAMPLE * 8;
@@ -81,7 +63,7 @@ void process_config_options(const struct uade_config *uc)
     *value = 0;
     value++;
 
-    audio_set_option(key, value);
+    ao_append_option(&options, key, value);
   }
 }
 
