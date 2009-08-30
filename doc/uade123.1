@@ -93,6 +93,14 @@ Play at most one subsong per file.
 \fB\-@\fR filename\fB, \-\-list=\fRfilename
 Play song files listed in the file.
 .TP
+\fB\-\-ao\-option\fR=x:y
+Set option for libao, where 'x' is an audio driver specific
+option and 'y' is a value. Note 'x' may not contain
+\':\' character, but 'y' may. This option can be used
+multiple times to specify multiple options.
+
+Example for alsa09 plugin: --ao-option=dev:default
+.TP
 \fB\-\-buffer\-time\fR=x
 Set audio buffer length to x milliseconds. It can be used to avoid audio
 underruns on some systems. The default value of this setting is provided
@@ -465,6 +473,10 @@ plugin too.
 The valid commands are:
 .sp 1
     action_keys x      Set action keys "off" or "on".
+.br
+    ao_option x:y      Set libao driver option with key=x and value=y.
+                       See --ao-option=x:y for more information.
+                       Example: ao_option dev:default
 .br
     buffer_time x      Set audio buffer length to x milliseconds.
 .br

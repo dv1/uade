@@ -5,6 +5,7 @@
 
 enum uade_option {
 	UC_ACTION_KEYS = 0x1000,
+	UC_AO_OPTION,
 	UC_BASE_DIR,
 	UC_BUFFER_TIME,
 	UC_CONTENT_DETECTION,
@@ -52,6 +53,10 @@ struct uade_ep_options {
 	size_t s;
 };
 
+struct uade_ao_options {
+	char o[256];
+};
+
 #define UADE_CHAR_CONFIG(x) char x; char x##_set;
 #define UADE_FLOAT_CONFIG(x) float x; char x##_set;
 #define UADE_INT_CONFIG(x) int x; char x##_set;
@@ -74,6 +79,9 @@ struct uade_ep_options {
  */
 struct uade_config {
 	UADE_CHAR_CONFIG(action_keys);
+
+	struct uade_ao_options ao_options;
+	char ao_options_set;
 
 	struct uade_dir basedir;
 	char basedir_set;

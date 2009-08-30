@@ -203,7 +203,8 @@ int main(int argc, char *argv[])
   struct uade_state state;
 
   enum {
-    OPT_BASEDIR = 0x2000,
+    OPT_FIRST = 0x1FFF,
+    OPT_BASEDIR,
     OPT_REPEAT,
     OPT_SCAN,
     OPT_SCOPE,
@@ -213,6 +214,7 @@ int main(int argc, char *argv[])
   };
 
   struct option long_options[] = {
+    {"ao-option",        1, NULL, UC_AO_OPTION},
     {"basedir",          1, NULL, OPT_BASEDIR},
     {"buffer-time",      1, NULL, UC_BUFFER_TIME},
     {"cygwin",           0, NULL, UC_CYGWIN_DRIVE_WORKAROUND},
@@ -421,6 +423,7 @@ int main(int argc, char *argv[])
       exit(0);
       break;
 
+    case UC_AO_OPTION:
     case UC_BUFFER_TIME:
     case UC_FILTER_TYPE:
     case UC_FORCE_LED:
@@ -550,7 +553,7 @@ int main(int argc, char *argv[])
 
   uade_spawn(&state, uadename, configname);
 
-  if (!audio_init(uc_eff.frequency, uc_eff.buffer_time))
+  if (!audio_init(&uc_eff))
     goto cleanup;
 
   plistdir = UADE_PLAY_CURRENT;
@@ -695,6 +698,11 @@ static void print_help(void)
 "\n"
 " -1, --one,          Play at most one subsong per file\n"
 " -@ filename, --list=filename,  Read playlist of files from 'filename'\n"
+" --ao-option=x:y,    Set option for libao, where 'x' is an audio driver specific\n"
+"                     option and 'y' is a value. Note 'x' may not contain\n"
+"                     ':' character, but 'y' may. This option can be used\n"
+"                     multiple times to specify multiple options.\n"
+"                     Example for alsa09 plugin: --ao-option=dev:default\n"
 " --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n"
 "                     value is determined by the libao.\n"
 " -c, --stdout        Write sample data to stdout\n"

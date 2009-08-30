@@ -41,7 +41,8 @@ struct uade_conf_opts {
 /* List of uade.conf options. The list includes option name, minimum
    string match length for the option name and its enum code. */
 static const struct uade_conf_opts uadeconfopts[] = {
-	{.str = "action_keys",           .l = 1,  .e = UC_ACTION_KEYS},
+	{.str = "action_keys",           .l = 2,  .e = UC_ACTION_KEYS},
+	{.str = "ao_option",             .l = 2,  .e = UC_AO_OPTION},
 	{.str = "buffer_time",           .l = 1,  .e = UC_BUFFER_TIME},
 	{.str = "cygwin",                .l = 1,  .e = UC_CYGWIN_DRIVE_WORKAROUND},
 	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
@@ -371,6 +372,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
 
 	MERGE_OPTION(action_keys);
+	MERGE_OPTION(ao_options);
 	MERGE_OPTION(basedir);
 	MERGE_OPTION(buffer_time);
 	MERGE_OPTION(content_detection);
@@ -536,6 +538,12 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 					value);
 			}
 		}
+		break;
+
+	case UC_AO_OPTION:
+		strlcat(uc->ao_options.o, value, sizeof uc->ao_options.o);
+		strlcat(uc->ao_options.o, "\n", sizeof uc->ao_options.o);
+		uc->ao_options_set = 1;
 		break;
 
 	case UC_BASE_DIR:

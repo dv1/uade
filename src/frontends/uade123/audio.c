@@ -1,17 +1,37 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-
+#include <string.h>
+#include <assert.h>
 #include <ao/ao.h>
 
-#include <uadeconstants.h>
-
+#include "uadeconstants.h"
 #include "audio.h"
 #include "uade123.h"
 
+ao_sample_format format;
 
 static ao_device *libao_device = NULL;
 
+static ao_option *options = NULL;
+
+static void audio_set_option(const char *key, const char *value)
+{
+  ao_option *newoptions;
+
+  newoptions = calloc(1, sizeof(*options));
+  assert(newoptions != NULL);
+
+  newoptions->key = strdup(key);
+  newoptions->value = strdup(value);
+  assert(newoptions->key != NULL);
+  assert(newoptions->value != NULL);
+
+  newoptions->next = options;
+
+  if (options == NULL)
+    options = newoptions;
+}
 
 void audio_close(void)
 {
@@ -25,23 +45,56 @@ void audio_close(void)
   }
 }
 
+void process_config_options(const struct uade_config *uc)
+{
+  char *s;
+  char *key;
+  char *value;
 
-/* buffer_time is given in milliseconds */
+  if (uc->buffer_time > 0) {
+      char val[32];
+      /* buffer_time is given in milliseconds, so convert to microseconds */
+      snprintf(val, sizeof val, "%d", 1000 * uc->buffer_time);
+      audio_set_option("buffer_time", val);
+  }
 
-int audio_init(int frequency, int buffer_time)
+  format.bits = UADE_BYTES_PER_SAMPLE * 8;
+  format.channels = UADE_CHANNELS;
+  format.rate = uc->frequency;
+  format.byte_format = AO_FMT_NATIVE;
+
+  s = (char *) uc->ao_options.o;
+  while (s != NULL && *s != 0) {
+    key = s;
+
+    s = strchr(s, '\n');
+    if (s == NULL)
+      break;
+    *s = 0;
+    s++;
+
+    value = strchr(key, ':');
+    if (value == NULL) {
+      fprintf(stderr, "uade: Invalid ao option: %s\n", key);
+      continue;
+    }
+    *value = 0;
+    value++;
+
+    audio_set_option(key, value);
+  }
+}
+
+int audio_init(const struct uade_config *uc)
 {
   int driver;
-  ao_sample_format format;
 
   if (uade_no_audio_output)
     return 1;
 
-  ao_initialize();
+  process_config_options(uc);
 
-  format.bits = UADE_BYTES_PER_SAMPLE * 8;
-  format.channels = UADE_CHANNELS;
-  format.rate = frequency;
-  format.byte_format = AO_FMT_NATIVE;
+  ao_initialize();
 
   if (uade_output_file_name[0]) {
     driver = ao_driver_id(uade_output_file_format[0] ? uade_output_file_format : "wav");
@@ -52,18 +105,14 @@ int audio_init(int frequency, int buffer_time)
     libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
   } else {
     driver = ao_default_driver_id();
-    if (buffer_time > 0) {
-      char val[32];
-      snprintf(val, sizeof val, "%d", buffer_time);
-      libao_device = ao_open_live(driver, &format, & (ao_option) {.key = "buffer_time", .value = val});
-    } else {
-      libao_device = ao_open_live(driver, &format, NULL);
-    }
+    libao_device = ao_open_live(driver, &format, options);
   }
+
   if (libao_device == NULL) {
-    fprintf(stderr, "Error opening device: errno %d\n", errno);
+    fprintf(stderr, "Can not open ao device: %d\n", errno);
     return 0;
   }
+
   return 1;
 }
 
