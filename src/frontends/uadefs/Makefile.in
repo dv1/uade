@@ -16,7 +16,7 @@ MODULES = uadefs.o $(COMMONMODULES)
 	$(CC) $(CFLAGS) -c $<
 
 uadefs:	$(MODULES)
-	$(CC) $(CFLAGS) $(CLIBS) -o $@ $(MODULES)
+	$(CC) $(CFLAGS) -o $@ $(MODULES) $(CLIBS)
 
 uadefs.o:	uadefs.c
 
