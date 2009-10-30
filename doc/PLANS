@@ -1,5 +1,6 @@
 Ideas of things to do for UADE 2:
 
+2009-10-30: Separate channel recording
 2007-05-16: Add --mtune=native and --march=native configure check for GCC 4.2+
 2006-04-12: A configure solution for audacious/xmms: launch an xterm with
 	    $EDITOR for uade.conf. (shd)
