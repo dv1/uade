@@ -38,6 +38,7 @@ xmmsplugindir=""
 audaciousplugindir=""
 pkgrequirements="ao"
 textscope="no"
+n900="no"
 
 set_all_no() {
     usexmms="no"
@@ -153,6 +154,11 @@ for opt in "$@" ; do
 		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
 
+# Miscellaneous options
+	--n900)
+	        n900="yes"
+		;;
+
 	--help)
 		echo
 		echo "Installation control:"
@@ -188,6 +194,10 @@ for opt in "$@" ; do
 		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
 		echo " --xmms-config=exe      Use 'exe' as xmms-config"
 		echo " --xmms-plugin-dir=PATH Install XMMS plugin to PATH"
+		echo
+		echo "Other:"
+		echo " --n900                 Set useful parameters for Nokia N900."
+		echo "                        This means 22050Hz frequency and mono sound."
 		echo
 		echo "Library control:"
 		echo " --pkg-config=exe       Use 'exe' as pkg-config executable"
@@ -655,3 +665,14 @@ done
 
 # Make mod2ogg script executable
 chmod u+x src/frontends/mod2ogg/mod2ogg2.sh
+
+cp uade.conf.in uade.conf
+if test "$n900" = "yes" ; then
+    cat >> uade.conf <<EOF
+
+# N900 specific options added by configure script
+
+panning 1
+frequency 22050
+EOF
+fi
