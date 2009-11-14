@@ -92,18 +92,18 @@ for opt in "$@" ; do
 		tmpvar=""
 		;;
 
-# Options for frontends
-
-	--audacious-plugin-dir=*)
-		audaciousplugindir=`echo $opt | sed -n 's/--audacious-plugin-dir=\(.*\)/\1/p'`
-		;;
-
 	--no-debug)
 		debug_flags=""
 		;;
 
         --user)
 		user="yes"
+		;;
+
+# Options for frontends
+
+	--audacious-plugin-dir=*)
+		audaciousplugindir=`echo $opt | sed -n 's/--audacious-plugin-dir=\(.*\)/\1/p'`
 		;;
 
 	--without-audacious)
