@@ -715,7 +715,7 @@ int uade_song_info(char *info, size_t maxlen, char *filename,
 		return hexdump(info, maxlen, filename, 2048);
 	default:
 		fprintf(stderr, "Illegal info requested.\n");
-		exit(-1);
+		exit(1);
 	}
 	return 0;
 }

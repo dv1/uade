@@ -214,7 +214,7 @@ void uade_check_sound_buffers(int bytes)
   memcpy(um->data, sndbuffer, bytes);
   if (uade_send_message(um, &uadeipc)) {
     fprintf(stderr, "uadecore: Could not send sample data.\n");
-    exit(-1);
+    exit(1);
   }
 
   uade_read_size -= bytes;
@@ -224,7 +224,7 @@ void uade_check_sound_buffers(int bytes)
     /* if all requested data has been sent, move to S state */
     if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
       fprintf(stderr, "uadecore: Could not send token (after samples).\n");
-      exit(-1);
+      exit(1);
     }
     uade_handle_r_state();
   }
@@ -292,7 +292,7 @@ void uade_get_amiga_message(void)
     u32ptr[2] = htonl(curs);
     if (uade_send_message(um, &uadeipc)) {
       fprintf(stderr, "uadecore: Could not send subsong info message.\n");
-      exit(-1);
+      exit(1);
     }
     break;
 
@@ -485,7 +485,7 @@ void uade_handle_r_state(void)
       exit(0);
     } else if (ret < 0) {
       fprintf(stderr, "uadecore: Error on input. Exiting with error.\n");
-      exit(-1);
+      exit(1);
     }
 
     if (um->msgtype == UADE_COMMAND_TOKEN)
@@ -502,7 +502,7 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_CHANGE_SUBSONG:
       if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size with change subsong.\n");
-	exit(-1);
+	exit(1);
       }
       change_subsong(x);
       break;
@@ -510,7 +510,7 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_FILTER:
       if (uade_parse_two_u32s_message(&x, &y, um)) {
 	fprintf(stderr, "uadecore: Invalid size with filter command\n");
-	exit(-1);
+	exit(1);
       }
       audio_set_filter(x, y);
       break;
@@ -523,7 +523,7 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_SET_FREQUENCY:
       if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "Invalid frequency message size: %u\n", um->size);
-	exit(-1);
+	exit(1);
       }
       set_sound_freq(x);
       break;
@@ -545,16 +545,16 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_READ:
       if (uade_read_size != 0) {
 	fprintf(stderr, "uadecore: Read not allowed when uade_read_size > 0.\n");
-	exit(-1);
+	exit(1);
       }
       if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size on read command.\n");
-	exit(-1);
+	exit(1);
       }
       uade_read_size = x;
       if (uade_read_size == 0 || uade_read_size > MAX_SOUND_BUF_SIZE || (uade_read_size & 3) != 0) {
 	fprintf(stderr, "uadecore: Invalid read size: %d\n", uade_read_size);
-	exit(-1);
+	exit(1);
       }
       break;
 
@@ -574,7 +574,7 @@ void uade_handle_r_state(void)
     case UADE_COMMAND_SET_SUBSONG:
       if (uade_parse_u32_message(&x, um)) {
 	fprintf(stderr, "uadecore: Invalid size on set subsong command.\n");
-	exit(-1);
+	exit(1);
       }
       uade_put_long(SCORE_SET_SUBSONG, 1);
       uade_put_long(SCORE_SUBSONG, x);
@@ -586,7 +586,7 @@ void uade_handle_r_state(void)
 
     default:
       fprintf(stderr, "uadecore: Received invalid command %d\n", um->msgtype);
-      exit(-1);
+      exit(1);
     }
   }
 }
@@ -613,7 +613,7 @@ void uade_option(int argc, char **argv)
   s_argv = malloc(sizeof(argv[0]) * (argc + 1));
   if (!s_argv) {
     fprintf (stderr, "uadecore: Out of memory for command line parsing.\n");
-    exit(-1);
+    exit(1);
   }
   s_argc = 0;
   s_argv[s_argc++] = argv[0];
@@ -635,7 +635,7 @@ void uade_option(int argc, char **argv)
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "uadecore: %s parameter missing\n", argv[i]);
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
-	  exit(-1);
+	  exit(1);
 	}
 	input = argv[i + 1];
 	i += 2;
@@ -644,7 +644,7 @@ void uade_option(int argc, char **argv)
 	if ((i + 1) >= argc) {
 	  fprintf(stderr, "uadecore: %s parameter missing\n", argv[i]);
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
-	  exit(-1);
+	  exit(1);
 	}
 	output = argv[i + 1];
 	i += 2;
@@ -668,10 +668,10 @@ void uade_option(int argc, char **argv)
   ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile), &uadeipc);
   if (ret == 0) {
     fprintf(stderr, "uadecore: No config file passed as a message.\n");
-    exit(-1);
+    exit(1);
   } else if (ret < 0) {
     fprintf(stderr, "uadecore: Invalid input. Expected a config file.\n");
-    exit(-1);
+    exit(1);
   }
 
   /* use the config file provided with a message, if '-config' option
@@ -679,7 +679,7 @@ void uade_option(int argc, char **argv)
   if (!cfg_loaded) {
     if (cfgfile_load (&currprefs, optionsfile) == 0) {
       fprintf(stderr, "uadecore: Could not load uaerc (%s).\n", optionsfile);
-      exit(-1);
+      exit(1);
     }
   }
 
@@ -771,7 +771,7 @@ void uade_reset(void)
   }
   if (uade_highmem < 0x80000) {
     fprintf(stderr, "uadecore: There must be at least 512 KiB of amiga memory (%d bytes found).\n", uade_highmem);
-    exit(-1);
+    exit(1);
   }
   if (uade_highmem < 0x200000) {
     fprintf(stderr, "uadecore: Warning: highmem == 0x%x (< 0x200000)!\n", uade_highmem);
@@ -786,30 +786,30 @@ void uade_reset(void)
     exit(0);
   } else if (ret < 0) {
     fprintf(stderr, "uadecore: Invalid input. Expected score name.\n");
-    exit(-1);
+    exit(1);
   }
 
   ret = uade_receive_string(song.playername, UADE_COMMAND_PLAYER, sizeof(song.playername), &uadeipc);
   if (ret == 0) {
     fprintf(stderr, "uadecore: Expected player name. Got nothing.\n");
-    exit(-1);
+    exit(1);
   } else if (ret < 0) {
     fprintf(stderr, "uadecore: Invalid input. Expected player name.\n");
-    exit(-1);
+    exit(1);
   }
 
   if (uade_dirname(uade_player_dir, song.playername, sizeof(uade_player_dir)) == NULL) {
     fprintf(stderr, "uadecore: Invalid dirname with player: %s\n", song.playername);
-    exit(-1);
+    exit(1);
   }
 
   ret = uade_receive_message(um, sizeof command, &uadeipc);
   if (ret == 0) {
     fprintf(stderr,"uadecore: Expected module name. Got nothing.\n");
-    exit(-1);
+    exit(1);
   } else if (ret < 0) {
     fprintf(stderr, "uadecore: Invalid input. Expected module name.\n");
-    exit(-1);
+    exit(1);
   }
   assert(um->msgtype == UADE_COMMAND_MODULE);
   if (um->size == 0) {
@@ -943,16 +943,16 @@ void uade_reset(void)
 
   if (uade_receive_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
-    exit(-1);
+    exit(1);
   }
 
   if (uade_send_short_message(UADE_REPLY_CAN_PLAY, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send 'CAN_PLAY' reply.\n");
-    exit(-1);
+    exit(1);
   }
   if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
-    exit(-1);
+    exit(1);
   }
 
   set_sound_freq(UADE_DEFAULT_FREQUENCY);
@@ -965,16 +965,16 @@ void uade_reset(void)
 
   if (uade_receive_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not receive token in uade_reset().\n");
-    exit(-1);
+    exit(1);
   }
 
   if (uade_send_short_message(UADE_REPLY_CANT_PLAY, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send 'CANT_PLAY' reply.\n");
-    exit(-1);
+    exit(1);
   }
   if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc)) {
     fprintf(stderr, "uadecore: Can not send token from uade_reset().\n");
-    exit(-1);
+    exit(1);
   }
   goto nextsong;
 }
@@ -1100,7 +1100,7 @@ void uade_song_end(char *reason, int kill_it)
   um->size = 8 + strlen(reason) + 1;
   if (uade_send_message(um, &uadeipc)) {
     fprintf(stderr, "uadecore: Could not send song end message.\n");
-    exit(-1);
+    exit(1);
   }
   /* if audio_output is zero (and thus the client is waiting for the first
      sound data block from this song), then start audio output so that the

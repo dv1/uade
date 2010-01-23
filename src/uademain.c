@@ -292,7 +292,7 @@ int uade_main (int argc, char **argv)
     if (! setup_sound ()) {
 	fprintf (stderr, "Sound driver unavailable: Sound output disabled\n");
 	currprefs.produce_sound = 0;
-	exit(-1);
+	exit(1);
     }
 
     init_sound();

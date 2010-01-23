@@ -61,15 +61,15 @@ void init_sound (void)
 
   if (dspbits != (UADE_BYTES_PER_SAMPLE * 8)) {
     fprintf(stderr, "Only 16 bit sounds supported.\n");
-    exit(-1);
+    exit(1);
   }
   if (rate < 1 || rate > SOUNDTICKS_NTSC) {
     fprintf(stderr, "Too small or high a rate: %u\n", rate);
-    exit(-1);
+    exit(1);
   }
   if (channels != UADE_CHANNELS) {
     fprintf(stderr, "Only stereo supported.\n");
-    exit(-1);
+    exit(1);
   }
 
   sound_bytes_per_second = (dspbits / 8) *  channels * rate;

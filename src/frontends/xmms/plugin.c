@@ -255,7 +255,7 @@ void uade_lock(void)
 {
   if (pthread_mutex_lock(&vlock)) {
     fprintf(stderr, "UADE2 locking error.\n");
-    exit(-1);
+    exit(1);
   }
 }
 
@@ -264,7 +264,7 @@ void uade_unlock(void)
 {
   if (pthread_mutex_unlock(&vlock)) {
     fprintf(stderr, "UADE2 unlocking error.\n");
-    exit(-1);
+    exit(1);
   }
 }
 
@@ -517,7 +517,7 @@ static void *play_loop(void *arg)
 
       if (uade_receive_message(um, sizeof(space), &state.ipc) <= 0) {
 	fprintf(stderr, "Can not receive events from uade\n");
-	exit(-1);
+	exit(1);
       }
 
       switch (um->msgtype) {
@@ -633,7 +633,7 @@ static void *play_loop(void *arg)
       case UADE_REPLY_SONG_END:
 	if (um->size < 9) {
 	  fprintf(stderr, "Invalid song end reply\n");
-	  exit(-1);
+	  exit(1);
 	}
 	tailbytes = ntohl(((uint32_t *) um->data)[0]);
 	/* next ntohl() is only there for a principle. it is not useful */
@@ -651,7 +651,7 @@ static void *play_loop(void *arg)
 	  i++;
 	if (reason[i] != 0 || (i != (um->size - 9))) {
 	  fprintf(stderr, "Broken reason string with song end notice\n");
-	  exit(-1);
+	  exit(1);
 	}
 	/* fprintf(stderr, "Song end (%s)\n", reason); */
 	break;
@@ -659,7 +659,7 @@ static void *play_loop(void *arg)
       case UADE_REPLY_SUBSONG_INFO:
 	if (um->size != 12) {
 	  fprintf(stderr, "subsong info: too short a message\n");
-	  exit(-1);
+	  exit(1);
 	}
 	u32ptr = (uint32_t *) um->data;
 	uade_lock();

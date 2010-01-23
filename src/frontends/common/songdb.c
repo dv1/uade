@@ -22,7 +22,7 @@
 #define NORM_ID "n="
 #define NORM_ID_LENGTH 2
 
-#define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(-1); } while (0)
+#define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(1); } while (0)
 
 
 struct eaglesong {
