@@ -782,7 +782,6 @@ void uade_reset(void)
 
   ret = uade_receive_string(song.scorename, UADE_COMMAND_SCORE, sizeof(song.scorename), &uadeipc);
   if (ret == 0) {
-    fprintf(stderr, "uadecore: No more songs to play.\n");
     exit(0);
   } else if (ret < 0) {
     fprintf(stderr, "uadecore: Invalid input. Expected score name.\n");
