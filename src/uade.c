@@ -482,7 +482,6 @@ void uade_handle_r_state(void)
 
     ret = uade_receive_message(um, sizeof(space), &uadeipc);
     if (ret == 0) {
-      fprintf(stderr, "uadecore: No more input. Exiting succesfully.\n");
       exit(0);
     } else if (ret < 0) {
       fprintf(stderr, "uadecore: Error on input. Exiting with error.\n");
