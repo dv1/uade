@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=2.13
+VERSION=$(cat version)
 IPC_PROTOCOL_VERSION=1
 
 if test -n "$CC"; then
@@ -29,11 +29,14 @@ fi
 debug_flags="-g"
 packageprefix=""
 user="no"
-usexmms="yes"
+
+# backends
 useaudacious="yes"
 useuadefs="yes"
 useuade123="yes"
 useuadecore="yes"
+usexmms="yes"
+
 xmmsplugindir=""
 audaciousplugindir=""
 pkgrequirements="ao"
@@ -119,16 +122,20 @@ for opt in "$@" ; do
 		textscope="yes"
 		;;
 
-	--without-uadecore)
-		useuadecore="no"
-		;;
-
 	--without-uade123)
 		useuade123="no"
 		;;
 	--only-uade123)
 		set_all_no
 		useuade123="yes"
+		;;
+
+	--without-uadecore)
+		useuadecore="no"
+		;;
+	--only-uadecore)
+		set_all_no
+		useuadecore="yes"
 		;;
 
 	--without-xmms)

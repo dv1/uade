@@ -23,6 +23,7 @@ install:	uade123
 	rm -f "$(BINDIR)/$(UADE123NAME)"
 	cp -f "$(UADE123NAME)" "$(BINDIR)/" || true
 	chmod og+rx "$(BINDIR)/$(UADE123NAME)"
+	install ../mod2ogg/mod2ogg2.sh "$(BINDIR)/"
 
 uninstall:	
 	rm -f "$(BINDIR)/$(UADE123NAME)"
