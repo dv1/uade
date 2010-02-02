@@ -11,7 +11,15 @@ if test -n "$1" ; then
 else
     tool="uade123"
 fi
+
 package="uade-$tool"
+depends="uade-uadecore"
+
+if test "$tool" = "uadecore" ; then
+    depends=""
+elif test "$tool" = "uade123" ; then
+    package="uade123"
+fi
 
 version=$(cat version)
 arch=$(dpkg --print-architecture)
@@ -23,6 +31,7 @@ fi
 sed -e "s|{VERSION}|$version|g" \
     -e "s|{ARCHITECTURE}|$arch|g" \
     -e "s|{PACKAGE}|$package|g" \
+    -e "s|{DEPENDS}|$depends|g" \
     < deb/control.in > deb/control
 
 rm -rf rel
