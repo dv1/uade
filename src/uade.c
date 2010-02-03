@@ -28,10 +28,11 @@
 #include "sd-sound.h"
 #include "audio.h"
 
-#include "uade.h"
+#include "uadectl.h"
 #include "amigamsg.h"
 #include "ossupport.h"
 #include "sysincludes.h"
+#include "uadeconstants.h"
 
 
 enum print_help {

@@ -20,7 +20,7 @@
 #include <limits.h>
 #include <ctype.h>
 
-#include "uade.h"
+#include "uadectl.h"
 #include "unixatomic.h"
 
 

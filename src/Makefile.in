@@ -136,11 +136,11 @@ readcpu.o:	readcpu.c include/readcpu.h
 main.o:	include/uae.h
 cia.o: include/events.h
 custom.o: include/events.h
-newcpu.o: newcpu.c include/uade.h include/events.h include/uadeipc.h
+newcpu.o: newcpu.c include/uadectl.h include/events.h include/uadeipc.h
 	$(CC) $(INCLUDES) -c $(INCDIRS) $(TARGETCFLAGS)  newcpu.c
 
-sd-sound.o:	include/uade.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
-audio.o: include/uade.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h include/sinctable.h include/text_scope.h {SOUNDHEADER}
+sd-sound.o:	include/uadectl.h sd-sound.c sd-sound.h include/uadeconstants.h {SOUNDHEADER} {SOUNDSOURCE}
+audio.o: include/uadectl.h include/events.h sd-sound.h include/gensound.h include/audio.h include/uadeconstants.h include/sinctable.h include/text_scope.h {SOUNDHEADER}
 sinctable.o:	include/sinctable.h
 memory.o:
 debug.o: 
@@ -148,11 +148,11 @@ fpp.o:
 
 uademain.o:	uademain.c include/uae.h include/ossupport.h include/unixsupport.h
 
-uade.o:	uade.c include/uade.h sd-sound.h include/uadeipc.h include/uadeconstants.h include/ossupport.h include/unixsupport.h include/amigamsg.h include/sysincludes.h
+uade.o:	uade.c include/uadectl.h sd-sound.h include/uadeipc.h include/uadeconstants.h include/ossupport.h include/unixsupport.h include/amigamsg.h include/sysincludes.h
 
 uadeipc.o:	uadeipc.c include/uadeipc.h include/ossupport.h include/unixsupport.h include/sysincludes.h
 
-ossupport.o:	ossupport.c include/ossupport.h include/unixsupport.h include/uade.h include/unixatomic.h unixatomic.c
+ossupport.o:	ossupport.c include/ossupport.h include/unixsupport.h include/uadectl.h include/unixatomic.h unixatomic.c
 
 unixatomic.o:	unixatomic.c include/sysincludes.h include/unixatomic.h
 
