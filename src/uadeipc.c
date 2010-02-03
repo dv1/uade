@@ -14,7 +14,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "uadeipc.h"
+#include <uade/uadeipc.h>
 #include "ossupport.h"
 #include "sysincludes.h"
 

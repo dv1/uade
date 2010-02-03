@@ -11,10 +11,19 @@ LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 UADECORENAME={UADECORENAME}
 UADE123NAME={UADE123NAME}
 
-COMPILED_COMPONENTS = {UADECORE} {UADE123} {XMMSPLUGIN} {AUDACIOUSPLUGIN} {UADEFS}
-INSTALLED_COMPONENTS = {UADECOREINSTALL} {UADE123INSTALL} {XMMSPLUGININSTALL} {AUDACIOUSPLUGININSTALL} {UADEFSINSTALL}
+COMPILED_COMPONENTS = {LIBUADE} {UADECORE} {UADE123} {XMMSPLUGIN} {AUDACIOUSPLUGIN} {UADEFS}
+INSTALLED_COMPONENTS = {LIBUADE}install {UADECORE}install {UADE123}install {XMMSPLUGIN}install {AUDACIOUSPLUGIN}install {UADEFS}install
 
 all:	src/include/uadeconfig.h $(COMPILED_COMPONENTS)
+
+staticlibuade:	
+	$(MAKE) -C src/frontends/common
+
+libuade:	
+	$(MAKE) -C src/frontends/libuade
+
+libuadeinstall:	
+	$(MAKE) -C src/frontends/libuade install
 
 uadecore:	
 	$(MAKE) -C src
@@ -32,25 +41,25 @@ uadecoreinstall:
 
 	$(MAKE) -C src install
 
-uade123:	
+uade123:	staticlibuade
 	$(MAKE) -C src/frontends/uade123
 
 uade123install:	
 	$(MAKE) -C src/frontends/uade123 install
 
-xmmsplugin:	
+xmmsplugin:	libuade
 	$(MAKE) -C src/frontends/xmms
 
 xmmsplugininstall:	
 	$(MAKE) -C src/frontends/xmms install
 
-audaciousplugin:	
+audaciousplugin:	libuade
 	$(MAKE) -C src/frontends/audacious
 
 audaciousplugininstall:	
 	$(MAKE) -C src/frontends/audacious install
 
-uadefs:	
+uadefs:	staticlibuade
 	$(MAKE) -C src/frontends/uadefs
 
 uadefsinstall:	

@@ -16,7 +16,7 @@
 #include "sd-sound.h"
 #include "audio.h"
 #include "uadectl.h"
-#include "uadeconstants.h"
+#include <uade/uadeconstants.h>
 
 uae_u16 sndbuffer[MAX_SOUND_BUF_SIZE / 2];
 uae_u16 *sndbufpt;

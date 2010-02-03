@@ -30,8 +30,9 @@ debug_flags="-g"
 packageprefix=""
 user="no"
 
-# backends
+# components to compile
 useaudacious="yes"
+uselibuade="yes"
 useuadefs="yes"
 useuade123="yes"
 useuadecore="yes"
@@ -44,11 +45,12 @@ textscope="no"
 n900="no"
 
 set_all_no() {
-    usexmms="no"
     useaudacious="no"
+    uselibuade="no"
     useuadefs="no"
     useuade123="no"
     useuadecore="no"
+    usexmms="no"
 }
 
 for opt in "$@" ; do
@@ -116,6 +118,14 @@ for opt in "$@" ; do
 	--only-audacious)
 		set_all_no
 		useaudacious="yes"
+		;;
+
+	--without-libuade)
+		uselibuade="no"
+		;;
+	--only-libuade)
+		set_all_no
+		uselibuade="yes"
 		;;
 
 	--with-text-scope)
@@ -187,6 +197,7 @@ for opt in "$@" ; do
 		echo "Plugins and tools to compile:"
 		echo " --without-audacious    Do not compile an Audacious plugin"
 		echo " --with-text-scope      Enable text scope support (uade123 --scope)"
+		echo " --without-libude       Do not compile libuade"
 		echo " --without-uade123      Do not compile uade123"
 		echo " --without-uadecore     Do not compile uadecore. This is useful for"
 		echo "                        distribution makers who want to compile new frontends"
@@ -194,8 +205,9 @@ for opt in "$@" ; do
 		echo " --without-uadefs       Do not compile uadefs filesystem"
 		echo " --without-xmms         Do not compile an XMMS plugin"
 		echo " --only-audacious       Compile only Audacious plugin"
+		echo " --only-libuade         Compile only libuade"
 		echo " --only-uade123         Compile only uade123 plugin"
-		echo " --only-uadecore        Compile only uadecore plugin"
+		echo " --only-uadecore        Compile only uadecore"
 		echo " --only-uadefs          Compile only uadefs plugin"
 		echo " --only-xmms            Compile only XMMS plugin"
 		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
@@ -573,6 +585,7 @@ if test "$TARGETCC" != "$NATIVECC" ; then
     echo "Native CC                               : $NATIVECC"
 fi
 echo "Target CC                               : $TARGETCC"
+echo "libuade                                 : $uselibuade"
 echo "uadecore                                : $useuadecore"
 echo "uade123                                 : $useuade123"
 if test "$useuade123" = "yes" ; then
@@ -590,36 +603,30 @@ echo "uadefs                                  : $useuadefs"
 echo "Text scope support                      : $textscope"
 echo
 
+libuaderule=""
 uadecorerule=""
-uadecoreinstallrule=""
 uade123rule=""
-uade123installrule=""
 xmmspluginrule=""
-xmmsplugininstallrule=""
 audaciouspluginrule=""
-audaciousplugininstallrule=""
 uadefsrule=""
-uadefsinstallrule=""
 
+if test "$uselibuade" = "yes" ; then
+    libuaderule="libuade"
+fi
 if test "$useuadecore" = "yes" ; then
     uadecorerule="uadecore"
-    uadecoreinstallrule="uadecoreinstall"
 fi
 if test "$useuade123" = "yes" ; then
     uade123rule="uade123"
-    uade123installrule="uade123install"
 fi
 if test "$usexmms" = "yes" ; then
     xmmspluginrule="xmmsplugin"
-    xmmsplugininstallrule="xmmsplugininstall"
 fi
 if test "$useaudacious" = "yes" ; then
     audaciouspluginrule="audaciousplugin"
-    audaciousplugininstallrule="audaciousplugininstall"
 fi
 if test "$useuadefs" = "yes" ; then
     uadefsrule="uadefs"
-    uadefsinstallrule="uadefsinstall"
 fi
 
 replace_with_sed() {
@@ -646,26 +653,20 @@ replace_with_sed() {
 	-e "s|{LIBDIR}|$uadelibdir|g" \
 	-e "s|{PACKAGEPREFIX}|$packageprefix|g" \
 	-e "s|{UADECORENAME}|$UADECORENAME|g" \
+	-e "s|{LIBUADE}|$libuaderule|g" \
 	-e "s|{UADECORE}|$uadecorerule|g" \
-	-e "s|{UADECOREINSTALL}|$uadecoreinstallrule|g" \
 	-e "s|{UADE123NAME}|$UADE123NAME|g" \
 	-e "s|{UADE123}|$uade123rule|g" \
-	-e "s|{UADE123INSTALL}|$uade123installrule|g" \
 	-e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
-	-e "s|{XMMSPLUGININSTALL}|$xmmsplugininstallrule|g" \
 	-e "s|{XMMSPLUGINDIR}|$xmmsplugindir|g" \
 	-e "s|{AUDACIOUSPLUGIN}|$audaciouspluginrule|g" \
-	-e "s|{AUDACIOUSPLUGININSTALL}|$audaciousplugininstallrule|g" \
 	-e "s|{AUDACIOUSPLUGINDIR}|$audaciousplugindir|g" \
 	-e "s|{UADEFS}|$uadefsrule|g" \
-	-e "s|{UADEFSINSTALL}|$uadefsinstallrule|g" \
 	-e "s|{PKGCONFIGDIR}|$pkgconfigdir|g" \
 	"$@"
 }
 
-replace_with_sed Makefile.in > Makefile
-
-for file in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mod2ogg2.sh.in ; do
+for file in Makefile.in src/Makefile.in src/frontends/*/Makefile.in src/frontends/mod2ogg/mod2ogg2.sh.in ; do
     dst="`echo $file |sed -e "s|\.in||"`"
     replace_with_sed "$file" > "$dst"
 done

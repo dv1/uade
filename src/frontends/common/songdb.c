@@ -10,14 +10,14 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "songdb.h"
-#include "uadeconf.h"
+#include <uade/songdb.h>
+#include <uade/uadeconf.h>
 #include "md5.h"
 #include "unixatomic.h"
 #include "ossupport.h"
 #include "uadeconfig.h"
 #include "support.h"
-#include "uadeconstants.h"
+#include <uade/uadeconstants.h>
 
 #define NORM_ID "n="
 #define NORM_ID_LENGTH 2

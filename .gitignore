@@ -7,3 +7,5 @@ src/frontends/*/Makefile
 
 *~
 *#
+song.conf
+uade.conf

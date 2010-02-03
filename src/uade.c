@@ -32,7 +32,7 @@
 #include "amigamsg.h"
 #include "ossupport.h"
 #include "sysincludes.h"
-#include "uadeconstants.h"
+#include <uade/uadeconstants.h>
 
 
 enum print_help {

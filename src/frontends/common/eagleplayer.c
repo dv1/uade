@@ -22,14 +22,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "eagleplayer.h"
+#include <uade/eagleplayer.h>
 #include "ossupport.h"
-#include "amifilemagic.h"
-#include "uadeconf.h"
+#include <uade/amifilemagic.h>
+#include <uade/uadeconf.h>
 #include "unixatomic.h"
-#include "songdb.h"
+#include <uade/songdb.h>
 #include "support.h"
-#include "uadestate.h"
+#include <uade/uadestate.h>
 
 
 #define OPTION_DELIMITER ","

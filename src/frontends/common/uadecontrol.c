@@ -16,11 +16,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-#include "uadecontrol.h"
+#include <uade/uadecontrol.h>
 #include "ossupport.h"
 #include "sysincludes.h"
-#include "uadeconstants.h"
-#include "songdb.h"
+#include <uade/uadeconstants.h>
+#include <uade/songdb.h>
 
 static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
