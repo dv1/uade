@@ -4,7 +4,6 @@ VERSION=$(cat version)
 IPC_PROTOCOL_VERSION=1
 
 if test -n "$CC"; then
-    CC=$CC
     echo "Forcing compiler to be $CC"
 else
     CC="gcc"
@@ -12,7 +11,20 @@ fi
 NATIVECC="$CC"
 TARGETCC="$NATIVECC"
 CC="false"
-TARGETOBJCOPY="objcopy"
+
+if test -n "$OBJCOPY" ; then
+    echo "Forcing objcopy to be $OBJCOPY"
+else
+    OBJCOPY="objcopy"
+fi
+TARGETOBJCOPY=$OBJCOPY
+
+if test -n "$AR" ; then
+    echo "Forcing ar to be $AR"
+else
+    AR="ar"
+fi
+TARGETAR=$AR
 
 ARCHFLAGS=""
 if test -n "$CFLAGS"; then
@@ -86,14 +98,21 @@ for opt in "$@" ; do
 	--pkg-config=*)
 	        PKG_CONFIG=`echo $opt | sed -n 's/--pkg-config=\(.*\)/\1/p'`
 		;;
+	--target-ar=*)
+	        TARGETAR=`echo $opt | sed -n 's/--target-ar=\(.*\)/\1/p'`
+		;;
 	--target-cc=*)
 	        TARGETCC=`echo $opt | sed -n 's/--target-cc=\(.*\)/\1/p'`
+		;;
+	--target-objcopy=*)
+	        TARGETOBJCOPY=`echo $opt | sed -n 's/--target-objcopy=\(.*\)/\1/p'`
 		;;
 	--target=*)
 	        tmpvar=`echo $opt | sed -n 's/--target=\(.*\)/\1/p'`
 		if test -z "$TARGETCC" ; then
 		    TARGETCC="$tmpvar-gcc"
 		    TARGETOBJCOPY="$tmpvar-objcopy"
+		    TARGETAR="$tmpvar-ar"
 		fi
 		tmpvar=""
 		;;
@@ -190,9 +209,11 @@ for opt in "$@" ; do
 		echo " --no-debug             Do not compile debug stuff into executables"
 		echo " --libdir=dir           Add this directory to linking path"
 		echo " --sharedir=dir         Install data files into this directory"
-		echo " --target=tarch         Specify target architecture. The compiler will be"
+		echo " --target=arch          Specify target architecture. The compiler will be"
 		echo "                        tarch-gcc. (cross compiling)"
-		echo " --target-cc=tcc        Specify target compiler. (cross compiling)"
+		echo " --target-ar=ar         Specify target archiver. (cross compiling)"
+		echo " --target-cc=cc         Specify target compiler. (cross compiling)"
+		echo " --target-objcopy=objc  Specify target objcopy. (cross compiling)"
 		echo
 		echo "Plugins and tools to compile:"
 		echo " --without-audacious    Do not compile an Audacious plugin"
@@ -638,6 +659,7 @@ replace_with_sed() {
 	-e "s|{XMMSLIBS}|$XMMSLIBS|g" \
 	-e "s|{AUDACIOUSFLAGS}|$AUDACIOUSFLAGS|g" \
 	-e "s|{AUDACIOUSLIBS}|$AUDACIOUSLIBS|g" \
+	-e "s|{AR}|$TARGETAR|g" \
 	-e "s|{CC}|$TARGETCC|g" \
 	-e "s|{OBJCOPY}|$TARGETOBJCOPY|g" \
 	-e "s|{NATIVECC}|$NATIVECC|g" \
