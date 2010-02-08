@@ -304,7 +304,7 @@ UADECORENAME="uadecore"
 
 SHAREDLIBRARYFLAGS="-fPIC -shared"
 
-cat >src/include/sysincludes.h <<EOF
+cat >src/frontends/include/uade/sysincludes.h <<EOF
 #include <netinet/in.h>
 #include <sys/select.h>
 EOF
@@ -330,7 +330,7 @@ elif test -n "$OS" && test "$OS" = "OpenBSD"; then
     # Force gmake for OpenBSD.
     MAKE="gmake"
 elif test -n "$OS" && test "$OS" = "FreeBSD"; then
-    cat > src/include/sysincludes.h <<EOF
+    cat > src/frontends/include/uade/sysincludes.h <<EOF
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -392,11 +392,6 @@ if test "$user" = "no"; then
     if test -z "$prefix"; then
 	prefix="/usr/local"
     fi
-    uadedatadir="$prefix/share/uade2"
-    uadelibdir="$prefix/lib/uade2"
-    if test -z "$bindir"; then
-	bindir="$prefix/bin"
-    fi
     if test "$usexmms" = "yes" ; then
 	if test -z "$xmmsplugindir" ; then
 	    xmmsplugindir="`xmms-config --input-plugin-dir`"
@@ -407,18 +402,10 @@ if test "$user" = "no"; then
 	    audaciousplugindir="`$PKG_CONFIG audacious --variable=input_plugin_dir`"
 	fi
     fi
-    if test -z "$mandir"; then
-	mandir="$prefix/share/man/man1"
-    fi
 else
     # user installation
     if test -z "$prefix"; then
-	prefix="$HOME/.uade2"
-    fi
-    uadedatadir="$prefix"
-    uadelibdir="$prefix"
-    if test -z "$bindir"; then
-	bindir="$HOME/bin"
+	prefix="$HOME"
     fi
     if test "$usexmms" = "yes" ; then
 	if test -z "$xmmsplugindir" ; then
@@ -434,19 +421,24 @@ else
 	    fi
 	fi
     fi
-    if test -z "$mandir"; then
-	mandir="$prefix/man/man1"
-    fi
 fi
 
-if test -z "$libdir" ; then
-    libdir="$prefix/lib"
+uadedatadir="$prefix/share/uade2"
+uadecoredir="$prefix/lib/uade2"
+if test -z "$bindir"; then
+    bindir="$prefix/bin"
 fi
 if test -z "$includedir" ; then
     includedir="$prefix/include"
 fi
-if test -n "$sharedir"; then
-    uadedatadir="$sharedir"
+if test -z "$libdir" ; then
+    libdir="$prefix/lib"
+fi
+if test -z "$mandir"; then
+    mandir="$prefix/share/man/man1"
+fi
+if test -z "$sharedir" ; then
+    sharedir="$prefix/share"
 fi
 
 $NATIVECC -v 2>/dev/null >/dev/null
@@ -497,7 +489,7 @@ if test -n "$PKG_CONFIG" ; then
 	pkgrequirements=""
     fi
     cat > uade.pc <<EOF
-uadecore=$uadelibdir/$UADECORENAME
+uadecore=$uadecoredir/$UADECORENAME
 data_directory=$uadedatadir
 ipc_protocol_version=$IPC_PROTOCOL_VERSION
 
@@ -519,43 +511,43 @@ fi
 
 # Target is UNIX.
 cat > src/ossupport.c <<EOF
-#include "ossupport.h"
+#include <uade/ossupport.h>
 
 #include "unixsupport.c"
 EOF
 
-cat > src/include/ossupport.h <<EOF
+cat > src/frontends/include/uade/ossupport.h <<EOF
 #ifndef _UADE_OSSUPPORT_H_
 #define _UADE_OSSUPPORT_H_
 
-#include "unixsupport.h"
+#include <uade/unixsupport.h>
 
 EOF
 cd compat
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o memmemtest memmemtest.c 2>/dev/null
 if test "$?" != "0" ; then
-    cat memmemrep.h >> ../src/include/ossupport.h
+    cat memmemrep.h >> ../src/frontends/include/uade/ossupport.h
     cat memmemrep.c >> ../src/ossupport.c
     echo "Using memmem() replacement"
 fi
 
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
 if test -e "strltest" ; then
-    echo "#include <string.h>" >> ../src/include/ossupport.h
+    echo "#include <string.h>" >> ../src/frontends/include/uade/ossupport.h
 else
     cat strlrep.c >> ../src/ossupport.c
-    cat strlrep.h >> ../src/include/ossupport.h
+    cat strlrep.h >> ../src/frontends/include/uade/ossupport.h
     echo "Using strlcpy/cat() replacements"
 fi
 
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o canontest canontest.c 2>/dev/null
 if test ! -e "canontest" ; then
     cat canonrep.c >> ../src/ossupport.c
-    cat canonrep.h >> ../src/include/ossupport.h
+    cat canonrep.h >> ../src/frontends/include/uade/ossupport.h
     echo "Using canonical_file_name() replacement"
 fi
 
-echo "#endif" >> ../src/include/ossupport.h
+echo "#endif" >> ../src/frontends/include/uade/ossupport.h
 
 csfile="../src/include/compilersupport.h"
 echo "#ifndef _UADE_COMPILER_SUPPORT_H_" > "$csfile"
@@ -575,7 +567,7 @@ fi
 echo "#endif" >> "$csfile"
 cd ..
 
-conffile=src/include/uadeconfig.h
+conffile="src/frontends/include/uade/uadeoptions.h"
 echo > "$conffile"
 
 if test "$user" = "yes" ; then
@@ -586,7 +578,7 @@ fi
 
 echo "#define UADE_CONFIG_BASE_DIR \"$uadedatadir\"" >> "$conffile"
 
-echo "#define UADE_CONFIG_UADE_CORE \"$uadelibdir/$UADECORENAME\"" >> "$conffile"
+echo "#define UADE_CONFIG_UADE_CORE \"$uadecoredir/$UADECORENAME\"" >> "$conffile"
 test -c /dev/urandom && echo "#define UADE_CONFIG_HAVE_URANDOM" >> "$conffile"
 
 echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
@@ -598,7 +590,7 @@ test "$textscope" = "yes" && echo "#define UADE_CONFIG_TEXT_SCOPE" >> "$conffile
 echo ""
 echo "UADE and frontends is installed to      : $bindir"
 echo "Data directory                          : $uadedatadir"
-echo "Uadecore directory                      : $uadelibdir"
+echo "Uadecore directory                      : $uadecoredir"
 echo "Man (documentation) directory           : $mandir"
 echo "Installer                               : $INSTALLTEST"
 echo "Make                                    : $MAKE"
@@ -672,7 +664,9 @@ replace_with_sed() {
 	-e "s|{DATADIR}|$uadedatadir|g" \
 	-e "s|{BINDIR}|$bindir|g" \
 	-e "s|{MANDIR}|$mandir|g" \
-	-e "s|{LIBDIR}|$uadelibdir|g" \
+	-e "s|{INCLUDEDIR}|$includedir|g" \
+	-e "s|{LIBDIR}|$libdir|g" \
+	-e "s|{UADECOREDIR}|$uadecoredir|g" \
 	-e "s|{PACKAGEPREFIX}|$packageprefix|g" \
 	-e "s|{UADECORENAME}|$UADECORENAME|g" \
 	-e "s|{LIBUADE}|$libuaderule|g" \

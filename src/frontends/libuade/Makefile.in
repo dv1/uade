@@ -1,8 +1,9 @@
 LIBDIR = {PACKAGEPREFIX}{LIBDIR}
+INCLUDEDIR = {PACKAGEPREFIX}{INCLUDEDIR}
 
 AR = {AR}
 CC = {CC}
-CFLAGS = -Wall -O2 -I../include -I../../include -I../common -fPIC -shared {DEBUGFLAGS} {ARCHFLAGS}
+CFLAGS = -Wall -O2 -I../include -I../common -fPIC -shared {DEBUGFLAGS} {ARCHFLAGS}
 CLIBS = {ARCHLIBS} -lm
 
 all:	libuade.so libuade.a
@@ -16,7 +17,9 @@ libuade.a:	$(COMMONMODULES)
 	$(AR) rcs $@ $(COMMONMODULES)
 
 install:	libuade.so
-	install $< "$(LIBDIR)"/
+	install -m 644 $< "$(LIBDIR)"/
+	mkdir -p "$(INCLUDEDIR)"/uade
+	install -m 644 ../include/uade/*.h "$(INCLUDEDIR)"/uade/
 
 clean:	
 	rm -f *.o *.so *.a

@@ -14,7 +14,7 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include "sysincludes.h"
+#include <uade/sysincludes.h>
 #include "playloop.h"
 #include "uade123.h"
 #include "audio.h"

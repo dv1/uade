@@ -5,7 +5,7 @@
 #include <ctype.h>
 
 #include "support.h"
-#include "ossupport.h"
+#include <uade/ossupport.h>
 
 /* Zero terminate the current word. Returns -1 is *s == 0 or the next word
    does not exist. Otherwise returns offset to the beginning of next word. */

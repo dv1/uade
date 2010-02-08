@@ -12,7 +12,7 @@
 
 #include <uade/songinfo.h>
 #include <uade/uadeutils.h>
-#include "ossupport.h"
+#include <uade/ossupport.h>
 #include <uade/amifilemagic.h>
 #include "support.h"
 

@@ -23,10 +23,10 @@
 #include <unistd.h>
 
 #include <uade/eagleplayer.h>
-#include "ossupport.h"
+#include <uade/ossupport.h>
 #include <uade/amifilemagic.h>
 #include <uade/uadeconf.h>
-#include "unixatomic.h"
+#include <uade/unixatomic.h>
 #include <uade/songdb.h>
 #include "support.h"
 #include <uade/uadestate.h>

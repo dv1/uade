@@ -13,9 +13,9 @@
 #include <uade/songdb.h>
 #include <uade/uadeconf.h>
 #include "md5.h"
-#include "unixatomic.h"
-#include "ossupport.h"
-#include "uadeconfig.h"
+#include <uade/unixatomic.h>
+#include <uade/ossupport.h>
+#include <uade/uadeoptions.h>
 #include "support.h"
 #include <uade/uadeconstants.h>
 

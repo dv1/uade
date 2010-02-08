@@ -25,7 +25,7 @@
 #include "compiler.h"
 
 #include "uadectl.h"
-#include "ossupport.h"
+#include <uade/ossupport.h>
 #include <uade/uadeconstants.h>
 
 

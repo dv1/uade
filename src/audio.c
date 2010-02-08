@@ -21,7 +21,7 @@
 #include "events.h"
 #include "cia.h"
 #include "audio.h"
-#include "amigafilter.h"
+#include <uade/amigafilter.h>
 #include "uadectl.h"
 #include "compilersupport.h"
 

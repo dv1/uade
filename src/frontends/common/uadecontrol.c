@@ -17,8 +17,8 @@
 #include <sys/socket.h>
 
 #include <uade/uadecontrol.h>
-#include "ossupport.h"
-#include "sysincludes.h"
+#include <uade/ossupport.h>
+#include <uade/sysincludes.h>
 #include <uade/uadeconstants.h>
 #include <uade/songdb.h>
 

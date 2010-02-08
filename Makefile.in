@@ -6,7 +6,6 @@ BINDIR = {PACKAGEPREFIX}{BINDIR}
 DATADIR = {PACKAGEPREFIX}{DATADIR}
 DOCDIR = {PACKAGEPREFIX}{DOCDIR}
 MANDIR = {PACKAGEPREFIX}{MANDIR}
-LIBDIR = {PACKAGEPREFIX}{LIBDIR}
 
 UADECORENAME={UADECORENAME}
 UADE123NAME={UADE123NAME}
@@ -14,7 +13,7 @@ UADE123NAME={UADE123NAME}
 COMPILED_COMPONENTS = {LIBUADE} {UADECORE} {UADE123} {XMMSPLUGIN} {AUDACIOUSPLUGIN} {UADEFS}
 INSTALLED_COMPONENTS = {LIBUADE}install {UADECORE}install {UADE123}install {XMMSPLUGIN}install {AUDACIOUSPLUGIN}install {UADEFS}install
 
-all:	src/include/uadeconfig.h $(COMPILED_COMPONENTS)
+all:	src/frontends/include/uade/uadeoptions.h $(COMPILED_COMPONENTS)
 
 staticlibuade:	
 	$(MAKE) -C src/frontends/common
@@ -65,7 +64,7 @@ uadefs:	staticlibuade
 uadefsinstall:	
 	$(MAKE) -C src/frontends/uadefs install
 
-src/include/uadeconfig.h:	
+src/frontends/include/uade/uadeoptions.h:	
 	@echo ""
 	@echo "Run ./configure first!"
 	@echo ""
@@ -79,12 +78,6 @@ soundcheck:
 
 install:	$(INSTALLED_COMPONENTS)
 	@echo
-
-uninstall:	
-# Don't remove everything
-	for name in players score ; do rm -rf -- "$(DATADIR)/$$name" ; done
-	rm -f "$(MANDIR)"/uade123.1
-	rm -f "$(LIBDIR)/$(UADECORENAME)"
 
 feclean:	
 	$(MAKE) -C src/frontends/uade123 clean

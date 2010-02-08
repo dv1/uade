@@ -48,8 +48,6 @@
 #include <time.h>
 
 #include <uade/uade.h>
-#include "uadeconfig.h"
-#include "ossupport.h"
 
 
 #define WAV_HEADER_LEN 44

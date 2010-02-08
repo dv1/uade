@@ -16,12 +16,12 @@
 #include <assert.h>
 
 #include "unixwalkdir.h"
-#include "uadeconfig.h"
-#include "unixatomic.h"
+#include <uade/uadeoptions.h>
+#include <uade/unixatomic.h>
 #include "playlist.h"
 #include "uade123.h"
-#include "ossupport.h"
-#include "unixsupport.h"
+#include <uade/ossupport.h>
+#include <uade/unixsupport.h>
 
 static int random_fd = -1;
 #ifdef UADE_CONFIG_HAVE_URANDOM

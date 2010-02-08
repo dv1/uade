@@ -4,7 +4,7 @@
 #include <limits.h>
 #include <stdio.h>
 
-#include <effects.h>
+#include <uade/effects.h>
 
 
 #define debug(verbose, fmt, args...) if (verbose) { fprintf(stderr, fmt, ## args); }

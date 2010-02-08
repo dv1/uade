@@ -26,16 +26,12 @@
 #include <getopt.h>
 
 #include <uade/uade.h>
-#include "ossupport.h"
-#include "uadeconfig.h"
-#include "sysincludes.h"
 #include "support.h"
 #include "uade123.h"
 #include "playlist.h"
 #include "playloop.h"
 #include "audio.h"
 #include "terminal.h"
-#include "amigafilter.h"
 
 int uade_debug_trigger;
 int uade_info_mode;

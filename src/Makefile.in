@@ -1,4 +1,4 @@
-LIBDIR = {PACKAGEPREFIX}{LIBDIR}
+UADECOREDIR = {PACKAGEPREFIX}{UADECOREDIR}
 UADECORENAME={UADECORENAME}
 PKGCONFIGDIR = {PACKAGEPREFIX}{PKGCONFIGDIR}
 
@@ -42,13 +42,9 @@ clean:
 	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
 
 install:	$(UADECORENAME)
-	mkdir -p "$(LIBDIR)" "$(PKGCONFIGDIR)"
-	chmod og+rx "$(LIBDIR)"
-	cp -f "$(UADECORENAME)" "$(LIBDIR)"/
-	chmod og+rx "$(LIBDIR)/$(UADECORENAME)"
-	install ../uade.pc "$(PKGCONFIGDIR)"/
-	chmod og+rx "$(PKGCONFIGDIR)"
-	chmod 644 "$(PKGCONFIGDIR)/uade.pc"
+	mkdir -m 755 -p "$(UADECOREDIR)" "$(PKGCONFIGDIR)"
+	install "$(UADECORENAME)" "$(UADECOREDIR)"/
+	install -m 644 ../uade.pc "$(PKGCONFIGDIR)"/
 
 # First native builds
 
@@ -146,14 +142,14 @@ memory.o:
 debug.o: 
 fpp.o: 
 
-uademain.o:	uademain.c include/uae.h include/ossupport.h include/unixsupport.h
+uademain.o:	uademain.c include/uae.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h
 
-uade.o:	uade.c include/uadectl.h sd-sound.h frontends/include/uade/uadeipc.h frontends/include/uade/uadeconstants.h include/ossupport.h include/unixsupport.h include/amigamsg.h include/sysincludes.h
+uade.o:	uade.c include/uadectl.h sd-sound.h frontends/include/uade/uadeipc.h frontends/include/uade/uadeconstants.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h include/amigamsg.h frontends/include/uade/sysincludes.h
 
-uadeipc.o:	uadeipc.c frontends/include/uade/uadeipc.h include/ossupport.h include/unixsupport.h include/sysincludes.h
+uadeipc.o:	uadeipc.c frontends/include/uade/uadeipc.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h frontends/include/uade/sysincludes.h
 
-ossupport.o:	ossupport.c include/ossupport.h include/unixsupport.h include/uadectl.h include/unixatomic.h unixatomic.c
+ossupport.o:	ossupport.c frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h include/uadectl.h frontends/include/uade/unixatomic.h unixatomic.c
 
-unixatomic.o:	unixatomic.c include/sysincludes.h include/unixatomic.h
+unixatomic.o:	unixatomic.c frontends/include/uade/sysincludes.h frontends/include/uade/unixatomic.h
 
 textscope.o:	text_scope.c include/text_scope.h include/custom.h

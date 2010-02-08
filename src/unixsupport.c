@@ -20,8 +20,8 @@
 #include <limits.h>
 #include <ctype.h>
 
-#include "uadectl.h"
-#include "unixatomic.h"
+/*#include <uadectl.h>*/
+#include <uade/unixatomic.h>
 
 
 static int url_to_fd(const char *url, int flags, mode_t mode)
@@ -297,7 +297,7 @@ void uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid,
     snprintf(output, sizeof(output), "fd://%d", fds[1]);
 
     execlp(uadename, uadename, "-i", input, "-o", output, (char *) NULL);
-    fprintf(stderr, "uade execlp failed: %s\n", strerror(errno));
+    fprintf(stderr, "uade execlp (%s) failed: %s\n", uadename, strerror(errno));
     abort();
   }
 

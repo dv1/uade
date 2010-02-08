@@ -18,10 +18,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "ossupport.h"
+#include <uade/ossupport.h>
 #include <uade/uadeconf.h>
-#include "uadeconfig.h"
-#include "amigafilter.h"
+#include <uade/uadeoptions.h>
+#include <uade/amigafilter.h>
 #include <uade/uadeconstants.h>
 #include <uade/songdb.h>
 #include <uade/uadeutils.h>
