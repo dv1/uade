@@ -199,7 +199,7 @@ static int spawn_uade(struct sndctx *ctx)
 {
 	int fds[2];
 
-	LOG("Spawn UADE %s\n", ctx->fname);
+	DEBUG("Spawn UADE %s\n", ctx->fname);
 
 	if (pipe(fds)) {
 		LOG("Can not create a pipe\n");
@@ -515,7 +515,7 @@ int warm_up_cache(struct sndctx *ctx)
 
 	for (i = 0; i < NSTASHES; i++) {
 		if (check_stash(ctx->fname, &stashes[i], created)) {
-			LOG("Found stash for %s\n", ctx->fname);
+			DEBUG("Found stash for %s\n", ctx->fname);
 			if (cache_prefill(ctx, stashes[i].data))
 				return -EIO;
 			break;
@@ -564,7 +564,7 @@ int warm_up_cache(struct sndctx *ctx)
 		strlcpy(stash->fname, ctx->fname, sizeof stash->fname);
 		memcpy(stash->data, crapbuf, sizeof stash->data);
 
-		LOG("Allocated stash for %s\n", ctx->fname);
+		DEBUG("Allocated stash for %s\n", ctx->fname);
 	}
 
 	return 0;
