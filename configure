@@ -549,7 +549,7 @@ fi
 
 echo "#endif" >> ../src/frontends/include/uade/ossupport.h
 
-csfile="../src/include/compilersupport.h"
+csfile="../src/frontends/include/uade/compilersupport.h"
 echo "#ifndef _UADE_COMPILER_SUPPORT_H_" > "$csfile"
 echo "#define _UADE_COMPILER_SUPPORT_H_" >> "$csfile"
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o unlikelytest unlikelytest.c 2>/dev/null

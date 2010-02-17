@@ -11,8 +11,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <compilersupport.h>
-
+#include <uade/compilersupport.h>
 #include <uade/effects.h>
 
 /*** old headphone effect ***/

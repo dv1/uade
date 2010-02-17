@@ -23,7 +23,7 @@
 #include "audio.h"
 #include <uade/amigafilter.h>
 #include "uadectl.h"
-#include "compilersupport.h"
+#include <uade/compilersupport.h>
 
 #include "sinctable.h"
 
