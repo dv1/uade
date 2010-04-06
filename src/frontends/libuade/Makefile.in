@@ -17,8 +17,8 @@ libuade.a:	$(COMMONMODULES)
 	$(AR) rcs $@ $(COMMONMODULES)
 
 install:	libuade.so
+	mkdir -p "$(INCLUDEDIR)"/uade "$(LIBDIR)"
 	install -m 644 $< "$(LIBDIR)"/
-	mkdir -p "$(INCLUDEDIR)"/uade
 	install -m 644 ../include/uade/*.h "$(INCLUDEDIR)"/uade/
 
 clean:	
