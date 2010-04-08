@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "ossupport.h"
-
 /* Slow implementation */
 void *memmem(const void *haystack, size_t haystacklen,
 	     const void *needle, size_t needlelen)
