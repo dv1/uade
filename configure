@@ -303,6 +303,8 @@ UADE123NAME="uade123"
 UADECORENAME="uadecore"
 
 SHAREDLIBRARYFLAGS="-fPIC -shared"
+SHAREDFLAG="-shared"
+SHAREDNAMEFLAG="-Wl,-soname,\$@"
 
 cat >src/frontends/include/uade/sysincludes.h <<EOF
 #include <netinet/in.h>
@@ -326,6 +328,8 @@ elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo "Configuring for MacOSX"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
     SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
+    SHAREDFLAG="-dynamiclib"
+    SHAREDNAMEFLAG=""
 elif test -n "$OS" && test "$OS" = "OpenBSD"; then
     # Force gmake for OpenBSD.
     MAKE="gmake"
@@ -658,6 +662,8 @@ replace_with_sed() {
 	-e "s|{SOUNDSOURCE}|$SOUNDSOURCE|g" \
 	-e "s|{SOUNDHEADER}|$SOUNDHEADER|g" \
 	-e "s|{DEBUGFLAGS}|$debug_flags|g" \
+	-e "s|{SHAREDFLAG}|$SHAREDFLAG|g" \
+	-e "s|{SHAREDNAMEFLAG}|$SHAREDNAMEFLAG|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
 	-e "s|{VERSION}|$VERSION|g" \
 	-e "s|{MAKE}|$MAKE|g" \
