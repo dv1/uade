@@ -6,11 +6,11 @@ CC = {CC}
 CFLAGS = -Wall -O2 -I../include -I../common {SHAREDLIBRARYFLAGS} {DEBUGFLAGS} {ARCHFLAGS}
 CLIBS = {ARCHLIBS} -lm
 
-all:	libuade.so libuade.a
+all:	libuade.{SHAREDSUFFIX} libuade.a
 
 include ../common/Makefile.common
 
-libuade.so:	$(COMMONMODULES)
+libuade.{SHAREDSUFFIX}:	$(COMMONMODULES)
 	$(CC) {SHAREDNAMEFLAG} {SHAREDFLAG} -o $@ $(CLIBS) $(COMMONMODULES)
 
 libuade.a:	$(COMMONMODULES)

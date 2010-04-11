@@ -305,6 +305,7 @@ UADECORENAME="uadecore"
 SHAREDLIBRARYFLAGS="-fPIC -shared"
 SHAREDFLAG="-shared"
 SHAREDNAMEFLAG="-Wl,-soname,\$@"
+SHAREDSUFFIX="so"
 
 cat >src/frontends/include/uade/sysincludes.h <<EOF
 #include <netinet/in.h>
@@ -330,6 +331,7 @@ elif test -n "$OS" && test "$OS" = "Darwin"; then
     SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
     SHAREDFLAG="-dynamiclib"
     SHAREDNAMEFLAG=""
+    SHAREDSUFFIX="dylib"
 elif test -n "$OS" && test "$OS" = "OpenBSD"; then
     # Force gmake for OpenBSD.
     MAKE="gmake"
@@ -665,6 +667,7 @@ replace_with_sed() {
 	-e "s|{SHAREDFLAG}|$SHAREDFLAG|g" \
 	-e "s|{SHAREDNAMEFLAG}|$SHAREDNAMEFLAG|g" \
 	-e "s|{SHAREDLIBRARYFLAGS}|$SHAREDLIBRARYFLAGS|g" \
+	-e "s|{SHAREDSUFFIX}|$SHAREDSUFFIX|g" \
 	-e "s|{VERSION}|$VERSION|g" \
 	-e "s|{MAKE}|$MAKE|g" \
 	-e "s|{DATADIR}|$uadedatadir|g" \
