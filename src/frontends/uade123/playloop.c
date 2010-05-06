@@ -67,7 +67,7 @@ int play_loop(struct uade_state *state)
   int jump_sub = 0;
   int have_subsong_info = 0;
 
-  const int framesize = UADE_BYTES_PER_SAMPLE * UADE_CHANNELS;
+  const int framesize = UADE_BYTES_PER_FRAME;
   const int bytes_per_second = UADE_BYTES_PER_FRAME * state->config.frequency;
 
   enum uade_control_state controlstate = UADE_S_STATE;
