@@ -127,11 +127,11 @@ int play_loop(struct uade_state *state)
 	    skip_bytes = bytes_per_second * 10;
 	  }
 	  break;
-	case ' ':
 	case 'b':
 	  subsong_end = 1;
 	  record_playtime = 0;
 	  break;
+	case ' ':
 	case 'c':
 	  pause_terminal();
 	  break;
