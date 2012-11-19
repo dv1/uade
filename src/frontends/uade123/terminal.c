@@ -1,3 +1,6 @@
+#include "terminal.h"
+#include "uade123.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <termios.h>
@@ -8,111 +11,134 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "uade123.h"
-#include "terminal.h"
-
-
 static struct termios old_terminal;
-static int terminal_is_set;
-static int terminal_fd;
 
+int terminal_fd = -1;
 
-static void uade_restore_terminal(void)
+static int cursormode;
+
+static void restore_terminal(void)
 {
-  if (terminal_is_set)
-    tcsetattr(terminal_fd, TCSANOW, &old_terminal);
+	if (terminal_fd >= 0)
+		tcsetattr(terminal_fd, TCSANOW, &old_terminal);
 }
-
 
 void pause_terminal(void)
 {
-  char c;
-  int ret;
-  fd_set rfds;
+	char c;
+	int ret;
+	fd_set rfds;
 
-  if (!terminal_is_set)
-    return;
+	if (terminal_fd < 0)
+		return;
 
-  tprintf("\nPaused. Press any key to continue...\n");
+	tprintf("\nPaused. Press any key to continue...\n");
 
-  while (uade_terminated == 0) {
-    FD_ZERO(&rfds);
-    FD_SET(terminal_fd, &rfds);
+	while (1) {
+		FD_ZERO(&rfds);
+		FD_SET(terminal_fd, &rfds);
 
-    ret = select(terminal_fd + 1, &rfds, NULL, NULL, NULL);
-    if (ret < 0) {
-      if (errno == EINTR)
-	continue;
-      perror("\nuade123: poll error");
-      exit(1);
-    }
+		ret = select(terminal_fd + 1, &rfds, NULL, NULL, NULL);
+		if (ret < 0) {
+			if (errno == EINTR)
+				continue;
+			perror("\nuade123: poll error");
+			exit(1);
+		}
 
-    if (ret == 0)
-      continue;
+		if (ret == 0)
+			continue;
 
-    ret = read(terminal_fd, &c, 1);
-    if (ret < 0) {
-      if (errno == EINTR || errno == EAGAIN)
-	continue;
-    }
+		ret = read(terminal_fd, &c, 1);
+		if (ret < 0) {
+			if (errno == EINTR || errno == EAGAIN)
+				continue;
+		}
 
-    break;
-  }
+		break;
+	}
 
-  tprintf("\n");
+	tprintf("\n");
 }
 
 
-int poll_terminal(void)
+int read_terminal(void)
 {
-  fd_set rfds;
-  char c = 0;
-  int ret;
+	char buf;
+	int c;
+	int ret = read(terminal_fd, &buf, 1);
+	if (ret <= 0)
+		buf = 0;
+	c = buf;
 
-  if (!terminal_is_set)
-    return 0;
+	switch (cursormode) {
+	case 0:
+		if (c == 0x1b) {
+			/* ESC */
+			cursormode = 1;
+			c = 0;
+		}
+		break;
+	case 1:
+		if (c == '[') {
+			cursormode = 2;
+		} else {
+			cursormode = 0;
+		}
+		c = 0;
+		break;
 
-  FD_ZERO(&rfds);
-  FD_SET(terminal_fd, &rfds);
-  ret = select(terminal_fd + 1, &rfds, NULL, NULL, & (struct timeval) {.tv_sec = 0});
+	case 2:
+		switch (c) {
+		case 'A':
+			c = UADE_CURSOR_UP;
+			break;
+		case 'B':
+			c = UADE_CURSOR_DOWN;
+			break;
+		case 'C':
+			c = UADE_CURSOR_RIGHT;
+			break;
+		case 'D':
+			c = UADE_CURSOR_LEFT;
+			break;
+		default:
+			fprintf(stderr, "Unknown terminal escape code: %.2x\n", c);
+			c = 0;
+			break;
+		}
+		cursormode = 0;
+		break;
+	}
 
-  if (ret > 0) {
-    ret = read(terminal_fd, &c, 1);
-    if (ret <= 0)
-      c = 0;
-  }
-
-  return c;
+	return c;
 }
 
 
 void setup_terminal(void)
 {
-  struct termios tp;
-  int fd;
+	struct termios tp;
+	int fd;
 
-  terminal_is_set = 0;
+	fd = open("/dev/tty", O_RDONLY);
+	if (fd < 0) {
+		fprintf(stderr, "Can not use /dev/tty for control. Trying to use stdin.\n");
+		fd = 0;
+	}
 
-  fd = open("/dev/tty", O_RDONLY);
-  if (fd < 0) {
-    fprintf(stderr, "Can not use /dev/tty for control. Trying to use stdin.\n");
-    fd = 0;
-  }
+	if (tcgetattr(fd, &old_terminal)) {
+		perror("uade123: can't setup interactive mode");
+		return;
+	}
 
-  if (tcgetattr(fd, &old_terminal)) {
-    perror("uade123: can't setup interactive mode");
-    return;
-  }
+	terminal_fd = fd;
 
-  terminal_fd = fd;
-  terminal_is_set = 1;
+	atexit(restore_terminal);
 
-  atexit(uade_restore_terminal);
-
-  tp = old_terminal;
-  tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
-  if (tcsetattr(fd, TCSAFLUSH, &tp)) {
-    perror("uade123: can't setup interactive mode (tcsetattr())");
-    return;
-  }
+	tp = old_terminal;
+	tp.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
+	if (tcsetattr(fd, TCSAFLUSH, &tp)) {
+		perror("uade123: can't setup interactive mode (tcsetattr())");
+		return;
+	}
 }

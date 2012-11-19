@@ -672,7 +672,7 @@ void Exception(int nr, uaecptr oldpc)
 {
     /* trap #5 indicates sound core is sending message for uade */
     if(nr == (32+5)) {
-      uade_get_amiga_message();
+      uadecore_get_amiga_message();
     }
 #if EXCEPTION_COUNT
     exception_freq[nr]++;
@@ -1090,7 +1090,7 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 {
     uaecptr pc = m68k_getpc ();
 
-    if (uade_debug) {
+    if (uadecore_debug) {
       fprintf(stderr, "op_illg(): going into debug\n");
       activate_debugger();
     }
@@ -1201,7 +1201,7 @@ static void do_trace (void)
 static int do_specialties (void)
 {
     while (regs.spcflags & SPCFLAG_STOP) {
-        if (uade_reboot)
+        if (uadecore_reboot)
 	    return 1;
 	do_cycles (4);
 	if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)){
@@ -1258,7 +1258,7 @@ void m68k_run_1 (void)
     
     cycles = (*cpufunctbl[opcode])(opcode);
 
-    if (uade_time_critical)
+    if (uadecore_time_critical)
       cycles = 1;
 
     /*n_insns++;*/
@@ -1271,7 +1271,7 @@ void m68k_run_1 (void)
 	break;
     }
 
-    if (uade_reboot)
+    if (uadecore_reboot)
       break;
 
 #if EXCEPTION_COUNT
@@ -1305,13 +1305,13 @@ void m68k_go (void)
   update_68k_cycles ();
 
   while (quit_program == 0) {
-    uade_reset ();
+    uadecore_reset ();
     m68k_reset ();
     customreset ();
 
-    uade_handle_r_state();
+    uadecore_handle_r_state();
 
-    while (uade_reboot == 0 && quit_program == 0) {
+    while (uadecore_reboot == 0 && quit_program == 0) {
       if (debugging)
 	debug ();
       if (quit_program != 0)
@@ -1319,8 +1319,8 @@ void m68k_go (void)
       m68k_run_1 ();
     }
 
-    if (uade_reboot) {
-      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadeipc) < 0) {
+    if (uadecore_reboot) {
+      if (uade_send_short_message(UADE_COMMAND_TOKEN, &uadecore_ipc) < 0) {
 	fprintf(stderr, "can not send reboot ack token\n");
 	exit(1);
       }

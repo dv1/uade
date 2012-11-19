@@ -493,7 +493,7 @@ int REGPARAM2 default_check (uaecptr a, uae_u32 b)
 
 uae_u8 REGPARAM2 *default_xlate (uaecptr a)
 {
-    uade_song_end("the amiga player did something terribly stupid", 1);
+    uadecore_song_end("the amiga player did something terribly stupid", 1);
     return kickmem_xlate (get_long (0xF80000)); /* So we don't crash. */
 }
 

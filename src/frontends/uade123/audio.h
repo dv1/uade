@@ -1,10 +1,10 @@
 #ifndef _UADE123_AUDIO_H_
 #define _UADE123_AUDIO_H_
 
-#include <uade/uadeconfstructure.h>
+#include <uade/uade.h>
 
 void audio_close(void);
-int audio_init(const struct uade_config *uc);
-int audio_play(unsigned char *samples, int bytes);
+int audio_init(const struct uade_config *uc, char **opts);
+int audio_play(char *samples, int bytes);
 
 #endif

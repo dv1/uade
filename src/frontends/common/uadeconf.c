@@ -7,6 +7,10 @@
    want in your projects.
 */
 
+
+#include <uade/uade.h>
+#include <support.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -17,15 +21,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <uade/ossupport.h>
-#include <uade/uadeconf.h>
-#include <uade/uadeoptions.h>
-#include <uade/amigafilter.h>
-#include <uade/uadeconstants.h>
-#include <uade/songdb.h>
-#include <uade/uadeutils.h>
-#include "support.h"
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value);
 static int uade_set_subsong_timeout(struct uade_config *uc, const char *value);
@@ -41,9 +36,6 @@ struct uade_conf_opts {
 /* List of uade.conf options. The list includes option name, minimum
    string match length for the option name and its enum code. */
 static const struct uade_conf_opts uadeconfopts[] = {
-	{.str = "action_keys",           .l = 2,  .e = UC_ACTION_KEYS},
-	{.str = "ao_option",             .l = 2,  .e = UC_AO_OPTION},
-	{.str = "buffer_time",           .l = 1,  .e = UC_BUFFER_TIME},
 	{.str = "cygwin",                .l = 1,  .e = UC_CYGWIN_DRIVE_WORKAROUND},
 	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
 	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
@@ -64,16 +56,12 @@ static const struct uade_conf_opts uadeconfopts[] = {
 	{.str = "no_ep_end_detect",      .l = 4,  .e = UC_NO_EP_END},
 	{.str = "no_filter",             .l = 4,  .e = UC_NO_FILTER},
 	{.str = "no_song_end",           .l = 4,  .e = UC_NO_EP_END},
-	{.str = "normalise",             .l = 1,  .e = UC_NORMALISE},
 	{.str = "ntsc",                  .l = 2,  .e = UC_NTSC},
 	{.str = "one_subsong",           .l = 1,  .e = UC_ONE_SUBSONG},
 	{.str = "pal",                   .l = 3,  .e = UC_PAL},
 	{.str = "panning_value",         .l = 3,  .e = UC_PANNING_VALUE},
-	{.str = "random_play",           .l = 3,  .e = UC_RANDOM_PLAY},
-	{.str = "recursive_mode",        .l = 3,  .e = UC_RECURSIVE_MODE},
-	{.str = "resampler",             .l = 3,  .e = UC_RESAMPLER},
+	{.str = "resampler",             .l = 1,  .e = UC_RESAMPLER},
 	{.str = "silence_timeout_value", .l = 2,  .e = UC_SILENCE_TIMEOUT_VALUE},
-	{.str = "song_title",            .l = 2,  .e = UC_SONG_TITLE},
 	{.str = "speed_hack",            .l = 2,  .e = UC_SPEED_HACK},
 	{.str = "subsong_timeout_value", .l = 2,  .e = UC_SUBSONG_TIMEOUT_VALUE},
 	{.str = "timeout_value",         .l = 1,  .e = UC_TIMEOUT_VALUE},
@@ -101,7 +89,6 @@ static enum uade_option map_str_to_option(const char *key)
 void uade_config_set_defaults(struct uade_config *uc)
 {
 	memset(uc, 0, sizeof(*uc));
-	uc->action_keys = 1;
 	strlcpy(uc->basedir.name, UADE_CONFIG_BASE_DIR,	sizeof uc->basedir.name);
 	uade_set_filter_type(uc, NULL);
 	uc->frequency = UADE_DEFAULT_FREQUENCY;
@@ -159,7 +146,7 @@ static void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 	opts->s += strlen(s) + 1;
 }
 
-static int handle_attributes(struct uade_config *uc, struct uade_song *us,
+static int handle_attributes(struct uade_config *uc, struct uade_song_state *us,
 			     char *playername, size_t playernamelen,
 			     int flags, struct uade_attribute *attributelist)
 {
@@ -174,7 +161,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 		if ((flags & epconf[i].e) == 0)
 			continue;
 
-		uade_set_config_option(uc, epconf[i].o, epconf[i].c);
+		uade_config_set_option(uc, epconf[i].o, epconf[i].c);
 	}
 
 	if (flags & ES_NEVER_ENDS)
@@ -195,15 +182,15 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			break;
 
 		case ES_GAIN:
-			uade_set_config_option(uc, UC_GAIN, a->s);
+			uade_config_set_option(uc, UC_GAIN, a->s);
 			break;
 
 		case ES_RESAMPLER:
-			uade_set_config_option(uc, UC_RESAMPLER, a->s);
+			uade_config_set_option(uc, UC_RESAMPLER, a->s);
 			break;
 
 		case ES_PANNING:
-			uade_set_config_option(uc, UC_PANNING_VALUE, a->s);
+			uade_config_set_option(uc, UC_PANNING_VALUE, a->s);
 			break;
 
 		case ES_PLAYER:
@@ -215,7 +202,7 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			break;
 
 		case ES_SILENCE_TIMEOUT:
-			uade_set_config_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
 			break;
 
 		case ES_SUBSONGS:
@@ -223,11 +210,11 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 			break;
 
 		case ES_SUBSONG_TIMEOUT:
-			uade_set_config_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
 			break;
 
 		case ES_TIMEOUT:
-			uade_set_config_option(uc, UC_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_TIMEOUT_VALUE, a->s);
 			break;
 
 		default:
@@ -244,81 +231,80 @@ static int handle_attributes(struct uade_config *uc, struct uade_song *us,
 int uade_set_song_attributes(struct uade_state *state,
 			     char *playername, size_t playernamelen)
 {
-	struct uade_song *us = state->song;
+	struct uade_song_state *us = &state->song;
 	struct uade_config *uc = &state->config;
 
-	if (us->normalisation)
-		uade_set_config_option(uc, UC_NORMALISE, us->normalisation);
-
-	return handle_attributes(uc, us, playername, playernamelen,
-				 us->flags, us->songattributes);
+	return handle_attributes(uc, us, playername, playernamelen, us->flags, us->songattributes);
 }
 
-int uade_load_config(struct uade_config *uc, const char *filename)
+int uade_load_config(struct uade_state *state, const char *filename)
 {
 	char line[256];
 	FILE *f;
 	char *key, *value;
 	int linenumber = 0;
 	enum uade_option opt;
+	struct uade_config *uc = &state->permconfig;
+
+	state->permconfigname[0] = 0;
 
 	if ((f = fopen(filename, "r")) == NULL)
 		return 0;
 
 	uade_config_set_defaults(uc);
 
-	while (xfgets(line, sizeof(line), f) != NULL) {
+	while (uade_xfgets(line, sizeof(line), f) != NULL) {
 		linenumber++;
 
 		/* Skip comment lines */
 		if (line[0] == '#')
 			continue;
 
-		if (!get_two_ws_separated_fields(&key, &value, line))
+		if (!uade_get_two_ws_separated_fields(&key, &value, line))
 			continue; /* Skip an empty line */
 
 		opt = map_str_to_option(key);
 
 		if (opt) {
-			uade_set_config_option(uc, opt, value);
+			uade_config_set_option(uc, opt, value);
 		} else {
 			fprintf(stderr,	"Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
 		}
 	}
 
 	fclose(f);
+
+	snprintf(state->permconfigname, sizeof(state->permconfigname), "%s", filename);
+
 	return 1;
 }
 
-int uade_load_initial_config(struct uade_state *state, char *uadeconfname, size_t maxlen, const char *bdir)
+int uade_load_initial_config(struct uade_state *state, const char *bdir)
 {
-	int loaded;
+	int loaded = 0;
 	char *home;
+	char tmpname[PATH_MAX];
 
-	assert(maxlen > 0);
-	uadeconfname[0] = 0;
-
+	state->permconfigname[0] = 0;
 	uade_config_set_defaults(&state->permconfig);
-
-	loaded = 0;
 
 	/* First try to load from forced base dir (testing mode) */
 	if (bdir != NULL) {
-		snprintf(uadeconfname, maxlen, "%s/uade.conf", bdir);
-		loaded = uade_load_config(&state->permconfig, uadeconfname);
+		snprintf(tmpname, sizeof(tmpname), "%s/uade.conf", bdir);
+		loaded = uade_load_config(state, tmpname);
 	}
 
 	/* Second, try to load config from ~/.uade2/uade.conf */
 	home = uade_open_create_home();
 	if (loaded == 0 && home != NULL) {
-		snprintf(uadeconfname, maxlen, "%s/.uade2/uade.conf", home);
-		loaded = uade_load_config(&state->permconfig, uadeconfname);
+		snprintf(tmpname, sizeof(tmpname), "%s/.uade2/uade.conf", home);
+		loaded = uade_load_config(state, tmpname);
 	}
 
 	/* Third, try to load from install path */
 	if (loaded == 0) {
-		snprintf(uadeconfname, maxlen, "%s/uade.conf", state->permconfig.basedir.name);
-		loaded = uade_load_config(&state->permconfig, uadeconfname);
+		snprintf(tmpname, sizeof(tmpname), "%s/uade.conf", state->permconfig.basedir.name);
+		loaded = uade_load_config(state, tmpname);
 	}
 
 	state->config = state->permconfig;
@@ -326,21 +312,17 @@ int uade_load_initial_config(struct uade_state *state, char *uadeconfname, size_
 	return loaded;
 }
 
-int uade_load_initial_song_conf(char *songconfname, size_t maxlen,
-				struct uade_config *uc,
-				struct uade_config *ucbase,
-				struct uade_state *state)
+int uade_load_initial_song_conf(struct uade_state *state)
 {
 	int loaded = 0;
 	char *home;
-
-	assert(maxlen > 0);
-	songconfname[0] = 0;
+	char tmpname[PATH_MAX];
+	struct uade_config *uc = &state->config;
 
 	/* Used for testing */
-	if (ucbase != NULL && ucbase->basedir_set) {
-		snprintf(songconfname, maxlen, "%s/song.conf", ucbase->basedir.name);
-		loaded = uade_read_song_conf(songconfname, state);
+	if (uc != NULL && uc->basedir_set) {
+		snprintf(tmpname, sizeof(tmpname), "%s/song.conf", uc->basedir.name);
+		loaded = uade_read_song_conf(tmpname, state);
 	}
 
 	/* Avoid unwanted home directory creation for test mode */
@@ -351,14 +333,14 @@ int uade_load_initial_song_conf(char *songconfname, size_t maxlen,
 
 	/* Try to load from home dir */
 	if (loaded == 0 && home != NULL) {
-		snprintf(songconfname, maxlen, "%s/.uade2/song.conf", home);
-		loaded = uade_read_song_conf(songconfname, state);
+		snprintf(tmpname, sizeof(tmpname), "%s/.uade2/song.conf", home);
+		loaded = uade_read_song_conf(tmpname, state);
 	}
 
 	/* No? Try install path */
 	if (loaded == 0) {
-		snprintf(songconfname, maxlen, "%s/song.conf", uc->basedir.name);
-		loaded = uade_read_song_conf(songconfname, state);
+		snprintf(tmpname, sizeof(tmpname), "%s/song.conf", state->permconfig.basedir.name);
+		loaded = uade_read_song_conf(tmpname, state);
 	}
 
 	return loaded;
@@ -368,10 +350,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 {
 #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
 
-	MERGE_OPTION(action_keys);
-	MERGE_OPTION(ao_options);
 	MERGE_OPTION(basedir);
-	MERGE_OPTION(buffer_time);
 	MERGE_OPTION(content_detection);
 	MERGE_OPTION(cygwin_drive_workaround);
 	MERGE_OPTION(ep_options);
@@ -388,25 +367,19 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 	MERGE_OPTION(no_filter);
 	MERGE_OPTION(no_postprocessing);
 
-	/* Special merge -> don't use MERGE_OPTION macro */
-	if (ucs->normalise_set && ucs->normalise) {
-		ucd->normalise = 1;
-		if (ucs->normalise_parameter != NULL)
-			ucd->normalise_parameter = ucs->normalise_parameter;
-	}
-
 	MERGE_OPTION(one_subsong);
 	MERGE_OPTION(panning);
 	MERGE_OPTION(panning_enable);
-	MERGE_OPTION(random_play);
-	MERGE_OPTION(recursive_mode);
+	MERGE_OPTION(player_file);
 	MERGE_OPTION(resampler);
+	MERGE_OPTION(score_file);
 	MERGE_OPTION(silence_timeout);
-	MERGE_OPTION(song_title);
 	MERGE_OPTION(speed_hack);
 	MERGE_OPTION(subsong_timeout);
 
 	MERGE_OPTION(timeout);
+	MERGE_OPTION(uadecore_file);
+	MERGE_OPTION(uae_config_file);
 	MERGE_OPTION(use_timeouts);
 	if (ucs->timeout_set) {
 		ucd->use_timeouts = 1;
@@ -480,39 +453,40 @@ int uade_parse_subsongs(int **subsongs, char *option)
 
 void uade_set_effects(struct uade_state *state)
 {
-	struct uade_effect *effects = &state->effects;
+	struct uade_effect_state *es = &state->effectstate;
 	struct uade_config *uc = &state->config;
 
-	uade_effect_set_defaults(effects);
+	uade_effect_set_defaults(es);
 
 	if (uc->no_postprocessing)
-		uade_effect_disable(effects, UADE_EFFECT_ALLOW);
+		uade_effect_disable(es, UADE_EFFECT_ALLOW);
 
 	if (uc->gain_enable) {
-		uade_effect_gain_set_amount(effects, uc->gain);
-		uade_effect_enable(effects, UADE_EFFECT_GAIN);
+		uade_effect_gain_set_amount(es, uc->gain);
+		uade_effect_enable(es, UADE_EFFECT_GAIN);
 	}
 
 	if (uc->headphones)
-		uade_effect_enable(effects, UADE_EFFECT_HEADPHONES);
+		uade_effect_enable(es, UADE_EFFECT_HEADPHONES);
 
 	if (uc->headphones2)
-		uade_effect_enable(effects, UADE_EFFECT_HEADPHONES2);
-
-	if (uc->normalise) {
-		uade_effect_normalise_unserialise(uc->normalise_parameter);
-		uade_effect_enable(effects, UADE_EFFECT_NORMALISE);
-	}
+		uade_effect_enable(es, UADE_EFFECT_HEADPHONES2);
 
 	if (uc->panning_enable) {
-		uade_effect_pan_set_amount(effects, uc->panning);
-		uade_effect_enable(effects, UADE_EFFECT_PAN);
+		uade_effect_pan_set_amount(es, uc->panning);
+		uade_effect_enable(es, UADE_EFFECT_PAN);
 	}
 
-	uade_effect_set_sample_rate(effects, uc->frequency);
+	uade_effect_set_sample_rate(es, uc->frequency);
 }
 
-void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
+static void handle_config_path(struct uade_path *path, char *set, const char *value)
+{
+	strlcpy(path->name, value, sizeof path->name);
+	*set = 1;
+}
+
+void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 			    const char *value)
 {
 	char *endptr;
@@ -521,51 +495,8 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 #define SET_OPTION(opt, value) do { uc->opt = (value); uc->opt##_set = 1; } while (0)
 
 	switch (opt) {
-	case UC_ACTION_KEYS:
-		if (value != NULL) {
-			uc->action_keys_set = 1;
-			if (!strcasecmp(value, "on") || !strcmp(value, "1")) {
-				uc->action_keys = 1;
-			} else if (!strcasecmp(value, "off") ||
-				   !strcmp(value, "0")) {
-				uc->action_keys = 0;
-			} else {
-				fprintf(stderr,
-					"uade.conf: Unknown setting for action keys: %s\n",
-					value);
-			}
-		}
-		break;
-
-	case UC_AO_OPTION:
-		strlcat(uc->ao_options.o, value, sizeof uc->ao_options.o);
-		strlcat(uc->ao_options.o, "\n", sizeof uc->ao_options.o);
-		uc->ao_options_set = 1;
-		break;
-
 	case UC_BASE_DIR:
-		if (value != NULL) {
-			strlcpy(uc->basedir.name, value,
-				sizeof uc->basedir.name);
-			uc->basedir_set = 1;
-		} else {
-			fprintf(stderr, "uade: Passed NULL to UC_BASE_DIR.\n");
-		}
-		break;
-
-	case UC_BUFFER_TIME:
-		if (value != NULL) {
-			uc->buffer_time_set = 1;
-			uc->buffer_time = strtol(value, &endptr, 10);
-			if (uc->buffer_time <= 0 || *endptr != 0) {
-				fprintf(stderr, "Invalid buffer_time: %s\n",
-					value);
-				uc->buffer_time = 0;
-			}
-		} else {
-			fprintf(stderr,
-				"uade: Passed NULL to UC_BUFFER_TIME.\n");
-		}
+		handle_config_path(&uc->basedir, &uc->basedir_set, value);
 		break;
 
 	case UC_CONTENT_DETECTION:
@@ -713,15 +644,6 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		SET_OPTION(no_postprocessing, 1);
 		break;
 
-	case UC_NORMALISE:
-		if (value == NULL) {
-			fprintf(stderr, "uade: UC_NORMALISE is NULL\n");
-			break;
-		}
-		SET_OPTION(normalise, 1);
-		uc->normalise_parameter = (char *) value;
-		break;
-
 	case UC_NTSC:
 		SET_OPTION(use_ntsc, 1);
 		break;
@@ -743,12 +665,12 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		SET_OPTION(panning, uade_convert_to_double(value, 0.0, 0.0, 2.0, "panning"));
 		break;
 
-	case UC_RANDOM_PLAY:
-		SET_OPTION(random_play, 1);
+	case UC_PLAYER_FILE:
+		handle_config_path(&uc->player_file, &uc->player_file_set, value);
 		break;
 
-	case UC_RECURSIVE_MODE:
-		SET_OPTION(recursive_mode, 1);
+	case UC_SCORE_FILE:
+		handle_config_path(&uc->score_file, &uc->score_file_set, value);
 		break;
 
 	case UC_SILENCE_TIMEOUT_VALUE:
@@ -758,18 +680,6 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 			break;
 		}
 		uade_set_silence_timeout(uc, value);
-		break;
-
-	case UC_SONG_TITLE:
-		if (value == NULL) {
-			fprintf(stderr, "uade: No song_title format given.\n");
-			break;
-		}
-		if ((uc->song_title = strdup(value)) == NULL) {
-			fprintf(stderr, "No memory for song title format\n");
-		} else {
-			uc->song_title_set = 1;
-		}
 		break;
 
 	case UC_SPEED_HACK:
@@ -793,6 +703,14 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		uade_set_timeout(uc, value);
 		break;
 
+	case UC_UADECORE_FILE:
+		handle_config_path(&uc->uadecore_file, &uc->uadecore_file_set, value);
+		break;
+
+	case UC_UAE_CONFIG_FILE:
+		handle_config_path(&uc->uae_config_file, &uc->uae_config_file_set, value);
+		break;
+
 	case UC_USE_TEXT_SCOPE:
 		SET_OPTION(use_text_scope, 1);
 		break;
@@ -802,7 +720,7 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 		break;
 
 	default:
-		fprintf(stderr, "uade_set_config_option(): unknown enum: %d\n",
+		fprintf(stderr, "uade_config_set_option(): unknown enum: %d\n",
 			opt);
 		exit(1);
 	}
@@ -810,7 +728,8 @@ void uade_set_config_option(struct uade_config *uc, enum uade_option opt,
 
 void uade_set_ep_attributes(struct uade_state *state)
 {
-	handle_attributes(&state->config, state->song, NULL, 0, state->ep->flags, state->ep->attributelist);
+	struct eagleplayer *ep = state->song.info.detectioninfo.ep;
+	handle_attributes(&state->config, &state->song, NULL, 0, ep->flags, ep->attributelist);
 }
 
 void uade_set_filter_type(struct uade_config *uc, const char *model)

@@ -30,9 +30,7 @@ implemented in uade.
 
 uade123 is a command line player that can be used to play Amiga songs. It's
 options and behavior are documented here. There is also a plugin for the
-audacious and 
-.BR xmms
-(1).
+audacious.
 
 Section
 .BR FILE\ FORMAT\ DETECTION
@@ -78,12 +76,9 @@ format can not be deduced based on file contents, a heuristics based on the
 file name must be used. This may sound strange, but many of the
 m68k machine language player plugins are black boxes which have no reliable
 mechanism to validate whether a given file belongs to them or not.
-In uade123 the filename based heuristics may cause
-unrecognized songs and in XMMS it can cause conflicts with other plugins.
-.BR contrib/uadexmmsadd
-script can be used to add uade:// prefixed playlist entries into XMMS to
-avoid conflicts with some of the existing mod plugins for XMMS. However,
-we recommend disabling conflicting XMMS plugins if convenient.
+The filename based heuristics may cause
+unrecognized songs in uade123.
+In audacious plugin they can cause conflicts with other plugins.
 
 .SH "COMMAND LINE OPTIONS"
 
@@ -156,7 +151,7 @@ Force Amiga filter on or off. 0 means "OFF" and 1 means "ON".
 .TP
 \fB\-\-frequency=\fRx
 Set output frequency to x Hz. The default is 44,1 kHz. Note that this option
-applies to all frontends (including Audacious and XMMS plugins).
+applies to all frontends (including Audacious plugin).
 .TP
 \fB\-G, \-\-gain=\fRx
 Set volume gain to
@@ -245,6 +240,12 @@ uade123 --set="gain=2" mod.foo.
 Another example: Force mod.uptim8 to be played as a Startrekker 4 song:
 .sp 1
 uade123 --set="player=PTK-Prowiz epopt=type:flt4" mod.uptim8
+.sp 1
+mod.level6h in the "Disposable Hero" requires vblank timing for the
+protracker replayer:
+.sp 1
+uade123 --set='epopt=vblank' mod.level6h
+
 .TP 
 \fB\-\-speed\-hack\fR
 Enable speedhack. Emulate all instructions to be executed
@@ -357,6 +358,9 @@ is a configuration file for applying work-arounds for songs that
 have problems with eagleplayers. Protracker is especially notorious
 for having many incompatible versions, and modules do not have version
 information about the editor which was used to create them.
+One can program song.conf rules for songs by using the --set option
+in uade123. For example, forcing a module into vblank timing, do:
+"uade123 --set='epopt=vblank' mod.level6h"
 
 The file shall have lines of following format:
 .sp 1
@@ -377,13 +381,6 @@ broken_song_end      Song end reported by the eagleplayer is ignored
 .br
 detect_format_by_content  A song can only be detected by contents,
                      never by filename prefix or postfix
-.br
-detect_format_by_name     eagleplayer.conf only: the eagleplayer is
-                     detected by name extension only. Furthermore,
-                     any eagleplayer that recognizes the same file by
-                     content is ignored. Do not use this option
-                     without a good reason. Name extensions are
-                     unreliable.
 .br
 epopt=x              Append option x for eagleplayer. Valid options
                      are listed in section "EAGLEPLAYER OPTIONS".
@@ -436,8 +433,6 @@ subsongs=x,y,...     Set playable subsong (not implemented yet)
 subsong_timeout=x    Set subsong timeout
 .br
 timeout=x            Set timeout
-.br
-vblank               Play in vblank mode (works only for protracker variants)
 .sp 1
 .BR comment
 is a tag after which everything is considered just a comment
@@ -467,13 +462,11 @@ exist, it is tried from
 .BR $PREFIX/share/uade2/uade.conf
  . Making a copy of the
 uade.conf into $HOME/.uade2/ can be useful for users. The same uade.conf
-controls settings for all frontends. Specifically, this includes the XMMS
+controls settings for all frontends. Specifically, this includes the audacious
 plugin too.
 
 The valid commands are:
 .sp 1
-    action_keys x      Set action keys "off" or "on".
-.br
     ao_option x:y      Set libao driver option with key=x and value=y.
                        See --ao-option=x:y for more information.
                        Example: ao_option dev:default
@@ -537,10 +530,6 @@ The valid commands are:
 .br
     silence_timeout x  Set silence timeout value to x seconds.
 .br
-    song_title x       Set song title for GUI plugins according to
-                       given specification x. See section SONG TITLE
-                       SPECIFICATION.
-.br
     speed_hack         Enable speed hack mode.
 .br
     subsong_timeout x  Set subsong timeout value to x seconds. -1
@@ -551,24 +540,6 @@ The valid commands are:
 .br
     verbose            Enable verbose mode
 .br
-.SH "SONG TITLE SPECIFICATION"
-Song title for GUI frontends can be specified by using song_title option
-in uade.conf. The default value for specification is %F %X [%P].
-Following items are allowed in the specification:
-.sp 1
-    %F - filename                 %T - songtitle
-.br
-    %P - player or formatname 
-.br
-    %A - minimum subsong          %B - current subsong
-.br
-    %C - maximum subsong          %X - only display subsongs when more
-                                  than one
-.sp 1
-An example of alternative specification that displays the song name
-received from the eagleplayer (as opposed to file name):
-.sp 1
-    song_title %T %X [%P]
 
 .SH "EAGLEPLAYER OPTIONS"
 Eagleplayers can be given song specific or general options in song.conf
@@ -753,7 +724,7 @@ uade123 -c "$@" |aplay
 .B Public web forum
 (primary place for all discussion):
 .br
-http://board.kohina.net/index.php?c=5
+http://board.kohina.net/index.php?c=6
 .TP
 .B Project home:
 .br

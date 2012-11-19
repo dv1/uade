@@ -7,6 +7,12 @@
    want in your projects.
 */
 
+#include <uade/uadecontrol.h>
+#include <uade/ossupport.h>
+#include <uade/sysincludes.h>
+#include <uade/uadeconstants.h>
+#include <uade/songdb.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -16,49 +22,29 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-#include <uade/uadecontrol.h>
-#include <uade/ossupport.h>
-#include <uade/sysincludes.h>
-#include <uade/uadeconstants.h>
-#include <uade/songdb.h>
-
-static void subsong_control(int subsong, int command, struct uade_ipc *ipc);
-
-void uade_change_subsong(struct uade_state *state)
+int uade_read_request(struct uade_state *state)
 {
-	state->song->silence_count = 0;
-
-	uade_lookup_volume_normalisation(state);
-
-	subsong_control(state->song->cur_subsong, UADE_COMMAND_CHANGE_SUBSONG, &state->ipc);
-}
-
-int uade_read_request(struct uade_ipc *ipc)
-{
+	struct uade_ipc *ipc = &state->ipc;
 	uint32_t left = UADE_MAX_MESSAGE_SIZE - sizeof(struct uade_msg);
-	if (uade_send_u32(UADE_COMMAND_READ, left, ipc)) {
-		fprintf(stderr, "\ncan not send read command\n");
+	if (uade_send_u32(UADE_COMMAND_READ, left, ipc))
 		return 0;
-	}
 	return left;
 }
 
 static int send_ep_options(struct uade_ep_options *eo, struct uade_ipc *ipc)
 {
-	if (eo->s > 0) {
-		size_t i = 0;
-		while (i < eo->s) {
-			char *s = &eo->o[i];
-			size_t l = strlen(s) + 1;
-			assert((i + l) <= eo->s);
-			if (uade_send_string
-			    (UADE_COMMAND_SET_PLAYER_OPTION, s, ipc)) {
-				fprintf(stderr,
-					"Can not send eagleplayer option.\n");
-				return -1;
-			}
-			i += l;
+	size_t i;
+	if (eo->s == 0)
+		return 0;
+	for (i = 0; i < eo->s; ) {
+		char *s = &eo->o[i];
+		size_t l = strlen(s) + 1;
+		assert((i + l) <= eo->s);
+		if (uade_send_string(UADE_COMMAND_SET_PLAYER_OPTION, s, ipc)) {
+			fprintf(stderr, "Can not send eagleplayer option.\n");
+			return -1;
 		}
+		i += l;
 	}
 	return 0;
 }
@@ -70,75 +56,63 @@ void uade_send_filter_command(struct uade_state *state)
 
 	int filter_type = uadeconf->filter_type;
 	int filter_state = uadeconf->led_state;
-	int force_filter = uadeconf->led_forced;
 
 	if (uadeconf->no_filter)
 		filter_type = 0;
 
 	/* Note that filter state is not normally forced */
-	filter_state = force_filter ? (2 + (filter_state & 1)) : 0;
+	filter_state = uadeconf->led_forced ? (2 + (filter_state & 1)) : 0;
 
-	if (uade_send_two_u32s
-	    (UADE_COMMAND_FILTER, filter_type, filter_state, ipc)) {
-		fprintf(stderr, "Can not setup filters.\n");
-		exit(1);
-	}
+	if (uade_send_two_u32s(UADE_COMMAND_FILTER, filter_type, filter_state, ipc))
+		uade_warning("Can not setup filters\n");
 }
 
 static void send_resampling_command(struct uade_ipc *ipc,
 				    struct uade_config *uadeconf)
 {
 	char *mode = uadeconf->resampler;
-	if (mode != NULL) {
-		if (strlen(mode) == 0) {
-			fprintf(stderr, "Resampling mode may not be empty.\n");
-			exit(1);
-		}
-		if (uade_send_string
-		    (UADE_COMMAND_SET_RESAMPLING_MODE, mode, ipc)) {
-			fprintf(stderr, "Can not set resampling mode.\n");
-			exit(1);
-		}
-	}
-}
-
-static void subsong_control(int subsong, int command, struct uade_ipc *ipc)
-{
-	assert(subsong >= 0 && subsong < 256);
-	if (uade_send_u32(command, (uint32_t) subsong, ipc) < 0) {
-		fprintf(stderr, "Could not changet subsong\n");
+	if (mode == NULL)
+		return;
+	if (strlen(mode) == 0) {
+		fprintf(stderr, "Resampling mode may not be empty.\n");
 		exit(1);
 	}
+	if (uade_send_string(UADE_COMMAND_SET_RESAMPLING_MODE, mode, ipc))
+		uade_warning("Can not set resampling mode\n");
 }
 
-void uade_set_subsong(int subsong, struct uade_ipc *ipc)
+void uade_subsong_control(int subsong, int command, struct uade_ipc *ipc)
 {
-	subsong_control(subsong, UADE_COMMAND_SET_SUBSONG, ipc);
+	assert(subsong >= 0 && subsong < 256);
+	if (uade_send_u32(command, (uint32_t) subsong, ipc) < 0)
+		uade_warning("Could not change subsong\n");
 }
 
-int uade_song_initialization(const char *scorename,
-			     const char *playername,
-			     const char *modulename,
+int uade_song_initialization(struct uade_file *player, struct uade_file *module,
 			     struct uade_state *state)
 {
 	uint8_t space[UADE_MAX_MESSAGE_SIZE];
 	struct uade_msg *um = (struct uade_msg *)space;
 	struct uade_ipc *ipc = &state->ipc;
 	struct uade_config *uc = &state->config;
-	struct uade_song *us = state->song;
+	struct uade_song_state *us = &state->song;
 
-	if (uade_send_string(UADE_COMMAND_SCORE, scorename, ipc)) {
+	if (uade_send_string(UADE_COMMAND_SCORE, state->config.score_file.name, ipc)) {
 		fprintf(stderr, "Can not send score name.\n");
 		goto cleanup;
 	}
 
-	if (uade_send_string(UADE_COMMAND_PLAYER, playername, ipc)) {
-		fprintf(stderr, "Can not send player name.\n");
+	if (uade_send_file(player, ipc)) {
+		fprintf(stderr, "Can not send player name\n");
 		goto cleanup;
 	}
 
-	if (uade_send_string(UADE_COMMAND_MODULE, modulename, ipc)) {
-		fprintf(stderr, "Can not send module name.\n");
+	/*
+	 * Note, module can be NULL, in which case a message is sent that
+	 * indicates no module is given.
+	 */
+	if (uade_send_file(module, ipc)) {
+		fprintf(stderr, "Can not send module\n");
 		goto cleanup;
 	}
 
@@ -154,9 +128,8 @@ int uade_song_initialization(const char *scorename,
 
 	if (um->msgtype == UADE_REPLY_CANT_PLAY) {
 		if (uade_receive_short_message(UADE_COMMAND_TOKEN, ipc)) {
-			fprintf(stderr,
-				"Can not receive token in main loop.\n");
-			exit(1);
+			uade_warning("Can not receive token in main loop\n");
+			goto cleanup;
 		}
 		return UADECORE_CANT_PLAY;
 	}
@@ -229,18 +202,4 @@ int uade_song_initialization(const char *scorename,
 
       cleanup:
 	return UADECORE_INIT_ERROR;
-}
-
-void uade_spawn(struct uade_state *state, const char *uadename,
-		const char *configname)
-{
-	uade_arch_spawn(&state->ipc, &state->pid, uadename);
-
-	if (uade_send_string(UADE_COMMAND_CONFIG, configname, &state->ipc)) {
-		fprintf(stderr, "Can not send config name: %s\n",
-			strerror(errno));
-		kill(state->pid, SIGTERM);
-		state->pid = 0;
-		abort();
-	}
 }

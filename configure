@@ -40,29 +40,24 @@ fi
 
 debug_flags="-g"
 packageprefix=""
+bencodetoolsprefix=""
 user="no"
 
 # components to compile
-useaudacious="yes"
 uselibuade="yes"
-useuadefs="yes"
+useuadefs="no"
 useuade123="yes"
 useuadecore="yes"
-usexmms="yes"
 
-xmmsplugindir=""
-audaciousplugindir=""
 pkgrequirements="ao"
 textscope="no"
 n900="no"
 
 set_all_no() {
-    useaudacious="no"
     uselibuade="no"
     useuadefs="no"
     useuade123="no"
     useuadecore="no"
-    usexmms="no"
 }
 
 for opt in "$@" ; do
@@ -75,6 +70,9 @@ for opt in "$@" ; do
 		;;
 	--package-prefix=*)
 		packageprefix=`echo $opt | sed -n 's/--package-prefix=\(.*\)/\1/p'`
+		;;
+	--bencode-tools-prefix=*)
+		bencodetoolsprefix=`echo $opt | sed -n 's/--bencode-tools-prefix=\(.*\)/\1/p'`
 		;;
 
         --bindir=*)
@@ -121,23 +119,14 @@ for opt in "$@" ; do
 		debug_flags=""
 		;;
 
+	--home)
+		user="yes"
+		;;
         --user)
 		user="yes"
 		;;
 
 # Options for frontends
-
-	--audacious-plugin-dir=*)
-		audaciousplugindir=`echo $opt | sed -n 's/--audacious-plugin-dir=\(.*\)/\1/p'`
-		;;
-
-	--without-audacious)
-		useaudacious="no"
-		;;
-	--only-audacious)
-		set_all_no
-		useaudacious="yes"
-		;;
 
 	--without-libuade)
 		uselibuade="no"
@@ -167,27 +156,12 @@ for opt in "$@" ; do
 		useuadecore="yes"
 		;;
 
-	--without-xmms)
-		usexmms="no"
-		;;
-	--only-xmms)
-		set_all_no
-		usexmms="yes"
-		;;
-
 	--without-uadefs)
 		useuadefs="no"
 		;;
 	--only-uadefs)
 		set_all_no
 		useuadefs="yes"
-		;;
-
-	--xmms-config=*)
-	        XMMS_CONFIG=`echo $opt | sed -n 's/--xmms-config=\(.*\)/\1/p'`
-		;;
-	--xmms-plugin-dir=*)
-		xmmsplugindir=`echo $opt | sed -n 's/--xmms-plugin-dir=\(.*\)/\1/p'`
 		;;
 
 # Miscellaneous options
@@ -198,10 +172,12 @@ for opt in "$@" ; do
 	--help)
 		echo
 		echo "Installation control:"
-                echo " --user                 Install uade to user's home directory. Do not run"
+                echo " --home                 Install uade to user's home directory. Do not run"
 		echo "                        'make install' as root!"
                 echo " --prefix=path          Install program under 'path'"
 	        echo " --package-prefix=path  File installation prefix (for package maintainers)"
+		echo " --bencode-tools-prefix=path Set prefix for bencode-tools. File named"
+		echo "                        path/lib/libbencodetools.{so|dylib} should exist."
 		echo " --bindir=dir           Install executables into this directory"
 		echo " --includedir=dir       Add this directory to compilation include path"
 		echo " --make=exe             Use 'exe' as the make command"
@@ -216,24 +192,17 @@ for opt in "$@" ; do
 		echo " --target-objcopy=objc  Specify target objcopy. (cross compiling)"
 		echo
 		echo "Plugins and tools to compile:"
-		echo " --without-audacious    Do not compile an Audacious plugin"
 		echo " --with-text-scope      Enable text scope support (uade123 --scope)"
-		echo " --without-libude       Do not compile libuade"
+		echo " --without-libuade      Do not compile libuade"
 		echo " --without-uade123      Do not compile uade123"
 		echo " --without-uadecore     Do not compile uadecore. This is useful for"
 		echo "                        distribution makers who want to compile new frontends"
 		echo "                        without re-compiling the emulator binary."
 		echo " --without-uadefs       Do not compile uadefs filesystem"
-		echo " --without-xmms         Do not compile an XMMS plugin"
-		echo " --only-audacious       Compile only Audacious plugin"
 		echo " --only-libuade         Compile only libuade"
 		echo " --only-uade123         Compile only uade123 plugin"
 		echo " --only-uadecore        Compile only uadecore"
 		echo " --only-uadefs          Compile only uadefs plugin"
-		echo " --only-xmms            Compile only XMMS plugin"
-		echo " --audacious-plugin-dir=PATH  Install Audacious plugin to PATH"
-		echo " --xmms-config=exe      Use 'exe' as xmms-config"
-		echo " --xmms-plugin-dir=PATH Install XMMS plugin to PATH"
 		echo
 		echo "Other:"
 		echo " --n900                 Set useful parameters for Nokia N900."
@@ -259,37 +228,9 @@ if test -z "$PKG_CONFIG" ; then
 fi
 "$PKG_CONFIG" --version 2> /dev/null > /dev/null || PKG_CONFIG=""
 if test -z "$PKG_CONFIG" ; then
-    echo "The system doesn't have pkg-config. You may not be able to compile some frontends (audacious, uadefs, ...)"
-fi
-
-if test -z "$XMMS_CONFIG" ; then
-    XMMS_CONFIG="xmms-config"
-fi
-
-if test "$usexmms" = "yes" ; then
-    usexmms="no"
-    if test -x "`which $XMMS_CONFIG`" ; then
-	usexmms="yes"
-	XMMSFLAGS="`$XMMS_CONFIG --cflags`"
-	XMMSLIBS="`$XMMS_CONFIG --libs`"
-    fi
-    if test "$usexmms" = "no" ; then
-	echo "Couldn't find xmms-config -> not compiling the XMMS plugin!"
-    fi
-fi
-
-if test "$useaudacious" = "yes" ; then
-    useaudacious="no"
-    if test -n "$PKG_CONFIG" ; then
-	if test -n "`$PKG_CONFIG audacious --libs 2>/dev/null`"; then
-		useaudacious="yes"
-		AUDACIOUSFLAGS="`$PKG_CONFIG audacious --cflags`"
-		AUDACIOUSLIBS="`$PKG_CONFIG audacious --libs`"
-	fi
-    fi
-    if test "$useaudacious" = "no" ; then
-	echo "Couldn't find pkg-config information for audacious plugin -> not compiling it"
-    fi
+    echo
+    echo "The system doesn't have pkg-config. You may not be able to compile some frontends (uadefs, ...)"
+    echo
 fi
 
 # set kernel type (such as AmigaOS) with environment variable $UADEKERNEL
@@ -316,21 +257,17 @@ if test -n "$OS" && test "$OS" = "MorphOS"; then
     echo
     echo "Configuring for MorphOS / AmigaOS."
     ARCHFLAGS="$ARCHFLAGS -noixemul"
-    usexmms="no"
-    useaudacious="no"    
 elif test -n "$OS" && test "$OS" = "AmigaOS"; then
     echo
     echo "Configuring for AmigaOS 4."
     ARCHFLAGS="$ARCHFLAGS -lnet -lauto"
-    usexmms="no"
-    useaudacious="no"
 elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo
     echo "Configuring for MacOSX"
     ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
     SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
     SHAREDFLAG="-dynamiclib"
-    SHAREDNAMEFLAG=""
+    SHAREDNAMEFLAG="-install_name \$(LIBDIR)/\$@"
     SHAREDSUFFIX="dylib"
 elif test -n "$OS" && test "$OS" = "OpenBSD"; then
     # Force gmake for OpenBSD.
@@ -398,34 +335,10 @@ if test "$user" = "no"; then
     if test -z "$prefix"; then
 	prefix="/usr/local"
     fi
-    if test "$usexmms" = "yes" ; then
-	if test -z "$xmmsplugindir" ; then
-	    xmmsplugindir="`xmms-config --input-plugin-dir`"
-	fi
-    fi
-    if test "$useaudacious" = "yes" ; then
-	if test -z "$audaciousplugindir" ; then
-	    audaciousplugindir="`$PKG_CONFIG audacious --variable=input_plugin_dir`"
-	fi
-    fi
 else
     # user installation
     if test -z "$prefix"; then
 	prefix="$HOME"
-    fi
-    if test "$usexmms" = "yes" ; then
-	if test -z "$xmmsplugindir" ; then
-	    xmmsplugindir="$HOME/.xmms/Plugins/Input"
-	fi
-    fi
-    if test "$useaudacious" = "yes" ; then
-	if test -z "$audaciousplugindir" ; then
-	    if $PKG_CONFIG --max-version=1.2.2 audacious ; then
-		audaciousplugindir="$HOME/.audacious/Plugins/Input"
-	    else
-		audaciousplugindir="$HOME/.local/share/audacious/Plugins"	
-	    fi
-	fi
     fi
 fi
 
@@ -459,50 +372,44 @@ if test "$?" != "0"; then
     exit 1
 fi
 
-cd compat
-rm -f ../src/include/stdint.h
-cat > stdinttest.c <<EOF
-#include <stdint.h>
-int main(void) { int8_t a = 0; int16_t b = 0; int32_t c = 0; int64_t d = 0; uint8_t e = 0; uint16_t f = 0; uint32_t g = 0; uint64_t h = 0; intptr_t i = 0; return 0; }
-EOF
-$TARGETCC $ARCHFLAGS $ARCHLIBS -o stdinttest stdinttest.c 2>/dev/null
-if test "$?" != "0" ; then
-    echo "#include <inttypes.h>" > ../src/include/stdint.h
-    echo "Potential hazard detected: stdint.h is missing (needed for portable types)"
-fi
-cd ..
-
-if test "$useuade123" = "yes" ; then
-    AOFLAGS=""
-    AOLIBS="-lao"
-    if test -n "$PKG_CONFIG" ; then
-	AOFLAGS=$($PKG_CONFIG --cflags ao)
-	if test "$?" != "0"; then
+AOFLAGS=""
+AOLIBS="-lao"
+if test -n "$PKG_CONFIG" ; then
+    AOFLAGS=$($PKG_CONFIG --cflags ao)
+    if test "$?" != "0"; then
+	if test "$useuade123" = "yes" ; then
 	    echo ""
 	    echo "Can not compile uade123. Please install libao (including development kit)."
 	    echo ""
 	    useuade123="no"
 	fi
-	AOLIBS=$($PKG_CONFIG --libs ao)
     fi
+    AOLIBS=$($PKG_CONFIG --libs ao)
 fi
 
 pkgconfigdir="$prefix/lib/pkgconfig"
-rm -f uade.pc
+rm -f libuade.pc
 if test -n "$PKG_CONFIG" ; then
     installuadepcrule=""
     if test "$useuade123" = "no" ; then
 	pkgrequirements=""
     fi
-    cat > uade.pc <<EOF
-uadecore=$uadecoredir/$UADECORENAME
-data_directory=$uadedatadir
-ipc_protocol_version=$IPC_PROTOCOL_VERSION
+    userliblinkoption=""
+    if test "$user" = "yes" ; then
+       userliblinkoption="-Wl,-rpath,$libdir"
+    fi
+    cat > libuade.pc <<EOF
+libdir=$libdir
+includedir=$includedir
 
 Name: UADE (Unix Amiga Delitracker Emulator)
 Description: A music player for Amiga music formats
 Version: $VERSION
-Requires: $pkgrequirements
+Requires:
+
+Libs: -L${libdir} $userliblinkoption -luade
+Cflags: -I${includedir}
+
 EOF
 fi
 
@@ -515,14 +422,17 @@ if test "$useuadefs" = "yes" ; then
     fi
 fi
 
+OSSUPPORTC="src/frontends/common/ossupport.c"
+OSSUPPORTH="src/frontends/include/uade/ossupport.h"
+
 # Target is UNIX.
-cat > src/ossupport.c <<EOF
+cat > "$OSSUPPORTC" <<EOF
 #include <uade/ossupport.h>
 
-#include "unixsupport.c"
 EOF
+cat src/frontends/common/unixsupport.c >> "$OSSUPPORTC"
 
-cat > src/frontends/include/uade/ossupport.h <<EOF
+cat > "$OSSUPPORTH" <<EOF
 #ifndef _UADE_OSSUPPORT_H_
 #define _UADE_OSSUPPORT_H_
 
@@ -532,28 +442,28 @@ EOF
 cd compat
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o memmemtest memmemtest.c 2>/dev/null
 if test "$?" != "0" ; then
-    cat memmemrep.h >> ../src/frontends/include/uade/ossupport.h
-    cat memmemrep.c >> ../src/ossupport.c
+    cat memmemrep.h >> "../$OSSUPPORTH"
+    cat memmemrep.c >> "../$OSSUPPORTC"
     echo "Using memmem() replacement"
 fi
 
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o strltest strltest.c 2>/dev/null
 if test -e "strltest" ; then
-    echo "#include <string.h>" >> ../src/frontends/include/uade/ossupport.h
+    echo "#include <string.h>" >> "../$OSSUPPORTH"
 else
-    cat strlrep.c >> ../src/ossupport.c
-    cat strlrep.h >> ../src/frontends/include/uade/ossupport.h
+    cat strlrep.c >> "../$OSSUPPORTC"
+    cat strlrep.h >> "../$OSSUPPORTH"
     echo "Using strlcpy/cat() replacements"
 fi
 
 $TARGETCC $ARCHFLAGS $ARCHLIBS -o canontest canontest.c 2>/dev/null
 if test ! -e "canontest" ; then
-    cat canonrep.c >> ../src/ossupport.c
-    cat canonrep.h >> ../src/frontends/include/uade/ossupport.h
+    cat canonrep.c >> "../$OSSUPPORTC"
+    cat canonrep.h >> "../$OSSUPPORTH"
     echo "Using canonical_file_name() replacement"
 fi
 
-echo "#endif" >> ../src/frontends/include/uade/ossupport.h
+echo "#endif" >> "../$OSSUPPORTH"
 
 csfile="../src/frontends/include/uade/compilersupport.h"
 echo "#ifndef _UADE_COMPILER_SUPPORT_H_" > "$csfile"
@@ -593,6 +503,44 @@ test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
 test "$textscope" = "yes" && echo "#define UADE_CONFIG_TEXT_SCOPE" >> "$conffile"
 
+
+function find_lib() {
+    libname="$1"
+    for d in "$bencodetoolsprefix" "$prefix" "$HOME" "/usr/local" "/usr" ; do
+	if test -z "$d" ; then continue ; fi
+	if test -e "$d/lib/$libname" ; then
+	    echo "$d"
+	    return
+	fi
+    done
+}
+
+LIBBENCODETOOLSNAME="libbencodetools.$SHAREDSUFFIX"
+
+if test -z "$bencodetoolsprefix" ; then
+    bencodetoolsprefix=$(find_lib "$LIBBENCODETOOLSNAME")
+    if test -z "$bencodetoolsprefix" ; then
+	echo
+	echo "Can not find libbencodetools. You can use --bencode-tools-prefix to set bencode-tool's base directory. e.g. --bencode-tools-prefix=/foo, where /foo/lib/$LIBBENCODETOOLSNAME exists."
+	echo
+	echo "You may need to obtain bencode-tools from"
+	echo
+	echo "    http://zakalwe.fi/~shd/foss/bencode-tools/"
+	echo
+	echo "Or directly clone the source with:"
+	echo
+	echo "    git clone https://github.com/heikkiorsila/bencode-tools.git"
+	echo
+	exit 1
+    fi
+fi    
+
+BENCODETOOLSFLAGS=""
+if test "$bencodetoolsprefix" != "/usr" ; then
+    BENCODETOOLSFLAGS="-I$bencodetoolsprefix/include"
+    ARCHLIBS="$ARCHLIBS -L$bencodetoolsprefix/lib -Wl,-rpath,$bencodetoolsprefix/lib"
+fi
+
 echo ""
 echo "UADE and frontends is installed to      : $bindir"
 echo "Data directory                          : $uadedatadir"
@@ -607,26 +555,14 @@ echo "Target CC                               : $TARGETCC"
 echo "libuade                                 : $uselibuade"
 echo "uadecore                                : $useuadecore"
 echo "uade123                                 : $useuade123"
-if test "$useuade123" = "yes" ; then
-    echo "uade123 sound output                    : AO"
-fi
-echo "XMMS plugin                             : $usexmms"
-if test "$usexmms" = "yes" ; then
-    echo "XMMS plugin directory                   : $xmmsplugindir"
-fi
-echo "Audacious plugin                        : $useaudacious"
-if test "$useaudacious" = "yes" ; then
-    echo "Audacious plugin directory              : $audaciousplugindir"
-fi
 echo "uadefs                                  : $useuadefs"
 echo "Text scope support                      : $textscope"
+echo "bencode-tools prefix                    : $bencodetoolsprefix"
 echo
 
 libuaderule=""
 uadecorerule=""
 uade123rule=""
-xmmspluginrule=""
-audaciouspluginrule=""
 uadefsrule=""
 
 if test "$uselibuade" = "yes" ; then
@@ -638,26 +574,24 @@ fi
 if test "$useuade123" = "yes" ; then
     uade123rule="uade123"
 fi
-if test "$usexmms" = "yes" ; then
-    xmmspluginrule="xmmsplugin"
-fi
-if test "$useaudacious" = "yes" ; then
-    audaciouspluginrule="audaciousplugin"
-fi
 if test "$useuadefs" = "yes" ; then
     uadefsrule="uadefs"
 fi
+
+compilerules=""
+installrules=""
+for component in $libuaderule $uadecorerule $uade123rule $uadefsrule ; do
+    compilerules="$compilerules $component"
+    installrules="$installrules $component""install"
+done
 
 replace_with_sed() {
     sed -e "s|{ARCHFLAGS}|$ARCHFLAGS|g" \
 	-e "s|{ARCHLIBS}|$ARCHLIBS|g" \
 	-e "s|{AOFLAGS}|$AOFLAGS|g" \
 	-e "s|{AOLIBS}|$AOLIBS|g" \
-	-e "s|{XMMSFLAGS}|$XMMSFLAGS|g" \
-	-e "s|{XMMSLIBS}|$XMMSLIBS|g" \
-	-e "s|{AUDACIOUSFLAGS}|$AUDACIOUSFLAGS|g" \
-	-e "s|{AUDACIOUSLIBS}|$AUDACIOUSLIBS|g" \
 	-e "s|{AR}|$TARGETAR|g" \
+	-e "s|{BENCODETOOLSFLAGS}|$BENCODETOOLSFLAGS|g" \
 	-e "s|{CC}|$TARGETCC|g" \
 	-e "s|{OBJCOPY}|$TARGETOBJCOPY|g" \
 	-e "s|{NATIVECC}|$NATIVECC|g" \
@@ -677,16 +611,10 @@ replace_with_sed() {
 	-e "s|{LIBDIR}|$libdir|g" \
 	-e "s|{UADECOREDIR}|$uadecoredir|g" \
 	-e "s|{PACKAGEPREFIX}|$packageprefix|g" \
+	-e "s|{COMPILE_RULES}|$compilerules|g" \
+	-e "s|{INSTALL_RULES}|$installrules|g" \
 	-e "s|{UADECORENAME}|$UADECORENAME|g" \
-	-e "s|{LIBUADE}|$libuaderule|g" \
-	-e "s|{UADECORE}|$uadecorerule|g" \
 	-e "s|{UADE123NAME}|$UADE123NAME|g" \
-	-e "s|{UADE123}|$uade123rule|g" \
-	-e "s|{XMMSPLUGIN}|$xmmspluginrule|g" \
-	-e "s|{XMMSPLUGINDIR}|$xmmsplugindir|g" \
-	-e "s|{AUDACIOUSPLUGIN}|$audaciouspluginrule|g" \
-	-e "s|{AUDACIOUSPLUGINDIR}|$audaciousplugindir|g" \
-	-e "s|{UADEFS}|$uadefsrule|g" \
 	-e "s|{PKGCONFIGDIR}|$pkgconfigdir|g" \
 	"$@"
 }

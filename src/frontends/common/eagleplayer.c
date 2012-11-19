@@ -9,34 +9,24 @@
  * want in your projects.
  */
 
+#include <uade/uade.h>
+#include <uade/unixatomic.h>
+#include "support.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
 #include <stdint.h>
-
 #include <errno.h>
-#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <uade/eagleplayer.h>
-#include <uade/ossupport.h>
-#include <uade/amifilemagic.h>
-#include <uade/uadeconf.h>
-#include <uade/unixatomic.h>
-#include <uade/songdb.h>
-#include "support.h"
-#include <uade/uadestate.h>
-
-
 #define OPTION_DELIMITER ","
 
-#define MAX_SUFFIX_LENGTH 16
-
-#define eperror(fmt, args...) do { uadeerror("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
+#define eperror(fmt, args...) do { uade_error("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
 
 
 /* Table for associating eagleplayer.conf, song.conf and uade.conf options
@@ -48,7 +38,6 @@ const struct epconfattr epconf[] = {
 	{.s = "always_ends",        .e = ES_ALWAYS_ENDS,         .o = UC_DISABLE_TIMEOUTS},
 	{.s = "broken_song_end",    .e = ES_BROKEN_SONG_END,     .o = UC_NO_EP_END},
 	{.s = "detect_format_by_content", .e = ES_CONTENT_DETECTION,   .o = UC_CONTENT_DETECTION},
-	{.s = "detect_format_by_name",    .e = ES_NAME_DETECTION,      .o = 0},
 	{.s = "ignore_player_check",.e = ES_IGNORE_PLAYER_CHECK, .o = UC_IGNORE_PLAYER_CHECK},
 	{.s = "led_off",            .e = ES_LED_OFF,             .o = UC_FORCE_LED_OFF},
 	{.s = "led_on",             .e = ES_LED_ON,              .o = UC_FORCE_LED_ON},
@@ -93,121 +82,120 @@ static struct eagleplayer *get_eagleplayer(const char *extension,
 
 static int load_playerstore(struct uade_state *state)
 {
-	static int warnings = 1;
 	char formatsfile[PATH_MAX];
 
 	if (state->playerstore == NULL) {
-		snprintf(formatsfile, sizeof(formatsfile),
-			 "%s/eagleplayer.conf", state->config.basedir.name);
-
+		snprintf(formatsfile, sizeof formatsfile, "%s/eagleplayer.conf", state->config.basedir.name);
 		state->playerstore = read_eagleplayer_conf(formatsfile);
-		if (state->playerstore == NULL) {
-			if (warnings) {
-				fprintf(stderr,	"Tried to load eagleplayer.conf from %s, but failed\n",	formatsfile);
-			}
-			warnings = 0;
-			return 0;
-		}
-
-		if (state->config.verbose)
-			fprintf(stderr, "Loaded eagleplayer.conf: %s\n",
-				formatsfile);
 	}
 
-	return 1;
+	if (state->playerstore == NULL)
+		uade_warning("Tried to load eagleplayer.conf from %s, but failed\n", formatsfile);
+
+	return state->playerstore != NULL;
 }
 
-
-static struct eagleplayer *analyze_file_format(int *content,
-					       const char *modulename,
-					       struct uade_state *state)
+static void try_extension(struct uade_detection_info *detectioninfo,
+			  const char *ext, struct uade_state *state)
 {
-	struct stat st;
-	char ext[MAX_SUFFIX_LENGTH];
-	FILE *f;
-	struct eagleplayer *contentcandidate = NULL;
-	struct eagleplayer *namecandidate = NULL;
-	char *prefix, *postfix, *t;
-	size_t bufsize, bytesread;
-	uint8_t buf[8192];
+	if (strlen(ext) >= UADE_MAX_EXT_LEN)
+		return;
+	detectioninfo->ep = get_eagleplayer(ext, state->playerstore);
+	if (detectioninfo->ep != NULL)
+		strlcpy(detectioninfo->ext, ext, sizeof detectioninfo->ext);
+}
 
-	*content = 0;
+static void custom_check(struct uade_detection_info *detectioninfo)
+{
+	if (detectioninfo->ep == NULL)
+		return;
+	detectioninfo->custom = (strcmp(detectioninfo->ep->playername, "custom") == 0);
+}
 
-	if ((f = fopen(modulename, "rb")) == NULL)
-		return NULL;
+int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
+			     const void *ibuf, size_t ibytes,
+			     const char *fname, size_t fsize,
+			     struct uade_state *state)
+{
+	char *prefix;
+	char *postfix;
+	char *t;
+	unsigned char buf[8192];
+	size_t bufsize;
 
-	if (fstat(fileno(f), &st))
-		uadeerror("Very weird stat error: %s (%s)\n", modulename, strerror(errno));
+	memset(detectioninfo, 0, sizeof *detectioninfo);
 
-	bufsize = sizeof buf;
-	bytesread = atomic_fread(buf, 1, bufsize, f);
-	fclose(f);
-	if (bytesread == 0)
-		return NULL;
-	memset(&buf[bytesread], 0, bufsize - bytesread);
+	if (fname == NULL)
+		fname = "";
 
-	uade_filemagic(buf, bytesread, ext, st.st_size, modulename, state->config.verbose);
+	if (ibytes == 0)
+		return -1;
+	if (ibytes > sizeof buf)
+		bufsize = sizeof buf;
+	else
+		bufsize = ibytes;
+	memcpy(buf, ibuf, bufsize);
+	memset(&buf[bufsize], 0, sizeof buf - bufsize);
 
-	if (strcmp(ext, "reject") == 0)
-		return NULL;
+	uade_filemagic(buf, bufsize, detectioninfo->ext, fsize, fname, state->config.verbose);
 
-	if (ext[0] != 0 && state->config.verbose)
-		fprintf(stderr, "Content recognized: %s (%s)\n", ext, modulename);
+	if (strcmp(detectioninfo->ext, "reject") == 0)
+		return -1;
 
-	if (strcmp(ext, "packed") == 0)
-		return NULL;
+	if (detectioninfo->ext[0] != 0 && state->config.verbose)
+		fprintf(stderr, "Content recognized: %s (%s)\n", detectioninfo->ext, fname);
+
+	if (strcmp(detectioninfo->ext, "packed") == 0)
+		return -1;
 
 	if (!load_playerstore(state))
-		return NULL;
+		return -1;
+
+	/*
+	 * If filemagic found a match, we'll use player plugins associated with
+	 * that extension
+	 */
+	if (detectioninfo->ext[0]) {
+		detectioninfo->ep = get_eagleplayer(detectioninfo->ext, state->playerstore);
+		if (detectioninfo->ep != NULL) {
+			custom_check(detectioninfo);
+			detectioninfo->content = 1;
+			return 0;
+		}
+		uade_warning("%s not in eagleplayer.conf\n", detectioninfo->ext);
+	}
+	detectioninfo->ext[0] = 0;
+
+	if (strlen(fname) == 0)
+		return -1;
 
 	/* First do filename detection (we'll later do content detection) */
-	t = xbasename(modulename);
+	t = uade_xbasename(fname);
 
 	if (strlcpy((char *) buf, t, sizeof buf) >= sizeof buf)
-		return NULL;
+		return -1;
 
 	t = strchr((char *) buf, '.');
 	if (t == NULL)
-		return NULL;
+		return -1;
 
 	*t = 0;
 	prefix = (char *) buf;
+	try_extension(detectioninfo, prefix, state);
 
-	if (strlen(prefix) < MAX_SUFFIX_LENGTH)
-		namecandidate = get_eagleplayer(prefix, state->playerstore);
-
-	if (namecandidate == NULL) {
+	if (detectioninfo->ep == NULL) {
 		/* Try postfix */
-		t = xbasename(modulename);
+		t = uade_xbasename(fname);
 		strlcpy((char *) buf, t, sizeof buf);
 		postfix = strrchr((char *) buf, '.') + 1; /* postfix != NULL */
-
-		if (strlen(postfix) < MAX_SUFFIX_LENGTH)
-			namecandidate = get_eagleplayer(postfix, state->playerstore);
+		try_extension(detectioninfo, postfix, state);
 	}
 
-	/* If filemagic found a match, we'll use player plugins associated with
-	   that extension */
-	if (ext[0]) {
-		contentcandidate = get_eagleplayer(ext, state->playerstore);
-		if (contentcandidate != NULL) {
-			/* Do not recognize name detectable eagleplayers by
-			   content */
-			if (namecandidate == NULL ||
-			    (namecandidate->flags & ES_NAME_DETECTION) == 0) {
-				*content = 1;
-				return contentcandidate;
-			}
-		} else {
-			if (state->config.verbose)
-				fprintf(stderr,	"%s not in eagleplayer.conf\n", ext);
-		}
-	}
+	uade_debug(state, "Format detection by filename: %s\n", fname);
 
-	if (state->config.verbose)
-		fprintf(stderr, "Format detection by filename\n");
+	custom_check(detectioninfo);
 
-	return namecandidate;
+	return detectioninfo->ep != NULL ? 0 : -1;
 }
 
 
@@ -297,32 +285,6 @@ static int ufcompare(const void *a, const void *b)
 	return strcasecmp(ua->extension, ub->extension);
 }
 
-int uade_is_our_file(const char *modulename, int scanmode,
-		     struct uade_state *state)
-{
-	int content;
-	struct eagleplayer *ep;
-
-	ep = analyze_file_format(&content, modulename, state);
-
-	if (!scanmode)
-		state->ep = ep;
-
-	if (ep == NULL)
-		return 0;
-
-	if (content)
-		return 1;
-
-	if (state->config.content_detection && content == 0)
-		return 0;
-
-	if ((ep->flags & ES_CONTENT_DETECTION) != 0)
-		return 0;
-
-	return 1;
-}
-
 static struct eagleplayer *get_eagleplayer(const char *extension,
 					   struct eagleplayerstore *ps)
 {
@@ -365,7 +327,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		char **items;
 		size_t nitems;
 
-		items = read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		items = uade_read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
@@ -385,7 +347,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 
 		p->playername = strdup(items[0]);
 		if (p->playername == NULL)
-			uadeerror("No memory for playername.\n");
+			uade_error("No memory for playername.\n");
 
 		for (i = 1; i < nitems; i++) {
 

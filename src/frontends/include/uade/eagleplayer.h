@@ -19,24 +19,23 @@
 #define ES_IGNORE_PLAYER_CHECK (1 <<  7)
 #define ES_LED_OFF             (1 <<  8)
 #define ES_LED_ON              (1 <<  9)
-#define ES_NAME_DETECTION      (1 << 10)
-#define ES_NEVER_ENDS          (1 << 11)
-#define ES_NO_FILTER           (1 << 12)
-#define ES_NO_HEADPHONES       (1 << 13)
-#define ES_NO_PANNING          (1 << 14)
-#define ES_NO_POSTPROCESSING   (1 << 15)
-#define ES_NTSC                (1 << 16)
-#define ES_ONE_SUBSONG         (1 << 17)
-#define ES_PAL                 (1 << 18)
-#define ES_PANNING             (1 << 19)
-#define ES_PLAYER              (1 << 20)
-#define ES_REJECT              (1 << 21)
-#define ES_RESAMPLER           (1 << 22)
-#define ES_SILENCE_TIMEOUT     (1 << 23)
-#define ES_SPEED_HACK          (1 << 24)
-#define ES_SUBSONGS            (1 << 25)
-#define ES_SUBSONG_TIMEOUT     (1 << 26)
-#define ES_TIMEOUT             (1 << 27)
+#define ES_NEVER_ENDS          (1 << 10)
+#define ES_NO_FILTER           (1 << 11)
+#define ES_NO_HEADPHONES       (1 << 12)
+#define ES_NO_PANNING          (1 << 13)
+#define ES_NO_POSTPROCESSING   (1 << 14)
+#define ES_NTSC                (1 << 15)
+#define ES_ONE_SUBSONG         (1 << 16)
+#define ES_PAL                 (1 << 17)
+#define ES_PANNING             (1 << 18)
+#define ES_PLAYER              (1 << 19)
+#define ES_REJECT              (1 << 20)
+#define ES_RESAMPLER           (1 << 21)
+#define ES_SILENCE_TIMEOUT     (1 << 22)
+#define ES_SPEED_HACK          (1 << 23)
+#define ES_SUBSONGS            (1 << 24)
+#define ES_SUBSONG_TIMEOUT     (1 << 25)
+#define ES_TIMEOUT             (1 << 26)
 
 #define UADE_WS_DELIMITERS " \t\n"
 
@@ -76,35 +75,6 @@ struct uade_attribute {
 	double d;
 };
 
-struct uade_song {
-	char md5[33];
-
-	char module_filename[PATH_MAX];
-
-	char playername[256];	/* Eagleplayer name in players directory */
-	char modulename[256];	/* From score */
-	char formatname[256];
-
-	uint8_t *buf;
-	size_t bufsize;
-
-	int min_subsong;
-	int max_subsong;
-	int cur_subsong;
-
-	int playtime;
-	int flags;
-	int nsubsongs;
-	uint8_t *subsongs;
-	struct uade_attribute *songattributes;
-	struct uade_ep_options ep_options;
-	char *normalisation;
-
-	int64_t out_bytes;
-
-	int64_t silence_count;
-};
-
 struct epconfattr {
 	char *s;                    /* config file directive/variable name */
 	int e;                      /* ES_* flags for eagleplayers and songs */
@@ -116,12 +86,10 @@ struct epconfattr {
 
 extern const struct epconfattr epconf[];
 
-
-/* FIX: A forward declaration to avoid circular dependency */
 struct uade_state;
+struct uade_detection_info;
 
-int uade_is_our_file(const char *modulename, int scanmode, struct uade_state *state);
-int uade_song_and_player_attribute(struct uade_attribute **attributelist,
-				   int *flags, char *item, size_t lineno);
+int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo, const void *ibuf, size_t ibytes, const char *fname, size_t fsize, struct uade_state *state);
+int uade_song_and_player_attribute(struct uade_attribute **attributelist, int *flags, char *item, size_t lineno);
 
 #endif

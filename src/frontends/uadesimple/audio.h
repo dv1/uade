@@ -1,8 +1,8 @@
-#ifndef _UADE123_AUDIO_H_
-#define _UADE123_AUDIO_H_
+#ifndef _UADESIMPLE_AUDIO_H_
+#define _UADESIMPLE_AUDIO_H_
 
 void audio_close(void);
-int audio_init(int frequency, int buffer_time);
-int audio_play(unsigned char *samples, int bytes);
+int audio_init(int frequency);
+int audio_play(char *samples, int bytes);
 
 #endif

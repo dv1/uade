@@ -11,14 +11,9 @@ enum {
 	UADECORE_CANT_PLAY
 };
 
-void uade_change_subsong(struct uade_state *state);
-int uade_read_request(struct uade_ipc *ipc);
+int uade_read_request(struct uade_state *state);
 void uade_send_filter_command(struct uade_state *state);
-void uade_set_subsong(int subsong, struct uade_ipc *ipc);
-int uade_song_initialization(const char *scorename, const char *playername,
-			     const char *modulename,
-			     struct uade_state *state);
-void uade_spawn(struct uade_state *state, const char *uadename,
-		const char *configname);
+int uade_song_initialization(struct uade_file *player, struct uade_file *module, struct uade_state *state);
+void uade_subsong_control(int subsong, int command, struct uade_ipc *ipc);
 
 #endif

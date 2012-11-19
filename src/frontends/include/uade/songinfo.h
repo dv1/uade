@@ -13,7 +13,7 @@ enum song_info_type {
 
 int uade_generate_song_title(char *title, size_t dstlen,
 			     struct uade_state *state);
-int uade_song_info(char *info, size_t maxlen, char *filename,
+int uade_song_info(char *info, size_t maxlen, const char *filename,
 		   enum song_info_type type);
 
 #endif

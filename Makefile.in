@@ -10,10 +10,10 @@ MANDIR = {PACKAGEPREFIX}{MANDIR}
 UADECORENAME={UADECORENAME}
 UADE123NAME={UADE123NAME}
 
-COMPILED_COMPONENTS = {LIBUADE} {UADECORE} {UADE123} {XMMSPLUGIN} {AUDACIOUSPLUGIN} {UADEFS}
-INSTALLED_COMPONENTS = {LIBUADE}install {UADECORE}install {UADE123}install {XMMSPLUGIN}install {AUDACIOUSPLUGIN}install {UADEFS}install
+COMPILE_RULES = {COMPILE_RULES}
+INSTALL_RULES = {INSTALL_RULES}
 
-all:	src/frontends/include/uade/uadeoptions.h $(COMPILED_COMPONENTS)
+all:	src/frontends/include/uade/uadeoptions.h $(COMPILE_RULES)
 
 staticlibuade:	
 	$(MAKE) -C src/frontends/common
@@ -46,18 +46,6 @@ uade123:	staticlibuade
 uade123install:	
 	$(MAKE) -C src/frontends/uade123 install
 
-xmmsplugin:	libuade
-	$(MAKE) -C src/frontends/xmms
-
-xmmsplugininstall:	
-	$(MAKE) -C src/frontends/xmms install
-
-audaciousplugin:	libuade
-	$(MAKE) -C src/frontends/audacious
-
-audaciousplugininstall:	
-	$(MAKE) -C src/frontends/audacious install
-
 uadefs:	staticlibuade
 	$(MAKE) -C src/frontends/uadefs
 
@@ -76,16 +64,15 @@ soundcheck:
 	@ echo ""
 	src/frontends/uade123/$(UADE123NAME) --basedir=. -S amigasrc/score/score -P players/AbyssHighestExperience songs/AHX.Cruisin -u src/uadecore
 
-install:	$(INSTALLED_COMPONENTS)
+install:	$(INSTALL_RULES)
 	@echo
 
 feclean:	
-	$(MAKE) -C src/frontends/audacious clean
+	$(MAKE) -C src/frontends/common clean
 	$(MAKE) -C src/frontends/libuade clean
 	$(MAKE) -C src/frontends/uade123 clean
 	$(MAKE) -C src/frontends/uadefs clean
 	$(MAKE) -C src/frontends/uadesimple clean
-	$(MAKE) -C src/frontends/xmms clean
 
 clean:	
 	$(MAKE) -C src clean

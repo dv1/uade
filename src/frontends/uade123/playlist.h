@@ -7,28 +7,25 @@
 #include "chrarray.h"
 
 struct playlist {
-  int valid;
-  size_t pos;
-  int randomize;
-  int repeat;
-  struct chrarray list;
+	int valid;
+	size_t pos;
+	int randomize;
+	int repeat;
+	struct chrarray list;
 };
-
 
 struct playlist_iterator {
-  size_t index;
-  struct playlist *pl;
+	size_t index;
+	struct playlist *pl;
 };
-
 
 enum {
-  UADE_PLAY_PREVIOUS = -1,
-  UADE_PLAY_CURRENT,
-  UADE_PLAY_NEXT,
-  UADE_PLAY_EXIT,
-  UADE_PLAY_FAILURE
+	UADE_PLAY_PREVIOUS = -1,
+	UADE_PLAY_CURRENT,
+	UADE_PLAY_NEXT,
+	UADE_PLAY_EXIT,
+	UADE_PLAY_FAILURE
 };
-
 
 int playlist_add(struct playlist *pl, const char *name, int recursive, int cygwin);
 int playlist_empty(struct playlist *pl);

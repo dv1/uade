@@ -1,23 +1,21 @@
+#include <uade/uade.h>
+#include <uade/unixatomic.h>
+
+#include "md5.h"
+#include "support.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 
-#include <uade/songdb.h>
-#include <uade/uadeconf.h>
-#include "md5.h"
-#include <uade/unixatomic.h>
-#include <uade/ossupport.h>
-#include <uade/uadeoptions.h>
-#include "support.h"
-#include <uade/uadeconstants.h>
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
 
 #define NORM_ID "n="
 #define NORM_ID_LENGTH 2
@@ -28,28 +26,6 @@
 static int escompare(const void *a, const void *b);
 static struct uade_content *get_content(const char *md5, struct uade_state *state);
 
-
-static void add_sub_normalisation(struct uade_content *n, char *normalisation)
-{
-	struct persub *subinfo;
-	char *endptr;
-
-	subinfo = malloc(sizeof(*subinfo));
-	if (subinfo == NULL)
-		uadeerror("Can't allocate memory for normalisation entry\n");
-
-	subinfo->sub = strtol(normalisation, &endptr, 10);
-	if (*endptr != ',' || subinfo->sub < 0) {
-		fprintf(stderr, "Invalid normalisation entry: %s\n", normalisation);
-		return;
-	}
-
-	subinfo->normalisation = strdup(endptr + 1);
-	if (subinfo->normalisation == NULL)
-		uadeerror("Can't allocate memory for normalisation string\n");
-
-	vplist_append(n->subs, subinfo);
-}
 
 /* Compare function for bsearch() and qsort() to sort songs with respect
    to their md5sums */
@@ -108,30 +84,23 @@ static struct uade_content *create_content_checksum(struct uade_state *state, co
 	strlcpy(n->md5, md5, sizeof(n->md5));
 	n->playtime = playtime;
 
-	n->subs = vplist_create(1);
-
 	return n;
 }
 
-static void md5_from_buffer(char *dest, size_t destlen,
-			    uint8_t * buf, size_t bufsize)
+static void md5_from_buffer(char *dest, size_t destlen, const uint8_t *buf, size_t bufsize)
 {
 	uint8_t md5[16];
 	int ret;
-	MD5_CTX ctx;
-	MD5Init(&ctx);
-	MD5Update(&ctx, buf, bufsize);
-	MD5Final(md5, &ctx);
-	ret =
-	    snprintf(dest, destlen,
-		     "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",
-		     md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6],
-		     md5[7], md5[8], md5[9], md5[10], md5[11], md5[12], md5[13],
-		     md5[14], md5[15]);
-	if (ret >= destlen || ret != 32) {
-		fprintf(stderr, "md5 buffer error (%d/%zd)\n", ret, destlen);
-		exit(1);
-	}
+	uade_MD5_CTX ctx;
+	uade_MD5Init(&ctx);
+	uade_MD5Update(&ctx, buf, bufsize);
+	uade_MD5Final(md5, &ctx);
+	assert(destlen > 32);
+	ret = snprintf(dest, destlen, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",
+		       md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6],
+		       md5[7], md5[8], md5[9], md5[10], md5[11], md5[12],
+		       md5[13], md5[14], md5[15]);
+	assert(ret == 32);
 }
 
 static void update_playtime(struct uade_state *state, struct uade_content *n, uint32_t playtime)
@@ -181,94 +150,40 @@ struct uade_content *uade_add_playtime(struct uade_state *state, const char *md5
 	return n;
 }
 
-void uade_lookup_volume_normalisation(struct uade_state *state)
-{
-	size_t i, nsubs;
-	struct uade_effect *ue = &state->effects;
-	struct uade_config *uc = &state->config;
-	struct uade_song *us = state->song;
-	struct uade_content *content = get_content(us->md5, state);
-
-	if (content != NULL) {
-
-		nsubs = vplist_len(content->subs);
-
-		for (i = 0; i < nsubs; i++) {
-
-			struct persub *subinfo = vplist_get(content->subs, i);
-
-			if (subinfo->sub == us->cur_subsong) {
-				uade_set_config_option(uc, UC_NORMALISE,
-						       subinfo->normalisation);
-				uade_effect_normalise_unserialise(uc->
-								  normalise_parameter);
-				uade_effect_enable(ue, UADE_EFFECT_NORMALISE);
-				break;
-			}
-		}
-	}
-}
-
-static void get_song_flags_and_attributes_from_songstore(struct uade_song *us, struct uade_state *state)
+static void get_song_flags_and_attributes_from_songstore(struct uade_state *state)
 {
 	struct eaglesong key;
 	struct eaglesong *es;
 	struct uade_songdb *db = &state->songdb;
 
-	if (db->songstore != NULL) {
-		/* Lookup md5 from the songdb */
-		strlcpy(key.md5, us->md5, sizeof key.md5);
-		es = bsearch(&key, db->songstore, db->nsongs, sizeof db->songstore[0], escompare);
-
-		if (es != NULL) {
-			/* Found -> copy flags and attributes from database */
-			us->flags |= es->flags;
-			us->songattributes = es->attributes;
-		}
-	}
+	if (db->songstore == NULL)
+		return;
+	/* Lookup md5 from the songdb */
+	strlcpy(key.md5, state->song.info.modulemd5, sizeof key.md5);
+	es = bsearch(&key, db->songstore, db->nsongs, sizeof db->songstore[0], escompare);
+	if (es == NULL)
+		return;
+	/* Found -> copy flags and attributes from database */
+	state->song.flags |= es->flags;
+	state->song.songattributes = es->attributes;
 }
 
-int uade_alloc_song(struct uade_state *state, const char *filename)
+int uade_lookup_song(const struct uade_file *module, struct uade_state *state)
 {
-	struct uade_song *us;
 	struct uade_content *content;
-
-	state->song = NULL;
-
-	us = calloc(1, sizeof *us);
-	if (us == NULL)
-		goto error;
-
-	strlcpy(us->module_filename, filename, sizeof us->module_filename);
-
-	us->buf = atomic_read_file(&us->bufsize, filename);
-	if (us->buf == NULL)
-		goto error;
+	struct uade_song_info *info = &state->song.info;
 
 	/* Compute an md5sum of the song */
-	md5_from_buffer(us->md5, sizeof us->md5, us->buf, us->bufsize);
+	md5_from_buffer(info->modulemd5, sizeof info->modulemd5, (const uint8_t *) module->data, module->size);
 
-	/* Needs us->md5 sum */
-	get_song_flags_and_attributes_from_songstore(us, state);
+	/* Needs state->song.info.modulemd5 */
+	get_song_flags_and_attributes_from_songstore(state);
 
 	/* Lookup playtime from content database */
-	us->playtime = -1;
-	content = get_content(us->md5, state);
+	content = get_content(info->modulemd5, state);
 	if (content != NULL && content->playtime > 0)
-		us->playtime = content->playtime;
+		info->playtime = content->playtime;
 
-	/* We can't know subsong numbers yet. The eagleplayer will report them
-	 * in the playback state */
-	us->min_subsong = us->max_subsong = us->cur_subsong = -1;
-
-	state->song = us;
-	return 1;
-
-      error:
-	if (us != NULL) {
-		free(us->buf);
-		free(us);
-	}
 	return 0;
 }
 
@@ -291,7 +206,7 @@ static int uade_open_and_lock(const char *filename, int create)
 	if (ret) {
 		fprintf(stderr, "uade: Unable to lock song.conf: %s (%s)\n",
 			filename, strerror(errno));
-		atomic_close(fd);
+		uade_atomic_close(fd);
 		return -1;
 	}
 #endif
@@ -352,6 +267,7 @@ int uade_read_content_db(const char *filename, struct uade_state *state)
 	char numberstr[1024];
 	char *md5;
 	struct uade_songdb *db = &state->songdb;
+	struct stat st;
 
 	/* We make backups of some variables because following loop will
 	   make it always true, which is not what we want. The end result should
@@ -383,14 +299,14 @@ int uade_read_content_db(const char *filename, struct uade_state *state)
 		return 0;
 	}
 
-	while (xfgets(line, sizeof line, f) != NULL) {
+	while (uade_xfgets(line, sizeof line, f) != NULL) {
 		lineno++;
 
 		if (line[0] == '#')
 			continue;
 
 		md5 = line;
-		i = skip_and_terminate_word(line, 0);
+		i = uade_skip_and_terminate_word(line, 0);
 		if (i < 0)
 			continue; /* playtime doesn't exist */
 
@@ -400,7 +316,7 @@ int uade_read_content_db(const char *filename, struct uade_state *state)
 			continue; /* is not a valid md5sum */
 
 		/* Grab and validate playtime (in milliseconds) */
-		nexti = skip_and_terminate_word(line, i);
+		nexti = uade_skip_and_terminate_word(line, i);
 
 		playtime = strtol(&line[i], &eptr, 10);
 		if (*eptr != 0 || playtime < 0) {
@@ -417,17 +333,14 @@ int uade_read_content_db(const char *filename, struct uade_state *state)
 		/* Get rest of the directives in a loop */
 		while (i >= 0) {
 			id = &line[i];
-			i = skip_and_terminate_word(line, i);
-
-			/* Subsong volume normalisation: n=sub1,XXX */
-			if (strncmp(id, NORM_ID, NORM_ID_LENGTH) == 0) {
-				id += NORM_ID_LENGTH;
-				add_sub_normalisation(n, id);
-			} else {
-				fprintf(stderr,	"Unknown contentdb directive on line %zd: %s\n", lineno, id);
-			}
+			i = uade_skip_and_terminate_word(line, i);
+			fprintf(stderr,	"Unknown contentdb directive on line %zd: %s\n", lineno, id);
 		}
 	}
+
+	if (!fstat(fd, &st))
+		state->songdb.ccloadtime = st.st_mtime;
+
 	fclose(f);
 
 	db->ccmodified = newccmodified;
@@ -446,6 +359,8 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 	size_t i;
 	int fd;
 	struct uade_songdb *db = &state->songdb;
+
+	state->songdbname[0] = 0;
 
 	fd = uade_open_and_lock(filename, 1);
 	/* open_and_lock() may fail without harm (it's actually supposed to
@@ -466,8 +381,7 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 		char **items;
 		size_t nitems;
 
-		items = read_and_split_lines(&nitems, &lineno, f,
-					     UADE_WS_DELIMITERS);
+		items = uade_read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
@@ -518,17 +432,20 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 
 	/* we may not have the file locked */
 	if (fd >= 0)
-		atomic_close(fd);	/* lock is closed too */
+		uade_atomic_close(fd);	/* lock is closed too */
 
 	/* Sort MD5 sums for binary searching songs */
 	qsort(db->songstore, db->nsongs, sizeof db->songstore[0], escompare);
+
+	snprintf(state->songdbname, sizeof(state->songdbname), "%s", filename);
+
 	return 1;
 
       error:
 	if (f)
 		fclose(f);
 	if (fd >= 0)
-		atomic_close(fd);
+		uade_atomic_close(fd);
 	return 0;
 }
 
@@ -557,38 +474,15 @@ void uade_save_content_db(const char *filename, struct uade_state *state)
 	}
 
 	for (i = 0; i < db->nccused; i++) {
-		char str[1024];
-		size_t subi, nsubs;
-		size_t bindex, bleft;
 		struct uade_content *n = &db->contentchecksums[i];
-
-		str[0] = 0;
-
-		bindex = 0;
-		bleft = sizeof(str);
-
-		nsubs = vplist_len(n->subs);
-
-		for (subi = 0; subi < nsubs; subi++) {
-			struct persub *sub = vplist_get(n->subs, subi);
-			int ret;
-			ret =
-			    snprintf(&str[bindex], bleft, NORM_ID "%s ", sub->normalisation);
-			if (ret >= bleft) {
-				fprintf(stderr, "Too much subsong infos for %s\n", n->md5);
-				break;
-			}
-			bleft -= ret;
-			bindex += ret;
-		}
-
-		fprintf(f, "%s %u %s\n", n->md5, (unsigned int) n->playtime, str);
+		fprintf(f, "%s %u\n", n->md5, (unsigned int) n->playtime);
 	}
 
 	db->ccmodified = 0;
 
 	fclose(f);
-	fprintf(stderr, "uade: Saved %zd entries into content db.\n", db->nccused);
+
+	uade_debug(state, "uade: Saved %zd entries into content db.\n", db->nccused);
 }
 
 int uade_test_silence(void *buf, size_t size, struct uade_state *state)
@@ -596,7 +490,7 @@ int uade_test_silence(void *buf, size_t size, struct uade_state *state)
 	int i, s, exceptioncount;
 	int16_t *sm;
 	int nsamples;
-	int64_t count = state->song->silence_count;
+	int64_t count = state->song.silencecount;
 	int end = 0;
 
 	if (state->config.silence_timeout < 0)
@@ -625,21 +519,12 @@ int uade_test_silence(void *buf, size_t size, struct uade_state *state)
 		}
 	}
 
-	state->song->silence_count = count;
+	state->song.silencecount = count;
 
 	return end;
 }
 
-void uade_unalloc_song(struct uade_state *state)
-{
-	free(state->song->buf);
-	state->song->buf = NULL;
-
-	free(state->song);
-	state->song = NULL;
-}
-
-int uade_update_song_conf(const char *songconfin, const char *songconfout,
+int uade_update_song_conf(const char *songconf,
 			  const char *songname, const char *options)
 {
 	int ret;
@@ -660,27 +545,26 @@ int uade_update_song_conf(const char *songconfin, const char *songconfout,
 		return 0;
 	}
 
-	fd = uade_open_and_lock(songconfout, 1);
+	fd = uade_open_and_lock(songconf, 1);
 
-	input = atomic_read_file(&inputsize, songconfin);
+	input = uade_read_file(&inputsize, songconf);
 	if (input == NULL) {
-		fprintf(stderr, "Can not read song.conf: %s\n", songconfin);
-		atomic_close(fd);	/* closes the lock too */
+		fprintf(stderr, "Can not read song.conf: %s\n", songconf);
+		uade_atomic_close(fd);	/* closes the lock too */
 		return 0;
 	}
 
 	newsize = inputsize + strlen(options) + strlen(songname) + 64;
 	mem = realloc(input, newsize);
 	if (mem == NULL) {
-		fprintf(stderr,
-			"Can not realloc the input file buffer for song.conf.\n");
+		fprintf(stderr,	"Can not realloc the input file buffer for song.conf.\n");
 		free(input);
-		atomic_close(fd);	/* closes the lock too */
+		uade_atomic_close(fd);	/* closes the lock too */
 		return 0;
 	}
 	input = mem;
 
-	mem = atomic_read_file(&filesize, songname);
+	mem = uade_read_file(&filesize, songname);
 	if (mem == NULL)
 		goto error;
 
@@ -764,12 +648,11 @@ int uade_update_song_conf(const char *songconfin, const char *songconfout,
 	/* Final file size */
 	i = (size_t) (outputptr - input);
 
-	if (atomic_write(fd, input, i) < i)
-		fprintf(stderr,
-			"Unable to write file contents back. Data loss happened. CRAP!\n");
+	if (uade_atomic_write(fd, input, i) < i)
+		fprintf(stderr, "Unable to write file contents back. Data loss happened. CRAP!\n");
 
       error:
-	atomic_close(fd);	/* Closes the lock too */
+	uade_atomic_close(fd);	/* Closes the lock too */
 	free(input);
 	free(mem);
 	return 1;

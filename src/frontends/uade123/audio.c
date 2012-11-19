@@ -1,13 +1,12 @@
+#include "audio.h"
+#include "uade123.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
 #include <ao/ao.h>
-
-#include <uade/uadeconstants.h>
-#include "audio.h"
-#include "uade123.h"
 
 static ao_sample_format format;
 
@@ -17,93 +16,89 @@ static ao_option *options = NULL;
 
 void audio_close(void)
 {
-  if (libao_device) {
+	if (libao_device == NULL)
+		return;
 
-    /* Work-around libao/alsa, sleep 10ms to drain audio stream. */
-    if (uade_output_file_name[0] == 0)
-      usleep(10000);
+	/* Work-around libao/alsa, sleep 10ms to drain audio stream. */
+	if (uade_output_file_name[0] == 0)
+		usleep(10000);
 
-    ao_close(libao_device);
-  }
+	ao_close(libao_device);
 }
 
-static void process_config_options(const struct uade_config *uc)
+static void process_config_options(const struct uade_config *uc, char **opts)
 {
-  char *s;
-  char *key;
-  char *value;
+	char *s;
+	char *key;
+	char *value;
+	char **opt;
 
-  if (uc->buffer_time > 0) {
-      char val[32];
-      /* buffer_time is given in milliseconds, so convert to microseconds */
-      snprintf(val, sizeof val, "%d", 1000 * uc->buffer_time);
-      ao_append_option(&options, "buffer_time", val);
-  }
+	if (buffertime > 0) {
+		char val[32];
+		/* buffer_time is given in milliseconds, so convert to microseconds */
+		snprintf(val, sizeof val, "%d", 1000 * buffertime);
+		ao_append_option(&options, "buffer_time", val);
+	}
 
-  format.bits = UADE_BYTES_PER_SAMPLE * 8;
-  format.channels = UADE_CHANNELS;
-  format.rate = uc->frequency;
-  format.byte_format = AO_FMT_NATIVE;
+	format.bits = UADE_BYTES_PER_SAMPLE * 8;
+	format.channels = UADE_CHANNELS;
+	format.rate = uc->frequency;
+	format.byte_format = AO_FMT_NATIVE;
 
-  s = (char *) uc->ao_options.o;
-  while (s != NULL && *s != 0) {
-    key = s;
+	opt = opts;
+	while (opt != NULL && *opt != NULL) {
+		s = strdup(*opt);
+		if (s == NULL)
+			uade_die("Can not allocate memory for ao option\n");
 
-    s = strchr(s, '\n');
-    if (s == NULL)
-      break;
-    *s = 0;
-    s++;
+		key = s;
+		value = strchr(key, ':');
+		if (value == NULL)
+			uade_die("uade: Invalid ao option: %s\n", s);
+		*value = 0;
+		value++;
+		ao_append_option(&options, key, value);
 
-    value = strchr(key, ':');
-    if (value == NULL) {
-      fprintf(stderr, "uade: Invalid ao option: %s\n", key);
-      continue;
-    }
-    *value = 0;
-    value++;
-
-    ao_append_option(&options, key, value);
-  }
+		free(s);
+		opt++;
+	}
 }
 
-int audio_init(const struct uade_config *uc)
+int audio_init(const struct uade_config *uc, char **opts)
 {
-  int driver;
+	int driver;
 
-  if (uade_no_audio_output)
-    return 1;
+	if (uade_no_audio_output)
+		return 1;
 
-  process_config_options(uc);
+	process_config_options(uc, opts);
 
-  ao_initialize();
+	ao_initialize();
 
-  if (uade_output_file_name[0]) {
-    driver = ao_driver_id(uade_output_file_format[0] ? uade_output_file_format : "wav");
-    if (driver < 0) {
-      fprintf(stderr, "Invalid libao driver\n");
-      return 0;
-    }
-    libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
-  } else {
-    driver = ao_default_driver_id();
-    libao_device = ao_open_live(driver, &format, options);
-  }
+	if (uade_output_file_name[0]) {
+		driver = ao_driver_id(uade_output_file_format[0] ? uade_output_file_format : "wav");
+		if (driver < 0) {
+			fprintf(stderr, "Invalid libao driver\n");
+			return 0;
+		}
+		libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
+	} else {
+		driver = ao_default_driver_id();
+		libao_device = ao_open_live(driver, &format, options);
+	}
 
-  if (libao_device == NULL) {
-    fprintf(stderr, "Can not open ao device: %d\n", errno);
-    return 0;
-  }
+	if (libao_device == NULL)
+		fprintf(stderr, "Can not open ao device: %d\n", errno);
 
-  return 1;
+	return libao_device != NULL;
 }
 
 
-int audio_play(unsigned char *samples, int bytes)
+int audio_play(char *samples, int bytes)
 {
-  if (libao_device == NULL)
-    return bytes;
+	if (libao_device == NULL)
+		return bytes;
 
-  /* ao_play returns 0 on failure */
-  return ao_play(libao_device, (char *) samples, bytes);
+	/* ao_play returns 0 on failure */
+	return ao_play(libao_device, samples, bytes);
 }

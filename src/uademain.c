@@ -10,6 +10,7 @@
 #include "sysconfig.h"
 #include "sysdeps.h"
 #include <assert.h>
+#include <signal.h>
 
 #include "options.h"
 #include "uae.h"
@@ -282,12 +283,29 @@ void write_log_standard (const char *fmt, ...)
 #endif
 }
 
-
-int uade_main (int argc, char **argv)
+static void uade_signal_initializations(void)
 {
+#ifdef HAVE_SIGACTION
+	struct sigaction act = {.sa_handler = SIG_IGN};
+
+	while (1) {
+		if (sigaction(SIGINT, &act, NULL) < 0) {
+			if (errno == EINTR)
+				continue;
+			fprintf(stderr, "Can not ignore ctrl-c in uadecore; this prevents use of ctrl-C in UAE debugging mode. Error: %s\n", strerror(errno));
+		}
+		break;
+	}
+#endif
+}
+
+int uadecore_main (int argc, char **argv)
+{
+    uade_signal_initializations();
+
     default_prefs (&currprefs);
 
-    uade_option (argc, argv);
+    uadecore_option (argc, argv);
 
     machdep_init ();
 

@@ -4,10 +4,8 @@
 #include <limits.h>
 
 enum uade_option {
-	UC_ACTION_KEYS = 0x1000,
-	UC_AO_OPTION,
+	UC_NO_OPTION = 0x1000,
 	UC_BASE_DIR,
-	UC_BUFFER_TIME,
 	UC_CONTENT_DETECTION,
 	UC_CYGWIN_DRIVE_WORKAROUND,
 	UC_DISABLE_TIMEOUTS,
@@ -27,24 +25,24 @@ enum uade_option {
 	UC_NO_PANNING,
 	UC_NO_POSTPROCESSING,
 	UC_NO_EP_END,
-	UC_NORMALISE,
 	UC_NTSC,
 	UC_ONE_SUBSONG,
 	UC_PAL,
 	UC_PANNING_VALUE,
-	UC_RANDOM_PLAY,
-	UC_RECURSIVE_MODE,
+	UC_PLAYER_FILE,
 	UC_RESAMPLER,
+	UC_SCORE_FILE,
 	UC_SILENCE_TIMEOUT_VALUE,
-	UC_SONG_TITLE,
 	UC_SPEED_HACK,
 	UC_SUBSONG_TIMEOUT_VALUE,
 	UC_TIMEOUT_VALUE,
+	UC_UADECORE_FILE,
+	UC_UAE_CONFIG_FILE,
 	UC_USE_TEXT_SCOPE,
-	UC_VERBOSE
+	UC_VERBOSE,
 };
 
-struct uade_dir {
+struct uade_path {
 	char name[PATH_MAX];
 };
 
@@ -60,6 +58,7 @@ struct uade_ao_options {
 #define UADE_CHAR_CONFIG(x) char x; char x##_set
 #define UADE_FLOAT_CONFIG(x) float x; char x##_set
 #define UADE_INT_CONFIG(x) int x; char x##_set
+#define UADE_PATH_CONFIG(x) struct uade_path x; char x##_set
 
 /* All the options are put into an instance of this structure.
  * There can be many structures, one for uade.conf and the other for
@@ -78,15 +77,12 @@ struct uade_ao_options {
  * merge will notice the change in value.
  */
 struct uade_config {
-	UADE_CHAR_CONFIG(action_keys);
+	UADE_PATH_CONFIG(basedir);
+	UADE_PATH_CONFIG(player_file);
+	UADE_PATH_CONFIG(score_file);
+	UADE_PATH_CONFIG(uadecore_file);
+	UADE_PATH_CONFIG(uae_config_file);
 
-	struct uade_ao_options ao_options;
-	char ao_options_set;
-
-	struct uade_dir basedir;
-	char basedir_set;
-
-	UADE_INT_CONFIG(buffer_time);
 	UADE_CHAR_CONFIG(content_detection);
 	UADE_CHAR_CONFIG(cygwin_drive_workaround);
 
@@ -113,20 +109,10 @@ struct uade_config {
 	UADE_CHAR_CONFIG(no_filter);
 	UADE_CHAR_CONFIG(no_postprocessing);
 
-	UADE_CHAR_CONFIG(normalise);
-	/* no normalise_parameter_set entry, use manual merging code */
-	char *normalise_parameter;
-
 	UADE_CHAR_CONFIG(one_subsong);
 	UADE_FLOAT_CONFIG(panning);		/* should be removed */
 	UADE_CHAR_CONFIG(panning_enable);
-	UADE_CHAR_CONFIG(random_play);
-	UADE_CHAR_CONFIG(recursive_mode);
 	UADE_INT_CONFIG(silence_timeout);
-
-	char *song_title;
-	char song_title_set;
-
 	UADE_CHAR_CONFIG(speed_hack);
 	UADE_INT_CONFIG(subsong_timeout);
 	UADE_INT_CONFIG(timeout);

@@ -28,7 +28,7 @@ CPUEMUOBJS = cpuemu1.o cpuemu2.o cpuemu3.o cpuemu4.o cpuemu5.o cpuemu6.o cpuemu7
 OBJS = main.o newcpu.o memory.o custom.o cia.o audio.o compiler.o cpustbl.o \
        missing.o sd-sound.o md-support.o cfgfile.o fpp.o debug.o \
        readcpu.o cpudefs.o $(CPUEMUOBJS) \
-       uade.o uadeipc.o unixatomic.o ossupport.o \
+       uade.o uadeipc.o uadeutils.o unixatomic.o ossupport.o \
        uademain.o sinctable.o text_scope.o
 
 all:	uadecore
@@ -38,13 +38,12 @@ uadecore:	$(OBJS)
 
 clean:
 	-rm -f $(OBJS) *.o uadecore
-	-rm -f gencpu cpudefs.c
+	-rm -f gencpu cpudefs.c uadeipc.c
 	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
 
 install:	$(UADECORENAME)
 	mkdir -m 755 -p "$(UADECOREDIR)" "$(PKGCONFIGDIR)"
 	install "$(UADECORENAME)" "$(UADECOREDIR)"/
-	install -m 644 ../uade.pc "$(PKGCONFIGDIR)"/
 
 # First native builds
 
@@ -146,10 +145,24 @@ uademain.o:	uademain.c include/uae.h frontends/include/uade/ossupport.h frontend
 
 uade.o:	uade.c include/uadectl.h sd-sound.h frontends/include/uade/uadeipc.h frontends/include/uade/uadeconstants.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h include/amigamsg.h frontends/include/uade/sysincludes.h
 
-uadeipc.o:	uadeipc.c frontends/include/uade/uadeipc.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h frontends/include/uade/sysincludes.h
+uadeipc.o:	uadeipc.c
+
+uadeipc.c:	frontends/common/uadeipc.c frontends/include/uade/uadeipc.h frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h frontends/include/uade/sysincludes.h
+	cp $< .
+
+ossupport.c:	frontends/common/ossupport.c
+	cp $< .
 
 ossupport.o:	ossupport.c frontends/include/uade/ossupport.h frontends/include/uade/unixsupport.h include/uadectl.h frontends/include/uade/unixatomic.h unixatomic.c
 
+unixatomic.c:	frontends/common/unixatomic.c
+	cp $< .
+
 unixatomic.o:	unixatomic.c frontends/include/uade/sysincludes.h frontends/include/uade/unixatomic.h
+
+uadeutils.c:	frontends/common/uadeutils.c
+	cp $< .
+
+uadeutils.o:	uadeutils.c frontends/include/uade/uadeutils.h
 
 textscope.o:	text_scope.c include/text_scope.h include/custom.h

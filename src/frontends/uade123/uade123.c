@@ -1,6 +1,6 @@
 /* uade123 - a simple command line frontend for uadecore.
 
-   Copyright (C) 2005-2006 Heikki Orsila <heikki.orsila@iki.fi>
+   Copyright (C) 2005-2010 Heikki Orsila <heikki.orsila@iki.fi>
 
    This source code module is dual licensed under GPL and Public Domain.
    Hence you may use _this_ module (not another code module) in any way you
@@ -9,10 +9,15 @@
 
 #define _GNU_SOURCE
 
+#include "uade123.h"
+
+#include "playloop.h"
+#include "audio.h"
+#include "terminal.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <dirent.h>
-#include <limits.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -25,15 +30,11 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include <uade/uade.h>
-#include "support.h"
-#include "uade123.h"
-#include "playlist.h"
-#include "playloop.h"
-#include "audio.h"
-#include "terminal.h"
+#define MAX_AO_OPTIONS 16
 
-int uade_debug_trigger;
+int actionkeys = 1;
+int buffertime = -1;
+
 int uade_info_mode;
 double uade_jump_pos = 0.0;
 
@@ -44,644 +45,493 @@ char uade_output_file_format[16];
 char uade_output_file_name[PATH_MAX];
 struct playlist uade_playlist;
 FILE *uade_terminal_file;
-int uade_terminated;
-int uade_song_end_trigger;
 
 static int debug_mode;
-static char md5name[PATH_MAX];
-static time_t md5_load_time;
-static pid_t uadepid = -1;
-static char uadename[PATH_MAX];
-
+static int debug_trigger;
 
 static void print_help(void);
 static void setup_sighandlers(void);
-ssize_t stat_file_size(const char *name);
-static void trivial_sigchld(int sig);
 static void trivial_sigint(int sig);
 static void cleanup(struct uade_state *state);
 
-
-static void load_content_db(struct uade_config *uc, struct uade_state *state)
+static char *xfgets(char *s, int size, FILE *stream)
 {
-  struct stat st;
-  time_t curtime = time(NULL);
-  char name[PATH_MAX];
+	char *ret;
+	while (1) {
+		ret = fgets(s, size, stream);
+		/*
+		 * Believe it or not, but it is possible that ret == NULL but
+		 * EOF did not happened.
+		 */
+		if (ret != NULL || feof(stream))
+			break;
+	}
+	return ret;
+}
 
-  if (curtime)
-    md5_load_time = curtime;
+static void scan_playlist(struct uade_state *state)
+{
+	struct playlist_iterator pli;
+	char *songfile;
 
-  if (md5name[0] == 0) {
-    char *home = uade_open_create_home();
-    if (home)
-      snprintf(md5name, sizeof md5name, "%s/.uade2/contentdb", home);
-  }
+	playlist_iterator(&pli, &uade_playlist);
 
-  /* First try to read users database */
-  if (md5name[0]) {
-    /* Try home directory first */
-    if (stat(md5name, &st) == 0) {
-      if (uade_read_content_db(md5name, state))
-	return;
-    } else {
-      FILE *f = fopen(md5name, "w");
-      if (f)
-	fclose(f);
-      uade_read_content_db(md5name, state);
-    }
-  }
+	while (1) {
+		songfile = playlist_iterator_get(&pli);
+		if (songfile == NULL)
+			break;
 
-  /* Second try to read global database, this does not override any data
-     from user database */
-  snprintf(name, sizeof name, "%s/contentdb", uc->basedir.name);
-  if (stat(name, &st) == 0)
-    uade_read_content_db(name, state);
+		if (!uade_is_our_file(songfile, state))
+			continue;
+
+		songfile = canonicalize_file_name(songfile);
+
+		if (songfile)
+			printf("%s\n", songfile);
+
+		free(songfile);
+		songfile = NULL;
+	}
 }
 
 
-static void save_content_db(struct uade_state *state)
+static void set_song_options(const char *songoptions, struct uade_state *state)
 {
-  struct stat st;
-  if (md5name[0] && stat(md5name, &st) == 0) {
+	struct playlist_iterator pli;
+	char *songfile;
 
-    if (md5_load_time < st.st_mtime)
-      uade_read_content_db(md5name, state);
+	playlist_iterator(&pli, &uade_playlist);
 
-    uade_save_content_db(md5name, state);
-  }
+	while (1) {
+		songfile = playlist_iterator_get(&pli);
+		if (songfile == NULL)
+			break;
+
+		if (!uade_set_song_options(songfile, songoptions, state))
+			fprintf(stderr, "Could not update song.conf entry for %s\n", songfile);
+	}
 }
 
-
-static void scan_playlist(struct uade_config *uc)
+void test_and_trigger_debug(struct uade_state *state)
 {
-  struct playlist_iterator pli;
-  char *songfile;
-  struct uade_state state = {.config = *uc};
-
-  playlist_iterator(&pli, &uade_playlist);
-
-  while (1) {
-    songfile = playlist_iterator_get(&pli);
-    if (songfile == NULL)
-      break;
-
-    if (!uade_is_our_file(songfile, 1, &state))
-      continue;
-
-    songfile = canonicalize_file_name(songfile);
-
-    if (songfile)
-      printf("%s\n", songfile);
-
-    free(songfile);
-    songfile = NULL;
-  }
+	if (!debug_trigger)
+		return;
+	uade_set_debug(state);
+	debug_trigger = 0;
 }
-
-
-static void set_song_options(int *songconf_loaded, char *songoptions,
-			     char *songconfname, size_t maxname)
-{
-  char homesongconfname[PATH_MAX];
-  struct playlist_iterator pli;
-  char *songfile;
-  char *home;
-
-  home = uade_open_create_home();
-  if (home == NULL)
-    die("No $HOME for song.conf :(\n");
-
-  snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf", home);
-
-  if (*songconf_loaded == 0)
-    strlcpy(songconfname, homesongconfname, maxname);
-
-  playlist_iterator(&pli, &uade_playlist);
-
-  while (1) {
-    songfile = playlist_iterator_get(&pli);
-    if (songfile == NULL)
-      break;
-
-    if (!uade_update_song_conf(songconfname, homesongconfname, songfile, songoptions))
-      fprintf(stderr, "Could not update song.conf entry for %s\n", songfile);
-  }
-}
-
 
 int main(int argc, char *argv[])
 {
-  int i;
-  char configname[PATH_MAX] = "";
-  char playername[PATH_MAX] = "";
-  char scorename[PATH_MAX] = "";
-  int playernamegiven = 0;
-  char tmpstr[PATH_MAX + 256];
-  long subsong = -1;
-  FILE *listfile = NULL;
-  int have_modules = 0;
-  int ret;
-  char *endptr;
-  int uadeconf_loaded, songconf_loaded;
-  char songconfname[PATH_MAX] = "";
-  char uadeconfname[PATH_MAX];
-  struct uade_config uc_cmdline;
-  char songoptions[256] = "";
-  int have_song_options = 0;
-  int plistdir;
-  int scanmode = 0;
-
-  struct uade_state state = {};
-  char *basedir;
-
-  enum {
-    OPT_FIRST = 0x1FFF,
-    OPT_BASEDIR,
-    OPT_REPEAT,
-    OPT_SCAN,
-    OPT_SCOPE,
-    OPT_SET,
-    OPT_STDERR,
-    OPT_VERSION
-  };
-
-  struct option long_options[] = {
-    {"ao-option",        1, NULL, UC_AO_OPTION},
-    {"basedir",          1, NULL, OPT_BASEDIR},
-    {"buffer-time",      1, NULL, UC_BUFFER_TIME},
-    {"cygwin",           0, NULL, UC_CYGWIN_DRIVE_WORKAROUND},
-    {"debug",            0, NULL, 'd'},
-    {"detect-format-by-content", 0, NULL, UC_CONTENT_DETECTION},
-    {"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
-    {"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
-    {"ep-option",        1, NULL, 'x'},
-    {"filter",           2, NULL, UC_FILTER_TYPE},
-    {"force-led",        1, NULL, UC_FORCE_LED},
-    {"frequency",        1, NULL, UC_FREQUENCY},
-    {"gain",             1, NULL, 'G'},
-    {"get-info",         0, NULL, 'g'},
-    {"headphones",       0, NULL, UC_HEADPHONES},
-    {"headphones2",      0, NULL, UC_HEADPHONES2},
-    {"help",             0, NULL, 'h'},
-    {"ignore",           0, NULL, 'i'},
-    {"interpolator",     1, NULL, UC_RESAMPLER},
-    {"jump",             1, NULL, 'j'},
-    {"keys",             1, NULL, 'k'},
-    {"list",             1, NULL, '@'},
-    {"magic",            0, NULL, UC_CONTENT_DETECTION},
-    {"no-ep-end-detect", 0, NULL, 'n'},
-    {"no-song-end",      0, NULL, 'n'},
-    {"normalise",        2, NULL, UC_NORMALISE},
-    {"ntsc",             0, NULL, UC_NTSC},
-    {"one",              0, NULL, '1'},
-    {"pal",              0, NULL, UC_PAL},
-    {"panning",          1, NULL, 'p'},
-    {"recursive",        0, NULL, 'r'},
-    {"repeat",           0, NULL, OPT_REPEAT},
-    {"resampler",        1, NULL, UC_RESAMPLER},
-    {"scan",             0, NULL, OPT_SCAN},
-    {"scope",            0, NULL, OPT_SCOPE},
-    {"shuffle",          0, NULL, 'z'},
-    {"set",              1, NULL, OPT_SET},
-    {"silence-timeout",  1, NULL, 'y'},
-    {"speed-hack",       0, NULL, UC_SPEED_HACK},
-    {"stderr",           0, NULL, OPT_STDERR},
-    {"stdout",           0, NULL, 'c'},
-    {"subsong",          1, NULL, 's'},
-    {"subsong-timeout",  1, NULL, 'w'},
-    {"timeout",          1, NULL, 't'},
-    {"verbose",          0, NULL, 'v'},
-    {"version",          0, NULL, OPT_VERSION},
-    {NULL,               0, NULL, 0}
-  };
-
-  uade_config_set_defaults(&uc_cmdline);
-
-  if (!playlist_init(&uade_playlist))
-    die("Can not initialize playlist.\n");
-
-#define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) { die("Too long a string for option %c.\n", ret); }
-
-  while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
-    switch (ret) {
-
-    case '@':
-      listfile = fopen(optarg, "r");
-      if (listfile == NULL)
-	die("Can not open list file: %s\n", optarg);
-      break;
-
-    case '1':
-      uade_set_config_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
-      break;
-
-    case 'c':
-      strlcpy(uade_output_file_name, "/dev/stdout", sizeof uade_output_file_name);
-      /* Output sample data to stdout so do not print anything on stdout */
-      uade_terminal_file = stderr;
-      break;
-
-    case 'd':
-      debug_mode = 1;
-      uade_debug_trigger = 1;
-      break;
-    case 'e':
-      GET_OPT_STRING(uade_output_file_format);
-      break;
-
-    case 'f':
-      GET_OPT_STRING(uade_output_file_name);
-      break;
-
-    case 'g':
-      uade_info_mode = 1;
-      uade_no_audio_output = 1;
-      uade_no_text_output = 1;
-      uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, "off");
-      break;
-
-    case 'G':
-      uade_set_config_option(&uc_cmdline, UC_GAIN, optarg);
-      break;
-
-    case 'h':
-      print_help();
-      exit(0);
-
-    case 'i':
-      uade_set_config_option(&uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
-      break;
-
-    case 'j':
-      uade_jump_pos = strtod(optarg, &endptr);
-      if (*endptr != 0 || uade_jump_pos < 0.0)
-	die("Invalid jump position: %s\n", optarg);
-      break;
-
-    case 'k':
-      uade_set_config_option(&uc_cmdline, UC_ACTION_KEYS, optarg);
-      break;
-
-    case 'n':
-      uade_set_config_option(&uc_cmdline, UC_NO_EP_END, NULL);
-      break;
-
-    case 'p':
-      uade_set_config_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
-      break;
-
-    case 'P':
-      GET_OPT_STRING(playername);
-      playernamegiven = 1;
-      have_modules = 1;
-      break;
-
-    case 'r':
-      uade_set_config_option(&uc_cmdline, UC_RECURSIVE_MODE, NULL);
-      break;
-
-    case 's':
-      subsong = strtol(optarg, &endptr, 10);
-      if (*endptr != 0 || subsong < 0 || subsong > 255)
-	die("Invalid subsong string: %s\n", optarg);
-      break;
-
-    case 'S':
-      GET_OPT_STRING(scorename);
-      break;
-
-    case 't':
-      uade_set_config_option(&uc_cmdline, UC_TIMEOUT_VALUE, optarg);
-      break;
-
-    case 'u':
-      GET_OPT_STRING(uadename);
-      break;
-
-    case 'v':
-      uade_set_config_option(&uc_cmdline, UC_VERBOSE, NULL);
-      break;
-
-    case 'w':
-      uade_set_config_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
-      break;
-
-    case 'x':
-      uade_set_config_option(&uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
-      break;
-
-    case 'y':
-      uade_set_config_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
-      break;
-
-    case 'z':
-      uade_set_config_option(&uc_cmdline, UC_RANDOM_PLAY, NULL);
-      break;
-
-    case '?':
-    case ':':
-      exit(1);
-
-    case OPT_BASEDIR:
-      uade_set_config_option(&uc_cmdline, UC_BASE_DIR, optarg);
-      break;
-
-    case OPT_REPEAT:
-      playlist_repeat(&uade_playlist);
-      break;
-
-    case OPT_SCAN:
-      scanmode = 1;
-      /* Set recursive mode in scan mode */
-      uade_set_config_option(&uc_cmdline, UC_RECURSIVE_MODE, NULL);
-      break;
-
-    case OPT_SCOPE:
-      uade_no_text_output = 1;
-      uade_set_config_option(&uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
-      break;
-
-    case OPT_SET:
-      have_song_options = 1;
-      strlcpy(songoptions, optarg, sizeof songoptions);
-      break;
-
-    case OPT_STDERR:
-      uade_terminal_file = stderr;
-      break;
-
-    case OPT_VERSION:
-      printf("uade123 %s\n", UADE_VERSION);
-      exit(0);
-      break;
-
-    case UC_AO_OPTION:
-    case UC_BUFFER_TIME:
-    case UC_FILTER_TYPE:
-    case UC_FORCE_LED:
-    case UC_FREQUENCY:
-    case UC_NORMALISE:
-    case UC_RESAMPLER:
-      uade_set_config_option(&uc_cmdline, ret, optarg);
-      break;
-
-    case UC_CONTENT_DETECTION:
-    case UC_CYGWIN_DRIVE_WORKAROUND:
-    case UC_DISABLE_TIMEOUTS:
-    case UC_ENABLE_TIMEOUTS:
-    case UC_HEADPHONES:
-    case UC_HEADPHONES2:
-    case UC_NTSC:
-    case UC_PAL:
-    case UC_SPEED_HACK:
-      uade_set_config_option(&uc_cmdline, ret, NULL);
-      break;
-
-    default:
-      die("Impossible option.\n");
-    }
-  }
-
-  basedir = NULL;
-  if (uc_cmdline.basedir_set) {
-	  basedir = uc_cmdline.basedir.name;
-  }
-
-  uadeconf_loaded = uade_load_initial_config(&state, uadeconfname, sizeof uadeconfname, basedir);
-
-  /* Merge loaded configurations and command line options */
-  uade_merge_configs(&state.config, &uc_cmdline);
-
-  if (uadeconf_loaded == 0) {
-    debug(state.config.verbose, "Not able to load uade.conf from ~/.uade2/ or %s/.\n", state.config.basedir.name);
-  } else {
-    debug(state.config.verbose, "Loaded configuration: %s\n", uadeconfname);
-  }
-
-  songconf_loaded = uade_load_initial_song_conf(songconfname, sizeof songconfname, &state.permconfig, &uc_cmdline, &state);
-
-  if (songconf_loaded == 0) {
-    debug(state.config.verbose, "Not able to load song.conf from ~/.uade2/ or %s/.\n", state.config.basedir.name);
-  } else {
-    debug(state.config.verbose, "Loaded song.conf: %s\n", songconfname);
-  }
-
-  /* Read play list from file */
-  if (listfile != NULL) {
-    while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
-      if (tmpstr[0] == '#')
-	continue;
-      if (tmpstr[strlen(tmpstr) - 1] == '\n')
-	tmpstr[strlen(tmpstr) - 1] = 0;
-      playlist_add(&uade_playlist, tmpstr, state.config.recursive_mode, state.config.cygwin_drive_workaround);
-    }
-    fclose(listfile);
-    listfile = NULL;
-    have_modules = 1;
-  }
-
-  /* Read play list from command line parameters */
-  for (i = optind; i < argc; i++) {
-    /* Play files */
-    playlist_add(&uade_playlist, argv[i], state.config.recursive_mode, state.config.cygwin_drive_workaround);
-    have_modules = 1;
-  }
-
-  if (scanmode) {
-    scan_playlist(&state.config);
-    exit(0);
-  }
-
-  if (have_song_options) {
-    set_song_options(&songconf_loaded, songoptions, songconfname, sizeof songconfname);
-    exit(0);
-  }
-
-  load_content_db(&state.config, &state);
-
-  if (state.config.random_play)
-    playlist_randomize(&uade_playlist);
-
-  if (have_modules == 0) {
-    print_help();
-    exit(0);
-  }
-
-  /* we want to control terminal differently in debug mode */
-  if (debug_mode)
-    state.config.action_keys = 0;
-
-  if (state.config.action_keys)
-    setup_terminal();
-
-  do {
-    DIR *bd = opendir(state.config.basedir.name);
-    if (bd == NULL)
-      dieerror("Could not access dir %s", state.config.basedir.name);
-
-    closedir(bd);
-
-    snprintf(configname, sizeof configname, "%s/uaerc", state.config.basedir.name);
-
-    if (scorename[0] == 0)
-      snprintf(scorename, sizeof scorename, "%s/score", state.config.basedir.name);
-
-    if (uadename[0] == 0)
-      strlcpy(uadename, UADE_CONFIG_UADE_CORE, sizeof uadename);
-
-    if (access(configname, R_OK))
-      dieerror("Could not read %s", configname);
-
-    if (access(scorename, R_OK))
-      dieerror("Could not read %s", scorename);
-
-    if (access(uadename, X_OK))
-      dieerror("Could not execute %s", uadename);
-
-  } while (0);
-
-  setup_sighandlers();
-
-  uade_spawn(&state, uadename, configname);
-
-  if (!audio_init(&state.config))
-    goto cleanup;
-
-  plistdir = UADE_PLAY_CURRENT;
-
-  while (1) {
-
-    ssize_t filesize;
-
-    /* modulename and songname are a bit different. modulename is the name
-       of the song from uadecore's point of view and songname is the
-       name of the song from user point of view. Sound core considers all
-       custom songs to be players (instead of modules) and therefore modulename
-       will become a zero-string with custom songs. */
-    char modulename[PATH_MAX];
-    char songname[PATH_MAX];
-
-    if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
-      break;
-
-    plistdir = UADE_PLAY_NEXT;
-
-    state.config = state.permconfig;
-    state.song = NULL;
-    state.ep = NULL;
-
-    if (uc_cmdline.verbose)
-      state.config.verbose = 1;
-
-    if (playernamegiven == 0) {
-      debug(state.config.verbose, "\n");
-
-      if (!uade_is_our_file(modulename, 0, &state)) {
-	fprintf(stderr, "Unknown format: %s\n", modulename);
-	continue;
-      }
-
-      debug(state.config.verbose, "Player candidate: %s\n", state.ep->playername);
-
-      if (strcmp(state.ep->playername, "custom") == 0) {
-	strlcpy(playername, modulename, sizeof playername);
-	modulename[0] = 0;
-      } else {
-	snprintf(playername, sizeof playername, "%s/players/%s", uc_cmdline.basedir.name, state.ep->playername);
-      }
-    }
-
-    if (strlen(playername) == 0) {
-      fprintf(stderr, "Error: an empty player name given\n");
-      goto cleanup;
-    }
-
-    /* If no modulename given, try the playername as it can be a custom song */
-    strlcpy(songname, modulename[0] ? modulename : playername, sizeof songname);
-
-    if (!uade_alloc_song(&state, songname)) {
-      fprintf(stderr, "Can not read %s: %s\n", songname, strerror(errno));
-      continue;
-    }
-
-    /* The order of parameter processing is important:
-     * 0. set uade.conf options (done before this)
-     * 1. set eagleplayer attributes
-     * 2. set song attributes
-     * 3. set command line options
-     */
-
-    if (state.ep != NULL)
-      uade_set_ep_attributes(&state);
-
-    if (uade_set_song_attributes(&state, playername, sizeof playername)) {
-      debug(state.config.verbose, "Song rejected based on attributes: %s\n",
-	    state.song->module_filename);
-      uade_unalloc_song(&state);
-      continue;
-    }
-
-    uade_merge_configs(&state.config, &uc_cmdline);
-
-    /* Now we have the final configuration in "uc". */
-
-    uade_set_effects(&state);
-
-    if ((filesize = stat_file_size(playername)) < 0) {
-      fprintf(stderr, "Can not find player: %s (%s)\n", playername, strerror(errno));
-      uade_unalloc_song(&state);
-      continue;
-    }
-
-    debug(state.config.verbose, "Player: %s (%zd bytes)\n", playername, filesize);
-
-    fprintf(stderr, "Song: %s (%zd bytes)\n", state.song->module_filename, state.song->bufsize);
-
-    ret = uade_song_initialization(scorename, playername, modulename, &state);
-    switch (ret) {
-    case UADECORE_INIT_OK:
-      break;
-
-    case UADECORE_INIT_ERROR:
-      uade_unalloc_song(&state);
-      goto cleanup;
-
-    case UADECORE_CANT_PLAY:
-	debug(state.config.verbose, "Uadecore refuses to play the song.\n");
-	uade_unalloc_song(&state);
-	continue; /* jump to the beginning of playlist loop */
-
-    default:
-      die("Unknown error from uade_song_initialization()\n");
-    }
-
-    if (subsong >= 0)
-      uade_set_subsong(subsong, &state.ipc);
-
-    plistdir = play_loop(&state);
-
-    uade_unalloc_song(&state);
-
-    if (plistdir == UADE_PLAY_FAILURE)
-      goto cleanup;
-    else if (plistdir == UADE_PLAY_EXIT)
-      break;
-  }
-
-  debug(uc_cmdline.verbose || state.permconfig.verbose, "Killing child (%d).\n", uadepid);
-  cleanup(&state);
-  return 0;
-
- cleanup:
-  cleanup(&state);
-  return 1;
+	int i;
+	char tmpstr[PATH_MAX + 256];
+	long subsong = -1;
+	FILE *listfile = NULL;
+	int have_modules = 0;
+	int ret;
+	char *endptr;
+	struct uade_config uc_cmdline;
+	char songoptions[256] = "";
+	int have_song_options = 0;
+	int plistdir;
+	int scanmode = 0;
+
+	char **aooptions = NULL;
+	int naooptions = 0;
+
+	int recursivemode = 0;
+	int randomplay = 0;
+
+	struct uade_state *state;
+	char *basedir;
+
+	enum {
+		OPT_FIRST = 0x1FFF,
+		OPT_AO_OPTION,
+		OPT_BASEDIR,
+		OPT_BUFFER_TIME,
+		OPT_REPEAT,
+		OPT_SCAN,
+		OPT_SCOPE,
+		OPT_SET,
+		OPT_STDERR,
+		OPT_VERSION
+	};
+
+	struct option long_options[] = {
+		{"ao-option",        1, NULL, OPT_AO_OPTION},
+		{"basedir",          1, NULL, OPT_BASEDIR},
+		{"buffer-time",      1, NULL, OPT_BUFFER_TIME},
+		{"cygwin",           0, NULL, UC_CYGWIN_DRIVE_WORKAROUND},
+		{"debug",            0, NULL, 'd'},
+		{"detect-format-by-content", 0, NULL, UC_CONTENT_DETECTION},
+		{"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
+		{"enable-timeouts",  0, NULL, UC_ENABLE_TIMEOUTS},
+		{"ep-option",        1, NULL, 'x'},
+		{"filter",           2, NULL, UC_FILTER_TYPE},
+		{"force-led",        1, NULL, UC_FORCE_LED},
+		{"frequency",        1, NULL, UC_FREQUENCY},
+		{"gain",             1, NULL, 'G'},
+		{"get-info",         0, NULL, 'g'},
+		{"headphones",       0, NULL, UC_HEADPHONES},
+		{"headphones2",      0, NULL, UC_HEADPHONES2},
+		{"help",             0, NULL, 'h'},
+		{"ignore",           0, NULL, 'i'},
+		{"interpolator",     1, NULL, UC_RESAMPLER},
+		{"jump",             1, NULL, 'j'},
+		{"keys",             1, NULL, 'k'},
+		{"list",             1, NULL, '@'},
+		{"magic",            0, NULL, UC_CONTENT_DETECTION},
+		{"no-ep-end-detect", 0, NULL, 'n'},
+		{"no-song-end",      0, NULL, 'n'},
+		{"ntsc",             0, NULL, UC_NTSC},
+		{"one",              0, NULL, '1'},
+		{"pal",              0, NULL, UC_PAL},
+		{"panning",          1, NULL, 'p'},
+		{"recursive",        0, NULL, 'r'},
+		{"repeat",           0, NULL, OPT_REPEAT},
+		{"resampler",        1, NULL, UC_RESAMPLER},
+		{"scan",             0, NULL, OPT_SCAN},
+		{"scope",            0, NULL, OPT_SCOPE},
+		{"shuffle",          0, NULL, 'z'},
+		{"set",              1, NULL, OPT_SET},
+		{"silence-timeout",  1, NULL, 'y'},
+		{"speed-hack",       0, NULL, UC_SPEED_HACK},
+		{"stderr",           0, NULL, OPT_STDERR},
+		{"stdout",           0, NULL, 'c'},
+		{"subsong",          1, NULL, 's'},
+		{"subsong-timeout",  1, NULL, 'w'},
+		{"timeout",          1, NULL, 't'},
+		{"verbose",          0, NULL, 'v'},
+		{"version",          0, NULL, OPT_VERSION},
+		{NULL,               0, NULL, 0}
+	};
+
+	uade_config_set_defaults(&uc_cmdline);
+
+	if (!playlist_init(&uade_playlist))
+		uade_die("Can not initialize playlist.\n");
+
+#define GET_OPT_STRING(x) if (strlcpy((x), optarg, sizeof(x)) >= sizeof(x)) { uade_die("Too long a string for option %c.\n", ret); }
+
+	while ((ret = getopt_long(argc, argv, "@:1cde:f:gG:hij:k:np:P:rs:S:t:u:vw:x:y:z", long_options, 0)) != -1) {
+		switch (ret) {
+			
+		case '@':
+			listfile = fopen(optarg, "r");
+			if (listfile == NULL)
+				uade_die("Can not open list file: %s\n", optarg);
+			break;
+
+		case '1':
+			uade_config_set_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
+			break;
+
+		case 'c':
+			strlcpy(uade_output_file_name, "/dev/stdout", sizeof uade_output_file_name);
+			/* Output sample data to stdout so do not print anything on stdout */
+			uade_terminal_file = stderr;
+			break;
+
+		case 'd':
+			debug_mode = 1;
+			debug_trigger = 1;
+			break;
+		case 'e':
+			GET_OPT_STRING(uade_output_file_format);
+			break;
+
+		case 'f':
+			GET_OPT_STRING(uade_output_file_name);
+			break;
+
+		case 'g':
+			uade_info_mode = 1;
+			uade_no_audio_output = 1;
+			uade_no_text_output = 1;
+			actionkeys = 0;
+			break;
+
+		case 'G':
+			uade_config_set_option(&uc_cmdline, UC_GAIN, optarg);
+			break;
+
+		case 'h':
+			print_help();
+			exit(0);
+
+		case 'i':
+			uade_config_set_option(&uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
+			break;
+      
+		case 'j':
+			uade_jump_pos = strtod(optarg, &endptr);
+			if (*endptr != 0 || uade_jump_pos < 0.0)
+				uade_die("Invalid jump position: %s\n", optarg);
+			break;
+
+		case 'k':
+			actionkeys = strtol(optarg, &endptr, 0);
+			if (*endptr != 0 || actionkeys < 0 || actionkeys > 1)
+				uade_die("Invalid value: expect 0 or 1. Got %s\n", optarg);
+			break;
+
+		case 'n':
+			uade_config_set_option(&uc_cmdline, UC_NO_EP_END, NULL);
+			break;
+
+		case 'p':
+			uade_config_set_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
+			break;
+
+		case 'P':
+			uade_config_set_option(&uc_cmdline, UC_PLAYER_FILE, optarg);
+			have_modules = 1;
+			break;
+			
+		case 'r':
+			recursivemode = 1;
+			break;
+
+		case 's':
+			subsong = strtol(optarg, &endptr, 10);
+			if (*endptr != 0 || subsong < 0 || subsong > 255)
+				uade_die("Invalid subsong string: %s\n", optarg);
+			break;
+
+		case 'S':
+			uade_config_set_option(&uc_cmdline, UC_SCORE_FILE, optarg);
+			break;
+
+		case 't':
+			uade_config_set_option(&uc_cmdline, UC_TIMEOUT_VALUE, optarg);
+			break;
+
+		case 'u':
+			uade_config_set_option(&uc_cmdline, UC_UADECORE_FILE, optarg);
+			break;
+
+		case 'v':
+			uade_config_set_option(&uc_cmdline, UC_VERBOSE, NULL);
+			break;
+
+		case 'w':
+			uade_config_set_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
+			break;
+
+		case 'x':
+			uade_config_set_option(&uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
+			break;
+
+		case 'y':
+			uade_config_set_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
+			break;
+      
+		case 'z':
+			randomplay = 1;
+			break;
+
+		case '?':
+		case ':':
+			exit(1);
+
+		case OPT_BASEDIR:
+			uade_config_set_option(&uc_cmdline, UC_BASE_DIR, optarg);
+			break;
+
+		case OPT_REPEAT:
+			playlist_repeat(&uade_playlist);
+			break;
+
+		case OPT_SCAN:
+			scanmode = 1;
+			recursivemode = 1;
+			break;
+
+		case OPT_SCOPE:
+			uade_no_text_output = 1;
+			uade_config_set_option(&uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
+			break;
+
+		case OPT_SET:
+			have_song_options = 1;
+			strlcpy(songoptions, optarg, sizeof songoptions);
+			break;
+
+		case OPT_STDERR:
+			uade_terminal_file = stderr;
+			break;
+
+		case OPT_VERSION:
+			printf("uade123 %s\n", UADE_VERSION);
+			exit(0);
+			break;
+
+		case OPT_AO_OPTION:
+			if (aooptions == NULL)
+				aooptions = calloc(MAX_AO_OPTIONS + 1, sizeof(aooptions[0]));
+			if (aooptions == NULL)
+				uade_die("Can not allocate memory for ao options\n");
+			if (naooptions == MAX_AO_OPTIONS)
+				uade_die("Too many ao options\n");
+			aooptions[naooptions] = strdup(optarg);
+			if (aooptions[naooptions] == NULL)
+				uade_die("Can not allocate memory for ao option\n");
+			naooptions++;
+			break;
+
+		case OPT_BUFFER_TIME:
+			buffertime = strtol(optarg, &endptr, 0);
+			if (*endptr != 0 || buffertime <= 0)
+				uade_die("Invalid value: expect > 0. Got %s\n", optarg);
+			break;
+
+		case UC_FILTER_TYPE:
+		case UC_FORCE_LED:
+		case UC_FREQUENCY:
+		case UC_RESAMPLER:
+			uade_config_set_option(&uc_cmdline, ret, optarg);
+			break;
+
+		case UC_CONTENT_DETECTION:
+		case UC_CYGWIN_DRIVE_WORKAROUND:
+		case UC_DISABLE_TIMEOUTS:
+		case UC_ENABLE_TIMEOUTS:
+		case UC_HEADPHONES:
+		case UC_HEADPHONES2:
+		case UC_NTSC:
+		case UC_PAL:
+		case UC_SPEED_HACK:
+			uade_config_set_option(&uc_cmdline, ret, NULL);
+			break;
+
+		default:
+			uade_die("Impossible option.\n");
+		}
+	}
+	
+	basedir = NULL;
+	if (uc_cmdline.basedir_set)
+		basedir = uc_cmdline.basedir.name;
+
+	state = uade_new_state(&uc_cmdline, basedir);
+	if (state == NULL)
+		uade_die("Can not initialize uade state\n");
+
+	test_and_trigger_debug(state);
+
+	/* Read playlist from file */
+	if (listfile != NULL) {
+		while (xfgets(tmpstr, sizeof(tmpstr), listfile) != NULL) {
+			if (tmpstr[0] == '#')
+				continue;
+			if (tmpstr[strlen(tmpstr) - 1] == '\n')
+				tmpstr[strlen(tmpstr) - 1] = 0;
+			playlist_add(&uade_playlist, tmpstr, recursivemode, state->config.cygwin_drive_workaround);
+		}
+		fclose(listfile);
+		listfile = NULL;
+		have_modules = 1;
+	}
+
+	/* Read play list from command line parameters */
+	for (i = optind; i < argc; i++) {
+		/* Play files */
+		playlist_add(&uade_playlist, argv[i], recursivemode, state->config.cygwin_drive_workaround);
+		have_modules = 1;
+	}
+
+	if (scanmode) {
+		scan_playlist(state);
+		exit(0);
+	}
+
+	if (have_song_options) {
+		set_song_options(songoptions, state);
+		exit(0);
+	}
+
+	if (randomplay)
+		playlist_randomize(&uade_playlist);
+
+	if (have_modules == 0) {
+		print_help();
+		exit(0);
+	}
+
+	/* we want to control terminal differently in debug mode */
+	if (debug_mode)
+		actionkeys = 0;
+
+	if (actionkeys)
+		setup_terminal();
+
+	setup_sighandlers();
+
+	if (!audio_init(&state->config, aooptions))
+		goto cleanup;
+
+	plistdir = UADE_PLAY_CURRENT;
+
+	while (1) {
+		char modulename[PATH_MAX];
+		const struct uade_song_info *info;
+		size_t playerfsize = 0;
+
+		if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
+			break;
+
+		plistdir = UADE_PLAY_NEXT;
+
+		uade_debug(state, "\n");
+
+		if (!uade_is_our_file(modulename, state)) {
+			fprintf(stderr, "Unknown format: %s\n", modulename);
+			continue;
+		}
+
+		ret = uade_play(modulename, subsong, state);
+		if (ret < 0) {
+			goto cleanup;
+		} else if (ret == 0) {
+			fprintf(stderr, "Can not play %s\n", modulename);
+			continue;
+		}
+
+		info = uade_get_song_info(state);
+		uade_filesize(&playerfsize, info->playerfname);
+		uade_debug(state, "Player: %s (%zd bytes)\n", info->playerfname, playerfsize);
+		fprintf(stderr, "Song: %s (%zd bytes)\n", info->modulefname, info->modulefsize);
+
+		plistdir = play_loop(state);
+
+		if (uade_stop(state)) {
+			uade_cleanup_state(state);
+			state = uade_new_state(&uc_cmdline, basedir);
+			if (state == NULL)
+				uade_die("uade_stop() failed, new state can not created\n");
+			uade_debug(state, "uade_stop() failed. New uade state created.\n");
+			continue;
+		}
+
+		if (plistdir == UADE_PLAY_FAILURE)
+			goto cleanup;
+		else if (plistdir == UADE_PLAY_EXIT)
+			break;
+	}
+
+	cleanup(state);
+	return 0;
+  
+cleanup:
+	cleanup(state);
+	return 1;
 }
 
 
 static void print_help(void)
 {
-  printf("uade123 %s\n", UADE_VERSION);
-  printf(
+	printf("uade123 %s\n", UADE_VERSION);
+	printf(
 "\n"
 "Usage: uade123 [<options>] <input file> ...\n"
 "\n"
@@ -721,14 +571,13 @@ static void print_help(void)
 " --headphones2       Enable headphones 2 postprocessing effect.\n"
 " -i, --ignore,       Ignore eagleplayer fileformat check result. Play always.\n"
 " -j x, --jump=x,     Jump to time position 'x' seconds from the beginning.\n"
-"                     fractions of a second are allowed too.\n"
+"                     Decimal values are valid.\n"
 " -k 0/1, --keys=0/1, Turn action keys on (1) or off (0) for playback control\n"
 "                     on terminal. \n"
 " -n, --no-ep-end-detect, Ignore song end reported by the eagleplayer. Just\n"
 "                     keep playing. This does not affect timeouts. Check -w.\n"
 " --ntsc,             Set NTSC mode for playing (can be buggy).\n"
 " --pal,              Set PAL mode (default)\n"
-" --normalise,        Enable normalise postprocessing effect.\n"
 " -p x, --panning=x,  Set panning value in range [0, 2]. 0 is full stereo,\n"
 "                     1 is mono, and 2 is inverse stereo. The default is 0,7.\n"
 " -P filename,        Set player name\n"
@@ -765,9 +614,9 @@ static void print_help(void)
 " -u uadename,        Set uadecore executable name\n"
 "\n");
 
-  print_action_keys();
+	print_action_keys();
 
-  printf(
+	printf(
 "\n"
 "Example: Play all songs under /chip/fc directory in shuffling mode:\n"
 "  uade -z /chip/fc/*\n");
@@ -776,139 +625,66 @@ static void print_help(void)
 
 void print_action_keys(void)
 {
-  tprintf("ACTION KEYS FOR INTERACTIVE MODE:\n");
-  tprintf(" [0-9]         Change subsong.\n");
-  tprintf(" '<'           Previous song.\n");
-  tprintf(" '.'           Skip 10 seconds forward.\n");
-  tprintf(" 'b'           Next subsong.\n");
-  tprintf(" SPACE, 'c'    Pause.\n");
-  tprintf(" 'f'           Toggle filter (takes filter control away from eagleplayer).\n");
-  tprintf(" 'g'           Toggle gain effect.\n");
-  tprintf(" 'h'           Print this list.\n");
-  tprintf(" 'H'           Toggle headphones effect.\n");
-  tprintf(" 'i'           Print module info.\n");
-  tprintf(" 'I'           Print hex dump of head of module.\n");
-  tprintf(" 'N'           Toggle normalise effect.\n");
-  tprintf(" RETURN, 'n'   Next song.\n");
-  tprintf(" 'p'           Toggle postprocessing effects.\n");
-  tprintf(" 'P'           Toggle panning effect. Default value is 0.7.\n");
-  tprintf(" 'q'           Quit.\n");
-  tprintf(" 's'           Toggle between random and normal play.\n");
-  tprintf(" 'v'           Toggle verbose mode.\n");
-  tprintf(" 'x'           Restart current subsong.\n");
-  tprintf(" 'z'           Previous subsong.\n");
+	tprintf("ACTION KEYS FOR INTERACTIVE MODE:\n"
+		" [0-9]         Change subsong\n"
+		" CURSORS       Cursors left and right seek 10 seconds.\n"
+		"               Cursors down and up seek 1 minute.\n"
+		" '<'           Previous song\n"
+		" '.'           Seek 10 seconds forward (same as cursor right)\n"
+		" 'b'           Next subsong\n"
+		" 'c', SPACE    Pause\n"
+		" 'f'           Toggle filter (takes filter control away from eagleplayer)\n"
+		" 'g'           Toggle gain effect\n"
+		" 'h'           Print this list\n"
+		" 'H'           Toggle headphones effect\n"
+		" 'i'           Print module info\n"
+		" 'I'           Print hex dump of head of module\n"
+		" RETURN, '>'   Next song\n"
+		" 'p'           Toggle postprocessing effects\n"
+		" 'P'           Toggle panning effect. Default value is 0.7.\n"
+		" 'q'           Quit\n"
+		" 's'           Toggle between random and linear play\n"
+		" 'v'           Toggle verbose mode\n"
+		" 'x'           Restart current subsong\n"
+		" 'z'           Previous subsong\n");
 }
 
 
 static void setup_sighandlers(void)
 {
-  struct sigaction act;
-
-  memset(&act, 0, sizeof act);
-  act.sa_handler = trivial_sigint;
-
-  if ((sigaction(SIGINT, &act, NULL)) < 0)
-    dieerror("can not install signal handler SIGINT");
-
-  memset(&act, 0, sizeof act);
-  act.sa_handler = trivial_sigchld;
-  act.sa_flags = SA_NOCLDSTOP;
-
-  if ((sigaction(SIGCHLD, &act, NULL)) < 0)
-    dieerror("can not install signal handler SIGCHLD");
+	struct sigaction act = {.sa_handler = trivial_sigint};
+	if (sigaction(SIGINT, &act, NULL))
+		uade_die_error("can not install signal handler SIGINT");
 }
-
-
-ssize_t stat_file_size(const char *name)
-{
-  struct stat st;
-
-  if (stat(name, &st))
-    return -1;
-
-  return st.st_size;
-}
-
-
-/* test song_end_trigger by taking care of mutual exclusion with signal
-   handlers */
-int test_song_end_trigger(void)
-{
-  int ret;
-  sigset_t set;
-
-  /* Block SIGINT while handling uade_song_end_trigger */
-  if (sigemptyset(&set))
-    goto sigerr;
-  if (sigaddset(&set, SIGINT))
-    goto sigerr;
-  if (sigprocmask(SIG_BLOCK, &set, NULL))
-    goto sigerr;
-
-  ret = uade_song_end_trigger;
-  uade_song_end_trigger = 0;
-
-  /* Unblock SIGINT */
-  if (sigprocmask(SIG_UNBLOCK, &set, NULL))
-    goto sigerr;
-
-  return ret;
-
- sigerr:
-  die("signal hell\n");
-}
-
 
 static void cleanup(struct uade_state *state)
 {
-  save_content_db(state);
-
-  if (uadepid != -1) {
-    kill(uadepid, SIGTERM);
-    uadepid = -1;
-  }
-
-  audio_close();
+	uade_cleanup_state(state);
+	audio_close();
 }
-
-
-static void trivial_sigchld(int sig)
-{
-  int status;
-
-  if (waitpid(-1, &status, WNOHANG) == uadepid) {
-    uadepid = -1;
-    uade_terminated = 1;
-  }
-}
-
 
 static void trivial_sigint(int sig)
 {
-  static struct timeval otv = {.tv_sec = 0, .tv_usec = 0};
-  struct timeval tv;
-  int msecs;
+	static struct timeval otv = {.tv_sec = 0, .tv_usec = 0};
+	struct timeval tv;
 
-  if (debug_mode == 1) {
-    uade_debug_trigger = 1;
-    return;
-  }
+	if (debug_mode) {
+		debug_trigger = 1;
+		return;
+	}
 
-  uade_song_end_trigger = 1;
-
-  /* counts number of milliseconds between ctrl-c pushes, and terminates the
-     prog if they are less than 100 msecs apart. */ 
-  if (gettimeofday(&tv, NULL)) {
-    fprintf(stderr, "Gettimeofday() does not work.\n");
-    return;
-  }
-
-  msecs = 0;
-  if (otv.tv_sec) {
-    msecs = (tv.tv_sec - otv.tv_sec) * 1000 + (tv.tv_usec - otv.tv_usec) / 1000;
-    if (msecs < 100)
-      exit(1);
-  }
-
-  otv = tv;
+	/*
+	 * Counts number of milliseconds between ctrl-c pushes, and terminates
+	 * the prog if they are less than 100 msecs apart.
+	 */
+	if (gettimeofday(&tv, NULL)) {
+		fprintf(stderr, "Gettimeofday() does not work.\n");
+		return;
+	}
+	if (otv.tv_sec) {
+		int msecs = (tv.tv_sec - otv.tv_sec) * 1000 + (tv.tv_usec - otv.tv_usec) / 1000;
+		if (msecs < 100)
+			exit(1);
+	}
+	otv = tv;
 }

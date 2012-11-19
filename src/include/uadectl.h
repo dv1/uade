@@ -16,28 +16,26 @@ struct uade_song {
   int cur_subsong;
 };
 
+void uadecore_check_sound_buffers(int bytes);
+void uadecore_send_debug(const char *fmt, ...);
+void uadecore_get_amiga_message(void);
+void uadecore_handle_r_state(void);
+void uadecore_option(int, char**); /* handles command line parameters */
+void uadecore_reset(void);
+void uadecore_send_amiga_message(int msgtype);
+void uadecore_set_automatic_song_end(int song_end_possible);
+void uadecore_set_ntsc(int usentsc);
+void uadecore_song_end(char *reason, int kill_it);
+void uadecore_swap_buffer_bytes(void *data, int bytes);
 
-void uade_change_subsong(int subs);
-void uade_check_sound_buffers(int bytes);
-void uade_send_debug(const char *fmt, ...);
-void uade_get_amiga_message(void);
-void uade_handle_r_state(void);
-void uade_option(int, char**); /* handles command line parameters */
-void uade_reset(void);
-void uade_send_amiga_message(int msgtype);
-void uade_set_automatic_song_end(int song_end_possible);
-void uade_set_ntsc(int usentsc);
-void uade_song_end(char *reason, int kill_it);
-void uade_swap_buffer_bytes(void *data, int bytes);
+extern int uadecore_audio_output;
+extern int uadecore_audio_skip;
+extern int uadecore_debug;
+extern int uadecore_local_sound;
+extern int uadecore_read_size;
+extern int uadecore_reboot;
+extern int uadecore_time_critical;
 
-extern int uade_audio_output;
-extern int uade_audio_skip;
-extern int uade_debug;
-extern int uade_local_sound;
-extern int uade_read_size;
-extern int uade_reboot;
-extern int uade_time_critical;
-
-extern struct uade_ipc uadeipc;
+extern struct uade_ipc uadecore_ipc;
 
 #endif

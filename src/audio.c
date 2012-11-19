@@ -131,25 +131,25 @@ static void check_sound_buffers (void)
 {
     intptr_t bytes;
 
-    if (uade_reboot)
+    if (uadecore_reboot)
 	return;
 
-    assert(uade_read_size > 0);
+    assert(uadecore_read_size > 0);
 
     bytes = ((intptr_t) sndbufpt) - ((intptr_t) sndbuffer);
 
-    if (uade_audio_output) {
-	if (bytes == uade_read_size) {
-	    uade_check_sound_buffers(uade_read_size);
+    if (uadecore_audio_output) {
+	if (bytes == uadecore_read_size) {
+	    uadecore_check_sound_buffers(uadecore_read_size);
 	    sndbufpt = sndbuffer;
 	}
     } else {
-	uade_audio_skip += bytes;
+	uadecore_audio_skip += bytes;
 	/* if sound core doesn't report audio output start in 3 seconds from
 	   the reboot, begin audio output anyway */
-	if (uade_audio_skip >= (sound_bytes_per_second * 3)) {
+	if (uadecore_audio_skip >= (sound_bytes_per_second * 3)) {
 	    fprintf(stderr, "involuntary audio output start\n");
-	    uade_audio_output = 1;
+	    uadecore_audio_output = 1;
 	}
 	sndbufpt = sndbuffer;
     }
@@ -637,7 +637,7 @@ void AUDxPER (int nr, uae_u16 v)
 	   machines. robocop customs use low values for example. */
 	if (!audperhack) {
 	    audperhack = 1;
-	    uade_send_debug("Eagleplayer inserted %d into aud%dper.", v, nr);
+	    uadecore_send_debug("Eagleplayer inserted %d into aud%dper.", v, nr);
 	}
 	v = 16;
     }
