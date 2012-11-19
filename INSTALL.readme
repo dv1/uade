@@ -6,20 +6,13 @@ General Instructions for Installing UADE
 Compiling and running UADE requires some libraries depending on which
 frontends you want to use:
 
- Frontend name  | Type           	| Dependencies
- -----------------------------------------------------------------------
- uade123        | Command line   	| libao: http://www.xiph.org/ao/
- audacious	| Audacious plugin	| Audacious:
-					| http:/audacious-media-player.org
- uadefs         | Amiga to WAV filesys. | FUSE, uade123
-
- - pkg-config is required for detecting libao, audacious and fuse in the
-   configure script. This dependency can be hacked away for specific
-   platforms.
-
- - sed is required for creating Makefiles in the configure script
-
- - The default shell /bin/sh should be more or less compatible with Bash
+- bencode-tools
+- libao for uade123
+- fuse development headers for uadefs
+- pkg-config is required for detecting libao, audacious and fuse in the
+  configure script. This dependency can be hacked away for specific
+  platforms.
+- The default shell /bin/sh should be more or less compatible with Bash
 
 *** 2. Compiling and installation ***
 
