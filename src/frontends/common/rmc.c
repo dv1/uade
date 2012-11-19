@@ -143,6 +143,19 @@ error:
 	return NULL;
 }
 
+struct bencode *uade_rmc_decode_file(const char *fname)
+{
+	size_t size;
+	void *data;
+	struct bencode *rmc;
+	data = uade_read_file(&size, fname);
+	if (data == NULL)
+		return NULL;
+	rmc = uade_rmc_decode(data, size);
+	free(data);
+	return rmc;
+}
+
 /* Case insensitive name search in a directory */
 static struct bencode *scan_dict(struct bencode *files, const char *name)
 {

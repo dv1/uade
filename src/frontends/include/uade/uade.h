@@ -281,6 +281,9 @@ unsigned int uade_rmc_get_song_length(const struct bencode *rmc);
  */
 struct bencode *uade_rmc_decode(const void *data, size_t size);
 
+/* Same as uade_rmc_decode, but reads data from file pointed to by fname. */
+struct bencode *uade_rmc_decode_file(const char *fname);
+
 /* Put a new file to the RMC data structure */
 int uade_rmc_record_file(struct bencode *rmc, const char *name, const void *data, size_t len);
 
