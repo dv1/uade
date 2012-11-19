@@ -171,14 +171,15 @@ int uade_play(const char *fname, int subsong, struct uade_state *state);
 /*
  * uade_play_from_buffer()
  *
- * Same as uade_play, but gets data from buf with bufsize bytes.
+ * Same as uade_play, but gets data from 'buf' with 'size' bytes.
  * Does not work with multifile songs.
- * Optional file name can be provided in "fname" parameter for format detection.
- * fname can be NULL. Only the file extension of the name matters.
- * fname parameter is necessary for formats where content detection is not
- * supported.
+ * Optional file name can be provided in 'fname' parameter for format detection.
+ * 'fname' can be NULL. Only the file extension of the name matters.
+ * 'fname' parameter is necessary for formats where content detection is not
+ * supported. 'buf' can be freed after call.
  */
-int uade_play_from_buffer(const char *fname, const void *buf, size_t size, int subsong, struct uade_state *state);
+int uade_play_from_buffer(const char *fname, const void *buf, size_t size,
+			  int subsong, struct uade_state *state);
 
 /*
  * This can be used to monitor and control Amiga file loading from the music

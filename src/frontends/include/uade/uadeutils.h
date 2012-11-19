@@ -45,7 +45,7 @@ size_t uade_atomic_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
  * char *data, the contents of the file. This can be NULL.
  * size_t size, the size of data
  *
- * buf is copied into the 'struct uade_file' so it can be changed or freed
+ * data is copied into the 'struct uade_file' so it can be changed or freed
  * afterwards.
  *
  * Returns NULL on error (out of memory).
