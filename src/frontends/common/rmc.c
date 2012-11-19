@@ -1,7 +1,6 @@
 #include <uade/rmc.h>
 
 #include <bencodetools/bencode.h>
-
 #include <assert.h>
 #include <string.h>
 
@@ -13,6 +12,18 @@ int uade_is_rmc(const char *buf, size_t size)
 	if (size < RMC_PREFIX_LEN)
 		return 0;
 	return memcmp(buf, RMC_PREFIX, RMC_PREFIX_LEN) == 0;
+}
+
+int uade_is_rmc_file(const char *fname)
+{
+	char buf[RMC_PREFIX_LEN];
+	size_t bufsize;
+	FILE *f = fopen(fname, "rb");
+	if (f == NULL)
+		return 0;
+	bufsize = uade_atomic_fread(buf, 1, sizeof buf, f);
+	fclose(f);
+	return uade_is_rmc(buf, bufsize);
 }
 
 static struct bencode *get_files(const struct bencode *rmc)

@@ -128,6 +128,12 @@ int uade_is_our_file_from_buffer(const char *fname, const void *buf, size_t size
 int uade_is_rmc(const char *buf, size_t size);
 
 /*
+ * uade_is_rmc_file() returns 1, if the file pointed to by fname is an rmc file.
+ * Otherwise 0 is returned. See the note about uade_is_rmc() function.
+ */
+int uade_is_rmc_file(const char *fname);
+
+/*
  * Returns pointer to RMC data structure of the current song if it is played
  * from an RMC container.
  */
