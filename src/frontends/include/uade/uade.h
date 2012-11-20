@@ -273,8 +273,10 @@ struct bencode *uade_rmc_get_meta(const struct bencode *rmc);
  */
 const struct bencode *uade_rmc_get_subsongs(const struct bencode *rmc);
 
-/* Return song length in milliseconds */
-unsigned int uade_rmc_get_song_length(const struct bencode *rmc);
+/*
+ * Return song length in milliseconds.
+ */
+int uade_rmc_get_song_length(const struct bencode *rmc);
 
 /*
  * Parses a given data with size. Returns an RMC data structure if the

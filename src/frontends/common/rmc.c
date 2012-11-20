@@ -53,12 +53,13 @@ static int check_subsongs(const struct bencode *meta)
 		totalplaytime += ben_int_val(playtime);
 	}
 
+	/* totalplaytime must fit in 32 bit integer to be valid */
 	if (totalplaytime >= (1UL << 31)) {
 		uade_warning("Too long a song\n");
 		return -1;
 	}
 
-	return 0;
+	return totalplaytime;
 }
 
 int uade_rmc_get_module(struct uade_file **module, const struct bencode *rmc)
@@ -88,7 +89,7 @@ int uade_rmc_get_module(struct uade_file **module, const struct bencode *rmc)
 			break;
 	}
 
-	if (check_subsongs(meta))
+	if (check_subsongs(meta) < 0)
 		return -1;
 
 	assert(modulename != NULL);
@@ -219,13 +220,15 @@ struct bencode *uade_rmc_get_meta(const struct bencode *rmc)
 	return ben_list_get(rmc, 1);
 }
 
-unsigned int uade_rmc_get_playtime(const struct bencode *rmc)
+int uade_rmc_get_song_length(const struct bencode *rmc)
 {
 	unsigned int totalplaytime = 0;
 	size_t pos;
 	struct bencode *subsong;
 	struct bencode *playtime;
 	const struct bencode *subsongs = uade_rmc_get_subsongs(rmc);
+
+	assert(subsongs != NULL);
 
 	ben_dict_for_each(subsong, playtime, pos, subsongs)
 		totalplaytime += (unsigned int) ben_int_val(playtime);
