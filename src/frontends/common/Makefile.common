@@ -1,7 +1,7 @@
 COMMONMODULES = unixatomic.o uadeipc.o amifilemagic.o \
 	eagleplayer.o unixwalkdir.o effects.o \
 	uadecontrol.o uadeconf.o uadestate.o uadeutils.o md5.o \
-	ossupport.o rmc.o songdb.o songinfo.o vparray.o support.o
+	ossupport.o rmc.o songdb.o songinfo.o vparray.o support.o fifo.o
 
 PLAYERHEADERS = ../include/uade/eagleplayer.h ../include/uade/uadeconf.h ../include/uade/uadeconfstructure.h ../include/uade/uadestate.h ../common/support.h ../include/uade/uadeoptions.h ../include/uade/uadeutils.h ../include/uade/unixatomic.h ../include/uade/ossupport.h ../include/uade/unixsupport.h ../include/uade/uadeipc.h
 
@@ -54,4 +54,7 @@ vparray.o:	../common/vparray.c ../include/uade/vparray.h
 	$(CC) $(CFLAGS) -c $<
 
 support.o:	../common/support.c ../common/support.h ../include/uade/ossupport.h ../include/uade/unixsupport.h
+	$(CC) $(CFLAGS) -c $<
+
+fifo.o:	../common/fifo.c ../common/fifo.h
 	$(CC) $(CFLAGS) -c $<

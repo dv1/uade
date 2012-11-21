@@ -139,6 +139,8 @@ struct uade_song_state {
 	struct uade_attribute *songattributes;
 };
 
+struct fifo;
+
 struct uade_state {
 	/* Per song members */
 	struct uade_config config;
@@ -164,6 +166,8 @@ struct uade_state {
 
 	struct uade_file *(*amigaloader)(const char *name, const char *playerdir, void *context, struct uade_state *state);
 	void *amigaloadercontext;
+
+	struct fifo *readstash; /* Used only with uade_read() */
 };
 
 #endif

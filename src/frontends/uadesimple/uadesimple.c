@@ -21,9 +21,9 @@ static void cleanup(struct uade_state *state)
 
 static void play_loop(struct uade_state *state)
 {
-	struct uade_event event;
+	char buf[4096];
 	while (1) {
-		ssize_t nbytes = uade_get_samples(&event, state);
+		ssize_t nbytes = uade_read(buf, sizeof buf, state);
 		if (nbytes < 0) {
 			fprintf(stderr, "Playback error.\n");
 			break;
@@ -31,7 +31,7 @@ static void play_loop(struct uade_state *state)
 			fprintf(stderr, "Song end.\n");
 			break;
 		}
-		audio_play((char *) event.data.data, nbytes);
+		audio_play(buf, nbytes);
 	}
 }
 

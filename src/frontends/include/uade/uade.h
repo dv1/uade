@@ -15,8 +15,18 @@ extern "C"
  * NOTE: You should catch SIGPIPE because a write for the uadecore process
  * might cause a SIGPIPE if the uadecore process dies.
  *
- * You may only call uade_* functions from one thread at a time!
- * Be careful not to call uade_is_our_file() while playing in another thread.
+ * You may only call uade_* functions for one uade_state only from one thread
+ * at a time. If you have multiple uade_states, each can be called
+ * simultaneously. Note, especially be careful not to call uade_is_our_file()
+ * while playing in another thread with same uadestate.
+ *
+ * For the simplest players, the workflow to decode Amiga song is:
+ * 1. state = uade_new_state(NULL, NULL);
+ * 2. uade_play(fname, -1, state);  (Or, use uade_play_from_buffer.)
+ * 3. Optionally, uade_get_song_info(state);
+ * 4. uade_read(buffer, buffersize, state);
+ * 5. uade_stop(state);  (Or, uade_cleanup_state(state), if no more songs are
+ *                        played with the given state).
  */
 
 #include <limits.h>
@@ -71,18 +81,13 @@ int uade_get_event(struct uade_event *event, struct uade_state *state);
 int uade_get_fd(const struct uade_state *state);
 
 /*
- * uade_get_samples() synthesizes more samples.
- *
- * It gets struct uade_event *event as parameter. The data will be synthesized
- * into event->data.data array. The return value of the function indicates
- * the number of bytes in the array.
+ * uade_read() synthesizes more samples.
  *
  * Returns -1 on error. Error indicates playback must be terminated.
- * Returns 0 on songend.
- * Otherwise, the return value indicates number of sample bytes at
- * event->data.data.
+ * Returns 0 on songend or when bytes == 0.
+ * Positive return value indicates the number of sample bytes at 'data'
  */
-ssize_t uade_get_samples(struct uade_event *event, struct uade_state *state);
+ssize_t uade_read(void *data, size_t bytes, struct uade_state *state);
 
 /* Returns sampling rate of current state */
 int uade_get_sampling_rate(const struct uade_state *state);

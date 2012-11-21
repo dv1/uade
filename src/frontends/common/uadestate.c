@@ -3,6 +3,8 @@
 #include <uade/unixatomic.h>
 #include <uade/rmc.h>
 
+#include <fifo.h>
+
 #include <assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -768,10 +770,6 @@ int uade_get_event(struct uade_event *event, struct uade_state *state)
 
 		case UADE_STATE_WAIT_SUBSONG_CHANGE:
 			assert(state->ipc.state == UADE_R_STATE);
-			if (state->song.endevent.songend.stopnow) {
-				uade_warning("uade player should have discontinued processing events after song end event that ordered stop-now directive.\n");
-				return -1;
-			}
 
 			if (uade_next_subsong(state)) {
 				set_end_event(event, 0, 1, 1, "No more subsongs left", state);
@@ -793,34 +791,68 @@ int uade_get_fd(const struct uade_state *state)
 	return uade_ipc_get_fd(state->ipc.input);
 }
 
-ssize_t uade_get_samples(struct uade_event *event, struct uade_state *state)
+ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 {
-	while (1) {
-		if (uade_get_event(event, state)) {
-			uade_warning("uade_get_samples(): Unable to get an event.\n");
+	uint8_t *data = _data;
+	size_t copied = 0;
+	struct uade_event event;
+
+	if (bytes == 0)
+		return 0;
+
+	if (state->readstash == NULL) {
+		state->readstash = fifo_create();
+		if (state->readstash == NULL) {
+			uade_warning("Not enough memory to allocate stash.\n");
 			return -1;
 		}
+	}
 
-		switch (event->type) {
+	while (copied < bytes) {
+
+		if (fifo_len(state->readstash) > 0) {
+			copied += fifo_read(&data[copied], bytes - copied, state->readstash);
+			continue;
+		}
+
+		if (uade_get_event(&event, state)) {
+			uade_warning("uade_get_samples(): Unable to get an event.\n");
+			if (copied == 0)
+				return -1;
+			return copied;
+		}
+
+		switch (event.type) {
 		case UADE_EVENT_EAGAIN:
 		case UADE_EVENT_MESSAGE:
 			break;
 
 		case UADE_EVENT_DATA:
-			return event->data.size;
+			if (fifo_write(state->readstash, event.data.data, event.data.size)) {
+				uade_warning("uade_get_samples(): Can not allocate memory for fifo\n");
+				if (copied == 0)
+					return -1;
+				return copied;
+			}
+			break;
 
 		case UADE_EVENT_SONG_END:
-			if (!event->songend.happy || event->songend.stopnow)
-				return 0;
+			if (!event.songend.happy || event.songend.stopnow)
+				return copied;
 			if (uade_next_subsong(state))
-				return 0;
+				return copied;
+
+			/* Continue synthesizing the next subsong */
 			break;
 
 		default:
-			uade_warning("uade_get_event returned %s which is not handled.\n", uade_event_name(event));
+			uade_warning("uade_get_event returned %s which is not handled.\n", uade_event_name(&event));
 			return -1;
 		}
 	}
+
+	assert(copied <= bytes);
+	return copied;
 }
 
 struct uade_state *uade_new_state(const struct uade_config *extraconfig,
@@ -1167,10 +1199,11 @@ int uade_set_song_options(const char *songfile, const char *songoptions, struct 
 
 int uade_stop(struct uade_state *state)
 {
-	if (state->rmc != NULL) {
-		ben_free(state->rmc);
-		state->rmc = NULL;
-	}
+	ben_free(state->rmc);
+	state->rmc = NULL;
+
+	fifo_free(state->readstash);
+	state->readstash = NULL;
 
 	if (state->song.state == UADE_STATE_INVALID)
 		return 0;
