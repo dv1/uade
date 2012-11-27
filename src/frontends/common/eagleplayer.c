@@ -32,7 +32,7 @@
 /* Table for associating eagleplayer.conf, song.conf and uade.conf options
  * together.
  */
-const struct epconfattr epconf[] = {
+static const struct epconfattr boolean_options[] = {
 	{.s = "a500",               .e = ES_A500,                .o = UC_FILTER_TYPE, .c = "a500"},
 	{.s = "a1200",              .e = ES_A1200,               .o = UC_FILTER_TYPE, .c = "a1200"},
 	{.s = "always_ends",        .e = ES_ALWAYS_ENDS,         .o = UC_DISABLE_TIMEOUTS},
@@ -56,8 +56,11 @@ const struct epconfattr epconf[] = {
 };
 
 
-/* Variables for eagleplayer.conf and song.conf */
-static const struct epconfattr epconf_variables[] = {
+/*
+ * Variables for eagleplayer.conf and song.conf. ".s" must be presented with
+ * shorted prefix first. If there is "ab" and "abc", "ab" must be the first.
+ */
+static const struct epconfattr string_options[] = {
 	{.s = "epopt",           .t = UA_STRING, .e = ES_EP_OPTION},
 	{.s = "gain",            .t = UA_STRING, .e = ES_GAIN},
 	{.s = "interpolator",    .t = UA_STRING, .e = ES_RESAMPLER},
@@ -199,9 +202,9 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 }
 
 
-static void handle_attribute(struct uade_attribute **attributelist,
-			     const struct epconfattr *attr,
-			     char *item, size_t len, size_t lineno)
+static void store_attribute_into_list(struct uade_attribute **attributelist,
+				      const struct epconfattr *attr,
+				      char *item, size_t len, size_t lineno)
 {
 	struct uade_attribute *a;
 	char *str, *endptr;
@@ -234,8 +237,7 @@ static void handle_attribute(struct uade_attribute **attributelist,
 		success = 1;
 		break;
 	default:
-		fprintf(stderr, "Unknown song option: %s\n",
-			item);
+		fprintf(stderr, "Unknown song option: %s\n", item);
 		break;
 	}
 
@@ -249,26 +251,50 @@ static void handle_attribute(struct uade_attribute **attributelist,
 	}
 }
 
-
-int uade_song_and_player_attribute(struct uade_attribute **attributelist,
-				   int *flags, char *item, size_t lineno)
+int uade_set_config_options_from_flags(struct uade_state *state, int flags)
 {
-	size_t i, len;
+	size_t i;
+	for (i = 0; boolean_options[i].s != NULL; i++) {
+		if (boolean_options[i].o == 0)
+			continue;
+		if ((flags & boolean_options[i].e) == 0)
+			continue;
+		uade_debug(state, "Boolean option %s set.\n",
+			   boolean_options[i].s);
+		uade_config_set_option(&state->config, boolean_options[i].o,
+				       boolean_options[i].c);
+	}
 
-	for (i = 0; epconf[i].s != NULL; i++) {
-		if (strcasecmp(item, epconf[i].s) == 0) {
-			*flags |= epconf[i].e;
+	if (flags & ES_NEVER_ENDS) {
+		uade_warning("ES_NEVER_ENDS is not implemented.\n");
+		return -1;
+	}
+	if (flags & ES_REJECT) {
+		uade_warning("ES_REJECT is not implemented.\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
+				     int *flags, char *item, size_t lineno)
+{
+	size_t i;
+	size_t len;
+	for (i = 0; boolean_options[i].s != NULL; i++) {
+		if (strcasecmp(item, boolean_options[i].s) == 0) {
+			*flags |= boolean_options[i].e;
 			return 1;
 		}
 	}
 
-	for (i = 0; epconf_variables[i].s != NULL; i++) {
-		len = strlen(epconf_variables[i].s);
-		if (strncasecmp(item, epconf_variables[i].s, len) != 0)
+	for (i = 0; string_options[i].s != NULL; i++) {
+		len = strlen(string_options[i].s);
+		if (strncasecmp(item, string_options[i].s, len) != 0)
 			continue;
-
-		handle_attribute(attributelist, &epconf_variables[i],
-				 item, len, lineno);
+		store_attribute_into_list(attributelist, &string_options[i],
+					  item, len, lineno);
 		return 1;
 	}
 
@@ -395,7 +421,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 			if (strncasecmp(items[i], "comment:", 7) == 0)
 				break;
 
-			if (uade_song_and_player_attribute(&p->attributelist, &p->flags, items[i], lineno))
+			if (uade_parse_attribute_from_string(&p->attributelist, &p->flags, items[i], lineno))
 				continue;
 
 			fprintf(stderr, "Unrecognized option: %s\n", items[i]);

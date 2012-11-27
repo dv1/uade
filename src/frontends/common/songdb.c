@@ -417,7 +417,7 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 		for (i = 1; i < nitems; i++) {
 			if (strncasecmp(items[i], "comment:", 7) == 0)
 				break;
-			if (uade_song_and_player_attribute(&s->attributes, &s->flags, items[i], lineno))
+			if (uade_parse_attribute_from_string(&s->attributes, &s->flags, items[i], lineno))
 				continue;
 			fprintf(stderr, "song option %s is invalid\n", items[i]);
 		}

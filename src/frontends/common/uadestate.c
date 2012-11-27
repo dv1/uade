@@ -1066,9 +1066,9 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	 * 3. merge options and configs
 	 */
 
-	uade_set_ep_attributes(state);
+	uade_set_options_from_ep_attributes(state);
 
-	if (uade_set_song_attributes(state, playername, sizeof playername)) {
+	if (uade_set_options_from_song_attributes(state, playername, sizeof playername)) {
 		uade_debug(state, "Song rejected based on attributes: %s\n", state->song.info.modulefname);
 		goto recoverableerror;
 	}

@@ -146,63 +146,43 @@ static void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 	opts->s += strlen(s) + 1;
 }
 
-static int handle_attributes(struct uade_config *uc, struct uade_song_state *us,
-			     char *playername, size_t playernamelen,
-			     int flags, struct uade_attribute *attributelist)
+static int set_options_from_attributes(struct uade_state *state,
+				       char *playername,
+				       size_t playernamelen,
+				       struct uade_attribute *attributes)
 {
-	struct uade_attribute *a;
-	size_t i;
+	struct uade_song_state *us = &state->song;
+	struct uade_config *uc = &state->config;
 
-	for (i = 0; epconf[i].s != NULL; i++) {
-
-		if (epconf[i].o == 0)
-			continue;
-
-		if ((flags & epconf[i].e) == 0)
-			continue;
-
-		uade_config_set_option(uc, epconf[i].o, epconf[i].c);
-	}
-
-	if (flags & ES_NEVER_ENDS)
-		fprintf(stderr, "uade: ES_NEVER_ENDS is not implemented. What should it do?\n");
-
-	if (flags & ES_REJECT)
-		return -1;
-
-	a = attributelist;
-
-	while (a != NULL) {
-
-		switch (a->type) {
+	while (attributes != NULL) {
+		switch (attributes->type) {
 		case ES_EP_OPTION:
-			if (uc->verbose)
-				fprintf(stderr, "Using eagleplayer option %s\n", a->s);
-			uade_add_ep_option(&us->ep_options, a->s);
+			uade_debug(state, "Using eagleplayer option %s\n", attributes->s);
+			uade_add_ep_option(&us->ep_options, attributes->s);
 			break;
 
 		case ES_GAIN:
-			uade_config_set_option(uc, UC_GAIN, a->s);
+			uade_config_set_option(uc, UC_GAIN, attributes->s);
 			break;
 
 		case ES_RESAMPLER:
-			uade_config_set_option(uc, UC_RESAMPLER, a->s);
+			uade_config_set_option(uc, UC_RESAMPLER, attributes->s);
 			break;
 
 		case ES_PANNING:
-			uade_config_set_option(uc, UC_PANNING_VALUE, a->s);
+			uade_config_set_option(uc, UC_PANNING_VALUE, attributes->s);
 			break;
 
 		case ES_PLAYER:
 			if (playername) {
-				snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, a->s);
+				snprintf(playername, playernamelen, "%s/players/%s", uc->basedir.name, attributes->s);
 			} else {
 				fprintf(stderr, "Error: attribute handling was given playername == NULL.\n");
 			}
 			break;
 
 		case ES_SILENCE_TIMEOUT:
-			uade_config_set_option(uc, UC_SILENCE_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_SILENCE_TIMEOUT_VALUE, attributes->s);
 			break;
 
 		case ES_SUBSONGS:
@@ -210,31 +190,35 @@ static int handle_attributes(struct uade_config *uc, struct uade_song_state *us,
 			break;
 
 		case ES_SUBSONG_TIMEOUT:
-			uade_config_set_option(uc, UC_SUBSONG_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_SUBSONG_TIMEOUT_VALUE, attributes->s);
 			break;
 
 		case ES_TIMEOUT:
-			uade_config_set_option(uc, UC_TIMEOUT_VALUE, a->s);
+			uade_config_set_option(uc, UC_TIMEOUT_VALUE, attributes->s);
 			break;
 
 		default:
-			fprintf(stderr,	"Unknown song attribute integer: 0x%x\n", a->type);
+			fprintf(stderr,	"Unknown song attribute integer: 0x%x\n", attributes->type);
 			break;
 		}
 
-		a = a->next;
+		attributes = attributes->next;
 	}
 
 	return 0;
 }
 
-int uade_set_song_attributes(struct uade_state *state,
-			     char *playername, size_t playernamelen)
+int uade_set_options_from_song_attributes(struct uade_state *state,
+					  char *playername,
+					  size_t playernamelen)
 {
-	struct uade_song_state *us = &state->song;
-	struct uade_config *uc = &state->config;
+	/* Look at flags and set uade config options accordingly */
+	if (uade_set_config_options_from_flags(state, state->song.flags))
+		uade_warning("uade_set_song_attributes failed when setting config options from flags\n");
 
-	return handle_attributes(uc, us, playername, playernamelen, us->flags, us->songattributes);
+	return set_options_from_attributes(state,
+					   playername, playernamelen,
+					   state->song.songattributes);
 }
 
 int uade_load_config(struct uade_state *state, const char *filename)
@@ -726,10 +710,16 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 	}
 }
 
-void uade_set_ep_attributes(struct uade_state *state)
+void uade_set_options_from_ep_attributes(struct uade_state *state)
 {
 	struct eagleplayer *ep = state->song.info.detectioninfo.ep;
-	handle_attributes(&state->config, &state->song, NULL, 0, ep->flags, ep->attributelist);
+
+	/* Look at flags and set uade config options accordingly */
+	if (uade_set_config_options_from_flags(state, ep->flags))
+		uade_warning("uade_set_ep_attributes failed with setting config options from flags\n");
+
+	if (set_options_from_attributes(state, NULL, 0, ep->attributelist))
+		uade_warning("uade_set_ep_attributes failed with setting config options from eagleplayer attributes\n");
 }
 
 void uade_set_filter_type(struct uade_config *uc, const char *model)

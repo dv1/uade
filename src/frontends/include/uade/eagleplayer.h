@@ -1,14 +1,16 @@
 #ifndef _UADE_EAGLEPLAYER_H_
 #define _UADE_EAGLEPLAYER_H_
 
+#include <uade/uadeconfstructure.h>
+
 #include <stdio.h>
 #include <stdint.h>
 #include <limits.h>
 
-#include <uade/uadeconfstructure.h>
-
-/* We maintain alphabetical order even if that forces us to renumber bits
-   when a new option is added */
+/*
+ * We maintain alphabetical order even if that forces us to renumber bits
+ * when a new option is added
+ */
 #define ES_A1200               (1 <<  0)
 #define ES_A500                (1 <<  1)
 #define ES_ALWAYS_ENDS         (1 <<  2)
@@ -39,6 +41,22 @@
 
 #define UADE_WS_DELIMITERS " \t\n"
 
+enum uade_attribute_type {
+	UA_STRING = 1,
+	UA_INT,
+	UA_DOUBLE,
+};
+
+struct uade_attribute;
+
+struct uade_attribute {
+	struct uade_attribute *next;
+	enum uade_attribute_type type;
+	char *s;
+	int i;
+	double d;
+};
+
 struct eagleplayer {
 	char *playername;
 	size_t nextensions;
@@ -59,22 +77,6 @@ struct eagleplayerstore {
 	struct eagleplayermap *map;
 };
 
-enum uade_attribute_type {
-	UA_STRING = 1,
-	UA_INT,
-	UA_DOUBLE
-};
-
-struct uade_attribute;
-
-struct uade_attribute {
-	struct uade_attribute *next;
-	enum uade_attribute_type type;
-	char *s;
-	int i;
-	double d;
-};
-
 struct epconfattr {
 	char *s;                    /* config file directive/variable name */
 	int e;                      /* ES_* flags for eagleplayers and songs */
@@ -84,12 +86,17 @@ struct epconfattr {
 };
 
 
-extern const struct epconfattr epconf[];
-
 struct uade_state;
 struct uade_detection_info;
 
-int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo, const void *ibuf, size_t ibytes, const char *fname, size_t fsize, struct uade_state *state);
-int uade_song_and_player_attribute(struct uade_attribute **attributelist, int *flags, char *item, size_t lineno);
+int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
+			     const void *ibuf, size_t ibytes,
+			     const char *fname, size_t fsize,
+			     struct uade_state *state);
+
+int uade_set_config_options_from_flags(struct uade_state *state, int flags);
+
+int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
+				     int *flags, char *item, size_t lineno);
 
 #endif
