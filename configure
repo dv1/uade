@@ -578,7 +578,7 @@ if test "$useuadefs" = "yes" ; then
     uadefsrule="uadefs"
 fi
 
-compilerules=""
+compilerules="uadesimple"
 installrules=""
 for component in $libuaderule $uadecorerule $uade123rule $uadefsrule ; do
     compilerules="$compilerules $component"

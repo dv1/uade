@@ -52,6 +52,9 @@ uadefs:	staticlibuade
 uadefsinstall:	
 	$(MAKE) -C src/frontends/uadefs install
 
+uadesimple:	
+	$(MAKE) -C src/frontends/uadesimple
+
 src/frontends/include/uade/uadeoptions.h:	
 	@echo ""
 	@echo "Run ./configure first!"
