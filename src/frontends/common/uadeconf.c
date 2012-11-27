@@ -1,12 +1,12 @@
-/* Handle uade.conf file
-
-   Copyright (C) 2005 Heikki Orsila <heikki.orsila@iki.fi>
-
-   This source code module is dual licensed under GPL and Public Domain.
-   Hence you may use _this_ module (not another code module) in any way you
-   want in your projects.
+/*
+ * Handle uade.conf file
+ *
+ * Copyright (C) 2005 Heikki Orsila <heikki.orsila@iki.fi>
+ *
+ * This source code module is dual licensed under GPL and Public Domain.
+ * Hence you may use _this_ module (not another code module) in any way you
+ * want in your projects.
 */
-
 
 #include <uade/uade.h>
 #include <support.h>

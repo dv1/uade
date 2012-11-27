@@ -1074,6 +1074,7 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	}
 
 	snprintf(path, sizeof path, "%s/score", state->config.basedir.name);
+	uade_debug(state, "score path %s\n", path);
 	uade_config_set_option(&state->config, UC_SCORE_FILE, path);
 
 	uade_merge_configs(&state->config, &state->extraconfig);

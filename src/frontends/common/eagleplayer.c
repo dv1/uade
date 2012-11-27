@@ -82,18 +82,21 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename);
 static struct eagleplayer *get_eagleplayer(const char *extension,
 					   struct eagleplayerstore *playerstore);
 
+static struct eagleplayerstore *try_playerstore_path(const char *path)
+{
+	char formatsfile[PATH_MAX];
+	snprintf(formatsfile, sizeof formatsfile, "%s/eagleplayer.conf", path);
+	return read_eagleplayer_conf(formatsfile);
+}
 
 static int load_playerstore(struct uade_state *state)
 {
-	char formatsfile[PATH_MAX];
-
-	if (state->playerstore == NULL) {
-		snprintf(formatsfile, sizeof formatsfile, "%s/eagleplayer.conf", state->config.basedir.name);
-		state->playerstore = read_eagleplayer_conf(formatsfile);
-	}
+	if (state->playerstore == NULL)
+		state->playerstore = try_playerstore_path(state->config.basedir.name);
 
 	if (state->playerstore == NULL)
-		uade_warning("Tried to load eagleplayer.conf from %s, but failed\n", formatsfile);
+		uade_warning("Tried to load eagleplayer.conf from %s, "
+			     "but failed\n", state->config.basedir.name);
 
 	return state->playerstore != NULL;
 }
@@ -282,6 +285,7 @@ int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
 {
 	size_t i;
 	size_t len;
+
 	for (i = 0; boolean_options[i].s != NULL; i++) {
 		if (strcasecmp(item, boolean_options[i].s) == 0) {
 			*flags |= boolean_options[i].e;
@@ -376,7 +380,6 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 			uade_error("No memory for playername.\n");
 
 		for (i = 1; i < nitems; i++) {
-
 			if (strncasecmp(items[i], "prefixes=", 9) == 0) {
 				char prefixes[UADE_LINESIZE];
 				char *prefixstart = items[i] + 9;
