@@ -154,8 +154,8 @@ static int set_options_from_attributes(struct uade_state *state,
 	struct uade_song_state *us = &state->song;
 	struct uade_config *uc = &state->config;
 
-	while (attributes != NULL) {
-		switch (attributes->type) {
+	for (; attributes != NULL; attributes = attributes->next) {
+		switch (attributes->flag) {
 		case ES_EP_OPTION:
 			uade_debug(state, "Using eagleplayer option %s\n", attributes->s);
 			uade_add_ep_option(&us->ep_options, attributes->s);
@@ -198,11 +198,9 @@ static int set_options_from_attributes(struct uade_state *state,
 			break;
 
 		default:
-			fprintf(stderr,	"Unknown song attribute integer: 0x%x\n", attributes->type);
+			fprintf(stderr,	"Unknown song attribute flag: 0x%x\n", attributes->flag);
 			break;
 		}
-
-		attributes = attributes->next;
 	}
 
 	return 0;

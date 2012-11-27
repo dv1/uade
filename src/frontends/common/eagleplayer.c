@@ -61,16 +61,16 @@ static const struct epconfattr boolean_options[] = {
  * shorted prefix first. If there is "ab" and "abc", "ab" must be the first.
  */
 static const struct epconfattr string_options[] = {
-	{.s = "epopt",           .t = UA_STRING, .e = ES_EP_OPTION},
-	{.s = "gain",            .t = UA_STRING, .e = ES_GAIN},
-	{.s = "interpolator",    .t = UA_STRING, .e = ES_RESAMPLER},
-	{.s = "panning",         .t = UA_STRING, .e = ES_PANNING},
-	{.s = "player",          .t = UA_STRING, .e = ES_PLAYER},
-	{.s = "resampler",       .t = UA_STRING, .e = ES_RESAMPLER},
-	{.s = "silence_timeout", .t = UA_STRING, .e = ES_SILENCE_TIMEOUT},
-	{.s = "subsong_timeout", .t = UA_STRING, .e = ES_SUBSONG_TIMEOUT},
-	{.s = "subsongs",        .t = UA_STRING, .e = ES_SUBSONGS},
-	{.s = "timeout",         .t = UA_STRING, .e = ES_TIMEOUT},
+	{.s = "epopt",           .e = ES_EP_OPTION},
+	{.s = "gain",            .e = ES_GAIN},
+	{.s = "interpolator",    .e = ES_RESAMPLER},
+	{.s = "panning",         .e = ES_PANNING},
+	{.s = "player",          .e = ES_PLAYER},
+	{.s = "resampler",       .e = ES_RESAMPLER},
+	{.s = "silence_timeout", .e = ES_SILENCE_TIMEOUT},
+	{.s = "subsong_timeout", .e = ES_SUBSONG_TIMEOUT},
+	{.s = "subsongs",        .e = ES_SUBSONGS},
+	{.s = "timeout",         .e = ES_TIMEOUT},
 	{.s = NULL}
 };
 
@@ -210,8 +210,7 @@ static void store_attribute_into_list(struct uade_attribute **attributelist,
 				      char *item, size_t len, size_t lineno)
 {
 	struct uade_attribute *a;
-	char *str, *endptr;
-	int success = 0;
+	char *str;
 
 	if (item[len] != '=') {
 		fprintf(stderr, "Invalid song item: %s\n", item);
@@ -222,36 +221,13 @@ static void store_attribute_into_list(struct uade_attribute **attributelist,
 	if ((a = calloc(1, sizeof *a)) == NULL)
 		eperror("No memory for song attribute.\n");
 
-	switch (attr->t) {
-	case UA_DOUBLE:
-		a->d = strtod(str, &endptr);
-		if (*endptr == 0)
-			success = 1;
-		break;
-	case UA_INT:
-		a->i = strtol(str, &endptr, 10);
-		if (*endptr == 0)
-			success = 1;
-		break;
-	case UA_STRING:
-		a->s = strdup(str);
-		if (a->s == NULL)
-			eperror("Out of memory allocating string option for song\n");
-		success = 1;
-		break;
-	default:
-		fprintf(stderr, "Unknown song option: %s\n", item);
-		break;
-	}
+	a->s = strdup(str);
+	if (a->s == NULL)
+		eperror("Out of memory allocating string option for song\n");
 
-	if (success) {
-		a->type = attr->e;
-		a->next = *attributelist;
-		*attributelist = a;
-	} else {
-		fprintf(stderr, "Invalid song option: %s\n", item);
-		free(a);
-	}
+	a->flag = attr->e;
+	a->next = *attributelist;
+	*attributelist = a;
 }
 
 int uade_set_config_options_from_flags(struct uade_state *state, int flags)

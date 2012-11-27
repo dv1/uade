@@ -41,17 +41,11 @@
 
 #define UADE_WS_DELIMITERS " \t\n"
 
-enum uade_attribute_type {
-	UA_STRING = 1,
-	UA_INT,
-	UA_DOUBLE,
-};
-
 struct uade_attribute;
 
 struct uade_attribute {
 	struct uade_attribute *next;
-	enum uade_attribute_type type;
+	int flag;
 	char *s;
 	int i;
 	double d;
@@ -82,7 +76,6 @@ struct epconfattr {
 	int e;                      /* ES_* flags for eagleplayers and songs */
         int o;                      /* UC_* flag for uade.conf option */
 	char *c;                    /* constant for an UC_* flag */
-	enum uade_attribute_type t; /* if variable, its special type */
 };
 
 
