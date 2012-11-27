@@ -18,7 +18,7 @@
 # Set panning panning value. Mixes left and right channels together affinely
 # (in linear fashion).
 
-#panning		0.7
+panning		0.7
 
 
 # Enable gain effect in range [0, 1]. Decreasing volume by 1 dB means
