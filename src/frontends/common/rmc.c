@@ -220,9 +220,9 @@ struct bencode *uade_rmc_get_meta(const struct bencode *rmc)
 	return ben_list_get(rmc, 1);
 }
 
-int uade_rmc_get_song_length(const struct bencode *rmc)
+double uade_rmc_get_song_length(const struct bencode *rmc)
 {
-	unsigned int totalplaytime = 0;
+	uint64_t totalplaytime = 0;
 	size_t pos;
 	struct bencode *subsong;
 	struct bencode *playtime;
@@ -231,9 +231,9 @@ int uade_rmc_get_song_length(const struct bencode *rmc)
 	assert(subsongs != NULL);
 
 	ben_dict_for_each(subsong, playtime, pos, subsongs)
-		totalplaytime += (unsigned int) ben_int_val(playtime);
+		totalplaytime += (uint64_t) ben_int_val(playtime);
 
-	return totalplaytime;
+	return totalplaytime / 1000.0;
 }
 
 const struct bencode *uade_rmc_get_subsongs(const struct bencode *rmc)

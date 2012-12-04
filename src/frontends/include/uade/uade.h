@@ -241,13 +241,14 @@ int uade_seek_samples(enum uade_seek_mode whence, ssize_t samples, int subsong,
 int uade_is_seeking(const struct uade_state *state);
 
 /*
- * Return current song position in milliseconds. Function returns -1 if
- * accurate time can not be determined due to subsong switching (seeking).
- * Accurate time is always returned with RMC files.
+ * Return current song position in seconds. Function returns a negative value
+ * for non-rmc songs. Time is always returned with RMC files.
  * 'whence' determines whether time is relative to the beginning of the first
- * subsong (UADE_SONG_RELATIVE) or the current subsong (UADE_SUBSONG_RELATIVE).
+ * subsong (UADE_SEEK_SONG_RELATIVE) or the
+ * current subsong (UADE_SEEK_SUBSONG_RELATIVE).
  */
-int uade_get_time_position(int whence, const struct uade_state *state);
+double uade_get_time_position(enum uade_seek_mode whence,
+			      const struct uade_state *state);
 
 /*
  * This should be called after a successful uade_play().
@@ -287,9 +288,9 @@ struct bencode *uade_rmc_get_meta(const struct bencode *rmc);
 const struct bencode *uade_rmc_get_subsongs(const struct bencode *rmc);
 
 /*
- * Return song length in milliseconds.
+ * Return song length in seconds.
  */
-int uade_rmc_get_song_length(const struct bencode *rmc);
+double uade_rmc_get_song_length(const struct bencode *rmc);
 
 /*
  * Parses a given data with size. Returns an RMC data structure if the

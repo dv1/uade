@@ -567,6 +567,30 @@ int uade_get_sampling_rate(const struct uade_state *state)
 	return frequency;
 }
 
+double uade_get_time_position(enum uade_seek_mode whence,
+			      const struct uade_state *state)
+{
+	int64_t bytes;
+
+	/* We don't return time position for non-rmc songs. */
+	if (uade_get_rmc_from_state(state) == NULL)
+		return -1;
+
+	switch (whence) {
+	case UADE_SEEK_SONG_RELATIVE:
+		bytes = state->song.info.songbytes;
+		break;
+	case UADE_SEEK_SUBSONG_RELATIVE:
+		bytes = state->song.info.subsongbytes;
+		break;
+	default:
+		uade_warning("Unknown whence given for "
+			     "uade_get_time_position()\n");
+		return -1;
+	}
+	return ((double) bytes) / get_bytes_per_second(state);
+}
+
 static int get_pending_events(struct uade_state *state)
 {
 	uint8_t space[UADE_MAX_MESSAGE_SIZE];
