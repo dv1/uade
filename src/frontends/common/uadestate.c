@@ -70,7 +70,7 @@ static void prepare_configs(struct uade_state *state)
 
 static int get_bytes_per_second(const struct uade_state *state)
 {
-	return UADE_BYTES_PER_FRAME * state->config.frequency;
+	return UADE_BYTES_PER_FRAME * uade_get_sampling_rate(state);
 }
 
 void uade_cleanup_state(struct uade_state *state)
@@ -447,28 +447,28 @@ static void set_subsong_and_seek(int whence, int subsong, int64_t seekoffs,
 	state->song.seekoffstrigger = seekoffs;
 }
 
-static int64_t msecs_to_offset(int64_t msecs, const struct uade_state *state)
+static int64_t samples_to_offset(ssize_t samples,
+				 const struct uade_state *state)
 {
-	const int framesize = UADE_BYTES_PER_FRAME;
-	int64_t seekoffs = (msecs * get_bytes_per_second(state)) / 1000;
-	return (seekoffs / framesize) * framesize;
+	return ((int64_t) samples) * UADE_BYTES_PER_FRAME;
 }
 
-static int seek_subsong_relative(int msecs, int subsong,
+static int seek_subsong_relative(ssize_t samples, int subsong,
 				 struct uade_state *state)
 {
 	int cursub = state->song.info.subsongs.cur;
 	int maxsub = state->song.info.subsongs.max;
 	int positionrelative = (subsong < 0);
-	int64_t seekoffs = msecs_to_offset(msecs, state);
+	int64_t seekoffs = samples_to_offset(samples, state);
 
 	if (subsong < -1 || subsong > maxsub) {
 		uade_warning("Bad subsong value: %d\n", subsong);
 		return -1;
 	}
 
-	if (!positionrelative && msecs < 0) {
-		uade_warning("Time value must be set to a non-negative value for absolute time seeking.\n");
+	if (!positionrelative && seekoffs < 0) {
+		uade_warning("Time value must be set to a non-negative value "
+			     "for absolute time seeking.\n");
 		return -1;
 	}
 
@@ -490,13 +490,14 @@ static int seek_subsong_relative(int msecs, int subsong,
 	if (!positionrelative || seekoffs < state->song.info.subsongbytes)
 		dont_record_playtime(state);
 
-	set_subsong_and_seek(UADE_SEEK_SUBSONG_RELATIVE, subsong, seekoffs, state);
+	set_subsong_and_seek(UADE_SEEK_SUBSONG_RELATIVE, subsong, seekoffs,
+			     state);
 	return 0;
 }
 
-static int seek_song_relative(int msecs, struct uade_state *state)
+static int seek_song_relative(ssize_t samples, struct uade_state *state)
 {
-	int64_t seekoffs = msecs_to_offset(msecs, state);
+	int64_t seekoffs = samples_to_offset(samples, state);
 	if (seekoffs < 0) {
 		uade_warning("Time value must be set to a non-negative value for absolute time seeking.\n");
 		return -1;
@@ -513,21 +514,35 @@ static int seek_song_relative(int msecs, struct uade_state *state)
 	return 0;
 }
 
-int uade_seek(enum uade_seek_mode whence, int msecs, int subsong,
+int uade_seek(enum uade_seek_mode whence, double seconds, int subsong,
 	      struct uade_state *state)
+{
+	size_t max_ssize_t = ((size_t) -1) / 2;
+	const double limit = max_ssize_t / uade_get_sampling_rate(state);
+	ssize_t samples;
+	if (seconds <= -limit || seconds >= limit) {
+		uade_warning("Invalid seek seconds: %f\n", seconds);
+		return -1;
+	}
+	samples = seconds * uade_get_sampling_rate(state);
+	return uade_seek_samples(whence, samples, subsong, state);
+}
+
+int uade_seek_samples(enum uade_seek_mode whence, ssize_t samples, int subsong,
+		      struct uade_state *state)
 {
 	switch (whence) {
 	case UADE_SEEK_SONG_RELATIVE:		
-		return seek_song_relative(msecs, state);
+		return seek_song_relative(samples, state);
 
 	case UADE_SEEK_SUBSONG_RELATIVE:
 		if (subsong == -1)
 			subsong = state->song.info.subsongs.cur;
 
-		return seek_subsong_relative(msecs, subsong, state);
+		return seek_subsong_relative(samples, subsong, state);
 
 	case UADE_SEEK_POSITION_RELATIVE:
-		return seek_subsong_relative(msecs, -1, state);
+		return seek_subsong_relative(samples, -1, state);
 
 	default:
 		uade_warning("Invalid whence for uade_seek(): %d\n", whence);

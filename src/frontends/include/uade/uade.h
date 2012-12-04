@@ -204,13 +204,13 @@ int uade_set_song_options(const char *songfile, const char *songoptions, struct 
 /*
  * Seek to a given time location and/or subsong.
  *
- * If 'mode' is UADE_SEEK_SONG_RELATIVE, 'msecs' is a non-negative value
+ * If 'mode' is UADE_SEEK_SONG_RELATIVE, 'seconds' is a non-negative value
  * measured from the beginning of the first subsong.
  * 'subsong' is ignored.
- * If 'mode' is UADE_SEEK_SUBSONG_RELATIVE, 'msecs' is a non-negative value
+ * If 'mode' is UADE_SEEK_SUBSONG_RELATIVE, 'seconds' is a non-negative value
  * measured from the beginning of the given subsong.
  * 'subsong' == -1 means the current subsong.
- * If 'mode' is UADE_SEEK_POSITION_RELATIVE, 'msecs' is measured from the
+ * If 'mode' is UADE_SEEK_POSITION_RELATIVE, 'seconds' is measured from the
  * current position (can be a negative value). 'subsong' is ignored.
  * Returns 0 on success, -1 on error.
  *
@@ -222,15 +222,20 @@ int uade_set_song_options(const char *songfile, const char *songoptions, struct 
  * time until the seek completes. One must run the normal event handling
  * loop during the seek.
  *
+ * Returns on 0 on success, -1 on failure.
+ *
  * Examples:
- * - Seek to time pos 66.6s: uade_seek(UADE_SEEK_SONG_RELATIVE, 66600, 0,
+ * - Seek to time pos 66.6s: uade_seek(UADE_SEEK_SONG_RELATIVE, 66.6, 0,
  *                                     state)
  * - Seek to subsong 2: uade_seek(UADE_SEEK_SUBSONG_RELATIVE, 0, 2, state)
- * - Skip 10 secs forward: uade_seek(UADE_SEEK_POSITION_RELATIVE, 10000, 0,
- *                                   state)
+ * - Skip 10 secs forward: uade_seek(UADE_SEEK_POSITION_RELATIVE, 10, 0, state)
  */
-int uade_seek(enum uade_seek_mode whence, int msecs, int subsong,
+int uade_seek(enum uade_seek_mode whence, double seconds, int subsong,
 	      struct uade_state *state);
+
+/* Same as uade_seek(), but seeks to a given sample (aka frame) location */
+int uade_seek_samples(enum uade_seek_mode whence, ssize_t samples, int subsong,
+		      struct uade_state *state);
 
 /* Returns 1 if uade is in seek mode, 0 otherwise. */
 int uade_is_seeking(const struct uade_state *state);

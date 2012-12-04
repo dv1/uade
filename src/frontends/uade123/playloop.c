@@ -96,17 +96,17 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		return -1;
 
 	case UADE_CURSOR_LEFT:
-		uade_seek(UADE_SEEK_POSITION_RELATIVE, -10000, 0, state);
+		uade_seek(UADE_SEEK_POSITION_RELATIVE, -10, 0, state);
 		break;
 	case UADE_CURSOR_RIGHT:
 	case '.':
-		uade_seek(UADE_SEEK_POSITION_RELATIVE, 10000, 0, state);
+		uade_seek(UADE_SEEK_POSITION_RELATIVE, 10, 0, state);
 		break;
 	case UADE_CURSOR_DOWN:
-		uade_seek(UADE_SEEK_POSITION_RELATIVE, -60000, 0, state);
+		uade_seek(UADE_SEEK_POSITION_RELATIVE, -60, 0, state);
 		break;
 	case UADE_CURSOR_UP:
-		uade_seek(UADE_SEEK_POSITION_RELATIVE, 60000, 0, state);
+		uade_seek(UADE_SEEK_POSITION_RELATIVE, 60, 0, state);
 		break;
 
 	case 'b':
@@ -251,10 +251,8 @@ int play_loop(struct uade_state *state)
 	if (uade_info_mode)
 		return plistdir;
 
-	if (uade_jump_pos > 0) {
-		int msecs = round(1000 * uade_jump_pos);
-		uade_seek(UADE_SEEK_SONG_RELATIVE, msecs, 0, state);
-	}
+	if (uade_jump_pos > 0)
+		uade_seek(UADE_SEEK_SONG_RELATIVE, uade_jump_pos, 0, state);
 
 	while (1) {
 		FD_ZERO(&fdset);
