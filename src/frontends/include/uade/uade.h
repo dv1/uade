@@ -84,8 +84,11 @@ int uade_get_fd(const struct uade_state *state);
  * uade_read() synthesizes more samples.
  *
  * Returns -1 on error. Error indicates playback must be terminated.
- * Returns 0 on songend or when bytes == 0.
- * Positive return value indicates the number of sample bytes at 'data'
+ *
+ * Returns 0 on songend or when bytes == 0. Note, calling uade_read()
+ * again after song end returns 0 again, indefinitely.
+ *
+ * Returns a positive value to indicate a number of sample bytes at 'data'.
  */
 ssize_t uade_read(void *data, size_t bytes, struct uade_state *state);
 
