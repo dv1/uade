@@ -27,10 +27,6 @@
 #include <poll.h>
 #include <math.h>
 
-
-static int cursormode;
-
-
 static void print_song_info(struct uade_state *state, enum song_info_type t)
 {
 	char infotext[16384];
@@ -218,10 +214,9 @@ int uade_input(int *plistdir, struct uade_state *state)
 			tprintf("\n%s\n", event.msg);
 			break;
 		case UADE_EVENT_SONG_END:
+			/* Add interface for getting happiness */
 			tprintf("\n%s: %s\n", event.songend.happy ? "song end" : "bad song end", event.songend.reason);
-			if (!event.songend.happy || event.songend.stopnow)
-				return -1;
-			if (uade_next_subsong(state))
+			if (event.songend.stopnow || uade_next_subsong(state))
 				return -1;
 			break;
 		default:

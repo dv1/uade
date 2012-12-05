@@ -850,12 +850,14 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 	while (copied < bytes) {
 
 		if (fifo_len(state->readstash) > 0) {
-			copied += fifo_read(&data[copied], bytes - copied, state->readstash);
+			copied += fifo_read(&data[copied], bytes - copied,
+					    state->readstash);
 			continue;
 		}
 
 		if (uade_get_event(&event, state)) {
-			uade_warning("uade_get_samples(): Unable to get an event.\n");
+			uade_warning("uade_get_samples(): Unable to get an "
+				     "event.\n");
 			if (copied == 0)
 				return -1;
 			return copied;
@@ -867,8 +869,10 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 			break;
 
 		case UADE_EVENT_DATA:
-			if (fifo_write(state->readstash, event.data.data, event.data.size)) {
-				uade_warning("uade_get_samples(): Can not allocate memory for fifo\n");
+			if (fifo_write(state->readstash, event.data.data,
+				       event.data.size)) {
+				uade_warning("uade_get_samples(): Can not "
+					     "allocate memory for fifo\n");
 				if (copied == 0)
 					return -1;
 				return copied;
@@ -876,9 +880,7 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 			break;
 
 		case UADE_EVENT_SONG_END:
-			if (!event.songend.happy || event.songend.stopnow)
-				return copied;
-			if (uade_next_subsong(state))
+			if (event.songend.stopnow || uade_next_subsong(state))
 				return copied;
 
 			/* Continue synthesizing the next subsong */
