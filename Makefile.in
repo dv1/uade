@@ -43,13 +43,13 @@ uadecoreinstall:
 uade123:	staticlibuade
 	$(MAKE) -C src/frontends/uade123
 
-uade123install:	
+uade123install:	uade123
 	$(MAKE) -C src/frontends/uade123 install
 
 uadefs:	staticlibuade
 	$(MAKE) -C src/frontends/uadefs
 
-uadefsinstall:	
+uadefsinstall:	uadefs
 	$(MAKE) -C src/frontends/uadefs install
 
 uadesimple:	
