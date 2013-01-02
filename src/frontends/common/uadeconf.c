@@ -276,10 +276,10 @@ int uade_load_initial_config(struct uade_state *state, const char *bdir)
 		loaded = uade_load_config(state, tmpname);
 	}
 
-	/* Second, try to load config from ~/.uade2/uade.conf */
+	/* Second, try to load config from ~/.uade/uade.conf */
 	home = uade_open_create_home();
 	if (loaded == 0 && home != NULL) {
-		snprintf(tmpname, sizeof(tmpname), "%s/.uade2/uade.conf", home);
+		snprintf(tmpname, sizeof(tmpname), "%s/.uade/uade.conf", home);
 		loaded = uade_load_config(state, tmpname);
 	}
 
@@ -315,7 +315,7 @@ int uade_load_initial_song_conf(struct uade_state *state)
 
 	/* Try to load from home dir */
 	if (loaded == 0 && home != NULL) {
-		snprintf(tmpname, sizeof(tmpname), "%s/.uade2/song.conf", home);
+		snprintf(tmpname, sizeof(tmpname), "%s/.uade/song.conf", home);
 		loaded = uade_read_song_conf(tmpname, state);
 	}
 
@@ -375,12 +375,12 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 
 char *uade_open_create_home(void)
 {
-	/* Create ~/.uade2 directory if it does not exist */
+	/* Create ~/.uade directory if it does not exist */
 	char *home = getenv("HOME");
 	if (home) {
 		char name[PATH_MAX];
 		struct stat st;
-		snprintf(name, sizeof name, "%s/.uade2", home);
+		snprintf(name, sizeof name, "%s/.uade", home);
 		if (stat(name, &st) != 0)
 			mkdir(name, S_IRUSR | S_IWUSR | S_IXUSR);
 	}

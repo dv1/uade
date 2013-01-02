@@ -32,7 +32,7 @@ static void load_content_db(struct uade_state *state)
 	if (!home)
 		return;
 
-	snprintf(name, sizeof name, "%s/.uade2/contentdb", home);
+	snprintf(name, sizeof name, "%s/.uade/contentdb", home);
 	snprintf(state->songdb.ccfilename, sizeof(state->songdb.ccfilename), "%s", name);
 
 	if (stat(name, &st) == 0) {
@@ -1218,7 +1218,8 @@ void uade_set_debug(struct uade_state *state)
 	state->setdebug = 1;
 }
 
-int uade_set_song_options(const char *songfile, const char *songoptions, struct uade_state *state)
+int uade_set_song_options(const char *songfile, const char *songoptions,
+			  struct uade_state *state)
 {
 	char homesongconfname[PATH_MAX];
 	char *home;
@@ -1227,13 +1228,16 @@ int uade_set_song_options(const char *songfile, const char *songoptions, struct 
 	if (home == NULL)
 		uade_die("No $HOME for song.conf :(\n");
 
-	snprintf(homesongconfname, sizeof homesongconfname, "%s/.uade2/song.conf", home);
+	snprintf(homesongconfname, sizeof homesongconfname,
+		 "%s/.uade/song.conf", home);
 
 	if (state->songdbname[0] == 0)
-		strlcpy(state->songdbname, homesongconfname, sizeof(state->songdbname));
+		strlcpy(state->songdbname, homesongconfname,
+			sizeof(state->songdbname));
 
 	if (!uade_update_song_conf(homesongconfname, songfile, songoptions)) {
-		uade_warning("Could not update song.conf entry for %s\n", songfile);
+		uade_warning("Could not update song.conf entry for %s\n",
+			     songfile);
 		return 0;
 	}
 	return 1;

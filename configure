@@ -342,8 +342,8 @@ else
     fi
 fi
 
-uadedatadir="$prefix/share/uade2"
-uadecoredir="$prefix/lib/uade2"
+uadedatadir="$prefix/share/uade"
+uadecoredir="$prefix/lib/uade"
 if test -z "$bindir"; then
     bindir="$prefix/bin"
 fi

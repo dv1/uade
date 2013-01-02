@@ -41,7 +41,7 @@ Longer explanations of these steps follow:
 	--prefix
 	--user
 
-  --user makes uade to be installed into users ~/.uade2/ directory, but of
+  --user makes uade to be installed into users ~/.uade/ directory, but of
   course you may issue --prefix=$HOME/something to achieve the same effect.
 
   It is possible to leavy any uade frontend or even uadecore compiled so that
@@ -67,7 +67,7 @@ Longer explanations of these steps follow:
 (4) make install
 
   This will install the software. If --user was used the uadecore and frontends
-  are installed into ~/.uade2/.
+  are installed into ~/.uade/.
 
 
 *** 3. Notes on GNU/Linux distributions ***
