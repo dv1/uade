@@ -432,6 +432,11 @@ int uade_next_subsong(struct uade_state *state)
 	if (cur < 0 || cur >= state->song.info.subsongs.max)
 		return -1;
 
+	if (state->config.one_subsong) {
+		dont_record_playtime(state);
+		return -1;
+	}
+
 	if (state->song.state != UADE_STATE_WAIT_SUBSONG_CHANGE)
 		dont_record_playtime(state); /* Subsong switched manually */
 
