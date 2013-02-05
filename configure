@@ -342,8 +342,8 @@ else
     fi
 fi
 
-uadedatadir="$prefix/share/uade2"
-uadecoredir="$prefix/lib/uade2"
+uadedatadir="$prefix/share/uade"
+uadecoredir="$prefix/lib/uade"
 if test -z "$bindir"; then
     bindir="$prefix/bin"
 fi
@@ -401,6 +401,9 @@ if test -n "$PKG_CONFIG" ; then
     cat > libuade.pc <<EOF
 libdir=$libdir
 includedir=$includedir
+uadecore=$uadecoredir/$UADECORENAME
+data_directory=$uadedatadir
+ipc_protocol_version=$IPC_PROTOCOL_VERSION
 
 Name: UADE (Unix Amiga Delitracker Emulator)
 Description: A music player for Amiga music formats

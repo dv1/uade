@@ -622,7 +622,7 @@ static void load_content_db(void)
 
 	home = getenv("HOME");
 	if (home)
-		snprintf(name, sizeof name, "%s/.uade2/contentdb", home);
+		snprintf(name, sizeof name, "%s/.uade/contentdb", home);
 
 	/* User database has priority over global database, so we read it
 	 * first */
@@ -1315,7 +1315,7 @@ int main(int argc, char *argv[])
 		int fmode = S_IRUSR | S_IWUSR;
 		char logfname[4096];
 
-		snprintf(logfname, sizeof logfname, "%s/.uade2/uadefs.log", getenv("HOME"));
+		snprintf(logfname, sizeof logfname, "%s/.uade/uadefs.log", getenv("HOME"));
 		debugfd = open(logfname, flags, fmode);
 	}
 
