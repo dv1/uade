@@ -4,7 +4,7 @@
 #include <uade/uade.h>
 
 void audio_close(void);
-int audio_init(const struct uade_config *uc, char **opts);
+int audio_init(const struct uade_state *us, char **opts);
 int audio_play(char *samples, int bytes);
 
 #endif

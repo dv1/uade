@@ -1,7 +1,10 @@
 #ifndef _UADE_FRONTEND_CONFIG_H_
 #define _UADE_FRONTEND_CONFIG_H_
 
-#include <uade/uadestate.h>
+#include <string.h>
+
+struct uade_state;
+struct uade_config;
 
 double uade_convert_to_double(const char *value, double def,
 			      double low, double high, const char *type);
@@ -25,7 +28,5 @@ void uade_set_options_from_ep_attributes(struct uade_state *state);
 int uade_set_options_from_song_attributes(struct uade_state *state,
 					  char *playername,
 					  size_t playernamelen);
-
-void uade_set_filter_type(struct uade_config *uc, const char *value);
 
 #endif

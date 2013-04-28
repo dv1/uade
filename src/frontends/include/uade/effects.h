@@ -1,15 +1,8 @@
 #ifndef _UADE2_EFFECTS_H_
 #define _UADE2_EFFECTS_H_
 
+#include <uade/uade.h>
 #include <stdint.h>
-
-typedef enum {
-	UADE_EFFECT_ALLOW,
-	UADE_EFFECT_GAIN,
-	UADE_EFFECT_HEADPHONES,
-	UADE_EFFECT_HEADPHONES2,
-	UADE_EFFECT_PAN,
-} uade_effect_t;
 
 typedef struct {
 	float b0;
@@ -55,22 +48,13 @@ struct uade_effect_state {
 	uade_biquad_t headphone2_rc_r;
 };
 
-void uade_effect_disable(struct uade_effect_state *es, uade_effect_t effect);
-void uade_effect_disable_all(struct uade_effect_state *es);
-void uade_effect_enable(struct uade_effect_state *es, uade_effect_t effect);
-int uade_effect_is_enabled(struct uade_effect_state *es, uade_effect_t effect);
-void uade_effect_set_defaults(struct uade_effect_state *es);
-void uade_effect_set_sample_rate(struct uade_effect_state *es, int rate);
-void uade_effect_toggle(struct uade_effect_state *es, uade_effect_t effect);
-
-/* effect-specific knobs */
-void uade_effect_gain_set_amount(struct uade_effect_state *es, float amount);
-void uade_effect_pan_set_amount(struct uade_effect_state *es, float amount);
+void uade_effect_set_defaults(struct uade_state *state);
+void uade_effect_set_sample_rate(struct uade_state *state, int rate);
 
 /* reset state at start of song */
-void uade_effect_reset_internals(struct uade_effect_state *es);
+void uade_effect_reset_internals(struct uade_state *state);
 
 /* process n frames of sample buffer */
-void uade_effect_run(struct uade_effect_state *es, int16_t * sample, int frames);
+void uade_effect_run(struct uade_state *s, int16_t *sample, int frames);
 
 #endif

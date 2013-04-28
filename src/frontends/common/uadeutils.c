@@ -1,3 +1,4 @@
+#include <uade/uade.h>
 #include <uade/uadeutils.h>
 
 #include <assert.h>
@@ -22,13 +23,17 @@ size_t uade_atomic_fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return readmemb;
 }
 
-void *uade_read_file(size_t *fs, const char *filename)
+void *uade_read_file(size_t *returned_fsize, const char *filename)
 {
 	FILE *f;
 	size_t off;
 	void *mem = NULL;
 	size_t msize;
 	long pos;
+	size_t fsize;
+
+	if (returned_fsize != NULL)
+		*returned_fsize = 0;
 
 	f = fopen(filename, "rb");
 	if (f == NULL)
@@ -42,26 +47,27 @@ void *uade_read_file(size_t *fs, const char *filename)
 	if (fseek(f, 0, SEEK_SET))
 		goto error;
 
-	*fs = pos;
+	fsize = pos;
 	msize = (pos > 0) ? pos : 1;
 
 	if ((mem = malloc(msize)) == NULL)
 		goto error;
 
-	off = uade_atomic_fread(mem, 1, *fs, f);
-	if (off < *fs) {
+	off = uade_atomic_fread(mem, 1, fsize, f);
+	if (off < fsize) {
 		fprintf(stderr, "Not able to read the whole file %s\n", filename);
 		goto error;
 	}
 
 	fclose(f);
+	if (returned_fsize != NULL)
+		*returned_fsize = fsize;
 	return mem;
 
 error:
 	if (f)
 		fclose(f);
 	free(mem);
-	*fs = 0;
 	return NULL;
 }
 

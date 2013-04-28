@@ -1,4 +1,6 @@
 #include <uade/uade.h>
+#include <uade/uadestate.h>
+#include <uade/ossupport.h>
 #include <uade/unixatomic.h>
 
 #include "md5.h"
@@ -20,11 +22,9 @@
 #define NORM_ID "n="
 #define NORM_ID_LENGTH 2
 
-#define eserror(fmt, args...) do { fprintf(stderr, "song.conf error on line %zd: " fmt "\n", lineno, ## args); exit(1); } while (0)
-
-
 static int escompare(const void *a, const void *b);
-static struct uade_content *get_content(const char *md5, struct uade_state *state);
+static struct uade_content *get_content(const char *md5,
+					struct uade_state *state);
 
 
 /* Compare function for bsearch() and qsort() to sort songs with respect
@@ -56,7 +56,9 @@ static struct uade_content *get_content(const char *md5, struct uade_state *stat
 		       sizeof db->contentchecksums[0], contentcompare);
 }
 
-static struct uade_content *create_content_checksum(struct uade_state *state, const char *md5, uint32_t playtime)
+static struct uade_content *create_content_checksum(struct uade_state *state,
+						    const char *md5,
+						    uint32_t playtime)
 {
 	struct uade_content *n;
 	struct uade_songdb *db = &state->songdb;
@@ -103,7 +105,8 @@ static void md5_from_buffer(char *dest, size_t destlen, const uint8_t *buf, size
 	assert(ret == 32);
 }
 
-static void update_playtime(struct uade_state *state, struct uade_content *n, uint32_t playtime)
+static void update_playtime(struct uade_state *state, struct uade_content *n,
+			    uint32_t playtime)
 {
 	if (n->playtime != playtime) {
 		state->songdb.ccmodified = 1;
@@ -122,7 +125,8 @@ static void sort_content_checksums(struct uade_state *state)
 }
 
 /* replace must be zero if content db is unsorted */
-struct uade_content *uade_add_playtime(struct uade_state *state, const char *md5, uint32_t playtime)
+struct uade_content *uade_add_playtime(struct uade_state *state,
+				       const char *md5, uint32_t playtime)
 {
 	struct uade_content *n;
 
@@ -171,18 +175,18 @@ static void get_song_flags_and_attributes_from_songstore(struct uade_state *stat
 int uade_lookup_song(const struct uade_file *module, struct uade_state *state)
 {
 	struct uade_content *content;
-	struct uade_song_info *info = &state->song.info;
+	struct uade_song_state *song = &state->song;
 
 	/* Compute an md5sum of the song */
-	md5_from_buffer(info->modulemd5, sizeof info->modulemd5, (const uint8_t *) module->data, module->size);
+	md5_from_buffer(song->info.modulemd5, sizeof song->info.modulemd5, (const uint8_t *) module->data, module->size);
 
 	/* Needs state->song.info.modulemd5 */
 	get_song_flags_and_attributes_from_songstore(state);
 
 	/* Lookup playtime from content database */
-	content = get_content(info->modulemd5, state);
+	content = get_content(song->info.modulemd5, state);
 	if (content != NULL && content->playtime > 0)
-		info->playtime = content->playtime;
+		song->info.duration = content->playtime / 1000.0;
 
 	return 0;
 }
@@ -359,6 +363,7 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 	size_t i;
 	int fd;
 	struct uade_songdb *db = &state->songdb;
+	int parse_error = 0;
 
 	state->songdbname[0] = 0;
 
@@ -374,24 +379,32 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 	db->nsongs = 0;
 	allocated = 16;
 	db->songstore = calloc(allocated, sizeof db->songstore[0]);
-	if (db->songstore == NULL)
-		eserror("No memory for song store.");
+	if (db->songstore == NULL) {
+		uade_warning("No memory for song store.");
+		goto error;
+	}
 
 	while (1) {
 		char **items;
 		size_t nitems;
 
-		items = uade_read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		items = uade_read_and_split_lines(&nitems, &lineno, f,
+						  UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
 		assert(nitems > 0);
 
 		if (db->nsongs == allocated) {
+			void *songstore;
 			allocated *= 2;
-			db->songstore = realloc(db->songstore, allocated * sizeof(db->songstore[0]));
-			if (db->songstore == NULL)
-				eserror("No memory for players.");
+			songstore = realloc(db->songstore,
+					    allocated * sizeof(db->songstore[0]));
+			if (songstore == NULL) {
+				uade_warning("No memory for players.");
+				goto parse_error;
+			}
+			db->songstore = songstore;
 		}
 
 		s = &db->songstore[db->nsongs];
@@ -422,13 +435,21 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 			fprintf(stderr, "song option %s is invalid\n", items[i]);
 		}
 
-		for (i = 0; items[i] != NULL; i++)
-			free(items[i]);
+		goto parse_ok;
 
-		free(items);
+	parse_error:
+		parse_error = 1;
+	parse_ok:
+		for (i = 0; items[i] != NULL; i++)
+			free_and_null(items[i]);
+
+		free_and_null(items);
+
+		if (parse_error)
+			goto error;
 	}
 
-	fclose(f);
+	fclose_and_null(f);
 
 	/* we may not have the file locked */
 	if (fd >= 0)
@@ -438,12 +459,11 @@ int uade_read_song_conf(const char *filename, struct uade_state *state)
 	qsort(db->songstore, db->nsongs, sizeof db->songstore[0], escompare);
 
 	snprintf(state->songdbname, sizeof(state->songdbname), "%s", filename);
-
 	return 1;
 
       error:
 	if (f)
-		fclose(f);
+		fclose_and_null(f);
 	if (fd >= 0)
 		uade_atomic_close(fd);
 	return 0;

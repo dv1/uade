@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	int have_modules = 0;
 	int ret;
 	char *endptr;
-	struct uade_config uc_cmdline;
+	struct uade_config *uc_cmdline;
 	char songoptions[256] = "";
 	int have_song_options = 0;
 	int plistdir;
@@ -142,7 +142,6 @@ int main(int argc, char *argv[])
 	int randomplay = 0;
 
 	struct uade_state *state;
-	char *basedir;
 
 	enum {
 		OPT_FIRST = 0x1FFF,
@@ -161,7 +160,6 @@ int main(int argc, char *argv[])
 		{"ao-option",        1, NULL, OPT_AO_OPTION},
 		{"basedir",          1, NULL, OPT_BASEDIR},
 		{"buffer-time",      1, NULL, OPT_BUFFER_TIME},
-		{"cygwin",           0, NULL, UC_CYGWIN_DRIVE_WORKAROUND},
 		{"debug",            0, NULL, 'd'},
 		{"detect-format-by-content", 0, NULL, UC_CONTENT_DETECTION},
 		{"disable-timeouts", 0, NULL, UC_DISABLE_TIMEOUTS},
@@ -206,7 +204,9 @@ int main(int argc, char *argv[])
 		{NULL,               0, NULL, 0}
 	};
 
-	uade_config_set_defaults(&uc_cmdline);
+	uc_cmdline = uade_new_config();
+	if (uc_cmdline == NULL)
+		uade_die("No memory for uade_config.\n");
 
 	if (!playlist_init(&uade_playlist))
 		uade_die("Can not initialize playlist.\n");
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case '1':
-			uade_config_set_option(&uc_cmdline, UC_ONE_SUBSONG, NULL);
+			uade_config_set_option(uc_cmdline, UC_ONE_SUBSONG, NULL);
 			break;
 
 		case 'c':
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'G':
-			uade_config_set_option(&uc_cmdline, UC_GAIN, optarg);
+			uade_config_set_option(uc_cmdline, UC_GAIN, optarg);
 			break;
 
 		case 'h':
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
 			exit(0);
 
 		case 'i':
-			uade_config_set_option(&uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
+			uade_config_set_option(uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
 			break;
       
 		case 'j':
@@ -276,15 +276,15 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'n':
-			uade_config_set_option(&uc_cmdline, UC_NO_EP_END, NULL);
+			uade_config_set_option(uc_cmdline, UC_NO_EP_END, NULL);
 			break;
 
 		case 'p':
-			uade_config_set_option(&uc_cmdline, UC_PANNING_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_PANNING_VALUE, optarg);
 			break;
 
 		case 'P':
-			uade_config_set_option(&uc_cmdline, UC_PLAYER_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_PLAYER_FILE, optarg);
 			have_modules = 1;
 			break;
 			
@@ -299,31 +299,31 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'S':
-			uade_config_set_option(&uc_cmdline, UC_SCORE_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_SCORE_FILE, optarg);
 			break;
 
 		case 't':
-			uade_config_set_option(&uc_cmdline, UC_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_TIMEOUT_VALUE, optarg);
 			break;
 
 		case 'u':
-			uade_config_set_option(&uc_cmdline, UC_UADECORE_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_UADECORE_FILE, optarg);
 			break;
 
 		case 'v':
-			uade_config_set_option(&uc_cmdline, UC_VERBOSE, NULL);
+			uade_config_set_option(uc_cmdline, UC_VERBOSE, NULL);
 			break;
 
 		case 'w':
-			uade_config_set_option(&uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
 			break;
 
 		case 'x':
-			uade_config_set_option(&uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
+			uade_config_set_option(uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
 			break;
 
 		case 'y':
-			uade_config_set_option(&uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
 			break;
       
 		case 'z':
@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 			exit(1);
 
 		case OPT_BASEDIR:
-			uade_config_set_option(&uc_cmdline, UC_BASE_DIR, optarg);
+			uade_config_set_option(uc_cmdline, UC_BASE_DIR, optarg);
 			break;
 
 		case OPT_REPEAT:
@@ -349,7 +349,7 @@ int main(int argc, char *argv[])
 
 		case OPT_SCOPE:
 			uade_no_text_output = 1;
-			uade_config_set_option(&uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
+			uade_config_set_option(uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
 			break;
 
 		case OPT_SET:
@@ -389,11 +389,10 @@ int main(int argc, char *argv[])
 		case UC_FORCE_LED:
 		case UC_FREQUENCY:
 		case UC_RESAMPLER:
-			uade_config_set_option(&uc_cmdline, ret, optarg);
+			uade_config_set_option(uc_cmdline, ret, optarg);
 			break;
 
 		case UC_CONTENT_DETECTION:
-		case UC_CYGWIN_DRIVE_WORKAROUND:
 		case UC_DISABLE_TIMEOUTS:
 		case UC_ENABLE_TIMEOUTS:
 		case UC_HEADPHONES:
@@ -401,7 +400,7 @@ int main(int argc, char *argv[])
 		case UC_NTSC:
 		case UC_PAL:
 		case UC_SPEED_HACK:
-			uade_config_set_option(&uc_cmdline, ret, NULL);
+			uade_config_set_option(uc_cmdline, ret, NULL);
 			break;
 
 		default:
@@ -409,11 +408,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	basedir = NULL;
-	if (uc_cmdline.basedir_set)
-		basedir = uc_cmdline.basedir.name;
-
-	state = uade_new_state(&uc_cmdline, basedir);
+	state = uade_new_state(uc_cmdline);
 	if (state == NULL)
 		uade_die("Can not initialize uade state\n");
 
@@ -426,7 +421,7 @@ int main(int argc, char *argv[])
 				continue;
 			if (tmpstr[strlen(tmpstr) - 1] == '\n')
 				tmpstr[strlen(tmpstr) - 1] = 0;
-			playlist_add(&uade_playlist, tmpstr, recursivemode, state->config.cygwin_drive_workaround);
+			playlist_add(&uade_playlist, tmpstr, recursivemode);
 		}
 		fclose(listfile);
 		listfile = NULL;
@@ -436,7 +431,7 @@ int main(int argc, char *argv[])
 	/* Read play list from command line parameters */
 	for (i = optind; i < argc; i++) {
 		/* Play files */
-		playlist_add(&uade_playlist, argv[i], recursivemode, state->config.cygwin_drive_workaround);
+		playlist_add(&uade_playlist, argv[i], recursivemode);
 		have_modules = 1;
 	}
 
@@ -467,7 +462,7 @@ int main(int argc, char *argv[])
 
 	setup_sighandlers();
 
-	if (!audio_init(&state->config, aooptions))
+	if (!audio_init(state, aooptions))
 		goto cleanup;
 
 	plistdir = UADE_PLAY_CURRENT;
@@ -499,14 +494,16 @@ int main(int argc, char *argv[])
 
 		info = uade_get_song_info(state);
 		uade_filesize(&playerfsize, info->playerfname);
-		uade_debug(state, "Player: %s (%zd bytes)\n", info->playerfname, playerfsize);
-		fprintf(stderr, "Song: %s (%zd bytes)\n", info->modulefname, info->modulefsize);
+		uade_debug(state, "Player: %s (%zd bytes)\n",
+			   info->playerfname, playerfsize);
+		fprintf(stderr, "Song: %s (%zd bytes)\n",
+			info->modulefname, info->modulebytes);
 
 		plistdir = play_loop(state);
 
 		if (uade_stop(state)) {
 			uade_cleanup_state(state);
-			state = uade_new_state(&uc_cmdline, basedir);
+			state = uade_new_state(uc_cmdline);
 			if (state == NULL)
 				uade_die("uade_stop() failed, new state can not created\n");
 			uade_debug(state, "uade_stop() failed. New uade state created.\n");

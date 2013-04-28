@@ -9,6 +9,14 @@
 */
 
 #include <uade/uade.h>
+#include <uade/uadeconf.h>
+#include <uade/uadeconfstructure.h>
+#include <uade/options.h>
+#include <uade/ossupport.h>
+#include <uade/uadeconstants.h>
+#include <uade/amigafilter.h>
+#include <uade/effects.h>
+#include <uade/uadestate.h>
 #include <support.h>
 
 #include <stdlib.h>
@@ -36,7 +44,6 @@ struct uade_conf_opts {
 /* List of uade.conf options. The list includes option name, minimum
    string match length for the option name and its enum code. */
 static const struct uade_conf_opts uadeconfopts[] = {
-	{.str = "cygwin",                .l = 1,  .e = UC_CYGWIN_DRIVE_WORKAROUND},
 	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
 	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
 	{.str = "enable_timeout",        .l = 2,  .e = UC_ENABLE_TIMEOUTS},
@@ -83,6 +90,34 @@ static enum uade_option map_str_to_option(const char *key)
 	return 0;
 }
 
+struct uade_config *uade_new_config(void)
+{
+	struct uade_config *uc = calloc(1, sizeof *uc);
+	if (uc)
+		uade_config_set_defaults(uc);
+	return uc;
+}
+
+static void uade_set_filter_type(struct uade_config *uc, const char *model)
+{
+	uc->filter_type = FILTER_MODEL_A500;
+
+	if (model == NULL)
+		return;
+
+	/* a500 and a500e are the same */
+	if (strncasecmp(model, "a500", 4) == 0) {
+		uc->filter_type = FILTER_MODEL_A500;
+
+		/* a1200 and a1200e are the same */
+	} else if (strncasecmp(model, "a1200", 5) == 0) {
+		uc->filter_type = FILTER_MODEL_A1200;
+
+	} else {
+		fprintf(stderr, "Unknown filter model: %s\n", model);
+	}
+}
+
 /* The function sets the default options. No *_set variables are set because
    we don't want any option to become mergeable by default. See
    uade_merge_configs(). */
@@ -103,7 +138,8 @@ void uade_config_set_defaults(struct uade_config *uc)
 double uade_convert_to_double(const char *value, double def, double low,
 			      double high, const char *type)
 {
-	char *endptr, *newvalue;
+	char *convertedvalue = NULL;
+	char *endptr;
 	char newseparator;
 	double v;
 
@@ -114,22 +150,25 @@ double uade_convert_to_double(const char *value, double def, double low,
 
 	/* Decimal separator conversion, if needed */
 	if (*endptr == ',' || *endptr == '.') {
-		newvalue = strdup(value);
-		if (newvalue == NULL)
-			uade_error("Out of memory\n");
+		convertedvalue = strdup(value);
+		if (convertedvalue == NULL) {
+			uade_warning("Out of memory\n");
+			return def;
+		}
 
 		newseparator = (*endptr == ',') ? '.' : ',';
 
-		newvalue[(intptr_t) endptr - (intptr_t) value] = newseparator;
+		convertedvalue[(intptr_t) endptr - (intptr_t) value] = newseparator;
 
-		v = strtod(newvalue, &endptr);
-		free(newvalue);
+		v = strtod(convertedvalue, &endptr);
 	}
 
 	if (*endptr != 0 || v < low || v > high) {
-		fprintf(stderr, "Invalid %s value: %s\n", type, value);
+		uade_warning("Invalid %s value: %s\n", type, value);
 		v = def;
 	}
+
+	free_and_null(convertedvalue);
 
 	return v;
 }
@@ -334,7 +373,6 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 
 	MERGE_OPTION(basedir);
 	MERGE_OPTION(content_detection);
-	MERGE_OPTION(cygwin_drive_workaround);
 	MERGE_OPTION(ep_options);
 	MERGE_OPTION(filter_type);
 	MERGE_OPTION(frequency);
@@ -435,31 +473,30 @@ int uade_parse_subsongs(int **subsongs, char *option)
 
 void uade_set_effects(struct uade_state *state)
 {
-	struct uade_effect_state *es = &state->effectstate;
 	struct uade_config *uc = &state->config;
 
-	uade_effect_set_defaults(es);
+	uade_effect_set_defaults(state);
 
 	if (uc->no_postprocessing)
-		uade_effect_disable(es, UADE_EFFECT_ALLOW);
+		uade_effect_disable(state, UADE_EFFECT_ALLOW);
 
 	if (uc->gain_enable) {
-		uade_effect_gain_set_amount(es, uc->gain);
-		uade_effect_enable(es, UADE_EFFECT_GAIN);
+		uade_effect_gain_set_amount(state, uc->gain);
+		uade_effect_enable(state, UADE_EFFECT_GAIN);
 	}
 
 	if (uc->headphones)
-		uade_effect_enable(es, UADE_EFFECT_HEADPHONES);
+		uade_effect_enable(state, UADE_EFFECT_HEADPHONES);
 
 	if (uc->headphones2)
-		uade_effect_enable(es, UADE_EFFECT_HEADPHONES2);
+		uade_effect_enable(state, UADE_EFFECT_HEADPHONES2);
 
 	if (uc->panning_enable) {
-		uade_effect_pan_set_amount(es, uc->panning);
-		uade_effect_enable(es, UADE_EFFECT_PAN);
+		uade_effect_pan_set_amount(state, uc->panning);
+		uade_effect_enable(state, UADE_EFFECT_PAN);
 	}
 
-	uade_effect_set_sample_rate(es, uc->frequency);
+	uade_effect_set_sample_rate(state, uc->frequency);
 }
 
 static void handle_config_path(struct uade_path *path, char *set, const char *value)
@@ -483,10 +520,6 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 
 	case UC_CONTENT_DETECTION:
 		SET_OPTION(content_detection, 1);
-		break;
-
-	case UC_CYGWIN_DRIVE_WORKAROUND:
-		SET_OPTION(cygwin_drive_workaround, 1);
 		break;
 
 	case UC_DISABLE_TIMEOUTS:
@@ -529,8 +562,8 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 		}
 		if (strcasecmp(value, "off") == 0 || strcmp(value, "0") == 0) {
 			uc->led_state = 0;
-		} else if (strcasecmp(value, "on") == 0
-			   || strcmp(value, "1") == 0) {
+		} else if (strcasecmp(value, "on") == 0 ||
+			   strcmp(value, "1") == 0) {
 			uc->led_state = 1;
 		} else {
 			fprintf(stderr, "Unknown force led argument: %s\n",
@@ -538,7 +571,6 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 			break;
 		}
 		uc->led_state_set = 1;
-
 		SET_OPTION(led_forced, 1);
 		break;
 
@@ -708,9 +740,22 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 	}
 }
 
+int uade_config_toggle_boolean(struct uade_config *uc, enum uade_option opt)
+{
+	if (opt == UC_VERBOSE) {
+		uc->verbose ^= 1;
+		return uc->verbose;
+	} else if (opt == UC_FORCE_LED) {
+		uade_config_set_option(uc, UC_FORCE_LED,
+				       uc->led_state ? "off" : "on");
+		return uc->led_state;
+	}
+	return -1;
+}
+
 void uade_set_options_from_ep_attributes(struct uade_state *state)
 {
-	struct eagleplayer *ep = state->song.info.detectioninfo.ep;
+	struct eagleplayer *ep = state->song.detectioninfo.ep;
 
 	/* Look at flags and set uade config options accordingly */
 	if (uade_set_config_options_from_flags(state, ep->flags))
@@ -718,26 +763,6 @@ void uade_set_options_from_ep_attributes(struct uade_state *state)
 
 	if (set_options_from_attributes(state, NULL, 0, ep->attributelist))
 		uade_warning("uade_set_ep_attributes failed with setting config options from eagleplayer attributes\n");
-}
-
-void uade_set_filter_type(struct uade_config *uc, const char *model)
-{
-	uc->filter_type = FILTER_MODEL_A500;
-
-	if (model == NULL)
-		return;
-
-	/* a500 and a500e are the same */
-	if (strncasecmp(model, "a500", 4) == 0) {
-		uc->filter_type = FILTER_MODEL_A500;
-
-		/* a1200 and a1200e are the same */
-	} else if (strncasecmp(model, "a1200", 5) == 0) {
-		uc->filter_type = FILTER_MODEL_A1200;
-
-	} else {
-		fprintf(stderr, "Unknown filter model: %s\n", model);
-	}
 }
 
 static int uade_set_silence_timeout(struct uade_config *uc, const char *value)

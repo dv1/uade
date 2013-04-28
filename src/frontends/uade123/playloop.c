@@ -8,6 +8,7 @@
 */
 
 #include <uade/uade.h>
+
 #include "playloop.h"
 #include "uade123.h"
 #include "audio.h"
@@ -27,7 +28,8 @@
 #include <poll.h>
 #include <math.h>
 
-static void print_song_info(struct uade_state *state, enum song_info_type t)
+static void print_song_info(struct uade_state *state,
+			    enum uade_song_info_type t)
 {
 	char infotext[16384];
 	FILE *f = uade_terminal_file ? uade_terminal_file : stdout;
@@ -57,14 +59,20 @@ static void print_info(struct uade_state *state)
 
 static void print_time(struct uade_state *state)
 {
-	const struct uade_song_info *info = &state->song.info;
-	int deciseconds = (info->subsongbytes * 10) / info->bytespersecond;
+	const struct uade_song_info *info = uade_get_song_info(state);
+	int bytespersecond = UADE_BYTES_PER_FRAME *
+		             uade_get_sampling_rate(state);
+	int deciseconds = (info->subsongbytes * 10) / bytespersecond;
 	if (uade_no_text_output)
 		return;
-	tprintf("Playing time position %d.%ds in subsong %d / %d ", deciseconds / 10, deciseconds % 10,  info->subsongs.cur == -1 ? 0 : info->subsongs.cur, info->subsongs.max);
-	if (info->playtime >= 0) {
-		int ptimesecs = info->playtime / 1000;
-		int ptimesubsecs = (info->playtime / 100) % 10;
+	tprintf("Playing time position %d.%ds in subsong %d / %d ",
+		deciseconds / 10,
+		deciseconds % 10,
+		info->subsongs.cur == -1 ? 0 : info->subsongs.cur,
+		info->subsongs.max);
+	if (info->duration > 0) {
+		int ptimesecs = info->duration;
+		int ptimesubsecs = ((int64_t) (info->duration * 10)) % 10;
 		tprintf("(all subs %d.%ds)  \r", ptimesecs, ptimesubsecs);
 	} else {
 		tprintf("                   \r");
@@ -74,11 +82,11 @@ static void print_time(struct uade_state *state)
 
 int terminal_input(int *plistdir, struct uade_state *state)
 {
+	int filterstate;
 	int newsub;
 	int ret;
-	const struct uade_song_info *info;
-
-	info = uade_get_song_info(state);
+	const struct uade_song_info *info = uade_get_song_info(state);
+	struct uade_config *config = uade_get_effective_config(state);
 
 	ret = read_terminal();
 	switch (ret) {
@@ -119,13 +127,13 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		pause_terminal();
 		break;
 	case 'f':
-		uade_config_set_option(&state->config, UC_FORCE_LED, state->config.led_state ? "off" : "on");
-		tprintf("\nForcing LED %s\n", (state->config.led_state & 1) ? "ON" : "OFF");
-		uade_send_filter_command(state);
+		filterstate = uade_config_toggle_boolean(config, UC_FORCE_LED);
+		tprintf("\nForcing LED %s\n", filterstate ? "ON" : "OFF");
+		uade_set_filter_state(state, filterstate);
 		break;
 	case 'g':
-		uade_effect_toggle(&state->effectstate, UADE_EFFECT_GAIN);
-		tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
+		uade_effect_toggle(state, UADE_EFFECT_GAIN);
+		tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
 		break;
 	case 'h':
 		tprintf("\n\n");
@@ -133,8 +141,8 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		tprintf("\n");
 		break;
 	case 'H':
-		uade_effect_toggle(&state->effectstate, UADE_EFFECT_HEADPHONES);
-		tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+		uade_effect_toggle(state, UADE_EFFECT_HEADPHONES);
+		tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 		break;
 	case 'i':
 		if (!uade_no_text_output)
@@ -148,12 +156,12 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		*plistdir = UADE_PLAY_NEXT;
 		return -1;
 	case 'p':
-		uade_effect_toggle(&state->effectstate, UADE_EFFECT_ALLOW);
-		tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
+		uade_effect_toggle(state, UADE_EFFECT_ALLOW);
+		tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
 		break;
 	case 'P':
-		uade_effect_toggle(&state->effectstate, UADE_EFFECT_PAN);
-		tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(&state->effectstate, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+		uade_effect_toggle(state, UADE_EFFECT_PAN);
+		tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
 		break;
 	case 'q':
 		*plistdir = UADE_PLAY_EXIT;
@@ -163,11 +171,13 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		tprintf("\n%s mode\n", uade_playlist.randomize ? "Shuffle" : "Normal");
 		break;
 	case 'v':
-		state->config.verbose ^= 1;
-		tprintf("\nVerbose mode %s\n", state->config.verbose ? "ON" : "OFF");
+		uade_config_toggle_boolean(config, UC_VERBOSE);
+		tprintf("\nVerbose mode %s\n",
+			uade_is_verbose(state) ? "ON" : "OFF");
 		break;
 	case 'x':
-		uade_seek(UADE_SEEK_SUBSONG_RELATIVE, 0, info->subsongs.cur, state);
+		uade_seek(UADE_SEEK_SUBSONG_RELATIVE, 0, info->subsongs.cur,
+			  state);
 		break;
 	case 'z':
 		newsub = info->subsongs.cur - 1;
@@ -190,42 +200,48 @@ int terminal_input(int *plistdir, struct uade_state *state)
 	return 0;
 }
 
+static void handle_notification(struct uade_notification *n)
+{
+	switch (n->type) {
+	case UADE_NOTIFICATION_MESSAGE:
+		tprintf("\nAmiga message: %s\n", n->msg);
+		break;
+	case UADE_NOTIFICATION_SONG_END:
+		tprintf("\n%s: %s\n",
+			n->song_end.happy ? "song end" : "bad song end",
+			n->song_end.reason);
+		break;
+	default:
+		tprintf("\nUnknown notification type from libuade\n");
+	}
+	uade_cleanup_notification(n);
+}
+
 int uade_input(int *plistdir, struct uade_state *state)
 {
-	struct uade_event event;
+	struct uade_notification n;
+	size_t nbytes;
+	char buf[4096];
 
 	test_and_trigger_debug(state);
 
-	while (1) {
-		if (uade_get_event(&event, state)) {
-			fprintf(stderr, "uade_get_event(): error!\n");
-			*plistdir = UADE_PLAY_FAILURE;
-			break;
-		}
-		
-		switch (event.type) {
-		case UADE_EVENT_EAGAIN:
-			return 0;
-		case UADE_EVENT_DATA:
-			audio_play((char *) event.data.data, event.data.size);
-			print_time(state);
-			break;
-		case UADE_EVENT_MESSAGE:
-			tprintf("\n%s\n", event.msg);
-			break;
-		case UADE_EVENT_SONG_END:
-			/* Add interface for getting happiness */
-			tprintf("\n%s: %s\n", event.songend.happy ? "song end" : "bad song end", event.songend.reason);
-			if (event.songend.stopnow || uade_next_subsong(state))
-				return -1;
-			break;
-		default:
-			fprintf(stderr, "uade_get_event() returned %s which is not handled.\n", uade_event_name(&event));
-			*plistdir = UADE_PLAY_FAILURE;
-			return -1;
-		}
+	nbytes = uade_read(buf, sizeof buf, state);
+
+	while (uade_read_notification(&n, state))
+		handle_notification(&n);
+
+	if (nbytes < 0) {
+		fprintf(stderr, "Playback error.\n");
+		*plistdir = UADE_PLAY_FAILURE;
+		return -1;
 	}
-	return -1;
+
+	if (nbytes == 0)
+		return -1;
+
+	audio_play(buf, nbytes);
+	print_time(state);
+	return 0;
 }
 
 int play_loop(struct uade_state *state)
@@ -264,7 +280,7 @@ int play_loop(struct uade_state *state)
 		}
 		if (ret == 0)
 			continue;
-		if (FD_ISSET(fds[0], &fdset) &&  uade_input(&plistdir, state))
+		if (FD_ISSET(fds[0], &fdset) && uade_input(&plistdir, state))
 			break;
 		if (fds[1] >= 0 && FD_ISSET(fds[1], &fdset)) {
 			if (terminal_input(&plistdir, state))

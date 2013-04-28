@@ -30,6 +30,8 @@
 
 #include "uadectl.h"
 #include "amigamsg.h"
+
+#include <uade/uade.h>
 #include <uade/ossupport.h>
 #include <uade/sysincludes.h>
 #include <uade/uadeconstants.h>

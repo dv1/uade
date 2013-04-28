@@ -486,8 +486,12 @@ fi
 echo "#endif" >> "$csfile"
 cd ..
 
-conffile="src/frontends/include/uade/uadeoptions.h"
-echo > "$conffile"
+conffile="src/frontends/include/uade/options.h"
+conffiletag="_UADE_OPTIONS_H_"
+cat > "$conffile" <<EOF
+#ifndef $conffiletag
+#define $conffiletag
+EOF
 
 if test "$user" = "yes" ; then
     echo "#define UADE_CONFIG_USER_MODE (1)" >> "$conffile"
@@ -505,7 +509,7 @@ echo "#define UADE_VERSION \"$VERSION\"" >> "$conffile"
 test "$OS" = "Cygwin" && echo "#define UADE_HAVE_CYGWIN" >> "$conffile"
 
 test "$textscope" = "yes" && echo "#define UADE_CONFIG_TEXT_SCOPE" >> "$conffile"
-
+echo "#endif /* $conffiletag */" >> "$conffile"
 
 find_lib() {
     libname="$1"

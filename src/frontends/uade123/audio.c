@@ -26,7 +26,7 @@ void audio_close(void)
 	ao_close(libao_device);
 }
 
-static void process_config_options(const struct uade_config *uc, char **opts)
+static void process_config_options(const struct uade_state *us, char **opts)
 {
 	char *s;
 	char *key;
@@ -42,7 +42,7 @@ static void process_config_options(const struct uade_config *uc, char **opts)
 
 	format.bits = UADE_BYTES_PER_SAMPLE * 8;
 	format.channels = UADE_CHANNELS;
-	format.rate = uc->frequency;
+	format.rate = uade_get_sampling_rate(us);
 	format.byte_format = AO_FMT_NATIVE;
 
 	opt = opts;
@@ -64,14 +64,14 @@ static void process_config_options(const struct uade_config *uc, char **opts)
 	}
 }
 
-int audio_init(const struct uade_config *uc, char **opts)
+int audio_init(const struct uade_state *us, char **opts)
 {
 	int driver;
 
 	if (uade_no_audio_output)
 		return 1;
 
-	process_config_options(uc, opts);
+	process_config_options(us, opts);
 
 	ao_initialize();
 

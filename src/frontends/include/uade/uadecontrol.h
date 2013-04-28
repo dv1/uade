@@ -11,6 +11,8 @@ enum {
 	UADECORE_CANT_PLAY
 };
 
+size_t uade_prepare_filter_command(void *space, size_t maxsize,
+				   const struct uade_state *state);
 int uade_read_request(struct uade_state *state);
 void uade_send_filter_command(struct uade_state *state);
 int uade_song_initialization(struct uade_file *player, struct uade_file *module, struct uade_state *state);

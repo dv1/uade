@@ -27,7 +27,7 @@ enum {
 	UADE_PLAY_FAILURE
 };
 
-int playlist_add(struct playlist *pl, const char *name, int recursive, int cygwin);
+int playlist_add(struct playlist *pl, const char *name, int recursive);
 int playlist_empty(struct playlist *pl);
 int playlist_get(char *name, size_t maxlen, struct playlist *pl, int dir);
 int playlist_init(struct playlist *pl);

@@ -1,3 +1,5 @@
+#include <uade/uade.h>
+#include <uade/ossupport.h>
 #include <uade/rmc.h>
 
 #include <bencodetools/bencode.h>

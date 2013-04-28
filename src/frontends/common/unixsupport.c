@@ -313,37 +313,3 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 
 	return 0;
 }
-
-/*
- * A hack that converts X:\something style windows names into cygwin style name
- * /cygdrive/X/something. All '\\' characters are converted into '/'
- * characters.
- */
-char *uade_windows_to_cygwin_path(const char *path)
-{
-	size_t i;
-	char *s;
-	size_t len = strlen(path);
-
-	if (len == 0)
-		return calloc(1, 1);
-
-	if (len >= 2 && isalpha(path[0]) && path[1] == ':') {
-		/* uses windows drive names */
-		size_t newlen = len + 32;
-		s = malloc(newlen);
-		if (s != NULL)
-			snprintf(s, newlen, "/cygdrive/%c/%s", path[0], &path[2]);
-	} else {
-		s = strdup(path);
-	}
-	if (s == NULL)
-		return NULL;
-
-	for (i = 0; s[i] != 0; i++) {
-		if (s[i] == '\\')
-			s[i] = '/';
-	}
-
-	return s;
-}

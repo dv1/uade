@@ -7,6 +7,7 @@
    want in your projects.
 */
 
+#include <uade/uade.h>
 #include <uade/uadecontrol.h>
 #include <uade/ossupport.h>
 #include <uade/sysincludes.h>
@@ -22,13 +23,12 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
+/* Sends a byte request and returns the number of bytes requested */
 int uade_read_request(struct uade_state *state)
 {
 	struct uade_ipc *ipc = &state->ipc;
 	uint32_t left = UADE_MAX_MESSAGE_SIZE - sizeof(struct uade_msg);
-	if (uade_send_u32(UADE_COMMAND_READ, left, ipc))
-		return 0;
-	return left;
+	return uade_send_u32(UADE_COMMAND_READ, left, ipc) ? 0 : left;
 }
 
 static int send_ep_options(struct uade_ep_options *eo, struct uade_ipc *ipc)
@@ -49,21 +49,25 @@ static int send_ep_options(struct uade_ep_options *eo, struct uade_ipc *ipc)
 	return 0;
 }
 
+size_t uade_prepare_filter_command(void *space, size_t maxsize,
+				   const struct uade_state *state)
+{
+	const struct uade_config *uc = &state->config;
+	int filter_type = uc->no_filter ? 0 : uc->filter_type;
+	/* Note: filter (led) state is not normally forced */
+	int filter_state = uc->led_forced ? (2 + (uc->led_state & 1)) : 0;
+	return uade_ipc_prepare_two_u32s(space, maxsize, UADE_COMMAND_FILTER,
+					 filter_type, filter_state);
+}
+
 void uade_send_filter_command(struct uade_state *state)
 {
-	struct uade_config *uadeconf = &state->config;
-	struct uade_ipc *ipc = &state->ipc;
-
-	int filter_type = uadeconf->filter_type;
-	int filter_state = uadeconf->led_state;
-
-	if (uadeconf->no_filter)
-		filter_type = 0;
-
-	/* Note that filter state is not normally forced */
-	filter_state = uadeconf->led_forced ? (2 + (filter_state & 1)) : 0;
-
-	if (uade_send_two_u32s(UADE_COMMAND_FILTER, filter_type, filter_state, ipc))
+	char space[UADE_MAX_MESSAGE_SIZE];
+	if (!uade_prepare_filter_command(space, sizeof space, state)) {
+		uade_warning("Too small a buffer for filter command\n");
+		return;
+	}
+	if (uade_send_message((struct uade_msg *) space, &state->ipc))
 		uade_warning("Can not setup filters\n");
 }
 
@@ -180,8 +184,8 @@ int uade_song_initialization(struct uade_file *player, struct uade_file *module,
 	}
 
 	if (uc->frequency != UADE_DEFAULT_FREQUENCY) {
-		if (uade_send_u32
-		    (UADE_COMMAND_SET_FREQUENCY, uc->frequency, ipc)) {
+		if (uade_send_u32(UADE_COMMAND_SET_FREQUENCY, uc->frequency,
+				  ipc)) {
 			fprintf(stderr, "Can not send frequency.\n");
 			goto cleanup;
 		}

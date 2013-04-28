@@ -164,27 +164,24 @@ static void *recursive_func(const char *file, enum uade_wtype wtype, void *pl)
 {
 	if (wtype != UADE_WALK_REGULAR_FILE)
 		return NULL;
-	if (!playlist_add(pl, file, 0, 0))
+	if (!playlist_add(pl, file, 0))
 		fprintf(stderr, "error enqueuing %s\n", file);
 	return NULL;
 }
 
-int playlist_add(struct playlist *pl, const char *name, int recursive,
-		 int cygwin)
+int playlist_add(struct playlist *pl, const char *name, int recursive)
 {
 	int ret = 0;
 	struct stat st;
-	int allocated = 0;
-	char *path;
+	char *path = strdup(name);
+
+	if (path == NULL) {
+		fprintf(stderr, "playlist_add: No memory for path.\n");
+		goto out;
+	}
 
 	if (!pl->valid)
 		goto out;
-
-	path = (char *) name;
-	if (cygwin) {
-		path = uade_windows_to_cygwin_path(name);
-		allocated = 1;
-	}
 
 	if (stat(path, &st))
 		goto out;
@@ -224,9 +221,7 @@ int playlist_add(struct playlist *pl, const char *name, int recursive,
 	}
 
 out:
-	if (allocated)
-		free(path);
-
+	free(path);
 	return ret;
 }
 

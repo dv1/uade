@@ -10,7 +10,11 @@
  */
 
 #include <uade/uade.h>
+#include <uade/uadestate.h>
+#include <uade/unixsupport.h>
 #include <uade/unixatomic.h>
+#include <uade/ossupport.h>
+#include <uade/amifilemagic.h>
 #include "support.h"
 
 #include <stdlib.h>
@@ -25,9 +29,6 @@
 #include <unistd.h>
 
 #define OPTION_DELIMITER ","
-
-#define eperror(fmt, args...) do { uade_error("Eagleplayer.conf error on line %zd: " fmt, lineno, ## args); } while (0)
-
 
 /* Table for associating eagleplayer.conf, song.conf and uade.conf options
  * together.
@@ -58,7 +59,7 @@ static const struct epconfattr boolean_options[] = {
 
 /*
  * Variables for eagleplayer.conf and song.conf. ".s" must be presented with
- * shorted prefix first. If there is "ab" and "abc", "ab" must be the first.
+ * shortest prefix first. If there is "ab" and "abc", "ab" must be the first.
  */
 static const struct epconfattr string_options[] = {
 	{.s = "epopt",           .e = ES_EP_OPTION},
@@ -204,30 +205,27 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 	return detectioninfo->ep != NULL ? 0 : -1;
 }
 
-
-static void store_attribute_into_list(struct uade_attribute **attributelist,
-				      const struct epconfattr *attr,
-				      char *item, size_t len, size_t lineno)
+/* Returns 1 on success, 0 otherwise. */
+static int store_attribute_into_list(struct uade_attribute **attributelist,
+				     int es_flag, const char *value)
 {
-	struct uade_attribute *a;
-	char *str;
-
-	if (item[len] != '=') {
-		fprintf(stderr, "Invalid song item: %s\n", item);
-		return;
+	struct uade_attribute *a = malloc(sizeof *a);
+	if (a == NULL) {
+		uade_warning("No memory for song attribute.\n");
+		return 0;
 	}
-	str = item + len + 1;
+	*a = (struct uade_attribute) {.s = strdup(value),
+				      .flag = es_flag};
+	if (a->s == NULL) {
+		free_and_poison(a);
+		uade_warning("Out of memory allocating string option for "
+			     "song\n");
+		return 0;
+	}
 
-	if ((a = calloc(1, sizeof *a)) == NULL)
-		eperror("No memory for song attribute.\n");
-
-	a->s = strdup(str);
-	if (a->s == NULL)
-		eperror("Out of memory allocating string option for song\n");
-
-	a->flag = attr->e;
 	a->next = *attributelist;
 	*attributelist = a;
+	return 1;
 }
 
 int uade_set_config_options_from_flags(struct uade_state *state, int flags)
@@ -260,8 +258,6 @@ int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
 				     int *flags, char *item, size_t lineno)
 {
 	size_t i;
-	size_t len;
-
 	for (i = 0; boolean_options[i].s != NULL; i++) {
 		if (strcasecmp(item, boolean_options[i].s) == 0) {
 			*flags |= boolean_options[i].e;
@@ -270,12 +266,18 @@ int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
 	}
 
 	for (i = 0; string_options[i].s != NULL; i++) {
-		len = strlen(string_options[i].s);
+		char *value;
+		size_t len = strlen(string_options[i].s);
 		if (strncasecmp(item, string_options[i].s, len) != 0)
 			continue;
-		store_attribute_into_list(attributelist, &string_options[i],
-					  item, len, lineno);
-		return 1;
+		if (item[len] != '=') {
+			fprintf(stderr, "Invalid song item: %s on line %zu\n",
+				item, lineno);
+			return 0;
+		}
+		value = item + len + 1;
+		return store_attribute_into_list(attributelist,
+						 string_options[i].e, value);
 	}
 
 	return 0;
@@ -305,7 +307,9 @@ static struct eagleplayer *get_eagleplayer(const char *extension,
 	return f->player;
 }
 
-/* Read eagleplayer.conf. */
+/*
+ * Read eagleplayer.conf. XXX: Clean up this function.
+ */
 static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 {
 	FILE *f;
@@ -314,36 +318,49 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 	size_t lineno = 0;
 	struct eagleplayerstore *ps = NULL;
 	size_t exti;
-	size_t i, j;
+	size_t i;
+	size_t j;
 	int epwarning;
+	int parse_error = 0;
 
 	f = fopen(filename, "r");
 	if (f == NULL)
 		goto error;
 
 	ps = calloc(1, sizeof ps[0]);
-	if (ps == NULL)
-		eperror("No memory for ps.");
+	if (ps == NULL) {
+		uade_warning("No memory for ps.");
+		goto error;
+	}
 
 	allocated = 16;
-	if ((ps->players = malloc(allocated * sizeof(ps->players[0]))) == NULL)
-		eperror("No memory for eagleplayer.conf file.\n");
+	ps->players = malloc(allocated * sizeof(ps->players[0]));
+	if (ps->players == NULL) {
+		uade_warning("No memory for ps->players.\n");
+		goto error;
+	}
 
 	while (1) {
 		char **items;
 		size_t nitems;
 
-		items = uade_read_and_split_lines(&nitems, &lineno, f, UADE_WS_DELIMITERS);
+		items = uade_read_and_split_lines(&nitems, &lineno, f,
+						  UADE_WS_DELIMITERS);
 		if (items == NULL)
 			break;
 
 		assert(nitems > 0);
 
 		if (ps->nplayers == allocated) {
+			void *players;
 			allocated *= 2;
-			ps->players = realloc(ps->players, allocated * sizeof(ps->players[0]));
-			if (ps->players == NULL)
-				eperror("No memory for players.");
+			players = realloc(ps->players,
+					  allocated * sizeof(ps->players[0]));
+			if (players == NULL) {
+				uade_warning("No memory for ps->players.");
+				goto parse_error;
+			}
+			ps->players = players;
 		}
 
 		p = &ps->players[ps->nplayers];
@@ -352,21 +369,24 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 		memset(p, 0, sizeof p[0]);
 
 		p->playername = strdup(items[0]);
-		if (p->playername == NULL)
-			uade_error("No memory for playername.\n");
+		if (p->playername == NULL) {
+			uade_warning("No memory for playername.\n");
+			goto parse_error;
+		}
 
 		for (i = 1; i < nitems; i++) {
 			if (strncasecmp(items[i], "prefixes=", 9) == 0) {
 				char prefixes[UADE_LINESIZE];
 				char *prefixstart = items[i] + 9;
-				char *sp, *s;
+				char *sp;
+				char *s;
 				size_t pos;
 
-				assert(p->nextensions == 0 && p->extensions == NULL);
+				assert(p->nextensions == 0 &&
+				       p->extensions == NULL);
 
 				p->nextensions = 0;
-				strlcpy(prefixes, prefixstart,
-					sizeof(prefixes));
+				strlcpy(prefixes, prefixstart, sizeof prefixes);
 				sp = prefixes;
 				while ((s = strsep(&sp, OPTION_DELIMITER)) != NULL) {
 					if (*s == 0)
@@ -374,21 +394,30 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 					p->nextensions++;
 				}
 
-				p->extensions =
-				    malloc((p->nextensions +
-					    1) * sizeof(p->extensions[0]));
-				if (p->extensions == NULL)
-					eperror("No memory for extensions.");
+				p->extensions = calloc(p->nextensions + 1,
+						       sizeof p->extensions[0]);
+				if (p->extensions == NULL) {
+					uade_warning("No memory for "
+						     "extensions.\n");
+					goto parse_error;
+				}
 
 				pos = 0;
 				sp = prefixstart;
-				while ((s = strsep(&sp, OPTION_DELIMITER)) != NULL) {
+				while (1) {
+					s = strsep(&sp, OPTION_DELIMITER);
+					if (s == NULL)
+						break;
 					if (*s == 0)
 						continue;
 
 					p->extensions[pos] = strdup(s);
-					if (s == NULL)
-						eperror("No memory for prefix.");
+					if (s == NULL) {
+						uade_warning("No memory for "
+							     "extension/"
+							     "prefix.\n");
+						goto parse_error;
+					}
 					pos++;
 				}
 				p->extensions[pos] = NULL;
@@ -400,48 +429,56 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 			if (strncasecmp(items[i], "comment:", 7) == 0)
 				break;
 
-			if (uade_parse_attribute_from_string(&p->attributelist, &p->flags, items[i], lineno))
-				continue;
-
-			fprintf(stderr, "Unrecognized option: %s\n", items[i]);
+			if (!uade_parse_attribute_from_string(&p->attributelist,
+							     &p->flags,
+							     items[i],
+							     lineno))
+				fprintf(stderr, "Unrecognized option: %s\n",
+					items[i]);
 		}
+		goto parse_ok;
 
+	parse_error:
+		parse_error = 1;
+	parse_ok:
 		for (i = 0; items[i] != NULL; i++)
-			free(items[i]);
+			free_and_null(items[i]);
+		free_and_null(items);
 
-		free(items);
+		if (parse_error)
+			goto error;
 	}
 
-	fclose(f);
+	fclose_and_null(f);
 
-	if (ps->nplayers == 0) {
-		free(ps->players);
-		free(ps);
-		return NULL;
-	}
+	if (ps->nplayers == 0)
+		goto error;
 
 	for (i = 0; i < ps->nplayers; i++)
 		ps->nextensions += ps->players[i].nextensions;
 
 	ps->map = malloc(sizeof(ps->map[0]) * ps->nextensions);
-	if (ps->map == NULL)
-		eperror("No memory for extension map.");
+	if (ps->map == NULL) {
+		uade_warning("No memory for extension map.");
+		goto error;
+	}
 
 	exti = 0;
 	epwarning = 0;
 	for (i = 0; i < ps->nplayers; i++) {
 		p = &ps->players[i];
 		if (p->nextensions == 0) {
-			if (epwarning == 0) {
-				fprintf(stderr,
-					"uade warning: %s eagleplayer lacks prefixes in "
-					"eagleplayer.conf, which makes it unusable for any kind of "
-					"file type detection. If you don't want name based file type "
-					"detection for a particular format, use content_detection "
-					"option for the line in eagleplayer.conf.\n",
-					ps->players[i].playername);
-				epwarning = 1;
-			}
+			if (epwarning)
+				continue;
+			uade_warning(
+				"%s eagleplayer lacks prefixes "
+				"in eagleplayer.conf, which makes it unusable "
+				"for any kind of file type detection. If you "
+				"don't want name based file type detection for "
+				"a particular format, use content_detection "
+				"option for the line in eagleplayer.conf.\n",
+				ps->players[i].playername);
+			epwarning = 1;
 			continue;
 		}
 		for (j = 0; j < p->nextensions; j++) {
@@ -460,10 +497,20 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 	return ps;
 
  error:
-	if (ps)
-		free(ps->players);
-	free(ps);
+	if (ps != NULL) {
+		for (i = 0; i < ps->nplayers; i++) {
+			p = &ps->players[i];
+			free_and_null(p->playername);
+			for (j = 0; j < p->nextensions; j++) {
+				if (p->extensions[j] != NULL)
+					free_and_null(p->extensions[j]);
+			}
+			free_and_null(p->extensions);
+		}
+		free_and_null(ps->players);
+		free_and_null(ps);
+	}
 	if (f != NULL)
-		fclose(f);
+		fclose_and_null(f);
 	return NULL;
 }

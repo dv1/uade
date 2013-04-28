@@ -12,6 +12,7 @@
 #include <uade/uade.h>
 
 #include <assert.h>
+#include <stdlib.h>
 
 static void cleanup(struct uade_state *state)
 {
@@ -40,7 +41,7 @@ int main(int argc, char *argv[])
 	int i;
 	const char *fname;
 	const struct uade_song_info *info;
-	struct uade_state *state = uade_new_state(NULL, NULL);
+	struct uade_state *state = uade_new_state(NULL);
 	int ret;
 	size_t size;
 	void *buf;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
 	if (state == NULL)
 		goto error;
 
-	if (!audio_init(state->config.frequency))
+	if (!audio_init(uade_get_sampling_rate(state)))
 		goto error;
 
 	for (i = 1; i < argc; i++) {
@@ -78,7 +79,8 @@ int main(int argc, char *argv[])
 			printf("Module name: %s\n", info->modulename);
 		if (info->playername[0])
 			printf("Player name: %s\n", info->playername);
-		printf("subsongs: cur %d min %d max %d\n", info->subsongs.cur, info->subsongs.min, info->subsongs.max);
+		printf("subsongs: cur %d min %d max %d\n", info->subsongs.cur,
+		       info->subsongs.min, info->subsongs.max);
 
 		play_loop(state);
 

@@ -114,7 +114,8 @@ char **uade_read_and_split_lines(size_t *nitems, size_t *lineno, FILE *f,
 	char line[UADE_LINESIZE], templine[UADE_LINESIZE];
 	char **items = NULL;
 	size_t pos;
-	char *sp, *s;
+	char *sp;
+	char *s;
 
 	*nitems = 0;
 
@@ -127,8 +128,10 @@ char **uade_read_and_split_lines(size_t *nitems, size_t *lineno, FILE *f,
 		if (line[0] == '#')
 			continue;
 
-		/* strsep() modifies line that it touches, so we make a copy
-		   of it, and then count the number of items on the line */
+		/*
+		 * strsep() modifies line that it touches, so we make a copy
+		 * of it, and then count the number of items on the line
+		 */
 		strlcpy(templine, line, sizeof(templine));
 		sp = templine;
 		while ((s = strsep(&sp, delim)) != NULL) {
@@ -144,8 +147,11 @@ char **uade_read_and_split_lines(size_t *nitems, size_t *lineno, FILE *f,
 	if (*nitems == 0)
 		return NULL;
 
-	if ((items = malloc(sizeof(items[0]) * (*nitems + 1))) == NULL)
-		uade_error("No memory for nws items.\n");
+	items = calloc(*nitems + 1, sizeof items[0]);
+	if (items == NULL) {
+		uade_warning("No memory for nws items.\n");
+		return NULL;
+	}
 
 	sp = line;
 	pos = 0;
@@ -153,17 +159,24 @@ char **uade_read_and_split_lines(size_t *nitems, size_t *lineno, FILE *f,
 		if (*s == 0)
 			continue;
 
-		if ((items[pos] = strdup(s)) == NULL)
-			uade_error("No memory for an nws item.\n");
+		items[pos] = strdup(s);
+		if (items[pos] == NULL) {
+			uade_warning("No memory for an nws item.\n");
+			goto error;
+		}
 
 		pos++;
 	}
 	items[pos] = NULL;
 	assert(pos == *nitems);
-
 	return items;
-}
 
+error:
+	for (pos = 0; pos < *nitems && items[pos] != NULL; pos++)
+		free_and_null(items[pos]);
+	free_and_null(items);
+	return NULL;
+}
 
 char *uade_xfgets(char *s, int size, FILE *stream)
 {

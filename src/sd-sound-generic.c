@@ -60,7 +60,7 @@ void init_sound (void)
   rate    = currprefs.sound_freq;
   channels = currprefs.stereo ? 2 : 1;
 
-  if (dspbits != (UADE_BYTES_PER_SAMPLE * 8)) {
+  if (dspbits != 16) {
     fprintf(stderr, "Only 16 bit sounds supported.\n");
     exit(1);
   }
@@ -68,7 +68,7 @@ void init_sound (void)
     fprintf(stderr, "Too small or high a rate: %u\n", rate);
     exit(1);
   }
-  if (channels != UADE_CHANNELS) {
+  if (channels != 2) {
     fprintf(stderr, "Only stereo supported.\n");
     exit(1);
   }

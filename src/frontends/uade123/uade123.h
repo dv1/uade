@@ -1,11 +1,13 @@
 #ifndef _UADE123_H_
 #define _UADE123_H_
 
-#include <uade/uade.h>
-#include "playlist.h"
-
 #include <limits.h>
 #include <stdio.h>
+
+#include <uade/uade.h>
+#include <uade/ossupport.h>
+
+#include "playlist.h"
 
 #define tprintf(fmt, args...) do {fprintf(uade_terminal_file ? uade_terminal_file : stdout, fmt, ## args); } while (0)
 

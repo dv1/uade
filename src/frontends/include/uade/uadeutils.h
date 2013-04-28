@@ -4,12 +4,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-struct uade_file {
-	char *name;  /* filename */
-	char *data;  /* file data, can be NULL */
-	size_t size;
-};
-
 static inline uint16_t read_be_u16(void *s)
 {
 	uint16_t x;
@@ -34,29 +28,5 @@ static inline void write_be_u32(void *s, uint32_t x)
 	ptr[2] = (x >> 8);
 	ptr[3] = x;
 }
-
-size_t uade_atomic_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
-
-/*
- * Create a 'struct uade_file' that is used to present and contain name
- * and data of a file. The structure has following members:
- *
- * char *name, the file name
- * char *data, the contents of the file. This can be NULL.
- * size_t size, the size of data
- *
- * data is copied into the 'struct uade_file' so it can be changed or freed
- * afterwards.
- *
- * Returns NULL on error (out of memory).
- */
-struct uade_file *uade_file(const char *name, const void *data, size_t size);
-
-void uade_file_free(struct uade_file *f);
-
-/* Create uade_file from a file name. Returns NULL on error. */
-struct uade_file *uade_file_load(const char *name);
-
-void *uade_read_file(size_t *fs, const char *filename);
 
 #endif

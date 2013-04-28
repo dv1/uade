@@ -15,7 +15,8 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-#include <string.h>		/* for memcpy() */
+#include <assert.h>
+#include <string.h>
 #include "md5.h"
 
 static void MD5Transform(uint32_t buf[4], uint32_t const in[16]);
@@ -139,13 +140,13 @@ void uade_MD5Final(unsigned char digest[16], uade_MD5_CTX *ctx)
     byteReverse(ctx->in, 14);
 
     /* Append length in bits and transform */
-    ((uint32_t *) ctx->in)[14] = ctx->bits[0];
-    ((uint32_t *) ctx->in)[15] = ctx->bits[1];
+    assert(sizeof(ctx->bits) == 8);
+    memcpy(&ctx->in[56], ctx->bits, 8);
 
     MD5Transform(ctx->buf, (uint32_t *) ctx->in);
     byteReverse((unsigned char *) ctx->buf, 4);
     memcpy(digest, ctx->buf, 16);
-    memset((char *) ctx, 0, sizeof(ctx));	/* In case it's sensitive */
+    memset(ctx, 0, sizeof(ctx));	/* In case it's sensitive */
 }
 
 /* The four core functions - F1 is optimized somewhat */

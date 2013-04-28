@@ -1,21 +1,21 @@
 #define _GNU_SOURCE
+
+#include "support.h"
+
+#include <uade/uade.h>
+#include <uade/uadeutils.h>
+#include <uade/ossupport.h>
+#include <uade/amifilemagic.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
 #include <ctype.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <uade/songinfo.h>
-#include <uade/uadeutils.h>
-#include <uade/ossupport.h>
-#include <uade/amifilemagic.h>
-#include "support.h"
-
 
 static void asciiline(char *dst, unsigned char *buf)
 {
@@ -431,44 +431,17 @@ static void process_dm2_mod(char *credits, size_t credits_len,
 	strlcat(credits, tmpstr, credits_len);
 }
 
-static int process_module(char *credits, size_t credits_len, const char *filename)
+static int process_module(char *credits, size_t credits_len,
+			  const char *filename)
 {
-	FILE *modfile;
-	struct stat st;
 	size_t modfilelen;
 	unsigned char *buf;
 	char pre[11];
 	char tmpstr[256];
-	size_t rb;
 
-	if (!(modfile = fopen(filename, "rb")))
-		return 0;
-
-	if (fstat(fileno(modfile), &st))
-		return 0;
-
-	modfilelen = st.st_size;
-
-	if ((buf = malloc(modfilelen)) == NULL) {
+	buf = uade_read_file(&modfilelen, filename);
+	if (buf == NULL) {
 		fprintf(stderr, "uade: can't allocate mem in process_module()");
-		fclose(modfile);
-		return 0;
-	}
-
-	rb = 0;
-	while (rb < modfilelen) {
-		size_t ret = fread(&buf[rb], 1, modfilelen - rb, modfile);
-		if (ret == 0)
-			break;
-		rb += ret;
-	}
-
-	fclose(modfile);
-
-	if (rb < modfilelen) {
-		fprintf(stderr, "uade: song info could not read %s fully\n",
-			filename);
-		free(buf);
 		return 0;
 	}
 
@@ -561,7 +534,7 @@ static int process_module(char *credits, size_t credits_len, const char *filenam
 
 /* Returns zero on success, non-zero otherwise. */
 int uade_song_info(char *info, size_t maxlen, const char *filename,
-		   enum song_info_type type)
+		   enum uade_song_info_type type)
 {
 	switch (type) {
 	case UADE_MODULE_INFO:

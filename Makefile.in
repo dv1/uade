@@ -13,7 +13,7 @@ UADE123NAME={UADE123NAME}
 COMPILE_RULES = {COMPILE_RULES}
 INSTALL_RULES = {INSTALL_RULES}
 
-all:	src/frontends/include/uade/uadeoptions.h $(COMPILE_RULES)
+all:	src/frontends/include/uade/options.h $(COMPILE_RULES)
 
 staticlibuade:	
 	$(MAKE) -C src/frontends/common
@@ -55,7 +55,7 @@ uadefsinstall:	uadefs
 uadesimple:	
 	$(MAKE) -C src/frontends/uadesimple
 
-src/frontends/include/uade/uadeoptions.h:	
+src/frontends/include/uade/options.h:	
 	@echo ""
 	@echo "Run ./configure first!"
 	@echo ""

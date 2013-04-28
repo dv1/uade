@@ -1,10 +1,17 @@
+#include "fifo.h"
+#include "support.h"
+
 #include <uade/uade.h>
+#include <uade/uadestate.h>
 #include <uade/uadeutils.h>
 #include <uade/unixatomic.h>
+#include <uade/uadeconf.h>
+#include <uade/uadecontrol.h>
+#include <uade/ossupport.h>
+#include <uade/options.h>
 #include <uade/rmc.h>
 
-#include <fifo.h>
-
+#include <arpa/inet.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -15,7 +22,22 @@
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
+#include <bencodetools/bencode.h>
 
+#define ASSERT_RECEIVE_STATE(state) do { assert((state)->ipc.state == UADE_R_STATE); } while (0)
+#define ASSERT_SEND_STATE(state) do { assert((state)->ipc.state == UADE_S_STATE); } while (0)
+
+static enum uade_control_state ipc_state(const struct uade_state *state)
+{
+	return state->ipc.state;
+}
+
+static void set_ipc_state(struct uade_state *state,
+			  enum uade_control_state newstate)
+{
+	assert(newstate == UADE_R_STATE || newstate == UADE_S_STATE);
+	state->ipc.state = newstate;
+}
 
 static void load_content_db(struct uade_state *state)
 {
@@ -99,8 +121,9 @@ static void set_end_event(struct uade_event *event, int tailbytes,
 			  int happy, int stopnow,
 			  const char *reason, struct uade_state *state)
 {
-	struct uade_event_subsongs *subs = &state->song.info.subsongs;
-	int lastsubsong = (subs->cur >= subs->max) || (subs->cur < subs->min);
+	struct uade_subsong_info *subsongs = &state->song.info.subsongs;
+	int lastsubsong = (subsongs->cur >= subsongs->max) ||
+		          (subsongs->cur < subsongs->min);
 
 	event->type = UADE_EVENT_SONG_END;
 	event->songend.tailbytes = tailbytes;
@@ -235,7 +258,9 @@ static int receive_message(struct uade_event *event, struct uade_state *state)
 		}
 
 		if (!(0 <= minsubsong && minsubsong <= cursubsong && cursubsong <= maxsubsong)) {
-			uade_warning("\nThe eagleplayer is broken. Subsong info does not match in %s\n", state->song.info.modulefname);
+			uade_warning("\nThe eagleplayer is broken. Subsong "
+				     "info does not match in %s\n",
+				     state->song.info.modulefname);
 			if (minsubsong > cursubsong)
 				minsubsong = cursubsong;
 			if (maxsubsong < cursubsong)
@@ -289,8 +314,8 @@ static int send_file_back(struct uade_file *f, const char *name,
 			  struct uade_state *state)
 {
 	/* Hack, force us to send state */
-	assert(state->ipc.state == UADE_R_STATE);
-	state->ipc.state = UADE_S_STATE;
+	ASSERT_RECEIVE_STATE(state);
+	set_ipc_state(state, UADE_S_STATE);
 	if (f != NULL)
 		uade_debug(state, "Sending file: %s\n", f->name);
 	else
@@ -300,7 +325,7 @@ static int send_file_back(struct uade_file *f, const char *name,
 		uade_file_free(f);
 		return -1;
 	}
-	state->ipc.state = UADE_R_STATE;
+	set_ipc_state(state, UADE_R_STATE);
 	uade_file_free(f);
 	return 0;
 }
@@ -312,8 +337,10 @@ static int handle_request_amiga_file(const char *name, struct uade_state *state)
 	uade_debug(state, "Amiga requests file: %s\n", name);
 	if (state->song.info.playerfname[0] == 0)
 		goto sendfile;
-	if (uade_dirname(playerdir, state->song.info.playerfname, sizeof playerdir) == NULL) {
-		uade_warning("Can not get playerdir for %s\n", state->song.info.playerfname);
+	if (uade_dirname(playerdir, state->song.info.playerfname,
+			 sizeof playerdir) == NULL) {
+		uade_warning("Can not get playerdir for %s\n",
+			     state->song.info.playerfname);
 		goto sendfile;
 	}
 
@@ -407,13 +434,13 @@ static void set_subsong(struct uade_state *state)
 		state->song.seeksubsongtrigger = -1;
 	}
 
-	assert(state->ipc.state == UADE_S_STATE);
+	ASSERT_SEND_STATE(state);
 
 	if (newsubsong >= 0) {
 		uade_subsong_control(newsubsong, cmd, &state->ipc);
 		state->song.info.subsongbytes = 0;
 		state->song.silencecount = 0;
-		state->song.info.recordsubsongtime = 1;
+		state->song.recordsubsongtime = 1;
 		state->song.info.subsongs.cur = newsubsong;
 		memset(&state->song.endevent, 0, sizeof state->song.endevent);
 	}
@@ -421,8 +448,8 @@ static void set_subsong(struct uade_state *state)
 
 static void dont_record_playtime(struct uade_state *state)
 {
-	state->song.info.recordsongtime = 0;
-	state->song.info.recordsubsongtime = 0;
+	state->song.recordsongtime = 0;
+	state->song.recordsubsongtime = 0;
 }
 
 /* Called usually after getting song end event */
@@ -558,6 +585,67 @@ int uade_seek_samples(enum uade_seek_mode whence, ssize_t samples, int subsong,
 int uade_is_seeking(const struct uade_state *state)
 {
 	return state->song.seekmode != UADE_SEEK_NOT_SEEKING;
+}
+
+int uade_get_filter_state(const struct uade_state *state)
+{
+	return state->config.led_state;
+}
+
+static int send_queue_commands(struct uade_state *state)
+{
+	char space[UADE_MAX_MESSAGE_SIZE];
+	if (state->write_queue == NULL)
+		return 0;
+	while (fifo_len(state->write_queue) > 0) {
+		size_t size;
+		size_t ret = fifo_read(&size, sizeof size, state->write_queue);
+		assert(ret == sizeof size);
+		assert(size <= sizeof space);
+		ret = fifo_read(space, size, state->write_queue);
+		assert(ret == size);
+		if (uade_send_message((struct uade_msg *) space, &state->ipc)) {
+			uade_warning("Unable to a send command from the "
+				     "queue\n");
+			return -1;
+		}
+	}
+	return 0;
+}
+
+static int queue_command(struct uade_state *state, void *command, size_t size)
+{
+	if (ipc_state(state) == UADE_S_STATE)
+		return uade_send_message((struct uade_msg *) command,
+					 &state->ipc);
+	if (state->write_queue == NULL)
+		state->write_queue = fifo_create();
+	if (state->write_queue == NULL) {
+		uade_warning("queue_command: Unable to create a send queue\n");
+		return -1;
+	}
+	if (fifo_write(state->write_queue, &size, sizeof(size))) {
+		uade_warning("Unable to write command size to send queue\n");
+		return -1;
+	}
+	if (fifo_write(state->write_queue, command, size)) {
+		assert(!fifo_erase_tail(state->write_queue, sizeof size));
+		return -1;
+	}
+	return 0;
+}
+
+int uade_set_filter_state(struct uade_state *state, int newstate)
+{
+	char space[UADE_MAX_MESSAGE_SIZE];
+	size_t size;
+	state->config.led_state = newstate ? 1 : 0;
+	size = uade_prepare_filter_command(space, sizeof space, state);
+	if (!size) {
+		uade_warning("Unable to create filter command\n");
+		return -1;
+	}
+	return queue_command(state, space, size);
 }
 
 const struct uade_song_info *uade_get_song_info(const struct uade_state *state)
@@ -712,7 +800,7 @@ static int handle_data(struct uade_event *event, struct uade_state *state)
 	}
 
 	nframes = event->data.size / UADE_BYTES_PER_FRAME;
-	uade_effect_run(&state->effectstate, (int16_t *) event->data.data, nframes);
+	uade_effect_run(state, (int16_t *) event->data.data, nframes);
 
 	return 0;
 }
@@ -750,7 +838,7 @@ static int receive_messages(struct uade_event *event, struct uade_state *state)
 			return 0;
 
 		case UADE_EVENT_READY:
-			assert(state->ipc.state == UADE_S_STATE);
+			ASSERT_SEND_STATE(state);
 
 			if (test_set_debug(state))
 				return error_state(state);
@@ -759,6 +847,9 @@ static int receive_messages(struct uade_event *event, struct uade_state *state)
 			    state->song.seekmodetrigger) {
 				set_subsong(state);
 			}
+
+			if (send_queue_commands(state))
+				return error_state(state);
 
 			if (read_request(state))
 				return error_state(state);
@@ -789,7 +880,7 @@ int uade_get_event(struct uade_event *event, struct uade_state *state)
 		case UADE_STATE_INITIALIZED:
 			/* The first call to uade_get_event() */
 
-			assert(state->ipc.state == UADE_S_STATE);
+			ASSERT_SEND_STATE(state);
 
 			if (state->song.seekmodetrigger)
 				set_subsong(state);
@@ -807,13 +898,13 @@ int uade_get_event(struct uade_event *event, struct uade_state *state)
 			return receive_messages(event, state);
 
 		case UADE_STATE_SONG_END_PENDING:
-			assert(state->ipc.state == UADE_R_STATE);
+			ASSERT_RECEIVE_STATE(state);
 			set_state(UADE_STATE_WAIT_SUBSONG_CHANGE, state);
 			*event = state->song.endevent;
 			return 0;
 
 		case UADE_STATE_WAIT_SUBSONG_CHANGE:
-			assert(state->ipc.state == UADE_R_STATE);
+			ASSERT_RECEIVE_STATE(state);
 
 			if (uade_next_subsong(state)) {
 				set_end_event(event, 0, 1, 1, "No more subsongs left", state);
@@ -835,11 +926,93 @@ int uade_get_fd(const struct uade_state *state)
 	return uade_ipc_get_fd(state->ipc.input);
 }
 
+void uade_cleanup_notification(struct uade_notification *n)
+{
+	switch (n->type) {
+	case UADE_NOTIFICATION_MESSAGE:
+		free_and_poison(n->msg);
+		break;
+	case UADE_NOTIFICATION_SONG_END:
+		free_and_poison(n->song_end.reason);
+		break;
+	default:
+		uade_warning("Unknown notification type. "
+			     "Possibly leaking memory!\n");
+	}
+}
+
+static void flush_notifications(struct uade_state *state)
+{
+	struct uade_notification n;
+	while (uade_read_notification(&n, state))
+		uade_cleanup_notification(&n);
+}
+
+static void notify_write(struct uade_state *state, void *data, size_t size)
+{
+	if (state->notifications == NULL) {
+		state->notifications = fifo_create();
+		if (state->notifications == NULL) {
+			uade_warning("No memory for notifications fifo\n");
+			return;
+		}
+	}
+	if (fifo_len(state->notifications) > (1 << 20)) {
+		uade_warning("Notifcations are overflowing. There's a bug "
+			     "somewhere on the uadecore / amiga side.\n");
+		return;
+	}
+	fifo_write(state->notifications, data, size);
+}
+
+static void notify_message(struct uade_state *state, const char *msg)
+{
+	struct uade_notification n = {.type = UADE_NOTIFICATION_MESSAGE};
+	n.msg = strdup(msg);
+	if (n.msg == NULL) {
+		uade_warning("No memory for message notification\n");
+		return;
+	}
+	notify_write(state, &n, sizeof n);
+}
+
+static void notify_song_end(struct uade_state *state,
+		       const struct uade_event_songend *song_end)
+{
+	struct uade_notification n = {.type = UADE_NOTIFICATION_SONG_END};
+	n.song_end.happy = song_end->happy;
+	n.song_end.stopnow = song_end->stopnow;
+	n.song_end.reason = strdup(song_end->reason);
+	if (n.song_end.reason == NULL) {
+		uade_warning("No memory for message notification\n");
+		return;
+	}
+	notify_write(state, &n, sizeof n);
+}
+
+int uade_read_notification(struct uade_notification *n,
+			   struct uade_state *state)
+{
+	struct fifo *f = state->notifications;
+	n->type = -1; /* POISON FOR ABUSERS */
+	if (f == NULL)
+		return 0;
+	if (fifo_len(f) == 0)
+		return 0;
+	if (fifo_len(f) > 0 && fifo_len(f) < sizeof(*n))
+		uade_die("Notification system has a partial notification.\n");
+	fifo_read(n, sizeof *n, f);
+	return 1;
+}
+
 ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 {
 	uint8_t *data = _data;
 	size_t copied = 0;
 	struct uade_event event;
+
+	if (state->notifications != NULL)
+		fifo_flush(state->notifications);
 
 	if (bytes == 0)
 		return 0;
@@ -870,7 +1043,10 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 
 		switch (event.type) {
 		case UADE_EVENT_EAGAIN:
+			break;
+
 		case UADE_EVENT_MESSAGE:
+			notify_message(state, event.msg);
 			break;
 
 		case UADE_EVENT_DATA:
@@ -885,6 +1061,8 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 			break;
 
 		case UADE_EVENT_SONG_END:
+			notify_song_end(state, &event.songend);
+
 			if (event.songend.stopnow || uade_next_subsong(state))
 				return copied;
 
@@ -901,16 +1079,20 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 	return copied;
 }
 
-struct uade_state *uade_new_state(const struct uade_config *extraconfig,
-				  const char *basedir)
+struct uade_state *uade_new_state(const struct uade_config *extraconfig)
 {
 	struct uade_state *state;
 	DIR *bd;
 	char path[PATH_MAX];
+	const char *basedir;
 
 	state = calloc(1, sizeof *state);
 	if (!state)
 		return NULL;
+
+	basedir = NULL;
+	if (extraconfig != NULL && extraconfig->basedir_set)
+		basedir = extraconfig->basedir.name;
 
 	if (!uade_load_initial_config(state, basedir))
 		uade_warning("uadeconfig not loaded\n");
@@ -927,12 +1109,14 @@ struct uade_state *uade_new_state(const struct uade_config *extraconfig,
 
 	bd = opendir(state->config.basedir.name);
 	if (bd == NULL) {
-		uade_warning("Could not access dir %s\n", state->config.basedir.name);
+		uade_warning("Could not access dir %s\n",
+			     state->config.basedir.name);
 		goto error;
 	}
 	closedir(bd);
 
-	uade_config_set_option(&state->config, UC_UADECORE_FILE, UADE_CONFIG_UADE_CORE);
+	uade_config_set_option(&state->config, UC_UADECORE_FILE,
+			       UADE_CONFIG_UADE_CORE);
 
 	snprintf(path, sizeof path, "%s/uaerc", state->config.basedir.name);
 	uade_config_set_option(&state->config, UC_UAE_CONFIG_FILE, path);
@@ -1010,6 +1194,16 @@ int uade_is_our_file_from_buffer(const char *fname, const void *buf,
 	return detectioninfo.ep != NULL;
 }
 
+int uade_is_verbose(const struct uade_state *state)
+{
+	return state->config.verbose;
+}
+
+struct uade_config *uade_get_effective_config(struct uade_state *state)
+{
+	return &state->config;
+}
+
 struct bencode *uade_get_rmc_from_state(const struct uade_state *state)
 {
 	return state->rmc;
@@ -1019,8 +1213,10 @@ static struct eagleplayer *get_eagleplayer(struct uade_file *module,
 					   struct uade_state *state)
 {
 	struct uade_detection_info *detectioninfo;
-	detectioninfo = &state->song.info.detectioninfo;
-	if (uade_analyze_eagleplayer(detectioninfo, module->data, module->size, module->name, module->size, state))
+	detectioninfo = &state->song.detectioninfo;
+
+	if (uade_analyze_eagleplayer(detectioninfo, module->data, module->size,
+				     module->name, module->size, state))
 		return NULL;
 
 	if (detectioninfo->content)
@@ -1042,17 +1238,17 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	char playername[PATH_MAX];
 	char path[PATH_MAX];
 	struct uade_event event;
-	struct uade_song_info *info;
+	struct uade_song_state *song = &state->song;
 	struct uade_file *player = NULL;
 
-	memset(&state->song, 0, sizeof state->song);
-	state->song.state = UADE_STATE_INVALID;
+	memset(song, 0, sizeof song[0]);
+	song->state = UADE_STATE_INVALID;
 
 	if (module == NULL)
 		return -1;
 
-	state->song.info.recordsongtime = 1;
-	state->song.info.recordsubsongtime = 1;
+	song->recordsongtime = 1;
+	song->recordsubsongtime = 1;
 
 	if (subsong >= 0)
 		set_subsong_and_seek(UADE_SEEK_SUBSONG_RELATIVE, subsong, 0,
@@ -1068,11 +1264,11 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 			goto recoverableerror;
 	}
 
-	info = &state->song.info;
-	info->playtime = -1;
-	info->modulefsize = module->size;
+	song->info.duration = 0;
+	song->info.modulebytes = module->size;
 	if (module->name != NULL)
-		strlcpy(info->modulefname, module->name, sizeof info->modulefname);
+		strlcpy(song->info.modulefname, module->name,
+			sizeof song->info.modulefname);
 
 	prepare_configs(state);
 
@@ -1092,7 +1288,8 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 		module = NULL;
 	} else {
 		char playername[PATH_MAX];
-		snprintf(playername, sizeof playername, "%s/players/%s", state->config.basedir.name, ep->playername);
+		snprintf(playername, sizeof playername, "%s/players/%s",
+			 state->config.basedir.name, ep->playername);
 		player = uade_file_load(playername);
 	}
 
@@ -1103,7 +1300,8 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 
 	/* Player dir may not exist (custom song without filename was passed) */
 	if (player->name != NULL)
-		strlcpy(info->playerfname, player->name, sizeof info->playerfname);
+		strlcpy(song->info.playerfname, player->name,
+			sizeof song->info.playerfname);
 
 	/*
 	 * The order of parameter processing is important:
@@ -1115,7 +1313,8 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	uade_set_options_from_ep_attributes(state);
 
 	if (uade_set_options_from_song_attributes(state, playername, sizeof playername)) {
-		uade_debug(state, "Song rejected based on attributes: %s\n", state->song.info.modulefname);
+		uade_debug(state, "Song rejected based on attributes: %s\n",
+			   song->info.modulefname);
 		goto recoverableerror;
 	}
 
@@ -1126,9 +1325,6 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	uade_merge_configs(&state->config, &state->extraconfig);
 
 	/* Now we have the final configuration in state->config */
-
-	info->bytespersecond = get_bytes_per_second(state);
-
 	uade_set_effects(state);
 
 	switch (uade_song_initialization(player, module, state)) {
@@ -1147,7 +1343,7 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	uade_file_free(module);
 	player = module = NULL;
 
-	state->song.state = UADE_STATE_INITIALIZED;
+	song->state = UADE_STATE_INITIALIZED;
 
 	if (test_set_debug(state)) {
 		uade_warning("Can not enter debug mode\n");
@@ -1165,20 +1361,23 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 			uade_debug(state, "Got Amiga message before playloop: %s\n", event.msg);
 			break;
 		case UADE_EVENT_PLAYER_NAME:
-			strlcpy(info->playername, event.msg, sizeof info->playername);
+			strlcpy(song->info.playername, event.msg,
+				sizeof song->info.playername);
 			break;
 		case UADE_EVENT_FORMAT_NAME:
-			strlcpy(info->formatname, event.msg, sizeof info->formatname);
+			strlcpy(song->info.formatname, event.msg,
+				sizeof song->info.formatname);
 			break;
 		case UADE_EVENT_MODULE_NAME:
-			strlcpy(info->modulename, event.msg, sizeof info->modulename);
+			strlcpy(song->info.modulename, event.msg,
+				sizeof song->info.modulename);
 			break;
 		case UADE_EVENT_SUBSONG_INFO:
 			/*
 			 * Subsong info is the last info needed. This should
 			 * come after the other info. Return successfully.
 			 */
-			info->subsongs = event.subsongs;
+			song->info.subsongs = event.subsongs;
 			return 1;
 		case UADE_EVENT_SONG_END:
 			uade_warning("Song ended prematurely due to error: %s\n", event.songend.reason);
@@ -1256,6 +1455,13 @@ int uade_stop(struct uade_state *state)
 	fifo_free(state->readstash);
 	state->readstash = NULL;
 
+	flush_notifications(state);
+	fifo_free(state->notifications);
+	state->notifications = NULL;
+
+	fifo_free(state->write_queue);
+	state->write_queue = NULL;
+
 	if (state->song.state == UADE_STATE_INVALID)
 		return 0;
 
@@ -1274,9 +1480,10 @@ int uade_stop(struct uade_state *state)
 	if (get_pending_events(state))
 		return -1;
 
-	if (state->song.info.recordsongtime && 
+	if (state->song.recordsongtime && 
 	    state->song.state == UADE_STATE_WAIT_SUBSONG_CHANGE) {
-		uint32_t playtime = (state->song.info.songbytes * 1000) / get_bytes_per_second(state);
+		uint32_t playtime = (state->song.info.songbytes * 1000) /
+			            get_bytes_per_second(state);
 		uade_add_playtime(state, state->song.info.modulemd5, playtime);
 	}
 

@@ -1,11 +1,12 @@
-/* Effect module for UADE2 frontends.
+/* Effect module for libuade.
 
    Copyright 2005 (C) Antti S. Lankila <alankila@bel.fi>
 
    This module is licensed under the GNU LGPL.
 */
 
-#include <uade/uade.h>
+#include <uade/effects.h>
+#include <uade/uadestate.h>
 #include <uade/compilersupport.h>
 
 #include <stdlib.h>
@@ -125,30 +126,35 @@ static inline float evaluate_biquad(float input, uade_biquad_t * bq)
 	return output;
 }
 
-void uade_effect_disable_all(struct uade_effect_state *es)
+void uade_effect_disable_all(struct uade_state *state)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	es->enabled = 0;
 }
 
-void uade_effect_disable(struct uade_effect_state *es, uade_effect_t effect)
+void uade_effect_disable(struct uade_state *state, uade_effect_t effect)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	es->enabled &= ~(1 << effect);
 }
 
-void uade_effect_enable(struct uade_effect_state *es, uade_effect_t effect)
+void uade_effect_enable(struct uade_state *state, uade_effect_t effect)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	es->enabled |= 1 << effect;
 }
 
 /* Returns 1 if effect is enabled, and zero otherwise. Ignores
    UADE_EFFECT_ALLOW. */
-int uade_effect_is_enabled(struct uade_effect_state *es, uade_effect_t effect)
+int uade_effect_is_enabled(struct uade_state *state, uade_effect_t effect)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	return (es->enabled & (1 << effect)) != 0;
 }
 
-void uade_effect_run(struct uade_effect_state *es, int16_t * samples, int frames)
+void uade_effect_run(struct uade_state *state, int16_t *samples, int frames)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	if (es->enabled & (1 << UADE_EFFECT_ALLOW)) {
 		if (es->enabled & (1 << UADE_EFFECT_PAN))
 			pan(es->pan, samples, frames);
@@ -161,27 +167,30 @@ void uade_effect_run(struct uade_effect_state *es, int16_t * samples, int frames
 	}
 }
 
-void uade_effect_toggle(struct uade_effect_state *es, uade_effect_t effect)
+void uade_effect_toggle(struct uade_state *state, uade_effect_t effect)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	es->enabled ^= 1 << effect;
 }
 
-void uade_effect_set_defaults(struct uade_effect_state *es)
+void uade_effect_set_defaults(struct uade_state *state)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	consistencycheck();
 
 	memset(es, 0, sizeof *es);
 
-	uade_effect_disable_all(es);
-	uade_effect_enable(es, UADE_EFFECT_ALLOW);
-	uade_effect_gain_set_amount(es, 1.0);
-	uade_effect_pan_set_amount(es, 0.7);
+	uade_effect_disable_all(state);
+	uade_effect_enable(state, UADE_EFFECT_ALLOW);
+	uade_effect_gain_set_amount(state, 1.0);
+	uade_effect_pan_set_amount(state, 0.7);
 }
 
 /* Rate of 0 means undefined. Effects that depend on sample rate must
    self-check against this because they can not implemented properly */
-void uade_effect_set_sample_rate(struct uade_effect_state *es, int rate)
+void uade_effect_set_sample_rate(struct uade_state *state, int rate)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	assert(rate >= 0);
 	es->rate = rate;
 
@@ -201,19 +210,21 @@ void uade_effect_set_sample_rate(struct uade_effect_state *es, int rate)
 	}
 }
 
-void uade_effect_gain_set_amount(struct uade_effect_state *es, float amount)
+void uade_effect_gain_set_amount(struct uade_state *state, float amount)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	assert(amount >= 0.0 && amount <= 128.0);
 	es->gain = amount * 256.0;
 }
 
-void uade_effect_pan_set_amount(struct uade_effect_state *es, float amount)
+void uade_effect_pan_set_amount(struct uade_state *state, float amount)
 {
+	struct uade_effect_state *es = &state->effectstate;
 	assert(amount >= 0.0 && amount <= 2.0);
 	es->pan = amount * 256.0 / 2.0;
 }
 
-static void gain(int gain_amount, int16_t * sm, int frames)
+static void gain(int gain_amount, int16_t *sm, int frames)
 {
 	int i;
 	for (i = 0; i < 2 * frames; i += 1)
@@ -221,7 +232,7 @@ static void gain(int gain_amount, int16_t * sm, int frames)
 }
 
 /* Panning effect. Turns stereo into mono in a specific degree */
-static void pan(int pan_amount, int16_t * sm, int frames)
+static void pan(int pan_amount, int16_t *sm, int frames)
 {
 	int i, l, r, m;
 	for (i = 0; i < frames; i += 1) {
@@ -263,7 +274,7 @@ static float headphones_lpf(float in, float *state)
 }
 
 /* A real implementation would simply perform FIR with recorded HRTF data. */
-static void headphones(int16_t * sm, int frames, struct uade_effect_state *es)
+static void headphones(int16_t *sm, int frames, struct uade_effect_state *es)
 {
 	int i;
 	float ld, rd;
@@ -287,7 +298,8 @@ static void headphones(int16_t * sm, int frames, struct uade_effect_state *es)
 	}
 }
 
-static float headphone2_allpass_delay(float in, float *state, struct uade_effect_state *es)
+static float headphone2_allpass_delay(float in, float *state,
+				      struct uade_effect_state *es)
 {
 	int i;
 	float tmp, output;

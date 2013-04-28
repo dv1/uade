@@ -24,7 +24,7 @@ libuade.a:	$(COMMONMODULES)
 install:	libuade.$(SHAREDSUFFIX)
 	mkdir -p "$(INCLUDEDIR)"/uade "$(LIBDIR)" "$(PKGCONFIGDIR)"
 	install -m 644 $< "$(LIBDIR)"/
-	install -m 644 ../include/uade/*.h "$(INCLUDEDIR)"/uade/
+	install -m 644 ../include/uade/options.h ../include/uade/uade.h "$(INCLUDEDIR)"/uade/
 	install -m 644 ../../../libuade.pc "$(PKGCONFIGDIR)"/
 
 clean:	

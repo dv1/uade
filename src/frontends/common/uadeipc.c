@@ -7,6 +7,7 @@
  * want in your projects.
  */
 
+#include <uade/uade.h>
 #include <uade/uadeipc.h>
 #include <uade/ossupport.h>
 #include <uade/sysincludes.h>
@@ -75,12 +76,18 @@ void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
 
 static ssize_t get_more(size_t bytes, struct uade_ipc *ipc)
 {
-	if (ipc->inputbytes < bytes) {
-		ssize_t s = uade_ipc_read(ipc->input, &ipc->inputbuffer[ipc->inputbytes], bytes - ipc->inputbytes);
-		if (s <= 0)
-			return -1;
-		ipc->inputbytes += s;
+	ssize_t s;
+	if (ipc->inputbytes >= bytes)
+		return 0;
+	if (bytes > sizeof ipc->inputbuffer) {
+		fprintf(stderr, "ipc: Internal error: bytes > inputbuffer\n");
+		return -1;
 	}
+	s = uade_ipc_read(ipc->input, &ipc->inputbuffer[ipc->inputbytes],
+			  bytes - ipc->inputbytes);
+	if (s <= 0)
+		return -1;
+	ipc->inputbytes += s;
 	return 0;
 }
 
@@ -202,8 +209,6 @@ err:
 int uade_receive_message(struct uade_msg *um, size_t maxbytes,
 			 struct uade_ipc *ipc)
 {
-	size_t fullsize;
-
 	if (ipc->state == UADE_INITIAL_STATE) {
 		ipc->state = UADE_R_STATE;
 	} else if (ipc->state == UADE_S_STATE) {
@@ -224,11 +229,6 @@ int uade_receive_message(struct uade_msg *um, size_t maxbytes,
 	if (!valid_message(um))
 		return -1;
 
-	fullsize = um->size + sizeof(*um);
-	if (fullsize > maxbytes) {
-		fprintf(stderr, "too big a command: %zu\n", fullsize);
-		return -1;
-	}
 	if (ipc->inputbytes < um->size) {
 		if (get_more(um->size, ipc))
 			return -1;
@@ -357,8 +357,12 @@ int uade_send_message(struct uade_msg *um, struct uade_ipc *ipc)
 		ipc->state = UADE_R_STATE;
 	um->msgtype = htonl(um->msgtype);
 	um->size = htonl(um->size);
-	if (uade_ipc_write(ipc->output, um, sizeof(*um) + size) < 0)
+	if (uade_ipc_write(ipc->output, um, sizeof(*um) + size) < 0) {
+		fprintf(stderr, "uade_ipc_write() failed\n");
 		return -1;
+	}
+	um->msgtype = -1; /* POISON */
+	um->size = -1; /* POISON */
 	return 0;
 }
 
@@ -404,16 +408,40 @@ int uade_send_u32(enum uade_msgtype com, uint32_t u, struct uade_ipc *ipc)
 	return uade_send_message(um, ipc);
 }
 
+static size_t prepare_message(void *space, size_t maxsize,
+			      enum uade_msgtype com, size_t payloadsize)
+{
+	struct uade_msg *um = space;
+	size_t size = sizeof(*um) + payloadsize;
+	if (maxsize < size) {
+		fprintf(stderr, "ipc: Not enough space to prepare a msg\n");
+		return 0;
+	}
+	um->msgtype = com;
+	um->size = payloadsize;
+	return size;
+}
+
+size_t uade_ipc_prepare_two_u32s(void *space, size_t maxsize,
+				 enum uade_msgtype com,
+				 uint32_t u1, uint32_t u2)
+{
+	struct uade_msg *um = (struct uade_msg *) space;
+	size_t size = prepare_message(um, maxsize, com, 8);
+	if (!size)
+		return 0;
+	write_be_u32(um->data, u1);
+	write_be_u32(um->data + 4, u2);
+	return size;
+}
+
 int uade_send_two_u32s(enum uade_msgtype com, uint32_t u1, uint32_t u2,
 		       struct uade_ipc *ipc)
 {
 	uint8_t space[UADE_MAX_MESSAGE_SIZE];
-	struct uade_msg *um = (struct uade_msg *) space;
-	um->msgtype = com;
-	um->size = 8;
-	write_be_u32(um->data, u1);
-	write_be_u32(um->data + 4, u2);
-	return uade_send_message(um, ipc);
+	if (!uade_ipc_prepare_two_u32s(space, sizeof space, com, u1, u2))
+		return -1;
+	return uade_send_message((struct uade_msg *) space, ipc);
 }
 
 void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, const char *output)
@@ -431,12 +459,13 @@ static int valid_message(struct uade_msg *um)
 {
 	size_t len;
 	if (um->msgtype <= UADE_MSG_FIRST || um->msgtype >= UADE_MSG_LAST) {
-		fprintf(stderr, "unknown command: %u\n", (unsigned int) um->msgtype);
+		fprintf(stderr, "Unknown command: %u\n",
+			(unsigned int) um->msgtype);
 		return 0;
 	}
 	len = sizeof(*um) + um->size;
-	if (len > UADE_MAX_MESSAGE_SIZE) {
-		fprintf(stderr, "too long a message: %zu\n", len);
+	if (um->size > UADE_MAX_MESSAGE_SIZE || len > UADE_MAX_MESSAGE_SIZE) {
+		fprintf(stderr, "Too long a message: payload %u\n", um->size);
 		return 0;
 	}
 	return 1;

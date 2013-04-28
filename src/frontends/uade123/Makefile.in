@@ -31,6 +31,6 @@ uninstall:
 audio.o:	audio.c audio.h
 chrarray.o:	chrarray.c chrarray.h
 playlist.o:	playlist.c playlist.h uade123.h
-playloop.o:	playloop.c playloop.h uade123.h ../include/uade/uadecontrol.h ../include/uade/songinfo.h $(PLAYERHEADERS)
+playloop.o:	playloop.c playloop.h uade123.h ../include/uade/uadecontrol.h $(PLAYERHEADERS)
 terminal.o:	terminal.c terminal.h
 uade123.o:	uade123.c uade123.h ../include/uade/amigafilter.h ../include/uade/amifilemagic.h ../include/uade/uadecontrol.h $(PLAYERHEADERS)

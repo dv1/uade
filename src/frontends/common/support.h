@@ -2,8 +2,13 @@
 #define _UADE_SUPPORT_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define UADE_LINESIZE 1024
+
+#define free_and_null(p) do { free(p); (p) = NULL; } while (0)
+#define free_and_poison(p) do { free(p); (p) = (void *) -1; } while (0)
+#define fclose_and_null(p) do { fclose(p); (p) = NULL; } while (0)
 
 char *uade_xbasename(const char *path);
 int uade_get_two_ws_separated_fields(char **key, char **value, char *s);

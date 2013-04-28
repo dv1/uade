@@ -3,7 +3,7 @@ COMMONMODULES = unixatomic.o uadeipc.o amifilemagic.o \
 	uadecontrol.o uadeconf.o uadestate.o uadeutils.o md5.o \
 	ossupport.o rmc.o songdb.o songinfo.o vparray.o support.o fifo.o
 
-PLAYERHEADERS = ../include/uade/eagleplayer.h ../include/uade/uadeconf.h ../include/uade/uadeconfstructure.h ../include/uade/uadestate.h ../common/support.h ../include/uade/uadeoptions.h ../include/uade/uadeutils.h ../include/uade/unixatomic.h ../include/uade/ossupport.h ../include/uade/unixsupport.h ../include/uade/uadeipc.h
+PLAYERHEADERS = ../include/uade/eagleplayer.h ../include/uade/uadeconf.h ../include/uade/uadeconfstructure.h ../include/uade/uadestate.h ../common/support.h ../include/uade/options.h ../include/uade/uadeutils.h ../include/uade/unixatomic.h ../include/uade/ossupport.h ../include/uade/unixsupport.h ../include/uade/uadeipc.h
 
 amifilemagic.o:	../common/amifilemagic.c ../include/uade/amifilemagic.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
@@ -26,7 +26,7 @@ rmc.o:	../common/rmc.c ../include/uade/rmc.h
 songdb.o:	../common/songdb.c ../include/uade/songdb.h ../common/md5.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
-songinfo.o:	../common/songinfo.c ../include/uade/songinfo.h ../include/uade/amifilemagic.h $(PLAYERHEADERS)
+songinfo.o:	../common/songinfo.c ../include/uade/amifilemagic.h $(PLAYERHEADERS)
 	$(CC) $(CFLAGS) -c $<
 
 uadeconf.o:	../common/uadeconf.c $(PLAYERHEADERS)

@@ -7,8 +7,6 @@
 #include <uade/songdb.h>
 #include <uade/uadeutils.h>
 
-#include <bencodetools/bencode.h>
-
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -45,20 +43,13 @@ struct uade_event_songend {
 	char reason[256];
 };
 
-struct uade_event_subsongs {
-	int cur; /* current subsong */
-	int min;
-	int def; /* default subsong */
-	int max;
-};
-
 struct uade_event {
 	enum uade_event_type type;
 	union {
 		struct uade_event_data data;
 		char msg[1024];
 		struct uade_event_songend songend;
-		struct uade_event_subsongs subsongs;
+		struct uade_subsong_info subsongs;
 	};
 };
 
@@ -72,31 +63,6 @@ struct uade_detection_info {
 	struct eagleplayer *ep;
 };
 
-struct uade_song_info {
-	struct uade_event_subsongs subsongs;
-	char modulefname[PATH_MAX];
-	size_t modulefsize;
-	char modulemd5[33];         /* hexadecimal string of song content */
-	char playerfname[PATH_MAX];
-	int playtime;         /* In milliseconds. -1 if unknown. */
-	char formatname[256];
-	char modulename[256];
-	char playername[256];
-
-	int64_t subsongbytes;
-	int64_t songbytes;
-	int bytespersecond;
-
-	/*
-	 * Should we record playing time? For example, we don't record the play
-	 * time if playback was ended prematurely or subsong seeking was done.
-	 */
-	int recordsongtime;
-	int recordsubsongtime;
-
-	struct uade_detection_info detectioninfo;
-};
-
 enum uade_state_symbol {
 	UADE_STATE_INVALID = 0, /* Must be 0 */
 	UADE_STATE_INITIALIZED,
@@ -106,14 +72,11 @@ enum uade_state_symbol {
 	UADE_STATE_ERROR,
 };
 
-enum uade_seek_mode {
-	UADE_SEEK_NOT_SEEKING = 0, /* Must be 0 */
-	UADE_SEEK_SONG_RELATIVE,
-	UADE_SEEK_SUBSONG_RELATIVE,
-	UADE_SEEK_POSITION_RELATIVE,
-};
-
 struct uade_song_state {
+	/* info member exported through the external API */
+	struct uade_song_info info;
+
+	/* Internal members */
 	enum uade_state_symbol state;
 
 	enum uade_seek_mode seekmodetrigger; /* Used to go to seekmode */
@@ -130,20 +93,34 @@ struct uade_song_state {
 
 	struct uade_event endevent;
 
-	struct uade_song_info info;
-
 	int64_t silencecount;
 
 	struct uade_ep_options ep_options;
 	int flags;
 	struct uade_attribute *songattributes;
+
+	/*
+	 * Should we record playing time? For example, we don't record the play
+	 * time if playback was ended prematurely or subsong seeking was done.
+	 */
+	int recordsongtime;
+	int recordsubsongtime;
+
+	struct uade_detection_info detectioninfo;
 };
 
 struct fifo;
+struct bencode;
 
 struct uade_state {
 	/* Per song members */
+
+	/*
+	 * config is the effective config that forces options for the song
+	 * that is played. This config can change between songs.
+	 */
 	struct uade_config config;
+
 	struct uade_effect_state effectstate;
 	struct uade_song_state song;
 	struct bencode *rmc;
@@ -167,7 +144,9 @@ struct uade_state {
 	struct uade_file *(*amigaloader)(const char *name, const char *playerdir, void *context, struct uade_state *state);
 	void *amigaloadercontext;
 
-	struct fifo *readstash; /* Used only with uade_read() */
+	struct fifo *readstash; /* Used with uade_read() */
+	struct fifo *notifications; /* Used with uade_read_notifications() */
+	struct fifo *write_queue;
 };
 
 #endif

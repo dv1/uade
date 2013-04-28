@@ -8,7 +8,7 @@
 
 #include <uade/uadeipc.h>
 
-#define uade_debug(state, fmt, args...) do { if ((state) == NULL || (state)->config.verbose) { fprintf(stderr, fmt, ## args); } } while (0)
+#define uade_debug(state, fmt, args...) do { if ((state) == NULL || uade_is_verbose(state)) { fprintf(stderr, fmt, ## args); } } while (0)
 #define uade_die(fmt, args...) do { fprintf(stderr, "uade: " fmt, ## args); exit(1); } while(0)
 #define uade_die_error(fmt, args...) do { fprintf(stderr, "uade: " fmt ": %s\n", ## args, strerror(errno)); exit(1); } while(0)
 #define uade_error(fmt, args...) do { \
@@ -29,7 +29,5 @@ int uade_ipc_get_fd(void *f);
 
 void *uade_ipc_set_input(const char *input);
 void *uade_ipc_set_output(const char *output);
-
-char *uade_windows_to_cygwin_path(const char *path);
 
 #endif

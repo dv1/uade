@@ -22,6 +22,15 @@ struct fifo *fifo_create(void)
 	return fifo;
 }
 
+int fifo_erase_tail(struct fifo *fifo, size_t bytes)
+{
+	if (fifo_len(fifo) < bytes)
+		return -1;
+	fifo->upper -= bytes;
+	assert(fifo->lower <= fifo->upper);
+	return 0;
+}
+
 void fifo_free(struct fifo *fifo)
 {
 	if (fifo == NULL)
@@ -56,10 +65,12 @@ static void halve_fifo(struct fifo *fifo)
 	fifo->capacity = newcapacity;
 }
 
-size_t fifo_read(void *data, size_t maxbytes, struct fifo *fifo)
+size_t fifo_read(void *data, size_t bytes, struct fifo *fifo)
 {
-	size_t bytes = maxbytes;
 	size_t len = fifo_len(fifo);
+	if (!len)
+		return 0;
+
 	if (bytes > len)
 		bytes = len;
 
