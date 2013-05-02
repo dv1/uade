@@ -52,7 +52,7 @@ uadefs:	staticlibuade
 uadefsinstall:	uadefs
 	$(MAKE) -C src/frontends/uadefs install
 
-uadesimple:	
+uadesimple:	staticlibuade
 	$(MAKE) -C src/frontends/uadesimple
 
 src/frontends/include/uade/options.h:	

@@ -1,14 +1,13 @@
 CC = {CC}
 CFLAGS = -Wall -O2 -I../include -I{INCLUDEDIR} {DEBUGFLAGS} {ARCHFLAGS}
-CLIBS = {AOLIBS} {ARCHLIBS} -lm -luade
-LDFLAGS = -L{LIBDIR} -Wl,-rpath,{LIBDIR}
+CLIBS = {AOLIBS} {ARCHLIBS} -lm -lbencodetools
 
 all:	uadesimple
 
-MODULES = uadesimple.o audio.o
+MODULES = uadesimple.o audio.o ../common/libuade.a
 
 uadesimple:	$(MODULES)
-	$(CC) $(LDFLAGS) -o $@ $(MODULES) $(CLIBS)
+	$(CC) -o $@ $(MODULES) $(CLIBS)
 
 clean:	
 	rm -f uadesimple *.o
