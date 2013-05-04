@@ -1290,11 +1290,14 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 	uade_debug(state, "Player candidate: %s\n", ep->playername);
 
 	if (state->config.player_file.name[0]) {
+		/* Eagleplayer forced */
 		player = uade_file_load(state->config.player_file.name);
 	} else if (strcmp(ep->playername, "custom") == 0) {
+		/* The song is a custom module, an eagleplayer by itself */
 		player = module;
 		module = NULL;
 	} else {
+		/* Player selected automatically, non-custom song */
 		char playername[PATH_MAX];
 		snprintf(playername, sizeof playername, "%s/players/%s",
 			 state->config.basedir.name, ep->playername);

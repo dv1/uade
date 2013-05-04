@@ -65,7 +65,12 @@ struct uade_song_info {
 	char playerfname[PATH_MAX];
 	char formatname[256]; /* insert example */
 	char modulename[256]; /* insert example */
-	char playername[256]; /* insert example */
+
+	/*
+	 * By convention, this is set to "custom" if the song is a custom.
+	 * libuade doesn't like if you set "custom" 
+	 */
+	char playername[256];
 };
 
 enum uade_song_info_type {
