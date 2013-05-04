@@ -255,11 +255,13 @@ int uade_rmc_record_file(struct bencode *rmc, const char *name,
 	struct bencode *blob;
 
 	if (name[0] == '.' || name[0] == '/') {
-		fprintf(stderr, "Collected file name may not begin with '.' or '/': %s\n", name);
+		uade_warning("Collected file name may not begin with "
+			     "'.' or '/': %s\n", name);
 		return -1;
 	}
 	if (strstr(name, "/.") != NULL || strstr(name, "./") != NULL) {
-		fprintf(stderr, "Collected file name may not contain \"./\" or \"/.\": %s\n", name);
+		uade_warning("Collected file name may not contain "
+			     "\"./\" or \"/.\": %s\n", name);
 		return -1;
 	}
 
@@ -277,7 +279,9 @@ int uade_rmc_record_file(struct bencode *rmc, const char *name,
 
 		dir = scan_dict(files, thispart);
 		if (dir != NULL && !ben_is_dict(dir)) {
-			fprintf(stderr, "uade: rmc: %s is not a directory as would be expected. Refusing to take this file.\n", thispart);
+			uade_warning("rmc: %s is not a directory as would be "
+				     "expected. Refusing to take this file.\n",
+				     thispart);
 			return -1;
 		}
 		if (dir != NULL) {
@@ -290,7 +294,8 @@ int uade_rmc_record_file(struct bencode *rmc, const char *name,
 		 */
 		dir = ben_dict();
 		if (dir == NULL || ben_dict_set_by_str(files, thispart, dir)) {
-			fprintf(stderr, "No memory for directory entry: %s\n", thispart);
+			uade_warning("No memory for directory entry: %s\n",
+				     thispart);
 			ben_free(dir);
 			return -1;
 		}
