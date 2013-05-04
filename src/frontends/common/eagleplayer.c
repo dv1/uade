@@ -136,9 +136,9 @@ static void try_extension(struct uade_detection_info *detectioninfo,
 
 static void custom_check(struct uade_detection_info *detectioninfo)
 {
-	if (detectioninfo->ep == NULL)
-		return;
-	detectioninfo->custom = (strcmp(detectioninfo->ep->playername, "custom") == 0);
+	if (detectioninfo->ep != NULL)
+		detectioninfo->custom = (strcmp(detectioninfo->ep->playername,
+						"custom") == 0);
 }
 
 int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
@@ -166,13 +166,15 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 	memcpy(buf, ibuf, bufsize);
 	memset(&buf[bufsize], 0, sizeof buf - bufsize);
 
-	uade_filemagic(buf, bufsize, detectioninfo->ext, fsize, fname, state->config.verbose);
+	uade_filemagic(buf, bufsize, detectioninfo->ext, fsize, fname,
+		       state->config.verbose);
 
 	if (strcmp(detectioninfo->ext, "reject") == 0)
 		return -1;
 
 	if (detectioninfo->ext[0] != 0 && state->config.verbose)
-		fprintf(stderr, "Content recognized: %s (%s)\n", detectioninfo->ext, fname);
+		fprintf(stderr, "Content recognized: %s (%s)\n",
+			detectioninfo->ext, fname);
 
 	if (strcmp(detectioninfo->ext, "packed") == 0)
 		return -1;
@@ -192,7 +194,8 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 			detectioninfo->content = 1;
 			return 0;
 		}
-		uade_warning("%s not in eagleplayer.conf\n", detectioninfo->ext);
+		uade_warning("%s not in eagleplayer.conf\n",
+			     detectioninfo->ext);
 	}
 	detectioninfo->ext[0] = 0;
 

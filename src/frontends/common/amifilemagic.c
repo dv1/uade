@@ -19,21 +19,13 @@
  buffer range is a core dump :)
 */
 
+#include <uade/uadeutils.h>
+#include <uade/amifilemagic.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-
-#include <uade/uadeutils.h>
-#include <uade/amifilemagic.h>
-
-#define FILEMAGIC_DEBUG 0
-
-#if FILEMAGIC_DEBUG
-#define amifiledebug(fmt, args...) do { fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); } while(0)
-#else
-#define amifiledebug(fmt, args...) 
-#endif
 
 #define WAV_HEADER_LEN 44
 
@@ -161,8 +153,6 @@ static int tronictest(unsigned char *buf, size_t bufsize)
 
   if (read_be_u32(&buf[a + 4]) != 0x5800b0)
     return 0;
-
-  amifiledebug("tronic recognized\n");
 
   return 1;
 }
@@ -304,7 +294,8 @@ static size_t modlentest(unsigned char *buf, size_t bufsize, size_t filesize,
 }
 
 
-static void modparsing(unsigned char *buf, size_t bufsize, size_t header, int max_pattern, int pfx[], int pfxarg[])
+static void modparsing(unsigned char *buf, size_t bufsize, size_t header,
+		       int max_pattern, int pfx[], int pfxarg[])
 {
   int offset;
   int i, j, fx;
