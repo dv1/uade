@@ -35,7 +35,7 @@ struct uade_state;
 
 struct uade_content *uade_add_playtime(struct uade_state *state, const char *md5, uint32_t playtime);
 void uade_free_song_db(struct uade_state *state);
-int uade_lookup_song(const struct uade_file *module, struct uade_state *state);
+void uade_lookup_song(const struct uade_file *module, struct uade_state *state);
 int uade_read_content_db(const char *filename, struct uade_state *state);
 int uade_read_song_conf(const char *filename, struct uade_state *state);
 void uade_save_content_db(const char *filename, struct uade_state *state);

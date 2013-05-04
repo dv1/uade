@@ -1282,8 +1282,7 @@ static int uade_play_internal(struct uade_file *module, int subsong,
 
 	prepare_configs(state);
 
-	if (uade_lookup_song(module, state))
-		goto recoverableerror;
+	uade_lookup_song(module, state);
 
 	ep = get_eagleplayer(module, state);
 	if (ep == NULL)

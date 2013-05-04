@@ -175,7 +175,7 @@ static void get_song_flags_and_attributes_from_songstore(struct uade_state *stat
 	state->song.songattributes = es->attributes;
 }
 
-int uade_lookup_song(const struct uade_file *module, struct uade_state *state)
+void uade_lookup_song(const struct uade_file *module, struct uade_state *state)
 {
 	struct uade_content *content;
 	struct uade_song_state *song = &state->song;
@@ -196,8 +196,6 @@ int uade_lookup_song(const struct uade_file *module, struct uade_state *state)
 		if (content != NULL && content->playtime > 0)
 			song->info.duration = content->playtime / 1000.0;
 	}
-
-	return 0;
 }
 
 static int uade_open_and_lock(const char *filename, int create)
