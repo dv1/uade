@@ -58,10 +58,13 @@ struct uade_subsong_info {
 struct eagleplayer;
 
 struct uade_detection_info {
-	int custom;
+	int custom;                 /* 1 if the file is a custom, 0 otherwise */
+
+	/* 1 if detected by data content, not name. 0 otherwise. */
 	int content;
-	char ext[UADE_MAX_EXT_LEN];
-	struct eagleplayer *ep;
+
+	char ext[UADE_MAX_EXT_LEN]; /* File extension from eagleplayer.conf */
+	struct eagleplayer *ep;     /* Don't touch */
 };
 
 struct uade_song_info {
