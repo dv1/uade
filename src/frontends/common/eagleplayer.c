@@ -92,14 +92,36 @@ static struct eagleplayerstore *try_playerstore_path(const char *path)
 
 static int load_playerstore(struct uade_state *state)
 {
+	const char *basedir = state->config.basedir.name;
 	if (state->playerstore == NULL)
-		state->playerstore = try_playerstore_path(state->config.basedir.name);
+		state->playerstore = try_playerstore_path(basedir);
 
 	if (state->playerstore == NULL)
 		uade_warning("Tried to load eagleplayer.conf from %s, "
-			     "but failed\n", state->config.basedir.name);
+			     "but failed\n", basedir);
 
 	return state->playerstore != NULL;
+}
+
+void uade_free_playerstore(struct eagleplayerstore *ps)
+{
+	size_t i;
+	if (ps == NULL)
+		return;
+	for (i = 0; i < ps->nplayers; i++) {
+		struct eagleplayer *p = &ps->players[i];
+		size_t j;
+		free_and_null(p->playername);
+		for (j = 0; j < p->nextensions; j++) {
+			if (p->extensions[j] != NULL)
+				free_and_null(p->extensions[j]);
+		}
+		free_and_null(p->extensions);
+	}
+	free_and_null(ps->players);
+	free_and_null(ps->map);
+	memset(ps, 0, sizeof ps[0]);
+	free_and_null(ps);
 }
 
 static void try_extension(struct uade_detection_info *detectioninfo,
@@ -163,7 +185,8 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 	 * that extension
 	 */
 	if (detectioninfo->ext[0]) {
-		detectioninfo->ep = get_eagleplayer(detectioninfo->ext, state->playerstore);
+		detectioninfo->ep = get_eagleplayer(detectioninfo->ext,
+						    state->playerstore);
 		if (detectioninfo->ep != NULL) {
 			custom_check(detectioninfo);
 			detectioninfo->content = 1;
@@ -497,19 +520,7 @@ static struct eagleplayerstore *read_eagleplayer_conf(const char *filename)
 	return ps;
 
  error:
-	if (ps != NULL) {
-		for (i = 0; i < ps->nplayers; i++) {
-			p = &ps->players[i];
-			free_and_null(p->playername);
-			for (j = 0; j < p->nextensions; j++) {
-				if (p->extensions[j] != NULL)
-					free_and_null(p->extensions[j]);
-			}
-			free_and_null(p->extensions);
-		}
-		free_and_null(ps->players);
-		free_and_null(ps);
-	}
+	uade_free_playerstore(ps);
 	if (f != NULL)
 		fclose_and_null(f);
 	return NULL;

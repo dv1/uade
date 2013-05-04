@@ -342,7 +342,8 @@ int uade_load_initial_song_conf(struct uade_state *state)
 
 	/* Used for testing */
 	if (uc != NULL && uc->basedir_set) {
-		snprintf(tmpname, sizeof(tmpname), "%s/song.conf", uc->basedir.name);
+		snprintf(tmpname, sizeof tmpname, "%s/song.conf",
+			 uc->basedir.name);
 		loaded = uade_read_song_conf(tmpname, state);
 	}
 
@@ -358,7 +359,7 @@ int uade_load_initial_song_conf(struct uade_state *state)
 		loaded = uade_read_song_conf(tmpname, state);
 	}
 
-	/* No? Try install path */
+	/* No? Try install path.. */
 	if (loaded == 0) {
 		snprintf(tmpname, sizeof(tmpname), "%s/song.conf", state->permconfig.basedir.name);
 		loaded = uade_read_song_conf(tmpname, state);

@@ -65,9 +65,10 @@ static struct uade_content *create_content_checksum(struct uade_state *state,
 
 	if (db->nccused == db->nccalloc) {
 		db->nccalloc = MAX(db->nccalloc * 2, 16);
-		n = realloc(db->contentchecksums, db->nccalloc * sizeof(struct uade_content));
+		n = realloc(db->contentchecksums, db->nccalloc * sizeof(n[0]));
 		if (n == NULL) {
-			fprintf(stderr, "uade: No memory for new content checksums.\n");
+			fprintf(stderr, "uade: No memory for new content "
+				"checksums.\n");
 			return NULL;
 		}
 		db->contentchecksums = n;
@@ -121,7 +122,8 @@ static void sort_content_checksums(struct uade_state *state)
 	if (db->contentchecksums == NULL)
 		return;
 
-	qsort(db->contentchecksums, db->nccused, sizeof db->contentchecksums[0], contentcompare);
+	qsort(db->contentchecksums, db->nccused,
+	      sizeof db->contentchecksums[0], contentcompare);
 }
 
 /* replace must be zero if content db is unsorted */
@@ -130,7 +132,7 @@ struct uade_content *uade_add_playtime(struct uade_state *state,
 {
 	struct uade_content *n;
 
-	/* If content db mhasn't been read into memory already, it is not used */
+	/* If content db hasn't been read into memory already, it is not used */
 	if (state->songdb.contentchecksums == NULL)
 		return NULL;
 
@@ -164,7 +166,8 @@ static void get_song_flags_and_attributes_from_songstore(struct uade_state *stat
 		return;
 	/* Lookup md5 from the songdb */
 	strlcpy(key.md5, state->song.info.modulemd5, sizeof key.md5);
-	es = bsearch(&key, db->songstore, db->nsongs, sizeof db->songstore[0], escompare);
+	es = bsearch(&key, db->songstore, db->nsongs, sizeof db->songstore[0],
+		     escompare);
 	if (es == NULL)
 		return;
 	/* Found -> copy flags and attributes from database */
@@ -234,7 +237,8 @@ static struct uade_content *store_playtime(const char *md5, long playtime,
 
 		/* We use "oldnccused" here as the length, while new entries
 		   are added in unsorted manner to the end of the array */
-		n = bsearch(&key, db->contentchecksums, oldnccused, sizeof db->contentchecksums[0], contentcompare);
+		n = bsearch(&key, db->contentchecksums, oldnccused,
+			    sizeof db->contentchecksums[0], contentcompare);
 		if (n == NULL)
 			/* new songs on disk db -> merge -> need saving */
 			*newccmodified = 1;
@@ -258,7 +262,12 @@ static struct uade_content *store_playtime(const char *md5, long playtime,
 	return n;
 }
 
-
+void uade_free_song_db(struct uade_state *state)
+{
+	free(state->songdb.contentchecksums);
+	free(state->songdb.songstore);
+	memset(&state->songdb, 0, sizeof state->songdb);
+}
 
 int uade_read_content_db(const char *filename, struct uade_state *state)
 {

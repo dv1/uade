@@ -55,7 +55,8 @@ static void load_content_db(struct uade_state *state)
 		return;
 
 	snprintf(name, sizeof name, "%s/.uade/contentdb", home);
-	snprintf(state->songdb.ccfilename, sizeof(state->songdb.ccfilename), "%s", name);
+	snprintf(state->songdb.ccfilename, sizeof(state->songdb.ccfilename),
+		 "%s", name);
 
 	if (stat(name, &st) == 0) {
 		if (uade_read_content_db(name, state))
@@ -103,6 +104,10 @@ void uade_cleanup_state(struct uade_state *state)
 	uade_stop(state);
 
 	save_content_db(state);
+
+	uade_free_song_db(state);
+
+	uade_free_playerstore(state->playerstore);
 
 	uade_arch_kill_and_wait_uadecore(&state->ipc, &state->pid);
 

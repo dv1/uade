@@ -87,6 +87,8 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 			     const char *fname, size_t fsize,
 			     struct uade_state *state);
 
+void uade_free_playerstore(struct eagleplayerstore *state);
+
 int uade_set_config_options_from_flags(struct uade_state *state, int flags);
 
 int uade_parse_attribute_from_string(struct uade_attribute **attributelist,
