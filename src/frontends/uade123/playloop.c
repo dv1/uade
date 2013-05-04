@@ -214,7 +214,6 @@ static void handle_notification(struct uade_notification *n)
 	default:
 		tprintf("\nUnknown notification type from libuade\n");
 	}
-	uade_cleanup_notification(n);
 }
 
 int uade_input(int *plistdir, struct uade_state *state)
@@ -227,8 +226,10 @@ int uade_input(int *plistdir, struct uade_state *state)
 
 	nbytes = uade_read(buf, sizeof buf, state);
 
-	while (uade_read_notification(&n, state))
+	while (uade_read_notification(&n, state)) {
 		handle_notification(&n);
+		uade_cleanup_notification(&n);
+	}
 
 	if (nbytes < 0) {
 		fprintf(stderr, "Playback error.\n");

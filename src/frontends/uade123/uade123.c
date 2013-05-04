@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	int have_modules = 0;
 	int ret;
 	char *endptr;
-	struct uade_config *uc_cmdline;
+	struct uade_config *uc_cmdline = NULL;
 	char songoptions[256] = "";
 	int have_song_options = 0;
 	int plistdir;
@@ -219,16 +219,22 @@ int main(int argc, char *argv[])
 		case '@':
 			listfile = fopen(optarg, "r");
 			if (listfile == NULL)
-				uade_die("Can not open list file: %s\n", optarg);
+				uade_die("Can not open list file: %s\n",
+					 optarg);
 			break;
 
 		case '1':
-			uade_config_set_option(uc_cmdline, UC_ONE_SUBSONG, NULL);
+			uade_config_set_option(uc_cmdline, UC_ONE_SUBSONG,
+					       NULL);
 			break;
 
 		case 'c':
-			strlcpy(uade_output_file_name, "/dev/stdout", sizeof uade_output_file_name);
-			/* Output sample data to stdout so do not print anything on stdout */
+			strlcpy(uade_output_file_name, "/dev/stdout",
+				sizeof uade_output_file_name);
+			/*
+			 * Output sample data to stdout so do not print
+			 * anything on stdout
+			 */
 			uade_terminal_file = stderr;
 			break;
 
@@ -260,7 +266,8 @@ int main(int argc, char *argv[])
 			exit(0);
 
 		case 'i':
-			uade_config_set_option(uc_cmdline, UC_IGNORE_PLAYER_CHECK, NULL);
+			uade_config_set_option(uc_cmdline,
+					       UC_IGNORE_PLAYER_CHECK, NULL);
 			break;
       
 		case 'j':
@@ -272,7 +279,8 @@ int main(int argc, char *argv[])
 		case 'k':
 			actionkeys = strtol(optarg, &endptr, 0);
 			if (*endptr != 0 || actionkeys < 0 || actionkeys > 1)
-				uade_die("Invalid value: expect 0 or 1. Got %s\n", optarg);
+				uade_die("Invalid value: expect 0 or 1. "
+					 "Got %s\n", optarg);
 			break;
 
 		case 'n':
@@ -280,11 +288,13 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'p':
-			uade_config_set_option(uc_cmdline, UC_PANNING_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_PANNING_VALUE,
+					       optarg);
 			break;
 
 		case 'P':
-			uade_config_set_option(uc_cmdline, UC_PLAYER_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_PLAYER_FILE,
+					       optarg);
 			have_modules = 1;
 			break;
 			
@@ -299,15 +309,18 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'S':
-			uade_config_set_option(uc_cmdline, UC_SCORE_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_SCORE_FILE,
+					       optarg);
 			break;
 
 		case 't':
-			uade_config_set_option(uc_cmdline, UC_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline, UC_TIMEOUT_VALUE,
+					       optarg);
 			break;
 
 		case 'u':
-			uade_config_set_option(uc_cmdline, UC_UADECORE_FILE, optarg);
+			uade_config_set_option(uc_cmdline, UC_UADECORE_FILE,
+					       optarg);
 			break;
 
 		case 'v':
@@ -315,15 +328,20 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'w':
-			uade_config_set_option(uc_cmdline, UC_SUBSONG_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline,
+					       UC_SUBSONG_TIMEOUT_VALUE,
+					       optarg);
 			break;
 
 		case 'x':
-			uade_config_set_option(uc_cmdline, UC_EAGLEPLAYER_OPTION, optarg);
+			uade_config_set_option(uc_cmdline,
+					       UC_EAGLEPLAYER_OPTION, optarg);
 			break;
 
 		case 'y':
-			uade_config_set_option(uc_cmdline, UC_SILENCE_TIMEOUT_VALUE, optarg);
+			uade_config_set_option(uc_cmdline,
+					       UC_SILENCE_TIMEOUT_VALUE,
+					       optarg);
 			break;
       
 		case 'z':
@@ -349,7 +367,8 @@ int main(int argc, char *argv[])
 
 		case OPT_SCOPE:
 			uade_no_text_output = 1;
-			uade_config_set_option(uc_cmdline, UC_USE_TEXT_SCOPE, NULL);
+			uade_config_set_option(uc_cmdline, UC_USE_TEXT_SCOPE,
+					       NULL);
 			break;
 
 		case OPT_SET:
@@ -368,21 +387,25 @@ int main(int argc, char *argv[])
 
 		case OPT_AO_OPTION:
 			if (aooptions == NULL)
-				aooptions = calloc(MAX_AO_OPTIONS + 1, sizeof(aooptions[0]));
+				aooptions = calloc(MAX_AO_OPTIONS + 1,
+						   sizeof(aooptions[0]));
 			if (aooptions == NULL)
-				uade_die("Can not allocate memory for ao options\n");
+				uade_die("Can not allocate memory for "
+					 "ao options\n");
 			if (naooptions == MAX_AO_OPTIONS)
 				uade_die("Too many ao options\n");
 			aooptions[naooptions] = strdup(optarg);
 			if (aooptions[naooptions] == NULL)
-				uade_die("Can not allocate memory for ao option\n");
+				uade_die("Can not allocate memory for "
+					 "ao option\n");
 			naooptions++;
 			break;
 
 		case OPT_BUFFER_TIME:
 			buffertime = strtol(optarg, &endptr, 0);
 			if (*endptr != 0 || buffertime <= 0)
-				uade_die("Invalid value: expect > 0. Got %s\n", optarg);
+				uade_die("Invalid value: expect > 0. Got %s\n",
+					 optarg);
 			break;
 
 		case UC_FILTER_TYPE:
@@ -472,7 +495,8 @@ int main(int argc, char *argv[])
 		const struct uade_song_info *info;
 		size_t playerfsize = 0;
 
-		if (!playlist_get(modulename, sizeof modulename, &uade_playlist, plistdir))
+		if (!playlist_get(modulename, sizeof modulename, &uade_playlist,
+				  plistdir))
 			break;
 
 		plistdir = UADE_PLAY_NEXT;
@@ -505,8 +529,10 @@ int main(int argc, char *argv[])
 			uade_cleanup_state(state);
 			state = uade_new_state(uc_cmdline);
 			if (state == NULL)
-				uade_die("uade_stop() failed, new state can not created\n");
-			uade_debug(state, "uade_stop() failed. New uade state created.\n");
+				uade_die("uade_stop() failed, new state can "
+					 "not created\n");
+			uade_debug(state, "uade_stop() failed. New uade state "
+				   "created.\n");
 			continue;
 		}
 
@@ -517,10 +543,12 @@ int main(int argc, char *argv[])
 	}
 
 	cleanup(state);
+	free(uc_cmdline);
 	return 0;
   
 cleanup:
 	cleanup(state);
+	free(uc_cmdline);
 	return 1;
 }
 
