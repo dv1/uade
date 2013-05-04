@@ -1199,7 +1199,8 @@ int uade_is_our_file_from_buffer(const char *fname, const void *buf,
 		uade_filesize(&fullsize, fname);
 	}
 
-	uade_analyze_eagleplayer(&detectioninfo, buf, size, fname, fullsize, state);
+	uade_analyze_eagleplayer(&detectioninfo, buf, size, fname, fullsize,
+				 state);
 	return detectioninfo.ep != NULL;
 }
 
@@ -1221,7 +1222,8 @@ struct bencode *uade_get_rmc_from_state(const struct uade_state *state)
 static struct eagleplayer *get_eagleplayer(struct uade_file *module,
 					   struct uade_state *state)
 {
-	struct uade_detection_info *detectioninfo = &state->song.detectioninfo;
+	struct uade_detection_info *detectioninfo =
+		&state->song.info.detectioninfo;
 
 	if (uade_analyze_eagleplayer(detectioninfo, module->data, module->size,
 				     module->name, module->size, state))

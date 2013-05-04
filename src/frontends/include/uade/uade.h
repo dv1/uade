@@ -52,8 +52,21 @@ struct uade_subsong_info {
 	int max; /* maximum subsong number */
 };
 
+/* Maximum number of bytes, including '\0', in file name extension */
+#define UADE_MAX_EXT_LEN 16
+
+struct eagleplayer;
+
+struct uade_detection_info {
+	int custom;
+	int content;
+	char ext[UADE_MAX_EXT_LEN];
+	struct eagleplayer *ep;
+};
+
 struct uade_song_info {
 	struct uade_subsong_info subsongs;
+	struct uade_detection_info detectioninfo;
 	size_t modulebytes;       /* Size of song file in bytes */
 	char modulemd5[33];       /* Hexadecimal string of the md5 sum of the
 				     song file */

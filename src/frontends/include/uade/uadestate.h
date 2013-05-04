@@ -53,16 +53,6 @@ struct uade_event {
 	};
 };
 
-/* Maximum number of bytes, including '\0', in file name extension */
-#define UADE_MAX_EXT_LEN 16
-
-struct uade_detection_info {
-	int custom;
-	int content;
-	char ext[UADE_MAX_EXT_LEN];
-	struct eagleplayer *ep;
-};
-
 enum uade_state_symbol {
 	UADE_STATE_INVALID = 0, /* Must be 0 */
 	UADE_STATE_INITIALIZED,
@@ -105,8 +95,6 @@ struct uade_song_state {
 	 */
 	int recordsongtime;
 	int recordsubsongtime;
-
-	struct uade_detection_info detectioninfo;
 };
 
 struct fifo;

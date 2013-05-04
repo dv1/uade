@@ -756,7 +756,7 @@ int uade_config_toggle_boolean(struct uade_config *uc, enum uade_option opt)
 
 void uade_set_options_from_ep_attributes(struct uade_state *state)
 {
-	struct eagleplayer *ep = state->song.detectioninfo.ep;
+	struct eagleplayer *ep = state->song.info.detectioninfo.ep;
 
 	/* Look at flags and set uade config options accordingly */
 	if (uade_set_config_options_from_flags(state, ep->flags))
