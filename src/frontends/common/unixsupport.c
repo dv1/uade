@@ -90,13 +90,14 @@ static int uade_amiga_scandir(char *real, char *dirname, char *fake, int ml)
 	DIR *dir;
 	struct dirent *direntry;
 	if (!(dir = opendir(dirname))) {
-		fprintf(stderr, "uade: can't open dir (%s) (amiga scandir)\n", dirname);
+		uade_warning("Can't open dir (%s) (amiga scandir)\n", dirname);
 		return 0;
 	}
 	while ((direntry = readdir(dir))) {
 		if (!strcmp(fake, direntry->d_name)) {
 			if (((int) strlcpy(real, direntry->d_name, ml)) >= ml) {
-				fprintf(stderr, "uade: %s does not fit real", direntry->d_name);
+				uade_warning("uade: %s does not fit real",
+					     direntry->d_name);
 				closedir(dir);
 				return 0;
 			}
@@ -134,7 +135,8 @@ char *uade_dirname(char *dst, char *src, size_t maxlen)
 
 
 /* Find file in amiga namespace */
-int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const char *playerdir)
+int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname,
+			 const char *playerdir)
 {
 	char *separator;
 	char *ptr;
@@ -145,9 +147,11 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 	int len;
 	DIR *dir;
 	FILE *file;
+	size_t strip_offset;
 
 	if (strlcpy(copy, aname, sizeof(copy)) >= sizeof(copy)) {
-		fprintf(stderr, "uade: error: amiga tried to open a very long filename\nplease REPORT THIS!\n");
+		uade_warning("error: amiga tried to open a very long "
+			     "filename.\nPlease REPORT THIS!\n");
 		return -1;
 	}
 	ptr = copy;
@@ -160,11 +164,13 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 		} else if (!strcasecmp(dirname, "S")) {
 			snprintf(dirname, sizeof(dirname), "%s/S/", playerdir);
 		} else {
-			fprintf(stderr, "uade: open_amiga_file: unknown amiga volume (%s)\n", aname);
+			uade_warning("open_amiga_file: unknown amiga volume "
+				     "(%s)\n", aname);
 			return -1;
 		}
 		if (!(dir = opendir(dirname))) {
-			fprintf(stderr, "uade: can't open dir (%s) (volume parsing)\n", dirname);
+			uade_warning("Can't open dir (%s) (volume parsing)\n",
+				     dirname);
 			return -1;
 		}
 		closedir(dir);
@@ -191,11 +197,13 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 		if (uade_amiga_scandir(real, dirname, fake, sizeof(real))) {
 			/* found matching entry */
 			if (strlcat(dirname, real, sizeof(dirname)) >= sizeof(dirname)) {
-				fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, real);
+				uade_warning("Too long dir path (%s + %s)\n",
+					     dirname, real);
 				return -1;
 			}
 			if (strlcat(dirname, "/", sizeof(dirname)) >= sizeof(dirname)) {
-				fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, "/");
+				uade_warning("Too long dir path (%s + %s)\n",
+					     dirname, "/");
 				return -1;
 			}
 		} else {
@@ -206,7 +214,7 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 	}
 
 	if (!(dir = opendir(dirname))) {
-		fprintf(stderr, "can't open dir (%s) (after dir scanning)\n", dirname);
+		uade_warning("Can't open dir (%s) after scanning\n", dirname);
 		return -1;
 	}
 	closedir(dir);
@@ -214,7 +222,8 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 	if (uade_amiga_scandir(real, dirname, ptr, sizeof(real))) {
 		/* found matching entry */
 		if (strlcat(dirname, real, sizeof(dirname)) >= sizeof(dirname)) {
-			fprintf(stderr, "uade: too long dir path (%s + %s)\n", dirname, real);
+			uade_warning("Too long dir path (%s + %s)\n",
+				     dirname, real);
 			return -1;
 		}
 	} else {
@@ -224,11 +233,17 @@ int uade_find_amiga_file(char *realname, size_t maxlen, const char *aname, const
 
 	file = fopen(dirname, "rb");
 	if (file == NULL) {
-		fprintf (stderr, "uade: couldn't open file (%s) induced by (%s)\n", dirname, aname);
+		uade_warning("Couldn't open file (%s) induced by (%s)\n",
+			     dirname, aname);
 		return -1;
 	}
 	fclose(file);
-	strlcpy(realname, dirname, maxlen);
+
+	/* Strip leading "./" from the real path name when copying */
+	strip_offset = (strncmp(dirname, "./", 2) == 0) ? 2 : 0;
+
+	strlcpy(realname, dirname + strip_offset, maxlen);
+
 	return 0;
 }
 
