@@ -179,17 +179,23 @@ int uade_lookup_song(const struct uade_file *module, struct uade_state *state)
 {
 	struct uade_content *content;
 	struct uade_song_state *song = &state->song;
+	const struct bencode *rmc = uade_get_rmc_from_state(state);
 
 	/* Compute an md5sum of the song */
-	md5_from_buffer(song->info.modulemd5, sizeof song->info.modulemd5, (const uint8_t *) module->data, module->size);
+	md5_from_buffer(song->info.modulemd5, sizeof song->info.modulemd5,
+			(const uint8_t *) module->data, module->size);
 
 	/* Needs state->song.info.modulemd5 */
 	get_song_flags_and_attributes_from_songstore(state);
 
-	/* Lookup playtime from content database */
-	content = get_content(song->info.modulemd5, state);
-	if (content != NULL && content->playtime > 0)
-		song->info.duration = content->playtime / 1000.0;
+	if (rmc != NULL) {
+		song->info.duration = uade_rmc_get_song_length(rmc);
+	} else {
+		/* Lookup playtime from content database */
+		content = get_content(song->info.modulemd5, state);
+		if (content != NULL && content->playtime > 0)
+			song->info.duration = content->playtime / 1000.0;
+	}
 
 	return 0;
 }
