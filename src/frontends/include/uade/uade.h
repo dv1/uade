@@ -506,7 +506,10 @@ int uade_stop(struct uade_state *state);
  * bencode-tools.
  */
 
-/* Get arbitrary file from the container */
+/*
+ * Get arbitrary file from the container. The returned file must be freed with
+ * uade_file_free().
+ */
 struct uade_file *uade_rmc_get_file(const struct bencode *rmc,
 				    const char *name);
 
@@ -556,8 +559,10 @@ size_t uade_atomic_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
  * char *data, the contents of the file. This can be NULL.
  * size_t size, the size of data
  *
- * data is copied into the 'struct uade_file' so it can be changed or freed
- * immediately after call to uade_file().
+ * data is copied into the 'struct uade_file' so the given data can be changed
+ * or freed immediately after call to uade_file().
+ *
+ * The returned data must be freed with uade_file_free().
  *
  * Returns NULL on error (out of memory).
  */
