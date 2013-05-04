@@ -106,6 +106,8 @@ static int load_playerstore(struct uade_state *state)
 void uade_free_playerstore(struct eagleplayerstore *ps)
 {
 	size_t i;
+	struct uade_attribute *node;
+
 	if (ps == NULL)
 		return;
 	for (i = 0; i < ps->nplayers; i++) {
@@ -116,6 +118,15 @@ void uade_free_playerstore(struct eagleplayerstore *ps)
 			if (p->extensions[j] != NULL)
 				free_and_null(p->extensions[j]);
 		}
+
+		node = p->attributelist;
+		while (node != NULL) {
+			struct uade_attribute *nextnode = node->next;
+			free_and_null(node->s);
+			free(node);
+			node = nextnode;
+		}
+
 		free_and_null(p->extensions);
 	}
 	free_and_null(ps->players);
@@ -235,7 +246,7 @@ int uade_analyze_eagleplayer(struct uade_detection_info *detectioninfo,
 static int store_attribute_into_list(struct uade_attribute **attributelist,
 				     int es_flag, const char *value)
 {
-	struct uade_attribute *a = malloc(sizeof *a);
+	struct uade_attribute *a = malloc(sizeof a[0]);
 	if (a == NULL) {
 		uade_warning("No memory for song attribute.\n");
 		return 0;
