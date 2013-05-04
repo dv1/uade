@@ -250,9 +250,12 @@ enum uade_notification_type {
 };
 
 struct uade_notification_song_end {
-	int happy;
-	int stopnow; /* non-zero iff playing stops now */
-	char *reason;
+	int happy;            /* Non-zero if the song end was happy */
+	/* Non-zero iff playing stops now (the last subsong ended, or error) */
+	int stopnow;
+	int subsong;          /* Subsong number */
+	int64_t subsongbytes; /* Number of bytes in the subsong */
+	char *reason;         /* Textual description of the cause */
 };
 
 struct uade_notification {

@@ -912,7 +912,8 @@ int uade_get_event(struct uade_event *event, struct uade_state *state)
 			ASSERT_RECEIVE_STATE(state);
 
 			if (uade_next_subsong(state)) {
-				set_end_event(event, 0, 1, 1, "No more subsongs left", state);
+				set_end_event(event, 0, 1, 1,
+					      "No more subsongs left", state);
 				return 0;
 			}
 			state->song.state = UADE_STATE_RECEIVE_MSGS;
@@ -987,6 +988,8 @@ static void notify_song_end(struct uade_state *state,
 	struct uade_notification n = {.type = UADE_NOTIFICATION_SONG_END};
 	n.song_end.happy = song_end->happy;
 	n.song_end.stopnow = song_end->stopnow;
+	n.song_end.subsong = state->song.info.subsongs.cur;
+	n.song_end.subsongbytes = state->song.info.subsongbytes;
 	n.song_end.reason = strdup(song_end->reason);
 	if (n.song_end.reason == NULL) {
 		uade_warning("No memory for message notification\n");
