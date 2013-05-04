@@ -977,7 +977,7 @@ static void notify_message(struct uade_state *state, const char *msg)
 }
 
 static void notify_song_end(struct uade_state *state,
-		       const struct uade_event_songend *song_end)
+			    const struct uade_event_songend *song_end)
 {
 	struct uade_notification n = {.type = UADE_NOTIFICATION_SONG_END};
 	n.song_end.happy = song_end->happy;
@@ -1011,8 +1011,8 @@ ssize_t uade_read(void *_data, size_t bytes, struct uade_state *state)
 	size_t copied = 0;
 	struct uade_event event;
 
-	if (state->notifications != NULL)
-		fifo_flush(state->notifications);
+	/* If you didn't read notifications already, you lost them */
+	flush_notifications(state);
 
 	if (bytes == 0)
 		return 0;
