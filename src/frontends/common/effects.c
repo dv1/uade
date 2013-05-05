@@ -144,8 +144,7 @@ void uade_effect_enable(struct uade_state *state, uade_effect_t effect)
 	es->enabled |= 1 << effect;
 }
 
-/* Returns 1 if effect is enabled, and zero otherwise. Ignores
-   UADE_EFFECT_ALLOW. */
+/* Returns 1 if effect is enabled, and zero otherwise. */
 int uade_effect_is_enabled(const struct uade_state *state, uade_effect_t effect)
 {
 	const struct uade_effect_state *es = &state->effectstate;
