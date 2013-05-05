@@ -172,13 +172,8 @@ static struct bencode *scan_dict(struct bencode *files, const char *name)
 		return value;
 
 	ben_dict_for_each(key, value, pos, files) {
-		if (!ben_is_str(key))
-			continue;
-		if (strcasecmp(name, ben_str_val(key)) == 0) {
-			uade_info("Slow path match: %s matched %s\n",
-				  name, ben_str_val(key));
+		if (ben_is_str(key) && strcasecmp(name, ben_str_val(key)) == 0)
 			return value;
-		}
 	}
 
 	return NULL;
