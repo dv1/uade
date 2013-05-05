@@ -158,7 +158,7 @@ struct uade_event;
 struct uade_state;
 
 /*
- * Free resources of a state, and implies uade_stop(), too.
+ * Free resources of a state. This also implies uade_stop().
  * A call does nothing if state == NULL.
  */
 void uade_cleanup_state(struct uade_state *state);
