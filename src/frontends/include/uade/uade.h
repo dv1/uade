@@ -187,7 +187,8 @@ int uade_config_toggle_boolean(struct uade_config *uc, enum uade_option opt);
 void uade_effect_disable(struct uade_state *state, uade_effect_t effect);
 void uade_effect_disable_all(struct uade_state *state);
 void uade_effect_enable(struct uade_state *state, uade_effect_t effect);
-int uade_effect_is_enabled(struct uade_state *state, uade_effect_t effect);
+int uade_effect_is_enabled(const struct uade_state *state,
+			   uade_effect_t effect);
 void uade_effect_toggle(struct uade_state *state, uade_effect_t effect);
 /* Effect-specific knobs */
 void uade_effect_gain_set_amount(struct uade_state *state, float amount);

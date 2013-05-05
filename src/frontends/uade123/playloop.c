@@ -80,6 +80,17 @@ static void print_time(struct uade_state *state)
 	fflush(stdout);
 }
 
+static const char *effect_enabled_notice(const struct uade_state *state,
+					 uade_effect_t effect)
+{
+	if (uade_effect_is_enabled(state, effect)) {
+		if (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0)
+			return "ON (Remember to turn ON postprocessing!)";
+		return "ON";
+	}
+	return "OFF";
+}
+
 int terminal_input(int *plistdir, struct uade_state *state)
 {
 	int filterstate;
@@ -87,6 +98,7 @@ int terminal_input(int *plistdir, struct uade_state *state)
 	int ret;
 	const struct uade_song_info *info = uade_get_song_info(state);
 	struct uade_config *config = uade_get_effective_config(state);
+	const char *onoff;
 
 	ret = read_terminal();
 	switch (ret) {
@@ -133,7 +145,8 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		break;
 	case 'g':
 		uade_effect_toggle(state, UADE_EFFECT_GAIN);
-		tprintf("\nGain effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_GAIN) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_GAIN)) ? "(Remember to turn ON postprocessing!)" : "");
+		onoff = effect_enabled_notice(state, UADE_EFFECT_GAIN);
+		tprintf("\nGain effect %s\n", onoff);
 		break;
 	case 'h':
 		tprintf("\n\n");
@@ -142,7 +155,8 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		break;
 	case 'H':
 		uade_effect_toggle(state, UADE_EFFECT_HEADPHONES);
-		tprintf("\nHeadphones effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_HEADPHONES) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_HEADPHONES) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+		onoff = effect_enabled_notice(state, UADE_EFFECT_HEADPHONES);
+		tprintf("\nHeadphones effect %s\n", onoff);
 		break;
 	case 'i':
 		if (!uade_no_text_output)
@@ -157,11 +171,13 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		return -1;
 	case 'p':
 		uade_effect_toggle(state, UADE_EFFECT_ALLOW);
-		tprintf("\nPostprocessing effects %s\n", uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) ? "ON" : "OFF");
+		onoff = effect_enabled_notice(state, UADE_EFFECT_ALLOW);
+		tprintf("\nPostprocessing effects %s\n", onoff);
 		break;
 	case 'P':
 		uade_effect_toggle(state, UADE_EFFECT_PAN);
-		tprintf("\nPanning effect %s %s\n", uade_effect_is_enabled(state, UADE_EFFECT_PAN) ? "ON" : "OFF", (uade_effect_is_enabled(state, UADE_EFFECT_ALLOW) == 0 && uade_effect_is_enabled(state, UADE_EFFECT_PAN) == 1) ? "(Remember to turn ON postprocessing!)" : "");
+		onoff = effect_enabled_notice(state, UADE_EFFECT_PAN);
+		tprintf("\nPanning effect %s\n", onoff);
 		break;
 	case 'q':
 		*plistdir = UADE_PLAY_EXIT;
@@ -191,10 +207,13 @@ int terminal_input(int *plistdir, struct uade_state *state)
 	default:
 		if (isdigit(ret)) {
 			newsub = ret - '0';
-			if (uade_seek(UADE_SEEK_SUBSONG_RELATIVE, 0, newsub, state))
+			if (uade_seek(UADE_SEEK_SUBSONG_RELATIVE, 0, newsub,
+				      state)) {
 				tprintf("\nBad subsong number\n");
+			}
 		} else if (!isspace(ret)) {
-			fprintf(stderr, "\nKey '%c' is not a valid command (hex 0x%.2x)\n", ret, ret);
+			fprintf(stderr, "\nKey '%c' is not a valid command "
+				"(hex 0x%.2x)\n", ret, ret);
 		}
 	}
 	return 0;
