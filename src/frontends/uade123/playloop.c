@@ -28,14 +28,13 @@
 #include <poll.h>
 #include <math.h>
 
-static void print_song_info(struct uade_state *state,
+static void print_song_info(const struct uade_state *state,
 			    enum uade_song_info_type t)
 {
 	char infotext[16384];
-	FILE *f = uade_terminal_file ? uade_terminal_file : stdout;
 	const struct uade_song_info *info = uade_get_song_info(state);
 	if (!uade_song_info(infotext, sizeof infotext, info->modulefname, t))
-		fprintf(f, "\n%s\n", infotext);
+		tprintf("\n%s\n", infotext);
 }
 
 static void print_info(struct uade_state *state)
@@ -43,17 +42,20 @@ static void print_info(struct uade_state *state)
 	const struct uade_song_info *info = uade_get_song_info(state);
 
 	if (uade_info_mode) {
-		tprintf("formatname: %s\n", info->formatname);
-		tprintf("modulename: %s\n", info->modulename);
-		tprintf("playername: %s\n", info->playername);
-		tprintf("subsongs: cur %d min %d max %d\n", info->subsongs.cur, info->subsongs.min, info->subsongs.max);
+		printf("formatname: %s\n", info->formatname);
+		printf("modulename: %s\n", info->modulename);
+		printf("playername: %s\n", info->playername);
+		printf("subsongs: cur %d min %d max %d\n",
+		       info->subsongs.cur, info->subsongs.min,
+		       info->subsongs.max);
 	} else {
 		int n = 1 + info->subsongs.max - info->subsongs.min;
 		uade_debug(state, "Format name: %s\n", info->formatname);
 		uade_debug(state, "Module name: %s\n", info->modulename);
 		uade_debug(state, "Player name: %s\n", info->playername);
 		if (n > 1)
-			fprintf(stderr, "There are %d subsongs in range [%d, %d].\n", n, info->subsongs.min, info->subsongs.max);
+			tprintf("There are %d subsongs in range [%d, %d].\n",
+				n, info->subsongs.min, info->subsongs.max);
 	}
 }
 
@@ -159,12 +161,10 @@ int terminal_input(int *plistdir, struct uade_state *state)
 		tprintf("\nHeadphones effect %s\n", onoff);
 		break;
 	case 'i':
-		if (!uade_no_text_output)
-			print_song_info(state, UADE_MODULE_INFO);
+		print_song_info(state, UADE_MODULE_INFO);
 		break;
 	case 'I':
-		if (!uade_no_text_output)
-			print_song_info(state, UADE_HEX_DUMP_INFO);
+		print_song_info(state, UADE_HEX_DUMP_INFO);
 		break;
 	case '\n':
 		*plistdir = UADE_PLAY_NEXT;
@@ -251,7 +251,7 @@ int uade_input(int *plistdir, struct uade_state *state)
 	}
 
 	if (nbytes < 0) {
-		fprintf(stderr, "Playback error.\n");
+		tprintf("\nPlayback error.\n");
 		*plistdir = UADE_PLAY_FAILURE;
 		return -1;
 	}

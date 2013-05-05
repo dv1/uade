@@ -108,7 +108,8 @@ static void set_song_options(const char *songoptions, struct uade_state *state)
 			break;
 
 		if (!uade_set_song_options(songfile, songoptions, state))
-			fprintf(stderr, "Could not update song.conf entry for %s\n", songfile);
+			fprintf(stderr, "Could not update song.conf entry for "
+				"%s\n", songfile);
 	}
 }
 
@@ -118,6 +119,48 @@ void test_and_trigger_debug(struct uade_state *state)
 		return;
 	uade_set_debug(state);
 	debug_trigger = 0;
+}
+
+static void write_sample_data_to_file(const char *filename)
+{
+	int is_stdout = 0;
+	if (strcmp(filename, "-") == 0) {
+		filename = "/dev/stdout";
+		is_stdout = 1;
+	} else if (strcmp(filename, "/dev/stdout") == 0) {
+		is_stdout = 1;
+	}
+	strlcpy(uade_output_file_name, filename, sizeof uade_output_file_name);
+
+	/*
+	 * If sample data is written to stdout, write uade123
+	 * messages to stderr.
+	 */
+	if (is_stdout)
+		uade_terminal_file = stderr;
+
+	/*
+	 * When writing to a file it does not make any sense to have interactive
+	 * keys.
+	 */
+	actionkeys = 0;
+}
+
+void set_terminal_file(void)
+{
+	/*
+	 * Note, if write_sample_data_to_file() is called, it must be done
+	 * before calling this function.
+	 */
+	if (uade_no_text_output) {
+		uade_terminal_file = fopen("/dev/null", "w");
+		if (uade_terminal_file == NULL) {
+			fprintf(stderr, "Unable to open /dev/null\n");
+			exit(1);
+		}
+	} else if (uade_terminal_file == NULL) {
+		uade_terminal_file = stdout;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -229,13 +272,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'c':
-			strlcpy(uade_output_file_name, "/dev/stdout",
-				sizeof uade_output_file_name);
-			/*
-			 * Output sample data to stdout so do not print
-			 * anything on stdout
-			 */
-			uade_terminal_file = stderr;
+			write_sample_data_to_file("/dev/stdout");
 			break;
 
 		case 'd':
@@ -247,7 +284,7 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'f':
-			GET_OPT_STRING(uade_output_file_name);
+			write_sample_data_to_file(optarg);
 			break;
 
 		case 'g':
@@ -430,7 +467,9 @@ int main(int argc, char *argv[])
 			uade_die("Impossible option.\n");
 		}
 	}
-	
+
+	set_terminal_file();
+
 	state = uade_new_state(uc_cmdline);
 	if (state == NULL)
 		uade_die("Can not initialize uade state\n");
@@ -571,7 +610,7 @@ static void print_help(void)
 "                     Example for alsa09 plugin: --ao-option=dev:default\n"
 " --buffer-time=x,    Set audio buffer length to x milliseconds. The default\n"
 "                     value is determined by the libao.\n"
-" -c, --stdout        Write sample data to stdout\n"
+" -c, --stdout        Write sample data to stdout. Implies non-interactive mode.\n"
 " --cygwin,           Cygwin path name workaround: X:\\ -> /cygdrive/X\n"
 " --detect-format-by-content, Detect modules strictly by file content.\n"
 "                     Detection will ignore file name prefixes.\n"
@@ -582,7 +621,9 @@ static void print_help(void)
 " -e format,          Set output file format. Use with -f. wav is the default\n"
 "                     format.\n"
 " --enable-timeouts,  Enable timeouts. See --disable-timeouts.\n"
-" -f filename,        Write audio output into 'filename' (see -e also)\n"
+" -f filename,        Write audio data into given file. If filename is \"-\"\n"
+"                     or \"/dev/stdout\", sample data is written to stdout.\n"
+"                     This implies non-interactive mode. See -e option also.\n"
 " --filter=model      Set filter model to A500, A1200 or NONE. The default is\n"
 "                     A500. NONE means disabling the filter.\n"
 " --filter,           Enable filter emulation. It is enabled by default.\n"
