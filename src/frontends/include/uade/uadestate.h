@@ -123,6 +123,7 @@ struct uade_state {
 	struct uade_config extraconfig;
 
 	struct eagleplayerstore *playerstore;
+
 	struct uade_ipc ipc;
 	pid_t pid;
 

@@ -175,7 +175,8 @@ static struct bencode *scan_dict(struct bencode *files, const char *name)
 		if (!ben_is_str(key))
 			continue;
 		if (strcasecmp(name, ben_str_val(key)) == 0) {
-			fprintf(stderr, "Slow path match\n");
+			uade_info("Slow path match: %s matched %s\n",
+				  name, ben_str_val(key));
 			return value;
 		}
 	}

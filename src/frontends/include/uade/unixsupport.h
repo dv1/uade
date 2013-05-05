@@ -15,6 +15,7 @@
     fprintf(stderr, "%s:%d: %s: " fmt, __FILE__, __LINE__, __func__, ## args); \
     abort(); \
   } while (0)
+#define uade_info(fmt, args...) do { fprintf(stderr, "uade info: " fmt, ## args); } while(0)
 #define uade_warning(fmt, args...) do { fprintf(stderr, "uade warning: " fmt, ## args); } while(0)
 
 char *uade_dirname(char *dst, char *src, size_t maxlen);
@@ -24,10 +25,5 @@ void uade_arch_kill_and_wait_uadecore(struct uade_ipc *ipc, pid_t *uadepid);
 int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename);
 
 int uade_filesize(size_t *size, const char *pathname);
-
-int uade_ipc_get_fd(void *f);
-
-void *uade_ipc_set_input(const char *input);
-void *uade_ipc_set_output(const char *output);
 
 #endif

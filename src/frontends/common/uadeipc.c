@@ -22,28 +22,6 @@
 
 static int valid_message(struct uade_msg *uc);
 
-/*
- * This must read the full size_t count if it can, and therefore we use
- * atomic_read()
- */
-ssize_t uade_ipc_read(void *f, const void *buf, size_t count)
-{
-	int fd = (intptr_t) f;
-	return uade_atomic_read(fd, buf, count);
-}
-
-
-/*
- * This must write the full size_t count if it can, and therefore we use
- * atomic_write()
- */
-ssize_t uade_ipc_write(void *f, const void *buf, size_t count)
-{
-	int fd = (intptr_t) f;
-	return uade_atomic_write(fd, buf, count);
-}
-
-
 void uade_check_fix_string(struct uade_msg *um, size_t maxlen)
 {
 	uint8_t *s = (uint8_t *) um->data;
@@ -83,8 +61,8 @@ static ssize_t get_more(size_t bytes, struct uade_ipc *ipc)
 		fprintf(stderr, "ipc: Internal error: bytes > inputbuffer\n");
 		return -1;
 	}
-	s = uade_ipc_read(ipc->input, &ipc->inputbuffer[ipc->inputbytes],
-			  bytes - ipc->inputbytes);
+	s = uade_atomic_read(ipc->in_fd, &ipc->inputbuffer[ipc->inputbytes],
+			     bytes - ipc->inputbytes);
 	if (s <= 0)
 		return -1;
 	ipc->inputbytes += s;
@@ -357,8 +335,8 @@ int uade_send_message(struct uade_msg *um, struct uade_ipc *ipc)
 		ipc->state = UADE_R_STATE;
 	um->msgtype = htonl(um->msgtype);
 	um->size = htonl(um->size);
-	if (uade_ipc_write(ipc->output, um, sizeof(*um) + size) < 0) {
-		fprintf(stderr, "uade_ipc_write() failed\n");
+	if (uade_atomic_write(ipc->out_fd, um, sizeof(*um) + size) < 0) {
+		fprintf(stderr, "uade_atomic_write() failed\n");
 		return -1;
 	}
 	um->msgtype = -1; /* POISON */
@@ -391,9 +369,9 @@ int uade_send_string(enum uade_msgtype com, const char *str, struct uade_ipc *ip
 
 	if ((sizeof(um) + size) > UADE_MAX_MESSAGE_SIZE)
 		return -1;
-	if (uade_ipc_write(ipc->output, &um, sizeof(um)) < 0)
+	if (uade_atomic_write(ipc->out_fd, &um, sizeof(um)) < 0)
 		return -1;
-	if (uade_ipc_write(ipc->output, str, size) < 0)
+	if (uade_atomic_write(ipc->out_fd, str, size) < 0)
 		return -1;
 	return 0;
 }
@@ -444,15 +422,15 @@ int uade_send_two_u32s(enum uade_msgtype com, uint32_t u1, uint32_t u2,
 	return uade_send_message((struct uade_msg *) space, ipc);
 }
 
-void uade_set_peer(struct uade_ipc *ipc, int peer_is_client, const char *input, const char *output)
+void uade_set_peer(struct uade_ipc *ipc, int peer_is_client,
+		   int in_fd, int out_fd)
 {
 	assert(peer_is_client == 0 || peer_is_client == 1);
-	assert(input != NULL);
-	assert(output != NULL);
-
+	assert(in_fd >= 0);
+	assert(out_fd >= 0);
 	*ipc = (struct uade_ipc) {.state = UADE_INITIAL_STATE,
-				  .input = uade_ipc_set_input(input),
-				  .output = uade_ipc_set_output(output)};
+				  .in_fd = in_fd,
+				  .out_fd = out_fd};
 }
 
 static int valid_message(struct uade_msg *um)

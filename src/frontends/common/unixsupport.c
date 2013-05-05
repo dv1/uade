@@ -26,28 +26,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-static int url_to_fd(const char *url, int flags, mode_t mode)
-{
-	int fd;
-	if (strncmp(url, "fd://", 5) == 0) {
-		char *endptr;
-		if (url[5] == 0)
-			return -1;
-		fd = strtol(&url[5], &endptr, 10);
-		if (*endptr != 0)
-			return -1;
-	} else {
-		if (flags & O_WRONLY) {
-			fd = open(url, flags, mode);
-		} else {
-			fd = open(url, flags);
-		}
-	}
-	if (fd < 0)
-		fd = -1;
-	return fd;
-}
-
 int uade_filesize(size_t *size, const char *pathname)
 {
 	struct stat st;
@@ -57,33 +35,6 @@ int uade_filesize(size_t *size, const char *pathname)
 		*size = st.st_size;
 	return 0;
 }
-
-int uade_ipc_get_fd(void *f)
-{
-	return (intptr_t) f;
-}
-
-void *uade_ipc_set_input(const char *input)
-{
-	int fd;
-	if ((fd = url_to_fd(input, O_RDONLY, 0)) < 0) {
-		fprintf(stderr, "can not open input file %s: %s\n", input, strerror(errno));
-		exit(1);
-	}
-	return (void *) ((intptr_t) fd);
-}
-
-
-void *uade_ipc_set_output(const char *output)
-{
-	int fd;
-	if ((fd = url_to_fd(output, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0) {
-		fprintf(stderr, "can not open output file %s: %s\n", output, strerror(errno));
-		exit(1);
-	}
-	return (void *) ((intptr_t) fd);
-}
-
 
 static int uade_amiga_scandir(char *real, char *dirname, char *fake, int ml)
 {
@@ -252,11 +203,8 @@ void uade_arch_kill_and_wait_uadecore(struct uade_ipc *ipc, pid_t *uadepid)
 	if (*uadepid == 0)
 		return;
 
-	if (kill(*uadepid, SIGKILL)) {
-		fprintf(stderr, "uade_arch_kill_and_wait_uadecore(): uadecore has already terminated\n");
-		*uadepid = 0;
-		return;
-	}
+	uade_atomic_close(ipc->in_fd);
+	uade_atomic_close(ipc->out_fd);
 
 	/*
 	 * Wait until one of two happens:
@@ -274,7 +222,8 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 	char input[32], output[32];
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds)) {
-		fprintf(stderr, "Can not create socketpair: %s\n", strerror(errno));
+		uade_warning("Can not create socketpair: %s\n",
+			     strerror(errno));
 		return -1;
 	}
 
@@ -300,19 +249,22 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 			fprintf(stderr, "Getting max fds failed. Using %d.\n", maxfds);
 		}
 
-		/* close everything else but stdin, stdout, stderr, and in/out fds */
+		/*
+		 * Close everything else but stdin, stdout, stderr, and
+		 * in/out fds
+		 */
 		for (fd = 3; fd < maxfds; fd++) {
 			if (fd != fds[1])
 				uade_atomic_close(fd);
 		}
 
-		/* give in/out fds as command line parameters to the uade process */
-		snprintf(input, sizeof(input), "fd://%d", fds[1]);
-		snprintf(output, sizeof(output), "fd://%d", fds[1]);
+		/* give in/out fds as command line parameters to uadecore */
+		snprintf(input, sizeof input, "%d", fds[1]);
+		snprintf(output, sizeof output, "%d", fds[1]);
 
-		execlp(uadename, uadename, "-i", input, "-o", output, (char *) NULL);
-		fprintf(stderr, "uade execlp (%s) failed: %s\n", uadename, strerror(errno));
-		abort();
+		execlp(uadename, uadename, "-i", input, "-o", output, NULL);
+		uade_die("uade execlp (%s) failed: %s\n",
+			 uadename, strerror(errno));
 	}
 
 	/* Close fds that the uadecore uses */
@@ -322,9 +274,6 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 		return -1;
 	}
 
-	snprintf(output, sizeof output, "fd://%d", fds[0]);
-	snprintf(input, sizeof input, "fd://%d", fds[0]);
-	uade_set_peer(ipc, 1, input, output);
-
+	uade_set_peer(ipc, 1, fds[0], fds[0]);
 	return 0;
 }

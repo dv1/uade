@@ -559,6 +559,10 @@ void uadecore_handle_r_state(void)
 
     ret = uade_receive_message(um, sizeof(space), &uadecore_ipc);
     if (ret == 0) {
+      /*
+       * Terminate uadecore when libuade closes the control socket.
+       * This is the usual (intended) place where uadecore terminates itself.
+       */
       exit(0);
     } else if (ret < 0) {
       fprintf(stderr, "uadecore: Error on input. Exiting with error.\n");
@@ -677,8 +681,9 @@ void uadecore_option(int argc, char **argv)
   int cfg_loaded = 0;
   char optionsfile[PATH_MAX];
   int ret;
-  char *input = NULL;
-  char *output = NULL;
+  int in_fd = -1;
+  int out_fd = -1;
+  char *endptr;
 
   /* network byte order is the big endian order */
   big_endian = (htonl(0x1234) == 0x1234);
@@ -714,7 +719,12 @@ void uadecore_option(int argc, char **argv)
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(1);
 	}
-	input = argv[i + 1];
+	in_fd = strtol(argv[i + 1], &endptr, 10);
+	if (in_fd < 0 || *endptr != 0) {
+		fprintf(stderr, "uadecore: Invalid -i parameter: %s\n",
+			argv[i + 1]);
+		exit(1);
+	}
 	i += 2;
 
       } else if (!strcmp(argv[i], "-o")) {
@@ -723,7 +733,12 @@ void uadecore_option(int argc, char **argv)
 	  uade_print_help(OPTION_ILLEGAL_PARAMETERS, argv[0]);
 	  exit(1);
 	}
-	output = argv[i + 1];
+	out_fd = strtol(argv[i + 1], &endptr, 10);
+	if (out_fd < 0 || *endptr != 0) {
+		fprintf(stderr, "uadecore: Invalid -o parameter: %s\n",
+			argv[i + 1]);
+		exit(1);
+	}
 	i += 2;
 
       } else if (!strcmp(argv[i], "--")) {
@@ -740,7 +755,12 @@ void uadecore_option(int argc, char **argv)
   }
   s_argv[s_argc] = NULL;
 
-  uade_set_peer(&uadecore_ipc, 0, input, output);
+  if (in_fd < 0 || out_fd < 0) {
+	  fprintf(stderr, "uadecore: Must have -i and -o parameters\n");
+	  exit(1);
+  }
+
+  uade_set_peer(&uadecore_ipc, 0, in_fd, out_fd);
 
   ret = uade_receive_string(optionsfile, UADE_COMMAND_CONFIG, sizeof(optionsfile), &uadecore_ipc);
   if (ret == 0) {

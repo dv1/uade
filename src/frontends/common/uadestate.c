@@ -929,7 +929,7 @@ int uade_get_event(struct uade_event *event, struct uade_state *state)
 
 int uade_get_fd(const struct uade_state *state)
 {
-	return uade_ipc_get_fd(state->ipc.input);
+	return state->ipc.in_fd;
 }
 
 void uade_cleanup_notification(struct uade_notification *n)
