@@ -401,7 +401,8 @@ static int read_request(struct uade_state *state)
  */
 static void set_subsong(struct uade_state *state)
 {
-	int cmd = (state->song.state == UADE_STATE_INITIALIZED) ? UADE_COMMAND_SET_SUBSONG : UADE_COMMAND_CHANGE_SUBSONG;
+	int cmd = (state->song.state == UADE_STATE_INITIALIZED) ?
+		UADE_COMMAND_SET_SUBSONG : UADE_COMMAND_CHANGE_SUBSONG;
 	int newsubsong = -1;
 
 	if (state->song.nextsubsongtrigger) {

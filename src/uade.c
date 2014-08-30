@@ -46,8 +46,6 @@ enum print_help {
 };
 
 
-static void change_subsong(int subsong);
-
 static void uade_print_help(enum print_help problemcode, char *progname);
 static void uade_put_long(int addr, int val);
 static int uade_safe_load(int dst, FILE *file, int maxlen);
