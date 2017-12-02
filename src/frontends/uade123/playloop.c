@@ -93,7 +93,7 @@ static const char *effect_enabled_notice(const struct uade_state *state,
 	return "OFF";
 }
 
-int terminal_input(int *plistdir, struct uade_state *state)
+static int terminal_input(int *plistdir, struct uade_state *state)
 {
 	int filterstate;
 	int newsub;
@@ -235,10 +235,10 @@ static void handle_notification(struct uade_notification *n)
 	}
 }
 
-int uade_input(int *plistdir, struct uade_state *state)
+static int uade_input(int *plistdir, struct uade_state *state)
 {
 	struct uade_notification n;
-	size_t nbytes;
+	ssize_t nbytes;
 	char buf[4096];
 
 	test_and_trigger_debug(state);

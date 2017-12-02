@@ -264,7 +264,6 @@ elif test -n "$OS" && test "$OS" = "AmigaOS"; then
 elif test -n "$OS" && test "$OS" = "Darwin"; then
     echo
     echo "Configuring for MacOSX"
-    ARCHFLAGS="$ARCHFLAGS -no-cpp-precomp"
     SHAREDLIBRARYFLAGS="-dynamic -bundle -undefined suppress -force_flat_namespace"
     SHAREDFLAG="-dynamiclib"
     SHAREDNAMEFLAG="-install_name \$(LIBDIR)/\$@"
@@ -360,13 +359,13 @@ if test -z "$sharedir" ; then
     sharedir="$prefix/share"
 fi
 
-$NATIVECC -v 2>/dev/null >/dev/null
+$NATIVECC --version 2>/dev/null >/dev/null
 if test "$?" != "0"; then
     echo Native CC "$NATIVECC" not found, please install a C compiler
     exit 1
 fi
 
-$TARGETCC -v 2>/dev/null >/dev/null
+$TARGETCC --version 2>/dev/null >/dev/null
 if test "$?" != "0"; then
     echo Target CC "$TARGETCC" not found, please install a C compiler
     exit 1

@@ -1,57 +1,29 @@
-;               T
-
-* Copyright (C) 1986-2005 by Thomas Winischhofer, Vienna, Austria
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-* 1) Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2) Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the istribution.
-* 3) The name of the author may not be used to endorse or promote products
-*    derived from this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-* IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-* OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-* IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-* NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-* DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-* THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-* THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-; MusicMaker 4 channel EaglePlayer header
-; Version 4.0
+;
+; EaglePlayer for MusicMaker STD (4-channel) modules/songs
+; Version 5.0
 ; Written by Thomas Winischhofer
-; First-pass improval by BUGGS of DEFECT
-; Revised again by Thomas Winischhofer
+; Some EP-specific code by BUGGS of DEFECT
+; Revised 2017 for MMV8-3.0-support by Thomas Winischhofer
+;
+; "MusicMaker V8" Copyright (C) 1987-2017 Thomas Winischhofer
 ;
 ; This file is a very special version of the "sysplayer"
-; coming with the MusicMaker Developer Pack 2.0. It does
-; in its original state not support many of the functions below.
-;        ¯¯¯¯¯¯¯¯       ¯¯¯
-; Further, MusicMaker's music system is not "just another Tracker"
-; clone, but different to the mentioned in almost all features.
-; Therefore, some of the functiones provided by EaglePlayer/DeliTracker
-; such as "PrevPattern", do not match. MusicMaker does not have
-; "modules" in common sense, instead, songs consist of more than
-; one file. MusicMaker packs its sample-files better than any other
-; program available currently, so don't worry if loading a song
-; may take a bit longer than exspected.
+; which is part of MusicMaker's Developer Pack 2.0. 
+;
 ; ************************************************************************
-; ALWAYS select the ".sdata"-file to play a MM song from Deli/EaglePlayer!
+; For pre-3.0 tunes (ie split song files), please select the ".sdata"-file 
+; to play a MM song from Deli/EaglePlayer!
 ; Song must have been saved in DATA/PACKED mode! (NO LIB-DISK SETS!)
 ; ************************************************************************
 ;
-; INFO GIVEN HERE ALSO APPLIES TO MusicMaker8.
+; All this also applies to MusicMaker8.
 
-	incdir	include:
-	include	misc/EaglePlayer.i
-	include	LVO3.0/exec_lib.i
+sysop SET 1   ; for mmv8.i
+
+  incdir "I:"
+
+  include  "i:EaglePlayer.i"
+  include  "d:mmv8.i"              ; TW: some file defines
 
 even MACRO
    cnop 0,2
@@ -61,16 +33,16 @@ even MACRO
 
    PLAYERHEADER PlayerTagArray
 
-   dc.b '$VER: MusicMaker 4-channel player module V4.0 (10 Nov 93)',0
+   dc.b '$VER: MusicMaker 4-channel player module (uade vesion) 5.0u (27 Nov 17)',0
    even
 
 PlayerTagArray
    dc.l  DTP_RequestDTVersion,$1fffffff
-   dc.l  DTP_PlayerVersion,4
+   dc.l  DTP_PlayerVersion,(5<<16)|0
    dc.l  DTP_PlayerName,PName
    dc.l  DTP_Creator,CName
-   dc.l  EP_Check3,Chk
-   dc.l  DTP_Check2,Chk
+   dc.l  DTP_Check2,Chk   
+   dc.l  EP_Check3,Chk 
    dc.l  DTP_ExtLoad,Loadexternal
    dc.l  DTP_Config,Config
    dc.l  DTP_InitPlayer,InitPlay
@@ -82,9 +54,9 @@ PlayerTagArray
    dc.l  EP_SetSpeed,SetSpeedDirect
    dc.l  EP_StructInit,structinit
    dc.l  EP_Voices,setvoices
-   dc.l  EP_Save,SaveMod
+   dc.l  EP_Get_ModuleInfo,Getinfos
    dc.l  EP_Flags
-   dc.l EPB_Songend+EPB_Packable+EPB_Balance+EPB_Volume+EPB_VolVoices+EPB_Voices+EPB_Restart+EPB_Analyzer+EPB_ModuleInfo+EPB_Save
+   dc.l  EPB_Songend+EPB_Packable+EPB_Balance+EPB_Volume+EPB_VolVoices+EPB_Voices+EPB_Restart+EPB_Analyzer+EPB_ModuleInfo
    dc.l  TAG_DONE
 
 *-----------------------------------------------------------------------*
@@ -92,19 +64,21 @@ PlayerTagArray
 ; Player/Creatorname and local data
 
 PName: dc.b 'MusicMaker4',0
+   cnop 0,2
 CName: dc.b 'Thomas Winischhofer',0
-uadename:	dc.b 'uade.library',0
-
+   cnop 0,2
+Aboutinfo: dc.b 'MusicMaker V8 (C) 1987-2017 Thomas Winischhofer. http://aminet.net/package/mus/edit/MMV8_Disk_1',0
+uadename:   dc.b 'uade.library',0
  cnop 0,4
 
 _DOSBase:   dc.l 0
 dtbase:     dc.l 0
-uadebase:	dc.l 0
+uadebase:   dc.l 0
 
-MAX_NAME_LENGTH	equ	512
-
+FileName:   ds.b 256
 FileBuffer: ds.b 8
 
+ cnop 0,4
 packedornot:dc.b 0
 Playing:    dc.b 0
 ownmem:     dc.b 0
@@ -116,6 +90,9 @@ volvoice4:  dc.w 0
 
 Modname: ds.b 20
          dc.b 0
+   cnop 0,2
+Modinfo: ds.b 32
+         dc.b 0
     cnop 0,4
 
 MM_InfoBuffer:
@@ -123,31 +100,80 @@ MM_InfoBuffer:
    dc.l  MI_MaxSamples,0      ;12
    dc.l  MI_SamplesSize,0     ;20
    dc.l  MI_LoadSize,0        ;28
-;  dc.l  MI_Songsize,0        ;36
+   dc.l  MI_Voices,4       ;36
+   dc.l  MI_MaxVoices,4
    dc.l  MI_SongName,Modname
+   dc.l  MI_AuthorName,Modinfo
+   dc.l  MI_About,Aboutinfo
    dc.l  0
    cnop 0,4
 
+findchunk:                 ; D0=chunkid, eg.'SDAT', a0=memstart (should be at FORM)
+   movem.l d1/a2,-(a7)
+   addq.l #4,a0            ; skip FORM, we alreay know it's a valid module
+   move.l (a0)+,a2         ; get file length
+   adda.l a0,a2
+   addq.l #4,a0            ; skip MMV8 tag, we are at the first chunk in file now
+findchuckloop:
+     cmp.l (a0)+,d0
+     beq.s chunkfound
+   move.l (a0)+,d1
+   adda.l d1,a0
+   cmpa.l a2,a0
+   bcs.s findchuckloop
+   moveq.l #-1,d0          ; return d0=-1 if chuck not found
+   bra.s chuckend
+chunkfound:
+   move.l (a0)+,d0         ; return a0=chunkdata, d0= datalength
+chuckend:
+   movem.l (a7)+,d1/a2
+   rts
+
 ;====================== Moduleinfo ==========================================
 
-Getinfos:
-   lea.l MM_InfoBuffer(pc),a0
-   clr.l (a0)
+infofromsdata:       ; a1 = sdata, a2=MM_InfoBuffer
+   lea Modinfo(pc),a3
+   clr.b (a3)
+   lea Modname(pc),a3
+   clr.b (a3)
 
-   move.l basicinstrsdata,d0
-   beq.s .rts
-   move.l d0,a1
+   cmp.w #MMV8_SONGID,(a1)
+   bne.s .rts
+
+   move.l a2,-(a7)
+   lea 2(a1),a2         ; copy songname
+   moveq.l #19,d0
+.copy: move.b (a2)+,(a3)+
+   dbeq d0,.copy
+
+   lea.l 22(a1),a2
+   cmpi.b #MMV8_2_4ID,(a2)
+   bne.s .ispre24
+      lea 12(a2),a2
+      lea Modinfo(pc),a3   ; copy author
+      moveq.l #32-1,d0
+.copy1: move.b (a2)+,(a3)+
+      dbeq d0,.copy1   
+.ispre24:
+   move.l (a7)+,a2
+
+   moveq.l #0,d0
+.rts:
+   rts
+
+infofrominsts:       ; a1 = instrdata, a2=MM_InfoBuffer
+   move.l #INSTNUM,12(a2)
+   moveq.l #26-1,d0
    cmp.l #'SEI1',(a1)
-   bne.s .rts
+   bne.s 1$
    cmp.w #'XX',4(a1)
-   bne.s .rts
-   move.w 6(a1),12(a0)  ; maxsamples eintragen
-
+   bne.s 1$
+      move.w 6(a1),14(a2)     ; maxsamples
+      lea.l 8(a1),a1
+      moveq #INSTNUM-1,d0      
+1$:
    moveq.l #0,d1
    moveq.l #0,d2
-   
-   lea.l 8(a1),a1
-   moveq #INSTNUM-1,d0
 .chksam
      moveq.l #0,d3
      move.w (a1),d3
@@ -158,123 +184,109 @@ Getinfos:
      addq.l #8,a1
    dbf d0,.chksam
 
-   addi.l #8+(INSTNUM*8)+8,d1  ;8='SEI1XX'## + 8 zur Sicherheit
-   move.l d1,20(A0)     ;Samplessize
-   move.l d2,4(A0)      ;Sampleanzahl
-   
-   move.l basicmacrosdata,d0
-   beq.s .rts
+   addi.l #8+(INSTNUM*8)+8,d1  
+   move.l d1,20(A2)        ;Samplessize
+   move.l d2,4(A2)         ;Sampleanzahl
 
+   moveq.l #0,d0
+.rts:
+   rts
+
+Getinfos:
+   lea.l MM_InfoBuffer(pc),a2
+   clr.l (a2)           ; invalidate
+
+   move.l basicmacrosdata,d0
+   beq .rts
    move.l d0,a1
 
-   cmp.w #'SE',(a1)
+   cmpi.l #'FORM',(a1)
+   bne.s .nommv8mod
+   cmpi.l #'MMV8',8(a1)
+   bne.s .nommv8mod
+  
+      move.l #'INST',d0
+      move.l a1,a0
+      bsr findchunk
+      tst.l d0
+      bpl.s .unpacked
+      move.l basicinstrsdata,d0
+      beq.s .rts
+      move.l d0,a0
+.unpacked:
+      move.l a1,-(a7)
+      move.l a0,a1
+      bsr infofrominsts
+      movem.l (a7)+,a1
+        bne.s .rts
+
+      move.l #'SDAT',d0
+      move.l a1,a0
+      bsr findchunk
+      tst.l d0
+      bmi.s .rts
+   addq.l #4,a0
+
+   move.l a0,a1
+   bsr infofromsdata
+   bne.s .rts
+   bra .ok
+   
+.nommv8mod:
+   move.l basicinstrsdata,d0
+   beq.s .rts
+   move.l d0,a1
+
+   bsr infofrominsts
    bne.s .rts
 
-   lea 2(a1),a2
-   lea Modname(pc),a3
-   moveq.l #19,d0
-.copy: move.b (a2)+,(a3)+
-   dbf d0,.copy
+   move.l basicmacrosdata,d0
+   beq.s .rts
+   move.l d0,a1
+   bsr infofromsdata
+   bne.s .rts
 
    move.l basicmacroslen,d0
    add.l basicinstrslen,d0
-   move.l d0,28(a0)
+   move.l d0,28(a2)
 
-   move.l #MI_Samples,(a0)
+.ok
+   move.l #MI_Samples,(a2) ; validate
 .rts
+   move.l a2,a0
    rts
-
-;======================== Save Funktion =====================================
-
-SaveMod:
-   move.l basicmacrosdata,d0
-   beq .Nosave
-
-;  move.l   dtg_PathArrayPtr(a5),a0
-;  clr.b (a0)        ; clear Path
-;  move.l   dtg_CopyDir(a5),a0   ; copy dir into patharray
-;  jsr   (a0)
-;  move.l   dtg_CopyFile(a5),a0  ; append filename
-;  jsr   (a0)
-
-   move.l dtg_PathArrayPtr(a5),a0
-   move.l a0,a2
-   move.w #300-1,d0
-.loop: move.b (a0)+,(a2)+
-   dbeq d0,.loop
-
-   move.l a0,-(a7)
-   bsr getfilename      ; cut .sdata/.i/.ip aso.
-   move.l (a7)+,a0
-
-.l1: tst.b (a0)+
-   bne.s .l1
-   move.b #'.',-1(a0)
-   move.b #'s',(a0)+
-   move.b #'d',(a0)+
-   move.b #'a',(a0)+
-   move.b #'t',(a0)+
-   move.b #'a',(a0)+
-   clr.b (a0)
-.save:
-   move.l basicmacrosdata,EPG_ARG1(a5)
-   move.l basicmacroslen,EPG_ARG2(a5)
-   move.l dtg_PathArrayPtr(a5),EPG_ARG3(a5)
-   moveq.l #-1,d0
-   move.l d0,EPG_ARG4(a5)
-   clr.l EPG_ARG5(a5)
-   moveq.l #5,d0
-   move.l d0,EPG_ARGN(a5)
-
-   move.l EPG_SaveMem(a5),a0
-   jsr (a0)
-   tst.l d0
-   bne.s .error
-
-   move.l dtg_PathArrayPtr(a5),a0
-   move.w #300-1,d0
-.loop2: tst.b (a0)+
-   dbeq d0,.loop2
-
-   subq.l #7,a0
-   move.b #'.',(a0)+
-   move.b #'i',(a0)+
-   clr.b (a0)
-
-   move.l basicinstrsdata,EPG_ARG1(a5)
-   move.l basicinstrslen,EPG_ARG2(a5)
-   move.l dtg_PathArrayPtr(a5),EPG_ARG3(a5)
-   moveq.l #-1,d0
-   move.l d0,EPG_ARG4(a5)
-   clr.l EPG_ARG5(a5)
-   moveq.l #5,d0
-   move.l d0,EPG_ARGN(a5)
-
-   move.l EPG_SaveMem(a5),a0
-   jmp (a0)
-
-.Nosave:
-  moveq.l #EPR_NoModuleLoaded,d0
-.error:
-  rts
-
 
 *-----------------------------------------------------------------------*
 ;
 ; Checkroutine
-
+;
+; Pre-MMV83.0:
 ; Basically, it should be ID enough, if there's a ".sdata"-file that
-; starts with "SE". But, due to bad ID handling of SoundTracker MOD's
+; starts with MMV8_SONGID. But, due to bad ID handling of SoundTracker MODs
 ; I implemented another - highly inofficial - check. Please DO NOT
 ; use this in own programs. Thank you.
-; (What, if the MOD name is MMP0 or MMP1, like MED id-s his modules?)
 
 Chk:
+   move.l d7,-(a7)
+
    move.l dtg_ChkData(a5),a0
-   cmpi.w #'SE',(a0)
+   moveq.l #0,d7
+
+   cmpi.l #'FORM',(a0)
+   bne.s .nomod
+   cmpi.l #'MMV8',8(a0)
+   bne.s .nomod
+     move.l #'SDAT',d0
+     bsr findchunk
+     tst.l d0
+     bmi ChkFail                 ; if no SDAT, module is corrupt!
+     addq.l #4,a0       ; skip internal sdata length
+     moveq.l #-1,d7
+.nomod:
+   cmpi.w #MMV8_SONGID,(a0)
    bne ChkFail
 
-   jsr _isstdsong
+   jsr _isstdsong ; MusicMaker4: Only STD supported
    beq ChkFail
 
    move.b 23(a0),d0     ; THIS IS HIGHLY !!! INOFFICIAL !!!
@@ -283,11 +295,27 @@ Chk:
    cmpi.b #64,d0        ;
    bhi ChkFail          ; (Checks macrolength)
 
+   tst.l d7
+   beq.s .nomod1
+ 
+   move.l dtg_ChkData(a5),a0
+   move.l #'INST',d0
+   bsr findchunk
+   tst.l d0
+   bpl ChkOk  
+   move.l dtg_ChkData(a5),a0
+   move.l #'PINS',d0
+   bsr findchunk
+   tst.l d0            
+   bpl ChkOk
+   bra ChkFail
+
+.nomod1:
    move.l dtg_PathArrayPtr(a5),a0
-   lea FileName,a2
-   move.l #MAX_NAME_LENGTH-1,d0
-.l4:  move.b (a0)+,(a2)+
-   dbeq d0,.l4
+   lea FileName(PC),a2
+   move.l #256-1,d0
+4$:  move.b (a0)+,(a2)+
+   dbeq d0,4$
 
    tst.w d0
    bmi ChkFail
@@ -296,17 +324,17 @@ Chk:
    cmpi.b #".",(a2)+
    bne ChkFail
    move.l a2,-(a7)
-   lea.l .l3(PC),a0
-.l1:   move.b (a2)+,d0
-      beq.s .l2
-      bclr #5,d0
+   lea.l 3$(PC),a0
+1$:   move.b (a2)+,d0
+      beq.s 2$
+      bclr.b #5,d0
       cmp.b (a0)+,d0
-     beq.s .l1
+     beq.s 1$
    move.l (a7)+,a2
    bra ChkFail
-.l3: dc.b 'SDATA',0
+3$: dc.b 'SDATA',0
    cnop 0,4
-.l2:
+2$:
    move.l (a7)+,a2
 
 ChkUnPkd:
@@ -352,9 +380,12 @@ ChkOpen:
 ChkTst:
    subq.l #8,d3
    bne.s ChkFail
+ChkOk:
+   move.l (a7)+,d7
    moveq.l #0,d0
    rts
 ChkFail:
+   move.l (a7)+,d7
    moveq.l #-1,d0
    rts
 
@@ -371,6 +402,17 @@ VolVoices:
 ;=============== externe Dateien laden & ggfalls entpacken  ================
 
 Loadexternal:
+   move.l dtg_ChkData(a5),a0
+
+   cmpi.l #'FORM',(a0)     ; Module? If yes, we don't need to load anything else
+   bne.s 1$
+   cmpi.l #'MMV8',8(a0)
+   bne.s 1$
+
+   moveq.l #0,d0     ; does this have a result? Is this the correct result for "ok"? FIXME
+   rts
+
+1$:
    lea.l f.i(pc),a4     ; join '.i'
    bsr .getpath
 
@@ -413,8 +455,8 @@ Loadexternal:
    move.l dtg_CutSuffix(a5),a0 ; remove '.pp' suffix if necessary
    jsr (a0)
    move.l dtg_PathArrayPtr(A5),A0
-   lea.l FileName,a2
-   move #MAX_NAME_LENGTH-1,d0
+   lea.l FileName(PC),a2
+   move.l #256-1,d0
 .loop: move.b (a0)+,(a2)+
    dbeq d0,.loop
    subq.l #7,a0
@@ -442,15 +484,14 @@ Config:
 ; Init Player
 
 InitPlay:
-        move.l  4.w,a6
+   move.l  4.w,a6
         lea     uadename(pc),a1
         moveq   #0,d0
-        jsr     _LVOOpenLibrary(a6)
+        jsr     -552(a6)
         move.l  d0,uadebase
 
         bsr     uade_time_critical_on
 
-	
    move.l a5,dtbase
 
    moveq #0,d0
@@ -459,6 +500,16 @@ InitPlay:
    tst.l d0
    beq EndPlay3
 
+   cmpi.l #'FORM',(a0)
+   bne.s 1$
+   cmpi.l #'MMV8',8(a0)
+   bne.s 1$
+      move.l #'SDAT',d0
+      bsr findchunk
+      tst.l d0
+      bmi EndPlay3
+      addq.l #4,a0
+1$:
    move.l a0,basicmacrosdata
    move.l d0,basicmacroslen
 
@@ -477,25 +528,25 @@ InitPlay:
    rts
 
 uade_time_critical_on
-	movem.l	d0-d7/a0-a6,-(a7)
+   movem.l  d0-d7/a0-a6,-(a7)
         move.l  uadebase(pc),d0
         beq.b   no_uade_1
         move.l  d0,a6
         moveq   #-1,d0
         jsr     -6(a6)
 no_uade_1
-	movem.l	(a7)+,d0-d7/a0-a6
+   movem.l  (a7)+,d0-d7/a0-a6
         rts
 
 uade_time_critical_off
-	movem.l	d0-d7/a0-a6,-(a7)
+   movem.l  d0-d7/a0-a6,-(a7)
         move.l  uadebase(pc),d0
         beq.b   no_uade_2
         move.l  d0,a6
         moveq   #0,d0
         jsr     -6(a6)
 no_uade_2
-	movem.l	(a7)+,d0-d7/a0-a6
+   movem.l  (a7)+,d0-d7/a0-a6
         rts
 
 *-----------------------------------------------------------------------*
@@ -516,7 +567,7 @@ EndPlay3:
 ; Start Sound
 
 StartSnd
-	bsr	uade_time_critical_off
+   bsr   uade_time_critical_off
    moveq.l #0,d0  ; LOOP-mode
    jsr _generalsndreset
    jsr _soundon
@@ -568,16 +619,16 @@ SetSpeedDirect:
 ;
 ;SetSpeedPLUS:
 ;   tst.b Playing
-;   beq.s .l1
+;   beq.s 1$
 ;   moveq.l #-1,d0
 ;   jsr _setspeed     ; get speed
 ;   subq.w #8,d0
 ;   cmpi.w #300,d0    ; lower value -> higher speed, therefore this is lower limit
 ;   bcc.s 2$
 ;     move.w #300,d0
-;.l2:
+;2$:
 ;   jsr _setspeed
-;.l1:
+;1$:
 ;   rts
 ;
 ;*-----------------------------------------------------------------------*
@@ -586,16 +637,16 @@ SetSpeedDirect:
 ;
 ;SetSpeedMINUS:
 ;   tst.b Playing
-;   beq.s .l1
+;   beq.s 1$
 ;   moveq.l #-1,d0
 ;   jsr _setspeed     ; get speed
 ;   addq.w #8,d0
 ;   cmpi.w #2800,d0   ; lower value -> higher speed, therefore this is higher limit
 ;   bls.s 2$
 ;    move.w #2800,d0
-;.l2:
+;2$:
 ;   jsr _setspeed
-;.l1:
+;1$:
 ;   rts
 ;
 
@@ -621,8 +672,8 @@ structinit:
 
  move.l a0,-(a7)
  moveq.l #(4*(2+7))-1,d0
-.l1: clr.w (a0)+
- dbf d0,.l1
+1$: clr.w (a0)+
+ dbf d0,1$
  move.l (a7)+,a0
  moveq.l #-1,d0       ; set repeat OFF
  move.b d0,16(a0)             ; DO NOT EXTEND TO WORD!
@@ -643,14 +694,13 @@ mm_songend: dc.l 0
 ;
 ; REPLAYER for MusicMakerV8-created music, 4-Channel mode.
 ; [Linking module]
-; Written by Dire Cracks Amiga® Software, Austria.
+; Written by Thomas Winischhofer
 ;
 ; SYSTEM-COOP-VERSION
 ;
 ;                === Special Version for EaglePlayer ===
 ;
 
-INSTNUM equ 36 ; DON'T CHANGE !!!!!
 CHANNELMAX equ 4
 
 tablesize equ 6*4
@@ -686,6 +736,57 @@ noneinmem:
  jsr -408(a6)
  move.l d0,mydosbase-ms(a5)
 
+ move.l a5,-(a7)
+ move.l dtbase(PC),a5
+ moveq.l #0,d0
+ move.l dtg_GetListData(a5),a0
+ jsr (a0)
+ move.l (a7)+,a5
+ cmpi.l #'FORM',(a0)
+ bne 1$
+ cmpi.l #'MMV8',8(a0)
+ bne 1$
+    move.l a0,a2
+    move.l #'INST',d0
+    bsr findchunk
+    tst.l d0
+    bmi 2$
+
+    clr.b ownmem
+
+    moveq.l #-1,d1
+    cmp.l (a0),d1
+    beq instlibdiskerror
+    cmp.l 4(a0),d1
+    beq instlibdiskerror
+
+    move.l a0,basicinstrsdata-pf(a4)
+    move.l d0,basicinstrslen-pf(a4)
+    bra instrsloaded
+
+2$:
+    move.l a2,a0
+    move.l #'PINS',d0
+    bsr findchunk
+    tst.l d0
+    bmi fileformaterror
+
+    move.l a0,-(a7)
+    bsr _getunpackedinstlen              
+    move.l d0,basicinstrslen-pf(a4)      
+    move.l #$10003,d1                    
+    jsr -198(a6)                         
+    move.l d0,basicinstrsdata-pf(a4) 
+    movem.l (a7)+,a0    
+    beq instmemerror                     
+
+    st ownmem                            
+                                         
+    move.l d0,a1                
+    bsr _decrunchinstrs 
+    bra instrsloaded                 
+  
+1$:
  tst.b packedornot
  bne.s trypacked
 
@@ -695,6 +796,7 @@ noneinmem:
   move.l dtg_GetListData(a5),a0
   jsr (a0)
   move.l (a7)+,a5
+
   move.l a0,basicinstrsdata-pf(a4)
   move.l d0,basicinstrslen-pf(a4)
 
@@ -711,28 +813,28 @@ trypacked:
  clr.b ownmem
  move.l a5,-(a7)
  move.l dtbase(PC),a5
- moveq.l #1,d0                        ; HEY, BUGGS!  Isn't that a bit easier
- move.l dtg_GetListData(a5),a0        ;
- jsr (a0)                             ;
- move.l (a7)+,a5                      ; than you thought?
- move.l a0,samplefileadr-ms(a5)       ;
- move.l d0,samplefilesize-ms(a5)      ;
-                                      ;
- bsr _getunpackedinstlen              ;
- move.l d0,basicinstrslen-pf(a4)      ;
- move.l #$10003,d1                    ;
- jsr -198(a6)                         ;
- move.l d0,basicinstrsdata-pf(a4)     ;
- beq instmemerror                     ;
- st ownmem                            ;
-                                      ;
- move.l d0,a1                         ;
- move.l samplefileadr-ms(a5),a0       ;
- bsr _decrunchinstrs                  ;
+ moveq.l #1,d0                        
+ move.l dtg_GetListData(a5),a0        
+ jsr (a0)                             
+ move.l (a7)+,a5                      
+ move.l a0,samplefileadr-ms(a5)       
+ move.l d0,samplefilesize-ms(a5)      
+                                      
+ bsr _getunpackedinstlen              
+ move.l d0,basicinstrslen-pf(a4)      
+ move.l #$10003,d1                    
+ jsr -198(a6)                         
+ move.l d0,basicinstrsdata-pf(a4)     
+ beq instmemerror                     
+ st ownmem                            
+                                      
+ move.l d0,a1                         
+ move.l samplefileadr-ms(a5),a0       
+ bsr _decrunchinstrs                  
 
 instrsloaded:
  move.l basicmacrosdata-pf(a4),a0
- cmpi.w #'SE',(a0)    ; in library-loaded songs there MUST be this mark!
+ cmpi.w #MMV8_SONGID,(a0)    ; in library-loaded songs there MUST be this mark!
  bne fileformaterror
  jsr _isstdsong
  beq fileformaterror  ; if EXT-Song
@@ -837,9 +939,9 @@ _removeallsongs:         ; <no parameter>
  movem.l d0-d7/a0-a6,-(a7)
  lea.l mystructure(PC),a5
  moveq.l #19,d7
-.l1:  move.l d7,d0
+1$:  move.l d7,d0
      bsr.s _newremovesong
- dbra d7,.l1
+ dbra d7,1$
  sf sounddatavalid-ms(a5)
  movem.l (a7)+,d0-d7/a0-a6
  rts
@@ -859,9 +961,9 @@ _newremovesong:          ; d0=songnum
  movem.l d2-d7/a2-a6,-(a7)
  lea.l mystructure(PC),a5
  cmp.l lastinitedsong-ms(a5),d0
- bne.s .l1
+ bne.s 1$
   bsr _soundoff
-.l1:
+1$:
  move.l d0,currsongnum-ms(a5)
  bsr.s freesdata
  bsr.s freeinstruments
@@ -871,28 +973,28 @@ _newremovesong:          ; d0=songnum
 freesdata:
  bsr geta4
  move.l basicmacrosdata-pf(a4),d0
- beq.s .l1
+ beq.s 1$
  move.l d0,a1
  move.l basicmacroslen-pf(a4),d0
- beq.s .l1
+ beq.s 1$
  clr.l basicmacrosdata-pf(a4)
-.l1:
+1$:
  clr.l basicmacroslen-pf(a4)
  rts
 
 freeinstruments:
  tst.b ownmem
- beq.s .l1
+ beq.s 1$
   bsr geta4
   move.l basicinstrsdata-pf(a4),d0
-  beq.s .l1
+  beq.s 1$
   move.l d0,a1
   move.l basicinstrslen-pf(a4),d0
-  beq.s .l1
+  beq.s 1$
   move.l $4,a6
   jsr -210(a6)
   clr.l basicinstrsdata-pf(a4)
-.l1:
+1$:
   clr.l basicinstrslen-pf(a4)
  rts
 
@@ -910,13 +1012,13 @@ _getunpackedinstlen:  ; a0=ip-file-start, result: d0=length
  moveq.l #26,d3
  moveq.l #0,d2
  cmpi.l #'SEI1',(a0)
- bne.s .l1
+ bne.s 1$
    cmpi.w #'XX',4(a0)
-   bne.s .l1
+   bne.s 1$
      move.w 6(a0),d3
      addq.l #1,d3
      moveq.l #8,d2
-.l1:
+1$:
  move.l a0,a1
  moveq.l #INSTNUM+1,d1  ; +1, weil *8=8=len('SEI1XX'##)
  lsl.w #3,d1            ; instinfo: INSTNUM*8
@@ -932,13 +1034,13 @@ _getunpackedinstlen:  ; a0=ip-file-start, result: d0=length
 calcinstlens:
    moveq.l #0,d2
    move.w (a0),d2    ; add the instrslen.
-   beq.s .l3
+   beq.s 3$
     add.l d2,d1
     mulu d4,d2
     addq.l #8,d2
     lsr.l #3,d2
     add.l d2,d3
-.l3:
+3$:
   addq.l #8,a0
  dbra d0,calcinstlens
  addq.l #2,d3        ; fibbits:  WORD
@@ -962,13 +1064,13 @@ addtheLFOs:
  rts
 
 _isstdsong:  ; a0=sdatastart
- cmpi.w #'SE',(a0)
- beq.s .l1
+ cmpi.w #MMV8_SONGID,(a0)
+ beq.s 1$
    cmpi.b #$ff,(a0)
-   bra.s .l2
-.l1:
+   bra.s 2$
+1$:
  cmpi.b #$ff,2+20(a0)
-.l2:
+2$:
  sne d0
  ext.w d0
  ext.l d0
@@ -978,7 +1080,7 @@ _lockaudio:
  movem.l d1-d2/a0-a1/a5-a6,-(a7)
  lea.l mystructure(PC),a5
  tst.b audopen-ms(a5)
- bne.s .l1
+ bne.s 1$
   move.l $4,a6
   suba.l a1,a1
   jsr -294(a6)
@@ -995,7 +1097,7 @@ _lockaudio:
   jsr -444(a6)
   tst.l d0
   seq audopen-ms(a5)
-.l1:
+1$:
  move.b audopen-ms(a5),d0
  ext.w d0
  ext.l d0
@@ -1006,12 +1108,12 @@ _unlockaudio:
  movem.l d0-d1/a0-a1/a5-a6,-(a7)
  lea.l mystructure(PC),a5
  tst.b audopen-ms(a5)
- beq.s .l2
+ beq.s 2$
     sf audopen-ms(a5)
     move.l $4,a6
     lea.l auddevio,a1
     jsr -450(a6)
-.l2:
+2$:
  movem.l (a7)+,d0-d1/a0-a1/a5-a6
  rts
 
@@ -1032,13 +1134,13 @@ _soundon:
   sf soundenable-ms(a5)
   lea.l myvoicedata(PC),a5   ;
   moveq.l #4-1,d0            ;
-.l1:  clr.l (a5)+             ;
+1$:  clr.l (a5)+             ;
      clr.l (a5)+             ; eagle
      clr.l (a5)+             ;
      clr.l (a5)+             ;
      st (a5)+                ;
      clr.b (a5)+             ;
-  dbf d0,.l1                  ;
+  dbf d0,1$                  ;
 notvalid:
  movem.l (a7)+,a0/a5-a6/d0
  rts
@@ -1051,13 +1153,13 @@ _soundoff:
  bsr hardwareinit
  lea.l myvoicedata(PC),a5   ;
  moveq.l #4-1,d0            ;
-.l1: clr.l (a5)+             ;
+1$: clr.l (a5)+             ;
     clr.l (a5)+             ; eagle
     clr.l (a5)+             ;
     clr.l (a5)+             ;
     st (a5)+                ;
     clr.b (a5)+             ;
- dbf d0,.l1                  ;
+ dbf d0,1$                  ;
  movem.l (a7)+,a5-a6/d0
  rts
 
@@ -1160,7 +1262,7 @@ _newsndresetoneshot:       ;  d0=oneshot,d1=songnum
  move.w #$0000,dmaoff-ms(a5)
  clr.w pattlen-ms(a5)
  move.w (a2)+,d0
- cmpi.w #'SE',d0
+ cmpi.w #MMV8_SONGID,d0
  bne.s nosongname
    adda.w #20,a2
    move.w (a2)+,d0
@@ -1170,9 +1272,9 @@ nosongname:
  move.b d0,newformat-ms(a5)
  clr.l extdatasize-ms(a5)
  cmpi.b #$fe,d0
- bne.s .l1
+ bne.s 1$
    move.w 6(a2),extdatasize+2-ms(a5)
-.l1:
+1$:
  move.w (a2)+,d0
  move.w d0,speed-ms(a5)
  move.w d0,calcspeed-ms(a5)
@@ -1189,18 +1291,18 @@ setbacklaststuff:
  movem.l d0/a0,-(a7)
  moveq.l #4-1,d0
  lea.l lastperiods-ms(a5),a0
-.l1: clr.l (a0)+
+1$: clr.l (a0)+
     move.w #$0100,(a0)+
     clr.w (a0)+
     clr.l (a0)+
     clr.l (a0)+
     clr.l (a0)+
     clr.l (a0)+
- dbra d0,.l1
+ dbra d0,1$
  moveq.l #4-1,d0
  lea.l lastvolumes-ms(a5),a0
-.l2: clr.l (a0)+
- dbra d0,.l2
+2$: clr.l (a0)+
+ dbra d0,2$
  clr.l VIBRATO-ms(a5)
  clr.l VIBRATO+4-ms(a5)
  movem.l (a7)+,d0/a0
@@ -1212,19 +1314,19 @@ _generalsndremove:          ; DISPOSES THE PLAYER INTERRUPT ONLY !!!
  moveq.l #-1,d0
  move.l d0,lastinitedsong-ms(a5)
  tst.b intremoved-ms(a5)
- bne.s .l1
+ bne.s 1$
    sf sounddatavalid-ms(a5)
    move.l ciabase(PC),a6
    lea.l mysysint6(PC),a1
    moveq.l #1,d0
    jsr -12(a6)
    move.l oldinterrupt(PC),d0
-   beq.s .l1
+   beq.s 1$
    move.l d0,a1
    moveq.l #1,d0
    jsr -6(a6)
    clr.l oldinterrupt-ms(a5)
-.l1:
+1$:
  st intremoved-ms(a5)
 wasremsofar:
  movem.l (a7)+,d0-d7/a0-a6
@@ -1279,12 +1381,12 @@ ptrsinit:
  move.l a5,-(a7)
  moveq.l #26,d3
  cmpi.l #'SEI1',(a1)
- bne.s .l1
+ bne.s 1$
   cmpi.w #'XX',4(a1)
-  bne.s .l1
+  bne.s 1$
     move.w 6(a1),d3
     addq.l #8,a1
-.l1:
+1$:
  move.l d3,d4
  lsl.l #3,d4
  lea.l 0(a1,d4.w),a5
@@ -1303,7 +1405,7 @@ setinstlens:
    move.w (a1)+,(a4)+
  dbra d0,setinstlens
  move.l a5,d0
- btst #0,d0
+ btst.b #0,d0
  beq.s iseven1
   addq.l #1,d0
 iseven1:
@@ -1431,13 +1533,13 @@ _setspeed:
  lea.l mystructure(PC),a5
  move.w speed-ms(a5),d1
  tst.w d0
- bmi.s .l1
+ bmi.s 1$
   move.w d0,speed-ms(a5)
   bsr.s getfacttruncedspeed
   move.w d0,calcspeed-ms(a5)
   mulu #23,d0
   move.w d0,playspeed-ms(a5)
-.l1:
+1$:
  move.w d1,d0
  movem.l (a7)+,d1/a5
  rts
@@ -1461,14 +1563,14 @@ _decrunchinstrs:           ; a0=source , a1=dest
  move.l a0,a3
  moveq.l #26,d7
  cmpi.l #'SEI1',(a0)
- bne.s .l1
+ bne.s 1$
   cmpi.w #'XX',4(a0)
-  bne.s .l1
+  bne.s 1$
    move.w 6(a0),d7
    move.l (a0)+,(a1)+
    move.l (a0)+,(a1)+
    addq.l #8,a3
-.l1:
+1$:
  move.l d7,d0
  subq.w #1,d0
 copyinstlens:
@@ -1494,7 +1596,7 @@ leniszero1:
  addq.l #8,a3
  dbra d7,packinstrsloop
  move.l a1,d0
- btst #0,d0
+ btst.b #0,d0
  beq.s iseven
   addq.l #1,d0
 iseven:
@@ -1526,27 +1628,27 @@ decompress:
   moveq.l #0,d6
   moveq.l #0,d7
   moveq.l #0,d2
-.l1:
+1$:
    moveq.l #0,d1
    move.w d0,d3
-.l2:
+2$:
     subq.w #1,d7
-    bpl.s .l3
+    bpl.s 3$
      move.b (a3)+,d6
      moveq.l #7,d7
-.l3:
+3$:
     lsl.b #1,d6
     addx.b d1,d1
     subq.w #1,d3
-   bne.s .l2
+   bne.s 2$
    add.b 0(a0,d1.w),d2
    move.b d2,(a1)+
  cmpa.l a1,a2
- bne.s .l1
+ bne.s 1$
  subq.w #1,d7
- bpl.s .l4
+ bpl.s 4$
   addq.l #1,a3
-.l4:
+4$:
  move.l a3,a0
  movem.l (a7)+,d0-d7/a2-a3
  rts
@@ -1558,10 +1660,10 @@ systemint6:
   tst.b soundenable-ms(a5)
   bne.s nosndplay
   cmpi.b #$0f,_dtchannelsfinished-ms(a5)
-  bne.s .l1
+  bne.s 1$
      move.l mm_songend,a0
      jsr (a0)
-.l1:
+1$:
   cmpi.b #$0f,_channelsfinished-ms(a5)
   beq.s nosndplay
     bsr.s playsnd
@@ -1681,7 +1783,7 @@ absnothing:
   bmi.s nosetfade2
    move.w d4,4(a4)
 nosetfade2:
-  btst d0,dofadein-ms(a5)
+  btst.b d0,dofadein-ms(a5)
   beq.s testiffadeout
     cmpi.w #4096,4(a4)
     bls.s donotsetbackto4096
@@ -1697,7 +1799,7 @@ setbackto256:
     move.w #256,4(a4)
     bra.s nomorefade
 testiffadeout:
-  btst d0,dofadeout-ms(a5)
+  btst.b d0,dofadeout-ms(a5)
   beq.s nomorefade
     cmpi.w #8192,4(a4)
     beq.s nomorefade
@@ -1710,11 +1812,11 @@ setbackto8192:
 nomorefade:
   move.w 8(a1),d6
   tst.b VIBRATO-SOFTMOD(a3)
-  ble.s .l1
+  ble.s 1$
     not.b (VIBRATO+1)-SOFTMOD(a3)   ; tremolo
-    bne.s .l1
+    bne.s 1$
       neg.w 2(a3)
-.l1:
+1$:
   move.w 2(a3),d1
   asr.w #1,d1
   add.w d1,d6
@@ -1750,7 +1852,7 @@ nomorefade:
   add.w d1,d6
   bsr getalegalvolume
 nuHULL:
-  btst d0,doloudness-ms(a5)
+  btst.b d0,doloudness-ms(a5)
   beq.s nodoloudness
      move.w 2(a4),d4
      moveq.l #0,d5
@@ -1777,10 +1879,10 @@ checkvol:
   move.w d5,d6
 nofadeatall:
   bsr getalegalvolume
-  btst d0,_mutedchannels-ms(a5)
-  beq.s .l1
+  btst.b d0,_mutedchannels-ms(a5)
+  beq.s 1$
       clr.w d6
-.l1:
+1$:
     movem.l a0/d0,-(a7)        ;
     lea.l volvoice1(PC),a0     ;
     add.w d0,d0                ; eagleplayer
@@ -1795,11 +1897,11 @@ nofadeatall:
    movem.l (a7)+,d0/a0      ;
   move.w (a4),d6
   tst.b VIBRATO-SOFTMOD(a3)
-  bge.s .l2
+  bge.s 2$
     not.b (VIBRATO+1)-SOFTMOD(a3)
-    bne.s .l2                   ; vibrato
+    bne.s 2$                   ; vibrato
       neg.w (a3)
-.l2:
+2$:
   add.w (a3),d6
   bsr getalegalperiod
   move.w d6,(a4)
@@ -1818,11 +1920,11 @@ noLFOper:
    mulu #115,d1
    divu d6,d1
    add.w d1,14(a4)
-   bcs.s .l1
+   bcs.s 1$
    move.w 14(a4),d1
    cmp.w 16(a4),d1
    bls.s nuHULLEND
-.l1:
+1$:
     tst.b 19(a4)
      beq.s switchoffHULL
       move.w 20(a4),d1
@@ -1837,9 +1939,9 @@ nuHULLEND:
    mulu #(7+2)*2,d0     ; eagle
    clr.w 6(a0,d0.w)     ;
    tst.w 10(a0,d0.w)    ;
-   beq.s .l1             ;
+   beq.s 1$             ;
     move.w d6,6(a0,d0.w);
-.l1:                     ;
+1$:                     ;
    movem.l (a7)+,d0/a0  ;
  subq.l #2,a1
  subq.l #4,a3
@@ -1873,19 +1975,19 @@ donthavetowait:
 waitatimee:
    move.l d0,-(a7)
    move.b $006(a6),d0
-.l1: cmp.b $006(a6),d0
-   beq.s .l1
-.l2: btst #4,$007(a6)
-   beq.s .l2
+1$: cmp.b $006(a6),d0
+   beq.s 1$
+2$: btst.b #4,$007(a6)
+   beq.s 2$
    move.l (a7)+,d0
      lea.l $d0(a6),a1
      lea.l nextdata3-ms(a5),a2
      lea.l lastperiods+(24*3)-ms(a5),a3
      moveq.l #3,d2
 testifcontinsts:
-      btst d2,d3
+      btst.b d2,d3
       bne.s pause_0
-       btst d2,channelshandle-ms(a5)
+       btst.b d2,channelshandle-ms(a5)
        beq.s nopause_0
          move.l (a2),d0
          move.l d0,(a1)
@@ -2089,9 +2191,9 @@ isbelow151:
  cmpi.b #$f9,d0
  bne.s noWARP2play
    ext.w d1
-   btst #7,2(a0)
+   btst.b #7,2(a0)
    beq.s aPERWARP
-    btst #6,2(a0)
+    btst.b #6,2(a0)
     bne.s aVIBORTRE
      move.w d1,((CHANNELMAX*8)+(CHANNELMAX*4))+2(a4)  ; vol slide
      tst.b VIBRATO-COUNTERS(a4)
@@ -2102,18 +2204,18 @@ aVIBORTRE:
     tst.w d1
     bpl.s arealvib
      tst.b VIBRATO-COUNTERS(a4)
-     bge.s .l1
+     bge.s 1$
       clr.w ((CHANNELMAX*8)+(CHANNELMAX*4))(a4)
-.l1:
+1$:
      neg.w d1
      move.w d1,((CHANNELMAX*8)+(CHANNELMAX*4))+2(a4)  ; tremolo
      move.w #$0100,VIBRATO-COUNTERS(A4)
      bra jmptoaddcnt
 arealvib:
      tst.b VIBRATO-COUNTERS(a4)
-     ble.s .l1
+     ble.s 1$
       clr.w ((CHANNELMAX*8)+(CHANNELMAX*4))+2(a4)
-.l1:
+1$:
      move.w d1,((CHANNELMAX*8)+(CHANNELMAX*4))(a4)
      move.w #$ff00,VIBRATO-COUNTERS(A4)               ; vibrato
      bra jmptoaddcnt
@@ -2176,7 +2278,7 @@ nospeedset:
 nocontrolbyte:
  clr.l 32+16(a4)
  clr.w VIBRATO-COUNTERS(a4)
- btst #6,2(a0)
+ btst.b #6,2(a0)
  beq.s nochangelpfplay
    move.b d1,d2
    andi.b #$40,d2
@@ -2236,7 +2338,7 @@ nonovolume:
  move.w 0(a1,d0.w),d6
  lsl.w #8,d6
  move.b volumetable-ms+1(a5,d0.w),d6
- btst #7,2(a0)
+ btst.b #7,2(a0)
   bne.s modulate
 
  move.b (a0),d2
@@ -2259,7 +2361,7 @@ nonovolume:
  lea.l myinstrlens-ms(a5),a1
  tst.w 0(a1,d2.w)
  beq novolume
- btst #7,1(a0)
+ btst.b #7,1(a0)
  beq.s setoneshotdata
      move.w 2(a1,d2.w),d4
      beq.s setoneshotdata
@@ -2448,8 +2550,6 @@ audopen:  dc.b 0
 rt_endskip:
 
  SECTION MacroVecs,BSS
-
-FileName:   ds.b MAX_NAME_LENGTH
 
 pf:
 basicptrfield:

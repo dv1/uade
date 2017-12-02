@@ -10,7 +10,8 @@
 #include "playlist.h"
 
 #define tprintf(fmt, args...) do { \
-        fprintf(uade_terminal_file, fmt, ## args); \
+	fprintf(uade_terminal_file != NULL ? uade_terminal_file : stdout, \
+                fmt, ## args);					          \
 } while (0)
 
 extern int actionkeys;
