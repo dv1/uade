@@ -54,3 +54,6 @@ Resolved:
 		current subsong 2
 		uade: current subsong 33554432
 	    (shd)
+2017-12-02: uadestate.c: set_subsong() case UADE_SEEK_SONG_RELATIVE: state->song.info.songbytes is probably wrong if you start from a subsong > 0. There is a place for optimization here. (shd)
+
+
