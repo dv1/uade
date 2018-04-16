@@ -1,3 +1,5 @@
+#include <uade/uade.h>
+
 #include "audio.h"
 #include "uade123.h"
 
@@ -26,16 +28,31 @@ void audio_close(void)
 	ao_close(libao_device);
 }
 
+static void set_ao_option_from_string(const char *opt_string)
+{
+	char *s = strdup(opt_string);
+	if (s == NULL)
+		uade_die("Can not allocate memory for ao option\n");
+	char *key = s;
+	char *value = strchr(key, ':');
+	if (value == NULL || value == key)
+		uade_die("Invalid ao option: %s\n", s);
+	*value = 0;
+	value++;
+	ao_append_option(&options, key, value);
+	free(s);
+}
+
 static void process_config_options(const struct uade_state *us, char **opts)
 {
-	char *s;
-	char *key;
-	char *value;
-	char **opt;
+	char *ao_opt;
 
 	if (buffertime > 0) {
 		char val[32];
-		/* buffer_time is given in milliseconds, so convert to microseconds */
+		/*
+		 * buffer_time is given in milliseconds, so convert to
+		 * microseconds.
+		 */
 		snprintf(val, sizeof val, "%d", 1000 * buffertime);
 		ao_append_option(&options, "buffer_time", val);
 	}
@@ -45,22 +62,28 @@ static void process_config_options(const struct uade_state *us, char **opts)
 	format.rate = uade_get_sampling_rate(us);
 	format.byte_format = AO_FMT_NATIVE;
 
-	opt = opts;
-	while (opt != NULL && *opt != NULL) {
-		s = strdup(*opt);
-		if (s == NULL)
-			uade_die("Can not allocate memory for ao option\n");
+	ao_opt = strdup(uade_get_const_effective_config(us)->ao_options.o);
+	if (ao_opt == NULL)
+		uade_die("Can not allocate memory for ao_options.\n");
+	while (ao_opt != NULL && *ao_opt != 0) {
+		if (*ao_opt == ',') {
+			ao_opt++;
+			continue;
+		}
+		char *next_ao_opt = strchr(ao_opt, ',');
+		if (next_ao_opt != NULL) {
+			*next_ao_opt = 0;
+			next_ao_opt++;
+		}
+		set_ao_option_from_string(ao_opt);
+		ao_opt = next_ao_opt;
+	}
+	free(ao_opt);
+	ao_opt = NULL;
 
-		key = s;
-		value = strchr(key, ':');
-		if (value == NULL)
-			uade_die("uade: Invalid ao option: %s\n", s);
-		*value = 0;
-		value++;
-		ao_append_option(&options, key, value);
-
-		free(s);
-		opt++;
+	while (opts != NULL && *opts != NULL) {
+		set_ao_option_from_string(*opts);
+		opts++;
 	}
 }
 
@@ -81,7 +104,8 @@ int audio_init(const struct uade_state *us, char **opts)
 			fprintf(stderr, "Invalid libao driver\n");
 			return 0;
 		}
-		libao_device = ao_open_file(driver, uade_output_file_name, 1, &format, NULL);
+		libao_device = ao_open_file(driver, uade_output_file_name, 1,
+					    &format, NULL);
 	} else {
 		driver = ao_default_driver_id();
 		libao_device = ao_open_live(driver, &format, options);

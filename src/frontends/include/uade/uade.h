@@ -35,6 +35,7 @@ extern "C"
 #include <sys/types.h>
 
 #include <uade/options.h>
+#include <uade/uadeconfstructure.h>
 
 #define UADE_CHANNELS 2
 #define UADE_BYTES_PER_SAMPLE 2
@@ -142,6 +143,7 @@ enum uade_option {
 	UC_UAE_CONFIG_FILE,
 	UC_USE_TEXT_SCOPE,
 	UC_VERBOSE,
+	UC_AO_OPTION,
 };
 
 /* Audio effects */
@@ -202,6 +204,8 @@ const char *uade_event_name(const struct uade_event *event);
  * Note, this always returns a non-NULL pointer even we are not in playing mode.
  */
 struct uade_config *uade_get_effective_config(struct uade_state *state);
+const struct uade_config *uade_get_const_effective_config(
+	const struct uade_state *state);
 
 /*
  * This is called to drive the playback. This should be called when there is
