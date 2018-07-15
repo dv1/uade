@@ -1,6 +1,5 @@
-UADECOREDIR = {PACKAGEPREFIX}{UADECOREDIR}
+UADECOREDIR = $(DESTDIR){PACKAGEPREFIX}{UADECOREDIR}
 UADECORENAME={UADECORENAME}
-PKGCONFIGDIR = {PACKAGEPREFIX}{PKGCONFIGDIR}
 
 CC = {CC}
 NATIVECC = {NATIVECC}
@@ -42,7 +41,7 @@ clean:
 	-rm -f cpuemu.c build68k cputmp.s cpustbl.c cputbl.h
 
 install:	$(UADECORENAME)
-	mkdir -m 755 -p "$(UADECOREDIR)" "$(PKGCONFIGDIR)"
+	mkdir -m 755 -p "$(UADECOREDIR)"
 	install "$(UADECORENAME)" "$(UADECOREDIR)"/
 
 # First native builds
