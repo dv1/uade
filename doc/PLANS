@@ -35,8 +35,7 @@ Ideas of things to do for UADE 2:
 2005-07-20: force timeout even if playtime is known (ave)
 2005-07-12: convert asmone source code in sound core to gnu assembler format
 	    (shd)
-2005-07-12: rewrite parts of the sound core in C, and cross-compile with a
-	    68k gcc. (shd)
+2005-07-12: rewrite parts of the sound core in C (shd)
 2005-07-12: rewrite src/amifilemagic.c. It should be much cleaner. (shd)
 2005-07-11: sync tool to update song length database (grue)
 
@@ -58,4 +57,3 @@ DONE:
 	    has initialized the player plugin. currently the simulator
 	    writes zero audio samples during the initialization in sound core.
 	    (shd)
-2018-07-15: Cross compile soundcore with vasm: http://sun.hasenbraten.de/vasm/
