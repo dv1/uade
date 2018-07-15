@@ -2,6 +2,7 @@
 #define _UADECONF_STRUCTURE_H_
 
 #include <limits.h>
+#include <stddef.h>
 
 struct uade_path {
 	char name[PATH_MAX];
@@ -80,6 +81,9 @@ struct uade_config {
 	UADE_CHAR_CONFIG(use_timeouts);
 	UADE_CHAR_CONFIG(use_ntsc);
 	UADE_CHAR_CONFIG(verbose);
+
+	struct uade_ao_options ao_options;
+	char ao_options_set;
 };
 
 #endif

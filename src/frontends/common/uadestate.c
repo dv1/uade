@@ -1215,6 +1215,12 @@ struct uade_config *uade_get_effective_config(struct uade_state *state)
 	return &state->config;
 }
 
+const struct uade_config *uade_get_const_effective_config(
+	const struct uade_state *state)
+{
+	return &state->config;
+}
+
 struct bencode *uade_get_rmc_from_state(const struct uade_state *state)
 {
 	return state->rmc;

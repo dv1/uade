@@ -44,6 +44,7 @@ struct uade_conf_opts {
 /* List of uade.conf options. The list includes option name, minimum
    string match length for the option name and its enum code. */
 static const struct uade_conf_opts uadeconfopts[] = {
+	{.str = "ao_option",             .l = 2,  .e = UC_AO_OPTION},
 	{.str = "detect_format_by_detection", .l = 18, .e = UC_CONTENT_DETECTION},
 	{.str = "disable_timeout",       .l = 1,  .e = UC_DISABLE_TIMEOUTS},
 	{.str = "enable_timeout",        .l = 2,  .e = UC_ENABLE_TIMEOUTS},
@@ -185,6 +186,22 @@ static void uade_add_ep_option(struct uade_ep_options *opts, const char *s)
 	opts->s += strlen(s) + 1;
 }
 
+static void uade_add_ao_option(struct uade_ao_options *opts, const char *s)
+{
+	const size_t max_size = sizeof(opts->o);
+	if (strlen(opts->o) > 0) {
+		if (strlcat(opts->o, ",", max_size) >= max_size) {
+			fprintf(stderr,
+				"Warning: uade ao option overflow: %s\n", s);
+			return;
+		}
+	}
+	if (strlcat(opts->o, s, max_size) >= max_size) {
+		fprintf(stderr, "Warning: uade ao option overflow: %s\n", s);
+		return;
+	}
+}
+
 static int set_options_from_attributes(struct uade_state *state,
 				       char *playername,
 				       size_t playernamelen,
@@ -196,7 +213,8 @@ static int set_options_from_attributes(struct uade_state *state,
 	for (; attributes != NULL; attributes = attributes->next) {
 		switch (attributes->flag) {
 		case ES_EP_OPTION:
-			uade_debug(state, "Using eagleplayer option %s\n", attributes->s);
+			uade_debug(state, "Using eagleplayer option %s\n",
+				   attributes->s);
 			uade_add_ep_option(&us->ep_options, attributes->s);
 			break;
 
@@ -289,13 +307,16 @@ int uade_load_config(struct uade_state *state, const char *filename)
 		if (opt) {
 			uade_config_set_option(uc, opt, value);
 		} else {
-			fprintf(stderr,	"Unknown config key in %s on line %d: %s\n", filename, linenumber, key);
+			fprintf(stderr,
+				"Unknown config key in %s on line %d: %s\n",
+				filename, linenumber, key);
 		}
 	}
 
 	fclose(f);
 
-	snprintf(state->permconfigname, sizeof(state->permconfigname), "%s", filename);
+	snprintf(state->permconfigname, sizeof(state->permconfigname), "%s",
+		 filename);
 
 	return 1;
 }
@@ -372,6 +393,7 @@ void uade_merge_configs(struct uade_config *ucd, const struct uade_config *ucs)
 {
 #define MERGE_OPTION(y) do { if (ucs->y##_set) ucd->y = ucs->y; } while (0)
 
+	MERGE_OPTION(ao_options);
 	MERGE_OPTION(basedir);
 	MERGE_OPTION(content_detection);
 	MERGE_OPTION(ep_options);
@@ -515,6 +537,16 @@ void uade_config_set_option(struct uade_config *uc, enum uade_option opt,
 #define SET_OPTION(opt, value) do { uc->opt = (value); uc->opt##_set = 1; } while (0)
 
 	switch (opt) {
+	case UC_AO_OPTION:
+		if (value != NULL) {
+			uade_add_ao_option(&uc->ao_options, value);
+			uc->ao_options_set = 1;
+		} else {
+			fprintf(stderr,
+				"uade: Passed NULL to UC_AO_OPTION.\n");
+		}
+		break;
+
 	case UC_BASE_DIR:
 		handle_config_path(&uc->basedir, &uc->basedir_set, value);
 		break;
