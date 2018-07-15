@@ -58,3 +58,4 @@ DONE:
 	    has initialized the player plugin. currently the simulator
 	    writes zero audio samples during the initialization in sound core.
 	    (shd)
+2018-07-15: Cross compile soundcore with vasm: http://sun.hasenbraten.de/vasm/
