@@ -246,7 +246,8 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 
 		if ((maxfds = sysconf(_SC_OPEN_MAX)) < 0) {
 			maxfds = 1024;
-			fprintf(stderr, "Getting max fds failed. Using %d.\n", maxfds);
+			fprintf(stderr, "Getting max fds failed. Using %d.\n",
+				maxfds);
 		}
 
 		/*
@@ -269,7 +270,8 @@ int uade_arch_spawn(struct uade_ipc *ipc, pid_t *uadepid, const char *uadename)
 
 	/* Close fds that the uadecore uses */
 	if (uade_atomic_close(fds[1]) < 0) {
-		fprintf(stderr, "Could not close uadecore fds: %s\n", strerror(errno));
+		fprintf(stderr, "Could not close uadecore fds: %s\n",
+			strerror(errno));
 		kill (*uadepid, SIGKILL);
 		return -1;
 	}
